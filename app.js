@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+ldocument.addEventListener('DOMContentLoaded', () => {
   const loginDiv = document.getElementById('login');
   const dashboardDiv = document.getElementById('dashboard');
   const loginForm = document.getElementById('login-form');
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Placeholder login (replace with real auth/biometrics later)
   loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    // Simulate successful login
+    console.log('Login submitted'); // Check dev tools console to see if it logs
     loginDiv.style.display = 'none';
     dashboardDiv.style.display = 'block';
     loadSection('home');
