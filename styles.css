@@ -1,152 +1,32 @@
-/* --- Base / globals --- */
-*,
-*::before,
-*::after { box-sizing: border-box; }
-
-:root{
-  --df-green:#1B5E20;
-  --df-green-light:#4CAF50;
-  --df-gold:#DAA520;
-  --header-h: 60px;      /* keep in sync with header padding/line-height */
-  --crumbs-h: 36px;      /* breadcrumbs height */
-  --footer-h: 48px;      /* footer height */
-  --page-bg:#FFFFF0;     /* Ivory */
-  --text:#333;
-}
-
+/* Reset some defaults for consistency */
 body {
-  margin: 0;
-  font-family: 'Montserrat', sans-serif;
-  background-color: var(--page-bg);
-  color: var(--text);
-  -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
 }
 
-/* --- Header --- */
-header {
-  position: fixed;
-  top: 0; left: 0; width: 100%;
-  background-color: var(--df-green);
-  color: #fff;
-  padding: 10px 20px;
-  display: flex; justify-content: space-between; align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,.1);
-  z-index: 1000;
-  min-height: var(--header-h);
+/* The thinner header (now with a nice grey background) */
+.thin-header {
+    background-color: #6B7280; /* Nice medium grey – adjust if needed, e.g., #9CA3AF for lighter */
+    height: 50px; /* Assuming a thinner height; adjust as per your original */
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centers the home button */
+    color: #FFFFFF; /* White text for contrast */
+    border-bottom: 1px solid #4B5563; /* Optional subtle border */
 }
 
-.logo { display:flex; align-items:center; }
-.logo img { height: 40px; margin-right: 10px; }
-.logo-text { font-size: 1.5em; font-weight: 700; }
-
-#clock { font-size: 1em; }
-
-.logout {
-  color: #fff; cursor: pointer; margin-left: 10px;
-  padding: .35rem .6rem; border-radius: .5rem;
-  border: 1px solid rgba(255,255,255,.25);
-  background: transparent;
-}
-.logout:hover { color: var(--df-gold); border-color: rgba(255,255,255,.45); }
-.logout:focus-visible { outline: 2px solid var(--df-gold); outline-offset: 2px; }
-
-/* --- Breadcrumbs (sticky under header) --- */
-.breadcrumbs {
-  background-color: var(--df-green-light);
-  color: #fff;
-  padding: 6px 20px;
-  position: sticky;
-  top: var(--header-h);
-  width: 100%;
-  z-index: 900;
-  font-size: .9em;
-  /* Ensure the sticky bar has a defined height consistent with layout calc */
-  min-height: var(--crumbs-h);
-  display: flex; align-items: center;
+/* Example home button styling */
+.home-button {
+    text-decoration: none;
+    color: inherit;
+    font-weight: bold;
 }
 
-.breadcrumbs a { color:#fff; text-decoration:none; }
-.breadcrumbs a:hover { color: var(--df-gold); }
-
-/* --- Main content: pad for header/breadcrumbs/footer --- */
-main {
-  /* total top padding = header + crumbs + a small gap */
-  padding: calc(var(--header-h) + var(--crumbs-h) + 12px) 20px calc(var(--footer-h) + 12px);
-  text-align: center;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 20px;
-}
-
-/* Interactive tiles */
-.menu-button {
-  background-color: #fff;
-  border: 2px solid var(--df-green);
-  border-radius: 15px;
-  padding: 20px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,.1);
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
-}
-.menu-button:hover {
-  transform: scale(1.03);
-  border-color: var(--df-gold);
-  box-shadow: 0 6px 14px rgba(0,0,0,.12);
-}
-.menu-button:active { transform: scale(.98); }
-.menu-button:focus-visible { outline: 3px solid var(--df-gold); outline-offset: 2px; }
-
-.menu-emoji { font-size: 3em; display:block; }
-.menu-label { margin-top: 10px; font-weight: 700; }
-.menu-emoji.gold { color: var(--df-gold); }
-
-/* --- Footer --- */
-footer {
-  position: fixed;
-  bottom: 0; left: 0; width: 100%;
-  background-color: var(--df-green);
-  color: #fff;
-  padding: 10px 20px;
-  text-align: center;
-  box-shadow: 0 -2px 4px rgba(0,0,0,.1);
-  min-height: var(--footer-h);
-  display:flex; align-items:center; justify-content:center; gap:.4rem;
-}
-
-/* --- Login page --- */
-#login {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  height: 100dvh;            /* better on iOS Safari than 100vh */
-  padding: 20px;
-}
-#login img { height: 100px; margin-bottom: 10px; }
-.tagline { font-size: 1.2em; margin-bottom: 20px; color: var(--df-green); }
-
-form { width: 100%; max-width: 300px; }
-input {
-  width: 100%; padding: 10px; margin: 10px 0;
-  border: 1px solid var(--df-green); border-radius: 5px;
-}
-input:focus { outline: 2px solid var(--df-gold); outline-offset: 2px; }
-button {
-  width: 100%; padding: 10px;
-  background-color: var(--df-green); color: #fff;
-  border: none; border-radius: 5px; cursor: pointer; font-weight: 600;
-}
-button:hover { background-color: var(--df-gold); }
-button:focus-visible { outline: 3px solid var(--df-gold); outline-offset: 2px; }
-.forgot { margin-top: 10px; color: var(--df-green); text-decoration: underline; cursor: pointer; }
-
-/* --- Motion preferences --- */
-@media (prefers-reduced-motion: reduce) {
-  .menu-button { transition: none; }
-  .menu-button:hover, .menu-button:active { transform: none; }
-}
-
-/* --- Mobile tweaks --- */
-@media (max-width: 600px) {
-  .dashboard-grid { grid-template-columns: 1fr 1fr; }
+/* Other elements (e.g., main content with green to show contrast) */
+.main-content {
+    background-color: #22C55E; /* Example green for the rest of the page */
+    padding: 20px;
+    text-align: center;
 }
