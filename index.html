@@ -1,78 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dowson Farms</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="manifest" href="manifest.json">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
-  <meta name="theme-color" content="#1B5E20">
-  <!-- Apple touch icon for home screen (optional, helps with icon) -->
-  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Home Page</title>
+    <link rel="stylesheet" href="style.css"> <!-- Links to your single CSS file -->
 </head>
 <body>
-  <!-- Dashboard (now shown by default, no login) -->
-  <div id="dashboard">
-    <header>
-      <div class="logo">
-        <img src="icons/logo.png" alt="Dowson Farms Logo">
-        <span class="logo-text">Dowson Farms</span>
-      </div>
-      <div>
-        <span id="clock"></span>
-        <span class="logout">Logout</span>
-      </div>
+    <!-- The thinner header section -->
+    <header class="thin-header">
+        <a href="/" class="home-button">Home</a>
     </header>
-    <div class="breadcrumbs" id="breadcrumbs">Home</div>
-    <main id="content">
-      <div class="dashboard-grid">
-        <div class="menu-button" data-section="crop">
-          <span class="menu-emoji gold">🌽</span>
-          <div class="menu-label">Crop Production</div>
-        </div>
-        <div class="menu-button" data-section="calculator">
-          <span class="menu-emoji">🔢</span>
-          <div class="menu-label">Calculator</div>
-        </div>
-        <div class="menu-button" data-section="field">
-          <span class="menu-emoji">🛠️</span>
-          <div class="menu-label">Field Maintenance</div>
-        </div>
-        <div class="menu-button" data-section="equipment">
-          <span class="menu-emoji">🚜</span>
-          <div class="menu-label">Equipment</div>
-        </div>
-        <div class="menu-button" data-section="grain">
-          <span class="menu-emoji">📦</span>
-          <div class="menu-label">Grain Tracking</div>
-        </div>
-        <div class="menu-button" data-section="employees">
-          <span class="menu-emoji">👥</span>
-          <div class="menu-label">Employees</div>
-        </div>
-        <div class="menu-button" data-section="ai">
-          <span class="menu-emoji">🤖</span>
-          <div class="menu-label">AI Reports</div>
-        </div>
-        <div class="menu-button" data-section="settings">
-          <span class="menu-emoji">⚙️</span>
-          <div class="menu-label">Settings</div>
-        </div>
-        <div class="menu-button" data-section="feedback">
-          <span class="menu-emoji">💬</span>
-          <div class="menu-label">Feedback</div>
-        </div>
-      </div>
-    </main>
-    <footer>
-      <span id="version">v1.0</span> | <span id="date"></span>
-    </footer>
-  </div>
 
-  <script src="app.js"></script>
+    <!-- Example main content to demonstrate the contrast -->
+    <main class="main-content">
+        <h1>Welcome to Your Home Page</h1>
+        <p>This is where your content goes. The header above is now grey to avoid clashing greens.</p>
+    </main>
 </body>
 </html>
