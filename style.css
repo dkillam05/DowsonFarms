@@ -17,13 +17,13 @@ body {
 
 /* Thinner header with nice grey background */
 .thin-header {
-    background-color: #6B7280; /* Medium grey */
-    height: 50px; /* Slightly taller for logo/buttons; adjust as needed */
+    background-color: #6B7280; /* Medium grey – this differentiates from greens */
+    height: 50px; /* Thinner height, adjusted for logo/buttons */
     padding: 0 20px;
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Logo on left, buttons on right */
-    color: #FFFFFF; /* White text */
+    justify-content: space-between; /* Logo left, buttons right */
+    color: #FFFFFF; /* White text for contrast */
     border-bottom: 1px solid #4B5563; /* Subtle border */
     position: sticky;
     top: 0;
@@ -37,15 +37,15 @@ body {
 }
 
 .logo {
-    height: 40px; /* Adjust size to fit header */
+    height: 40px; /* Size to fit header without overflowing */
     width: auto;
-    margin-right: 20px; /* Space between logo and buttons */
+    margin-right: 20px; /* Space from buttons */
 }
 
 /* Navigation buttons container */
 .nav-buttons {
     display: flex;
-    gap: 20px; /* Space between buttons */
+    gap: 15px; /* Space between buttons */
 }
 
 /* Individual nav button styling */
@@ -60,23 +60,64 @@ body {
 }
 
 .nav-button:hover {
-    background-color: #4B5563; /* Darker grey on hover for interactivity */
+    background-color: #4B5563; /* Darker grey hover effect */
 }
 
 /* Main content – flex-grow to fill space */
 .main-content {
     padding: 40px 20px;
     text-align: center;
-    background-color: #FFFFFF; /* White background for content */
-    flex-grow: 1; /* Expands to fill available space */
+    background-color: #FFFFFF; /* White background to contrast with body grey */
+    flex-grow: 1; /* Expands to fill screen, preventing empty space */
 }
 
 .main-content h1 {
-    color: #22C55E; /* Green title */
+    color: #22C55E; /* Green title for your app's theme */
+    margin-bottom: 20px;
 }
 
 .main-content p {
     color: #374151; /* Dark grey text */
+    margin-bottom: 30px;
+}
+
+/* Example feature section styling */
+.feature-section {
+    margin-bottom: 40px;
+}
+
+.feature-section h2 {
+    color: #22C55E; /* Matching green */
+}
+
+.feature-section ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.feature-section li {
+    margin-bottom: 10px;
+}
+
+/* Example call-to-action button */
+.call-to-action {
+    margin-top: 20px;
+}
+
+.cta-button {
+    background-color: #22C55E; /* Green button */
+    color: #FFFFFF;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.cta-button:hover {
+    background-color: #16A34A; /* Darker green hover */
 }
 
 /* Footer styling – at bottom */
