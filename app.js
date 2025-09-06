@@ -1,3 +1,4 @@
+<script>
 document.addEventListener('DOMContentLoaded', () => {
   const loginDiv = document.getElementById('login');
   const dashboardDiv = document.getElementById('dashboard');
@@ -8,83 +9,117 @@ document.addEventListener('DOMContentLoaded', () => {
   const dateEl = document.getElementById('date');
   const logout = document.querySelector('.logout');
 
-  // Placeholder login (replace with real auth/biometrics later)
-  loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    console.log('Login submitted'); // Check dev tools console to see if it logs
-    loginDiv.style.display = 'none';
-    dashboardDiv.style.display = 'block';
-    loadSection('home');
-  });
+  // --- Initial state ---
+  if (loginDiv) loginDiv.style.display = 'flex';
+  if (dashboardDiv) dashboardDiv.style.display = 'none';
 
-  // Logout
-  logout.addEventListener('click', () => {
-    dashboardDiv.style.display = 'none';
-    loginDiv.style.display = 'flex';
-  });
+  // --- Login (placeholder) ---
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      console.log('Login submitted');
+      if (loginDiv) loginDiv.style.display = 'none';
+      if (dashboardDiv) dashboardDiv.style.display = 'block';
+      loadSection('home');
+    });
+  }
 
-  // Clock (12-hour format)
+  // --- Logout ---
+  if (logout) {
+    logout.addEventListener('click', () => {
+      if (dashboardDiv) dashboardDiv.style.display = 'none';
+      if (loginDiv) loginDiv.style.display = 'flex';
+    });
+  }
+
+  // --- Clock (12-hour) ---
   function updateClock() {
+    if (!clock) return;
     const now = new Date();
-    let hours = now.getHours() % 12 || 12;
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+    const h24 = now.getHours();
+    const hours = h24 % 12 || 12;
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
     clock.textContent = `${hours}:${minutes} ${ampm}`;
   }
   updateClock();
-  setInterval(updateClock, 60000);
+  setInterval(updateClock, 60_000);
 
-  // Date in footer (e.g., Thursday September 4th 2025)
+  // --- Date (e.g., Thursday September 4th 2025) ---
+  function ordinalSuffix(n) {
+    const v = n % 100;
+    if (v >= 11 && v <= 13) return 'th';
+    switch (n % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  }
   function updateDate() {
+    if (!dateEl) return;
     const now = new Date();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const day = days[now.getDay()];
     const month = months[now.getMonth()];
     const date = now.getDate();
     const year = now.getFullYear();
-    const suffix = (date % 10 === 1 && date !== 11) ? 'st' : (date % 10 === 2 && date !== 12) ? 'nd' : (date % 10 === 3 && date !== 13) ? 'rd' : 'th';
-    dateEl.textContent = `${day} ${month} ${date}${suffix} ${year}`;
+    dateEl.textContent = `${day} ${month} ${date}${ordinalSuffix(date)} ${year}`;
   }
   updateDate();
 
-  // Menu buttons
-  const menuButtons = document.querySelectorAll('.menu-button');
-  menuButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const section = button.dataset.section;
-      loadSection(section);
-    });
+  // --- Menu: event delegation (handles current & future buttons) ---
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.menu-button');
+    if (!btn) return;
+    const section = btn.dataset.section || 'home';
+    loadSection(section);
   });
 
-  // Load section (placeholders for now)
+  // --- Section loader ---
   function loadSection(section) {
+    if (!content || !breadcrumbs) return;
     let html = '';
-    let crumb = 'Home > ';
+    let crumb = 'Home';
+
     switch (section) {
       case 'home':
-        html = /* html for dashboard grid, but since it's the default, redirect or keep */;
+        html = `
+          <div class="grid">
+            <a class="menu-button" data-section="crop">🌽 Crop Production</a>
+            <a class="menu-button" data-section="calculator">🧮 Calculator</a>
+            <!-- Add more tiles as needed -->
+          </div>
+        `;
         crumb = 'Home';
         break;
+
       case 'crop':
         html = '<h1>Crop Production</h1><p>Placeholder for yields, rotations, etc.</p>';
-        crumb += 'Crop Production';
+        crumb = 'Home › Crop Production';
         break;
+
       case 'calculator':
         html = '<h1>Calculator</h1><p>Placeholder for farming calcs.</p>';
-        crumb += 'Calculator';
+        crumb = 'Home › Calculator';
         break;
-      // Add cases for other sections...
+
       default:
         html = '<h1>Section Coming Soon</h1>';
-        crumb += 'Unknown';
+        crumb = 'Home › Unknown';
     }
+
     content.innerHTML = html;
-    breadcrumbs.innerHTML = crumb;
+    breadcrumbs.textContent = crumb;
   }
 
-  // Service worker for PWA/offline (versioned caching for updates)
+  // --- Service worker (relative path so it works on GitHub Pages) ---
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    // If your sw file lives next to index.html, this is safest:
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.warn('SW registration failed:', err);
+    });
   }
 });
+</script>
