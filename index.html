@@ -10,22 +10,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
   <meta name="theme-color" content="#1B5E20">
+  <!-- Apple touch icon for home screen (optional, helps with icon) -->
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
 </head>
 <body>
-  <!-- Login Page -->
-  <div id="login">
-    <img src="icons/logo.png" alt="Dowson Farms Logo">
-    <div class="tagline">Welcome to Dowson Farms Management</div>
-    <form id="login-form">
-      <input type="email" placeholder="Email" required>
-      <input type="password" placeholder="Password" required>
-      <button type="submit">Log In</button>
-    </form>
-    <div class="forgot">Forgot Password?</div>
-  </div>
-
-  <!-- Dashboard (hidden initially) -->
-  <div id="dashboard" style="display: none;">
+  <!-- Dashboard (now shown by default, no login) -->
+  <div id="dashboard">
     <header>
       <div class="logo">
         <img src="icons/logo.png" alt="Dowson Farms Logo">
