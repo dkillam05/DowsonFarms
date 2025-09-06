@@ -7,19 +7,27 @@
     <link rel="stylesheet" href="style.css"> <!-- Links to your single CSS file -->
 </head>
 <body>
-    <!-- The thinner header section with Home button -->
+    <!-- Thinner header with logo, home button, and other navigation buttons -->
     <header class="thin-header">
-        <a href="/" class="home-button">Home</a>
+        <a href="/" class="logo-link">
+            <img src="logo.png" alt="Your App Logo" class="logo"> <!-- Replace 'logo.png' with your actual logo file or URL -->
+        </a>
+        <nav class="nav-buttons">
+            <a href="/" class="nav-button">Home</a>
+            <a href="/about" class="nav-button">About</a> <!-- Example button; update href and text -->
+            <a href="/contact" class="nav-button">Contact</a> <!-- Example button; update as needed -->
+            <a href="/login" class="nav-button">Login</a> <!-- Example button; add more here -->
+        </nav>
     </header>
 
-    <!-- Main content area (example with green background for contrast) -->
+    <!-- Main content area – fills available space -->
     <main class="main-content">
         <h1>Welcome to Your App</h1>
-        <p>This is the home page content. The header is now a nice grey to differentiate from any green elements.</p>
-        <!-- Add more content here as needed, e.g., sections, images, or app features -->
+        <p>This is the home page content. The header is now a nice grey with your logo and buttons included.</p>
+        <!-- Add your real content here, e.g., sections, forms, images -->
     </main>
 
-    <!-- Optional footer for a more complete page -->
+    <!-- Footer – sticks to bottom -->
     <footer class="footer">
         <p>&copy; 2025 Your App. All rights reserved.</p>
     </footer>
