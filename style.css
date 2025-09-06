@@ -1,0 +1,58 @@
+/* style.css - Your single CSS file for all styling */
+
+/* Reset some defaults for consistency */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #F3F4F6; /* Light grey body background for a clean look */
+}
+
+/* The thinner header (now with a nice grey background) */
+.thin-header {
+    background-color: #6B7280; /* Medium grey – adjust e.g., #9CA3AF for lighter or #4B5563 for darker */
+    height: 40px; /* Thinner height; tweak as needed */
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Aligns home button to the left; change to center if preferred */
+    color: #FFFFFF; /* White text for contrast */
+    border-bottom: 1px solid #4B5563; /* Subtle border */
+    position: sticky; /* Optional: Makes it stick to the top on scroll */
+    top: 0;
+    z-index: 1000;
+}
+
+/* Home button styling */
+.home-button {
+    text-decoration: none;
+    color: inherit;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Main content styling (example with green accents) */
+.main-content {
+    padding: 40px 20px;
+    text-align: center;
+    background-color: #FFFFFF; /* White background for content */
+}
+
+.main-content h1 {
+    color: #22C55E; /* Green title to show contrast with grey header */
+}
+
+.main-content p {
+    color: #374151; /* Dark grey text */
+}
+
+/* Optional footer styling */
+.footer {
+    background-color: #6B7280; /* Matching grey for footer */
+    color: #FFFFFF;
+    text-align: center;
+    padding: 10px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
