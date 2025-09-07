@@ -1,5 +1,5 @@
 // ===== Dowson Farms PWA — Service Worker (v6.11) =====
-const CACHE_VERSION = 'df-v6.13-fresh';
+const CACHE_VERSION = 'df-v6.14-fresh';
 
 // Build correct base path (works on GitHub Pages like /USERNAME/REPO/)
 var SW_URL = new URL(self.location.href);
