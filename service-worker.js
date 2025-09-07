@@ -1,5 +1,5 @@
 // === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v3.0.0';
+const CACHE_VERSION = 'df-v3.0.1';
 
 const PRECACHE = [
   './',
