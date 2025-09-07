@@ -1,67 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="auto">
 <head>
   <meta charset="utf-8" />
-  <title>Dowson Farms PWA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dowson Farms PWA</title>
   <meta name="theme-color" content="#1B5E20" />
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-  <!-- Styles -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
   <link rel="stylesheet" href="styles.css" />
-
-  <!-- Favicons (optional, reuse PWA icons if you want) -->
-  <link rel="icon" href="icons/icon-192.png" />
 </head>
 <body>
 
-  <!-- ===== Header ===== -->
-  <header class="app-header" role="banner">
-    <div class="header-left">
-      <img class="logo" src="icons/logo.png" alt="Dowson Farms logo" width="28" height="28" />
-      <span class="brand">Dowson Farms</span>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand">
+      <img class="logo" src="icons/logo.png" alt="" />
+      <span class="title">Dowson Farms</span>
     </div>
-
-    <div class="header-right">
-      <span id="clock" class="clock" aria-live="polite">--:-- --</span>
-      <button id="logout" class="logout" type="button" aria-label="Log out">Logout</button>
+    <div class="right">
+      <span id="clock" class="clock">--:-- --</span>
+      <button id="logout" class="logout btn-link">Logout</button>
     </div>
   </header>
 
-  <!-- ===== Breadcrumbs ===== -->
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <div id="breadcrumbs"><span>Home</span></div>
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" id="breadcrumbs" aria-label="Breadcrumbs">
+    <span>Home</span>
   </nav>
 
-  <!-- ===== Main App Root ===== -->
-  <main id="app" class="app-main" tabindex="-1" aria-live="polite">
-    <!-- JS renders content here (Home dashboard, hubs, forms, etc.) -->
-  </main>
+  <!-- Main app -->
+  <main id="app" tabindex="-1" class="app" aria-live="polite"></main>
 
-  <!-- ===== Update Banner (hidden by default; shown by JS when new SW is ready) ===== -->
+  <!-- Update banner (sits above footer) -->
   <div id="update-banner" class="update-banner" hidden>
-    <div class="update-banner__row">
-      <span class="update-banner__text">New update available</span>
-      <button id="update-refresh" class="update-banner__btn" type="button" aria-live="polite">Refresh</button>
-    </div>
+    <span>🔄 New update available</span>
+    <button id="update-refresh" class="btn-primary sm">Refresh</button>
   </div>
 
-  <!-- ===== Footer ===== -->
-  <footer class="app-footer" role="contentinfo">
-    <div class="foot-left">
-      <span id="version" title="App version">v0.0</span>
-    </div>
-    <div class="foot-right">
-      <span id="today">—</span>
-    </div>
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div>v<span id="version">0.0</span></div>
+    <div id="today">—</div>
   </footer>
 
-  <!-- ===== Scripts ===== -->
-  <script src="app.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>
