@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v5.2';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v5.3';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -22,7 +22,7 @@ const ROUTES = {
   '#/employees': 'Employees',
   '#/ai': 'AI Reports',
   '#/settings': 'Settings',
-  '#/settings/crops': 'Settings',     // <— Settings tab route (Crop Type)
+  '#/settings/crops': 'Settings',   // Settings tab: Crop Type
   '#/feedback': 'Feedback',
 };
 
@@ -61,7 +61,7 @@ function renderBreadcrumb(name){
 
   // Nested crumbs for settings tabs
   if (hash.startsWith('#/settings/crops')) {
-    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings">Settings</a> &nbsp;&gt;&nbsp; <span>Crop Type</span>`;
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings/crops">Settings</a> &nbsp;&gt;&nbsp; <span>Crop Type</span>`;
     return;
   }
 
@@ -79,7 +79,7 @@ function viewHome(){
       ${tile('📦','Grain Tracking','#/grain')}
       ${tile('👥','Employees','#/employees')}
       ${tile('🤖','AI Reports','#/ai')}
-      ${tile('⚙️','Settings','#/settings')}
+      ${tile('⚙️','Settings','#/settings/crops')}
       ${tile('💬','Feedback','#/feedback')}
     </div>
   `;
@@ -106,13 +106,13 @@ function viewSection(title){
 
 // ===== Settings: tabs + Crop Type manager =====
 function currentSettingsTab(){
-  const hash = location.hash || '#/settings';
+  const hash = location.hash || '#/settings/crops';
   if (hash.startsWith('#/settings/crops')) return 'crops';
-  return 'none';
+  return 'crops'; // default to crops, no placeholder view
 }
 
 function viewSettings(){
-  const tab = currentSettingsTab() || 'crops'; // default to crops
+  const tab = currentSettingsTab(); // always 'crops' for now
 
   // tabs (same tile look as main menu)
   const tabsGrid = `
@@ -125,20 +125,15 @@ function viewSettings(){
     </div>
   `;
 
-  // pane (always crops for now)
-  let pane = settingsPaneCrops();
+  // pane (always crop manager for now)
+  const pane = settingsPaneCrops();
 
   app.innerHTML = `
     ${tabsGrid}
     ${pane}
   `;
 
-  if (tab === 'crops') wireCropsHandlers();
-}
-  
-
-  // wire up crop actions
-  if (tab === 'crops') wireCropsHandlers();
+  wireCropsHandlers();
 }
 
 const CROPS_KEY = 'df_crops';
@@ -179,6 +174,7 @@ function settingsPaneCrops(){
     </section>
   `;
 }
+
 function wireCropsHandlers(){
   const addBtn = document.getElementById('add-crop');
   const input  = document.getElementById('new-crop');
@@ -191,7 +187,8 @@ function wireCropsHandlers(){
     const crops = loadCrops();
     // avoid duplicates (case-insensitive)
     if (crops.some(c => c.toLowerCase() === name.toLowerCase())) {
-      input.value = ''; return;
+      input.value = '';
+      return;
     }
     crops.push(name);
     saveCrops(crops);
@@ -222,7 +219,7 @@ function route(){
   renderBreadcrumb(name==='home' ? 'home' : name);
 
   if (hash.startsWith('#/settings')) {
-    viewSettings();
+    viewSettings();           // always shows Crop Type
   } else if(name==='home') {
     viewHome();
   } else if(name==='Not Found') {
