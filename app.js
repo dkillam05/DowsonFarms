@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v3.8';  // bump on each release
+const APP_VERSION = 'v3.9';  // bump this each release
 
 const ROUTES = {
   '': 'home',
@@ -41,6 +41,8 @@ const versionEl = document.getElementById('version');
 const todayEl = document.getElementById('today');
 const clockEl = document.getElementById('clock');
 const logoutBtn = document.getElementById('logout');
+const bannerEl = document.getElementById('update-banner');
+const bannerBtn = document.getElementById('update-refresh');
 
 // ===== Rendering =====
 function renderBreadcrumb(routeName){
@@ -111,33 +113,21 @@ function applyFooterHeightVar() {
   if (!footer) return;
   document.documentElement.style.setProperty('--footer-h', footer.offsetHeight + 'px');
 }
-window.addEventListener('load', applyHeaderHeightVar);
-window.addEventListener('resize', applyHeaderHeightVar);
-window.addEventListener('orientationchange', applyHeaderHeightVar);
-window.addEventListener('load', applyFooterHeightVar);
-window.addEventListener('resize', applyFooterHeightVar);
-window.addEventListener('orientationchange', applyFooterHeightVar);
+['load','resize','orientationchange'].forEach(evt => {
+  window.addEventListener(evt, applyHeaderHeightVar);
+  window.addEventListener(evt, applyFooterHeightVar);
+});
+window.addEventListener('hashchange', applyHeaderHeightVar);
 
-// ===== Update banner refs & helpers =====
-const bannerEl = document.getElementById('update-banner');
-const bannerBtn = document.getElementById('update-refresh');
-
+// ===== Update banner helpers =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
 function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', APP_VERSION); } catch {} }
 function storedVersion(){ try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; } }
+function needsUpdate(){ const s = storedVersion(); return s && s !== APP_VERSION; }
+function syncBannerWithVersion(){ if (needsUpdate()) showUpdateBanner(); else { hideUpdateBanner(); markVersionAsCurrent(); } }
 
-function syncBannerWithVersion(){
-  const stored = storedVersion();
-  if (stored && stored !== APP_VERSION) {
-    showUpdateBanner();
-  } else {
-    hideUpdateBanner();
-    markVersionAsCurrent();
-  }
-}
-
-// Single click handler
+// Button
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
     bannerBtn.disabled = true;
@@ -157,29 +147,31 @@ syncBannerWithVersion();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const reg = await navigator.serviceWorker.register('service-worker.js'); // scope optional
+      const reg = await navigator.serviceWorker.register('service-worker.js');
 
-      // Proactively check for updates on load and when tab returns to foreground
+      // Proactively check for updates
       reg.update();
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') reg.update();
       });
 
-      // If a new worker is already waiting, show banner
-      if (reg.waiting) { window.__waitingSW = reg.waiting; showUpdateBanner(); }
+      // Only show banner if truly out of date
+      if (reg.waiting) {
+        window.__waitingSW = reg.waiting;
+        if (needsUpdate()) showUpdateBanner(); else hideUpdateBanner();
+      }
 
-      // Detect a newly installed update (only when already controlled)
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing; if (!sw) return;
         sw.addEventListener('statechange', () => {
           if (sw.state === 'installed' && navigator.serviceWorker.controller) {
             window.__waitingSW = reg.waiting || sw;
-            showUpdateBanner();
+            if (needsUpdate()) showUpdateBanner(); else hideUpdateBanner();
           }
         });
       });
 
-      // When the new worker takes control, hide banner, mark current, then reload once
+      // When new worker takes control
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.__waitingSW = null;
         hideUpdateBanner();
