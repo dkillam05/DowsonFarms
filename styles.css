@@ -26,8 +26,9 @@ html,body {
   background: var(--green); color: #fff;
   box-shadow: var(--shadow);
 
-  /* Safe-area top padding */
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 10px;
+  /* Old: padding: 12px; */
+  /* New: slightly taller top padding */
+  padding: 20px 12px 10px;
 }
 
 /* iOS 11–12 fallback for safe-area */
