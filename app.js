@@ -370,13 +370,20 @@ if ('serviceWorker' in navigator) {
         });
       });
 
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        clearTimeout(_recheckTimer);
-        window.__waitingSW = null;
-        hideUpdateBanner();
-        markVersionAsCurrent();
-        setTimeout(() => location.reload(), 400);
-      });
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+  clearTimeout(_recheckTimer);
+  window.__waitingSW = null;
+
+  // Mark as current and hide before reload
+  markVersionAsCurrent();
+  hideUpdateBanner();
+
+  // After reload, run one more sync to confirm
+  setTimeout(() => {
+    location.reload();
+    setTimeout(syncBannerWithVersion, 800);
+  }, 400);
+});
 
     } catch (e) {
       console.error('SW registration failed', e);
