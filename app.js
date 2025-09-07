@@ -164,39 +164,61 @@ if (storedVersion() && storedVersion() !== APP_VERSION) {
   markVersionAsCurrent(); // first run or already current
 }
 
-// ===== Service Worker registration + update flow =====
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
+// === Bump this on every release to bust the cache ===
+const CACHE_VERSION = 'df-v2.0.1';
+
+const PRECACHE = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/logo.png'
+];
+
+// Install: cache assets (do NOT skipWaiting here)
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
+  );
+  // no self.skipWaiting();  <-- important for the banner flow
+});
+
+// Activate: remove old caches and take control
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k !== CACHE_VERSION) ? caches.delete(k) : null));
+  })());
+  self.clients.claim();
+});
+
+// Fetch: same-origin GETs cache-first, then network
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== location.origin) return;
+
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
     try {
-      const reg = await navigator.serviceWorker.register('service-worker.js', { scope: './' });
-
-      // If a new worker is already waiting, show banner
-      if (reg.waiting) {
-        window.__waitingSW = reg.waiting;
-        showUpdateBanner();
-      }
-
-      // Detect fresh install finishes -> show banner
-      reg.addEventListener('updatefound', () => {
-        const sw = reg.installing;
-        if (!sw) return;
-        sw.addEventListener('statechange', () => {
-          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            window.__waitingSW = reg.waiting || sw;
-            showUpdateBanner();
-          }
-        });
-      });
-
-      // When the new worker takes control, we’re on the latest — mark + reload
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        markVersionAsCurrent();
-        // small delay avoids reload loop on some browsers
-        setTimeout(() => location.reload(), 50);
-      });
-
-    } catch (e) {
-      console.error('SW registration failed', e);
+      const res = await fetch(request);
+      const cache = await caches.open(CACHE_VERSION);
+      cache.put(request, res.clone());
+      return res;
+    } catch {
+      return cached || Response.error();
     }
-  });
+  })());
+});
+
+// Message: app tells us to activate the waiting SW now
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 }
