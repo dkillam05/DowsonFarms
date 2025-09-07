@@ -1,5 +1,5 @@
 // === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v4.2-fresh';
+const CACHE_VERSION = 'df-v5.0-fresh';
 
 // Build correct base path (works on GitHub Pages like /USERNAME/REPO/)
 const SW_URL = new URL(self.location.href);
@@ -8,7 +8,9 @@ const BASE_PATH = SW_URL.pathname.replace(/service-worker\.js$/, '');
 // Paths we always want to keep fresh
 const CORE = [
   'index.html',
+  'login.html',      // login page
   'app.js',
+  'login.js',        // login logic
   'styles.css',
   'manifest.webmanifest'
 ].map(p => BASE_PATH + p);
@@ -27,7 +29,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
   );
-  // no self.skipWaiting();
+  // keep the new SW in "waiting" so your UI can prompt refresh
 });
 
 // ----- Activate: clean old caches and take control
@@ -39,10 +41,9 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Helper: network-first fetch with cache fallback
+// Helper: network-first fetch with cache fallback (for HTML/JS/CSS/manifest)
 async function networkFirst(request) {
   try {
-    // Force bypass of HTTP cache to get the newest bytes
     const fresh = await fetch(new Request(request, { cache: 'no-store' }));
     const cache = await caches.open(CACHE_VERSION);
     cache.put(request, fresh.clone());
@@ -72,10 +73,11 @@ self.addEventListener('fetch', (event) => {
   // Only same-origin GET requests
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // 1) Navigation requests (HTML): always network-first to latest index.html
+  // 1) Navigation requests (HTML): always deliver latest index/login HTML
   if (req.mode === 'navigate') {
-    const indexReq = new Request(BASE_PATH + 'index.html', { cache: 'reload' });
-    event.respondWith(networkFirst(indexReq));
+    const isLogin = url.pathname.endsWith('login.html');
+    const htmlReq = new Request(BASE_PATH + (isLogin ? 'login.html' : 'index.html'), { cache: 'reload' });
+    event.respondWith(networkFirst(htmlReq));
     return;
   }
 
