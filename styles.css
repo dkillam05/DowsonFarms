@@ -249,3 +249,4 @@ button.sm{ padding:6px 10px; border-radius:8px; border:2px solid var(--green); b
 button.sm:hover{ filter:brightness(1.05); }
 button.warn.sm{ border-color:#b7791f; color:#8a5a14; background:#fffaf0; }
 button.danger.sm{ border-color:#b00020; color:#b00020; background:#fff; }
+.settings-actions { margin-top: 12px; }
