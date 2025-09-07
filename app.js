@@ -111,7 +111,7 @@ function viewSection(title){
 }
 
 /* ---------------- Settings ---------------- */
-// Settings HOME: show tabs (tiles) only
+// Settings HOME: show tabs (tiles) + back to dashboard
 function viewSettingsHome(){
   app.innerHTML = `
     <div class="grid settings-tabs" role="tablist" aria-label="Settings tabs">
@@ -120,6 +120,10 @@ function viewSettingsHome(){
         <span class="label">Crop Type</span>
       </a>
       <!-- Add more settings tiles later -->
+    </div>
+
+    <div class="settings-actions">
+      <a class="btn" href="#/home">Back to Dashboard</a>
     </div>
   `;
 }
