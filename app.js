@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v5.9';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v6.0';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -14,7 +14,17 @@ function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } cat
 const ROUTES = {
   '': 'home',
   '#/home': 'home',
+
+  // Crop production hub + subroutes
   '#/crop': 'Crop Production',
+  '#/crop/planting': 'Planting',
+  '#/crop/spraying': 'Spraying',
+  '#/crop/aerial': 'Aerial',
+  '#/crop/harvest': 'Harvest',
+  '#/crop/maintenance': 'Maintenance',
+  '#/crop/scouting': 'Scouting',
+  '#/crop/trials': 'Trials',
+
   '#/calculator': 'Calculator',
   '#/field': 'Field Maintenance',
   '#/equipment': 'Equipment',
@@ -59,6 +69,7 @@ const bannerBtn = document.getElementById('update-refresh');
 function renderBreadcrumb(){
   const hash = location.hash || '#/home';
 
+  // Settings crumbs
   if (hash === '#/settings') {
     crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>Settings</span>`;
     return;
@@ -67,6 +78,23 @@ function renderBreadcrumb(){
     crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings">Settings</a> &nbsp;&gt;&nbsp; <span>Crop Type</span>`;
     return;
   }
+
+  // Crop Production hub & child pages
+  const cropChildren = [
+    '#/crop/planting','#/crop/spraying','#/crop/aerial',
+    '#/crop/harvest','#/crop/maintenance','#/crop/scouting','#/crop/trials'
+  ];
+  if (hash === '#/crop') {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>Crop Production</span>`;
+    return;
+  }
+  if (cropChildren.includes(hash)) {
+    const label = ROUTES[hash] || 'Section';
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/crop">Crop Production</a> &nbsp;&gt;&nbsp; <span>${label}</span>`;
+    return;
+  }
+
+  // Home or generic
   if (hash === '#/home' || hash === '') {
     crumbs.innerHTML = `<span>Home</span>`;
     return;
@@ -100,13 +128,33 @@ function tile(emoji,label,href){
   `;
 }
 
-function viewSection(title){
+function viewSection(title, backHref = '#/home', backLabel = 'Back to Dashboard'){
   app.innerHTML = `
     <section class="section">
       <h1>${title}</h1>
       <p>Coming soon.</p>
-      <a class="btn" href="#/home">Back to Dashboard</a>
+      <a class="btn" href="${backHref}">${backLabel}</a>
     </section>
+  `;
+}
+
+/* ---------------- Crop Production ---------------- */
+// Submenu grid with your order & emojis
+function viewCropHub(){
+  app.innerHTML = `
+    <div class="grid" role="list">
+      ${tile('🌱','Planting','#/crop/planting')}
+      ${tile('🧪','Spraying','#/crop/spraying')}
+      ${tile('🚁','Aerial','#/crop/aerial')}
+      ${tile('🌾','Harvest','#/crop/harvest')}
+      ${tile('🧰','Maintenance','#/crop/maintenance')}
+      ${tile('🔎','Scouting','#/crop/scouting')}
+      ${tile('🧬','Trials','#/crop/trials')}
+    </div>
+
+    <div class="settings-actions">
+      <a class="btn" href="#/home">Back to Dashboard</a>
+    </div>
   `;
 }
 
@@ -150,13 +198,8 @@ function loadCrops(){
 }
 function saveCrops(list){ try { localStorage.setItem(CROPS_KEY, JSON.stringify(list)); } catch {} }
 
-// TODO: wire this to real datasets later
-function isCropInUse(name){
-  // Example future checks:
-  // const fields = JSON.parse(localStorage.getItem('df_fields')||'[]');
-  // if (fields.some(f => (f.crop||'').toLowerCase() === name.toLowerCase())) return true;
-  return false;
-}
+// TODO: wire to real datasets later
+function isCropInUse(name){ return false; }
 
 // Settings > Crop Type detail
 function viewSettingsCrops(){
@@ -255,11 +298,21 @@ function route(){
 
   renderBreadcrumb();
 
-  if (hash === '#/settings') {
-    viewSettingsHome();                     // tabs only
+  // Crop hub & children
+  if (hash === '#/crop') {
+    viewCropHub();
+  } else if (hash.startsWith('#/crop/')) {
+    const label = ROUTES[hash] || 'Section';
+    viewSection(label, '#/crop', 'Back to Crop Production');
+  }
+  // Settings
+  else if (hash === '#/settings') {
+    viewSettingsHome();
   } else if (hash.startsWith('#/settings/crops')) {
-    viewSettingsCrops();                    // detail page
-  } else if (hash === '#/home' || hash === '') {
+    viewSettingsCrops();
+  }
+  // Home / generic
+  else if (hash === '#/home' || hash === '') {
     viewHome();
   } else if (ROUTES[hash]) {
     viewSection(ROUTES[hash]);
