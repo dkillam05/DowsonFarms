@@ -112,7 +112,35 @@ const bannerBtn = document.getElementById('update-refresh');
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
 function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', APP_VERSION); } catch {} }
-function storedVersion(){ try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; } }
+function storedVersion(){
+  try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; }
+}
+
+function syncBannerWithVersion(){
+  const stored = storedVersion();
+  if (stored && stored !== APP_VERSION) {
+    showUpdateBanner();
+  } else {
+    hideUpdateBanner();
+    markVersionAsCurrent();
+  }
+}
+
+if (bannerBtn){
+  bannerBtn.addEventListener('click', () => {
+    bannerBtn.disabled = true;
+    bannerBtn.textContent = 'Updating…';
+
+    if (window.__waitingSW) {
+      window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      location.reload();
+    }
+  });
+}
+
+// Run once on load
+syncBannerWithVersion();
 
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
