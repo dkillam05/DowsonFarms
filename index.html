@@ -3,33 +3,41 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Dowson Farms PWA</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css">
+  <title>Dowson Farms</title>
+
+  <!-- PWA meta -->
   <meta name="theme-color" content="#1B5E20">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="app-header">
-    <div class="logo">Dowson Farms</div>
-    <div class="spacer"></div>
-    <div id="clock" class="clock"></div>
+    <div class="logo">
+      <img src="icons/logo.png" alt="Dowson Farms Logo">
+      <span class="logo-text">Dowson Farms</span>
+    </div>
+    <div id="today"></div>
+    <div id="clock"></div>
     <button id="logout" class="logout">Logout</button>
   </header>
 
-  <nav id="breadcrumbs" class="breadcrumbs"><span>Home</span></nav>
+  <nav id="breadcrumbs" class="breadcrumbs"></nav>
 
   <main id="app" tabindex="-1"></main>
 
   <div id="update-banner" hidden>
-    <span>New Update Available</span>
-    <button id="update-refresh" class="btn-primary">Refresh</button>
+    <span>New update available</span>
+    <button id="update-refresh">Refresh</button>
   </div>
 
   <footer class="app-footer">
-    <div id="version">v0.0</div>
-    <div id="today"></div>
+    <span id="version"></span>
+    <span id="date"></span>
   </footer>
 
+  <!-- Scripts -->
   <script src="app.js"></script>
 </body>
 </html>
