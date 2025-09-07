@@ -1,51 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="auto">
 <head>
   <meta charset="utf-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Dowson Farms PWA</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <meta name="theme-color" content="#1B5E20">
   <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#1B5E20">
 </head>
 <body>
-  <!-- Fixed header -->
   <header class="app-header">
-    <div class="brand">
-      <img src="icons/logo.png" alt="DF" class="logo">
-      <div class="title">Dowson Farms</div>
-    </div>
+    <div class="logo">Dowson Farms</div>
     <div class="spacer"></div>
-    <div class="meta">
-      <span id="clock" class="clock">--:-- --</span>
-      <button id="logout" class="btn btn-link">Logout</button>
-    </div>
+    <div id="clock" class="clock"></div>
+    <button id="logout" class="logout">Logout</button>
   </header>
 
-  <!-- Sticky breadcrumbs -->
-  <nav class="breadcrumbs" id="breadcrumbs" aria-label="Breadcrumbs">
-    <span>Home</span>
-  </nav>
+  <nav id="breadcrumbs" class="breadcrumbs"><span>Home</span></nav>
 
-  <!-- Update banner (sits just above footer) -->
-  <div id="update-banner" class="update-banner" hidden>
-    <span>New update available</span>
-    <button id="update-refresh" class="btn-primary sm">Refresh</button>
+  <main id="app" tabindex="-1"></main>
+
+  <div id="update-banner" hidden>
+    <span>New Update Available</span>
+    <button id="update-refresh" class="btn-primary">Refresh</button>
   </div>
 
-  <!-- Main application content -->
-  <main id="app" tabindex="-1" aria-live="polite" aria-busy="false">
-    <!-- Filled by app.js -->
-  </main>
-
-  <!-- Fixed footer -->
   <footer class="app-footer">
-    <div>Version <strong id="version">v0.0</strong></div>
-    <div id="today">—</div>
+    <div id="version">v0.0</div>
+    <div id="today"></div>
   </footer>
 
   <script src="app.js"></script>
