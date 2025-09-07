@@ -1,5 +1,15 @@
 // ===== App constants =====
-const APP_VERSION = 'v4.2';  // bump this each release (e.g. 'v3.9' or 'v3.9.0')
+const APP_VERSION = 'v5.0';  // bump this each release (displayed as vMAJOR.MINOR)
+
+// ===== Auth guard (client-side demo) =====
+function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
+(function enforceAuth(){
+  const here = location.pathname.split('/').pop().toLowerCase();
+  if (!isAuthed() && here !== 'login.html') {
+    // Not signed in -> go to login
+    window.location.replace('login.html');
+  }
+})();
 
 // ===== Routes =====
 const ROUTES = {
@@ -35,7 +45,6 @@ function normalizeVersion(v){
   const [maj='0', min='0'] = m.split('.');
   return `${maj}.${min}`;
 }
-/* Footer shows only MAJOR.MINOR, prefixed with v */
 function displayVersion(v){ return 'v' + normalizeVersion(v); }
 
 // ===== DOM refs =====
@@ -92,7 +101,7 @@ function route(){
   const name = ROUTES[hash] || 'Not Found';
   renderBreadcrumb(name==='home' ? 'home' : name);
   if(name==='home') viewHome(); else if(name==='Not Found') viewSection('Not Found'); else viewSection(name);
-  app.focus();
+  app?.focus();
   applyHeaderHeightVar();
   applyFooterHeightVar();
 }
@@ -103,8 +112,15 @@ window.addEventListener('load', route);
 if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
 if (todayEl) todayEl.textContent = prettyDate();
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
-tick(); setInterval(tick, 1000 * 15);
-if (logoutBtn) logoutBtn.addEventListener('click', () => alert('Logged out (placeholder).'));
+tick(); setInterval(tick, 15000);
+
+// Logout now actually logs out
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    try { localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); } catch {}
+    window.location.replace('login.html');
+  });
+}
 
 // ===== Dynamic header/footer height -> CSS vars =====
 function applyHeaderHeightVar() {
@@ -123,17 +139,11 @@ function applyFooterHeightVar() {
 });
 window.addEventListener('hashchange', applyHeaderHeightVar);
 
-// ===== Update banner: helpers =====
+// ===== Update banner (same reliable flow as before) =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
-
-function markVersionAsCurrent(){
-  try { localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); } catch {}
-}
-function storedVersion(){
-  try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; }
-}
-/* Only show when stored version differs from current (normalized) */
+function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); } catch {} }
+function storedVersion(){ try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; } }
 function needsUpdate(){
   const saved = storedVersion();
   const current = normalizeVersion(APP_VERSION);
@@ -144,31 +154,23 @@ function syncBannerWithVersion(){
   else { hideUpdateBanner(); markVersionAsCurrent(); }
 }
 
-// ===== Banner button (optimistic hide for speed) =====
-let _recheckTimer = null;
+// Button
 if (bannerBtn){
+  let _timer;
   bannerBtn.addEventListener('click', () => {
     bannerBtn.disabled = true;
     bannerBtn.textContent = 'Updating…';
-
-    // Hide immediately for snappier feel
     hideUpdateBanner();
-
-    // Safety: if SW doesn't take over, re-check & re-show after 3s
-    clearTimeout(_recheckTimer);
-    _recheckTimer = setTimeout(() => {
+    clearTimeout(_timer);
+    _timer = setTimeout(() => {
       if (needsUpdate()) {
         showUpdateBanner();
         bannerBtn.disabled = false;
         bannerBtn.textContent = 'Refresh';
       }
     }, 3000);
-
-    if (window.__waitingSW) {
-      window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
-    } else {
-      location.reload();
-    }
+    if (window.__waitingSW) window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
+    else location.reload();
   });
 }
 
@@ -181,17 +183,14 @@ if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.register('service-worker.js');
 
-      // Proactively check for updates (helps iOS/Chrome iOS)
       reg.update();
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') reg.update();
       });
 
-      // Only show banner if truly out of date
       if (reg.waiting) {
         window.__waitingSW = reg.waiting;
-        if (needsUpdate()) showUpdateBanner();
-        else hideUpdateBanner();
+        if (needsUpdate()) showUpdateBanner(); else hideUpdateBanner();
       }
 
       reg.addEventListener('updatefound', () => {
@@ -199,19 +198,16 @@ if ('serviceWorker' in navigator) {
         sw.addEventListener('statechange', () => {
           if (sw.state === 'installed' && navigator.serviceWorker.controller) {
             window.__waitingSW = reg.waiting || sw;
-            if (needsUpdate()) showUpdateBanner();
-            else hideUpdateBanner();
+            if (needsUpdate()) showUpdateBanner(); else hideUpdateBanner();
           }
         });
       });
 
-      // When the new worker takes control, finalize + reload
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        clearTimeout(_recheckTimer);
         window.__waitingSW = null;
         hideUpdateBanner();
         markVersionAsCurrent();
-        setTimeout(() => location.reload(), 400); // a touch longer for iOS reliability
+        setTimeout(() => location.reload(), 400);
       });
 
     } catch (e) {
