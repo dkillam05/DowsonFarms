@@ -1,74 +1,62 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Dowson Farms • Login</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css" />
-  <meta name="theme-color" content="#1B5E20" />
-</head>
-<body>
+// === Bump this on every release to bust the cache ===
+const CACHE_VERSION = 'df-v6.5-fresh';
 
-  <!-- Header -->
-  <header class="app-header">
-    <div class="logo">
-      <img src="icons/logo.png" alt="Dowson Farms">
-      <span class="logo-text">Dowson Farms</span>
-    </div>
-    <div class="header-right">
-      <span id="clock"></span>
-    </div>
-  </header>
+const CORE = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.webmanifest'
+];
 
-  <!-- (No breadcrumbs on login) -->
+const ASSETS = [
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/logo.png'
+];
 
-  <!-- Update banner container (kept for consistency; usually hidden on login) -->
-  <div id="update-banner" class="update-banner" hidden>
-    <span>New update available</span>
-    <button id="update-refresh" type="button">Refresh</button>
-  </div>
+const PRECACHE = [...CORE, ...ASSETS];
 
-  <!-- Main -->
-  <main id="login-main" class="login-main">
-    <section class="login-card">
-      <h1>Sign in</h1>
-      <p class="muted">Invite-only for now</p>
+// Install: cache assets (do NOT skipWaiting here)
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
+  );
+  // no self.skipWaiting();
+});
 
-      <form id="login-form" autocomplete="on">
-        <label class="field">
-          <span>Email</span>
-          <input id="email" type="email" inputmode="email" autocomplete="email" required placeholder="you@farm.com" />
-        </label>
+// Activate: remove old caches and take control
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k !== CACHE_VERSION) ? caches.delete(k) : null));
+  })());
+  self.clients.claim();
+});
 
-        <label class="field">
-          <span>Invite code</span>
-          <input id="code" type="password" inputmode="text" autocomplete="one-time-code" placeholder="From your invite email" />
-        </label>
+// Fetch: same-origin GETs cache-first, then network
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== location.origin) return;
 
-        <button id="login-btn" type="submit" class="btn-primary">Sign in</button>
-      </form>
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    try {
+      const res = await fetch(request);
+      const cache = await caches.open(CACHE_VERSION);
+      cache.put(request, res.clone());
+      return res;
+    } catch {
+      return cached || Response.error();
+    }
+  })());
+});
 
-      <div class="or">or</div>
-
-      <div class="passkey-actions">
-        <button id="passkey-signin" type="button" class="btn-outline" disabled>Sign in with Face ID / Touch ID</button>
-        <button id="passkey-setup" type="button" class="btn-link">Set up Face ID / Touch ID</button>
-        <p id="passkey-note" class="muted small"></p>
-      </div>
-
-      <div id="login-msg" class="msg" role="status" aria-live="polite"></div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="app-footer">
-    <span id="version">v0.0</span>
-    <span id="today"></span>
-  </footer>
-
-  <script src="login.js"></script>
-</body>
-</html>
+// Message: app tells us to activate the waiting SW now
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
