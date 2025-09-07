@@ -4,6 +4,36 @@
   --gold:#DAA520;
   --text:#333;
   --white:#fff;
+
+  /* dynamic header height (set by JS) with a sensible fallback */
+  --header-h: 80px;
+}
+
+/* ...existing styles... */
+
+.app-header{
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: var(--green); color: var(--white);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  z-index: 1000;
+  min-height: 70px;
+}
+
+/* Use the dynamic height here instead of a hard-coded 80px */
+.breadcrumbs{
+  position: sticky;
+  top: var(--header-h);
+  background:#215f28; color:#eef6ee;
+  padding:8px 14px; font-size:.95rem; z-index:900;
+}
+
+/* Also use the dynamic height for page padding */
+#app{
+  padding: calc(var(--header-h) + 24px) 14px 68px;
+  min-height:100vh;
 }
 
 *{box-sizing:border-box}
