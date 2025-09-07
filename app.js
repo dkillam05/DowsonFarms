@@ -142,3 +142,14 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+function applyHeaderHeightVar() {
+  const header = document.querySelector('.app-header');
+  if (!header) return;
+  const h = header.offsetHeight;
+  document.documentElement.style.setProperty('--header-h', h + 'px');
+}
+
+window.addEventListener('load', applyHeaderHeightVar);
+window.addEventListener('resize', applyHeaderHeightVar);
+window.addEventListener('orientationchange', applyHeaderHeightVar);
+window.addEventListener('hashchange', applyHeaderHeightVar);
