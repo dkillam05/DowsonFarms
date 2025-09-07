@@ -619,11 +619,27 @@ if (bannerBtn){
   });
 }
 
-// On hard reloads without SW change, make sure banner stays hidden if on current
+// On load, decide banner state
 window.addEventListener('load', function(){
-  // If a SW already controls the page, mark the version now to prevent banner sticking
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) { markVersionAsCurrent(); hideUpdateBanner(); }
-  else { syncBannerWithVersion(); }
+  // If we just came back from pressing Refresh, suppress the banner once
+  (function afterUpdateOneShot(){
+    var flag = null;
+    try { flag = sessionStorage.getItem('df_updating'); } catch {}
+    if (flag === '1') {
+      try { sessionStorage.removeItem('df_updating'); } catch {}
+      markVersionAsCurrent();
+      hideUpdateBanner();
+      return; // stop here, don't re-run normal sync
+    }
+  })();
+
+  // If a SW already controls the page, keep banner hidden on hard reloads
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    markVersionAsCurrent();
+    hideUpdateBanner();
+  } else {
+    syncBannerWithVersion();
+  }
 });
 
 // ===== Service Worker registration =====
