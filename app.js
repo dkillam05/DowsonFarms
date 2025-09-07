@@ -49,10 +49,6 @@ function renderBreadcrumb(routeName){
 
 function viewHome(){
   app.innerHTML = `
-    <section class="section" style="margin-bottom:12px">
-      <h1>Dashboard</h1>
-      <p>Tap a section to continue.</p>
-    </section>
     <div class="grid" role="list">
       ${tile('🌽','Crop Production','#/crop')}
       ${tile('🔢','Calculator','#/calculator')}
