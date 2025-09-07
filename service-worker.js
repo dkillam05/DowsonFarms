@@ -1,89 +1,61 @@
-// ===== Dowson Farms PWA — Service Worker (v6.11) =====
-const CACHE_VERSION = 'df-v6.16-fresh';
+// === Bump this on every release to bust the cache ===
+const CACHE_VERSION = 'df-v6.5-fresh';
 
-// Build correct base path (works on GitHub Pages like /USERNAME/REPO/)
-var SW_URL = new URL(self.location.href);
-var BASE_PATH = SW_URL.pathname.replace(/service-worker\.js$/, '');
+const CORE = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.webmanifest'
+];
 
-// Core files (network-first)
-var CORE = [
-  'index.html',
-  'app.js',
-  'styles.css',
-  'manifest.webmanifest'
-].map(function(p){ return BASE_PATH + p; });
+const ASSETS = [
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/logo.png'
+];
 
-// Static assets (cache-first)
-var ASSETS = [
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/logo.png'
-].map(function(p){ return BASE_PATH + p; });
+const PRECACHE = [...CORE, ...ASSETS];
 
-var PRECACHE = CORE.concat(ASSETS);
-
-// Install: precache latest
-self.addEventListener('install', function(event) {
+// Install: cache assets (do NOT skipWaiting here)
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then(function(cache){ return cache.addAll(PRECACHE); })
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
   );
-  // No skipWaiting; app will request it via banner button.
+  // no self.skipWaiting();
 });
 
-// Activate: purge old caches and claim
-self.addEventListener('activate', function(event) {
-  event.waitUntil((async function(){
-    var keys = await caches.keys();
-    await Promise.all(keys.map(function(k){ if (k !== CACHE_VERSION) return caches.delete(k); }));
+// Activate: remove old caches and take control
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k !== CACHE_VERSION) ? caches.delete(k) : null));
   })());
   self.clients.claim();
 });
 
-// Helpers
-async function networkFirst(request) {
-  try {
-    var fresh = await fetch(new Request(request, { cache: 'no-store' }));
-    var cache = await caches.open(CACHE_VERSION);
-    cache.put(request, fresh.clone());
-    return fresh;
-  } catch (err) {
-    var cached = await caches.match(request, { ignoreSearch: true });
+// Fetch: same-origin GETs cache-first, then network
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== location.origin) return;
+
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
     if (cached) return cached;
-    throw err;
-  }
-}
-async function cacheFirst(request) {
-  var cached = await caches.match(request, { ignoreSearch: true });
-  if (cached) return cached;
-  var res = await fetch(request);
-  var cache = await caches.open(CACHE_VERSION);
-  cache.put(request, res.clone());
-  return res;
-}
-
-// Fetch
-self.addEventListener('fetch', function(event) {
-  var req = event.request;
-  var url = new URL(req.url);
-
-  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
-
-  if (req.mode === 'navigate') {
-    var indexReq = new Request(BASE_PATH + 'index.html', { cache: 'reload' });
-    event.respondWith(networkFirst(indexReq));
-    return;
-  }
-
-  if (CORE.indexOf(url.pathname) !== -1) {
-    event.respondWith(networkFirst(req));
-    return;
-  }
-
-  event.respondWith(cacheFirst(req));
+    try {
+      const res = await fetch(request);
+      const cache = await caches.open(CACHE_VERSION);
+      cache.put(request, res.clone());
+      return res;
+    } catch {
+      return cached || Response.error();
+    }
+  })());
 });
 
-// Message from app to activate waiting worker
-self.addEventListener('message', function(event) {
+// Message: app tells us to activate the waiting SW now
+self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
