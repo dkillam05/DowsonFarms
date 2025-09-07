@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v5.8';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v5.9';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -21,7 +21,7 @@ const ROUTES = {
   '#/grain': 'Grain Tracking',
   '#/employees': 'Employees',
   '#/ai': 'AI Reports',
-  '#/settings': 'Settings',          // settings home (tabs only)
+  '#/settings': 'Settings',          // settings home (tiles only)
   '#/settings/crops': 'Settings',    // settings > crop type detail
   '#/feedback': 'Feedback',
 };
@@ -268,13 +268,16 @@ function route(){
   }
 
   app?.focus();
+
+  // Recompute layout variables (header, breadcrumbs, footer)
   applyHeaderHeightVar();
+  applyCrumbsHeightVar();
   applyFooterHeightVar();
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
 
-// ===== Header / Footer =====
+// ===== Header / Footer text =====
 if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
 if (todayEl) todayEl.textContent = prettyDate();
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
@@ -288,22 +291,27 @@ if (logoutBtn) {
   });
 }
 
-// ===== Dynamic header/footer height -> CSS vars =====
+// ===== Dynamic layout vars =====
 function applyHeaderHeightVar() {
   const header = document.querySelector('.app-header');
-  if (!header) return;
-  document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
+  const h = header ? header.offsetHeight : 0;
+  document.documentElement.style.setProperty('--header-h', h + 'px');
+}
+function applyCrumbsHeightVar() {
+  const bc = document.querySelector('.breadcrumbs');
+  const h = bc ? bc.offsetHeight : 0;
+  document.documentElement.style.setProperty('--crumbs-h', h + 'px');
 }
 function applyFooterHeightVar() {
   const footer = document.querySelector('.app-footer');
-  if (!footer) return;
-  document.documentElement.style.setProperty('--footer-h', footer.offsetHeight + 'px');
+  const h = footer ? footer.offsetHeight : 0;
+  document.documentElement.style.setProperty('--footer-h', h + 'px');
 }
 ['load','resize','orientationchange'].forEach(evt => {
   window.addEventListener(evt, applyHeaderHeightVar);
+  window.addEventListener(evt, applyCrumbsHeightVar);
   window.addEventListener(evt, applyFooterHeightVar);
 });
-window.addEventListener('hashchange', applyHeaderHeightVar);
 
 // ===== Update banner (reliable flow) =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
@@ -370,20 +378,16 @@ if ('serviceWorker' in navigator) {
         });
       });
 
-navigator.serviceWorker.addEventListener('controllerchange', () => {
-  clearTimeout(_recheckTimer);
-  window.__waitingSW = null;
-
-  // Mark as current and hide before reload
-  markVersionAsCurrent();
-  hideUpdateBanner();
-
-  // After reload, run one more sync to confirm
-  setTimeout(() => {
-    location.reload();
-    setTimeout(syncBannerWithVersion, 800);
-  }, 400);
-});
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        clearTimeout(_recheckTimer);
+        window.__waitingSW = null;
+        hideUpdateBanner();
+        markVersionAsCurrent();
+        setTimeout(() => {
+          location.reload();
+          setTimeout(syncBannerWithVersion, 800); // confirm after reload
+        }, 300);
+      });
 
     } catch (e) {
       console.error('SW registration failed', e);
