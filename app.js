@@ -112,7 +112,7 @@ function currentSettingsTab(){
 }
 
 function viewSettings(){
-  const tab = currentSettingsTab();
+  const tab = currentSettingsTab() || 'crops'; // default to crops
 
   // tabs (same tile look as main menu)
   const tabsGrid = `
@@ -121,19 +121,21 @@ function viewSettings(){
         <span class="emoji">🌱</span>
         <span class="label">Crop Type</span>
       </a>
-      <!-- Add more settings tabs later reusing the same pattern -->
+      <!-- Add more settings tabs later -->
     </div>
   `;
 
-  // pane
-  let pane = '';
-  if (tab === 'crops') pane = settingsPaneCrops();
-  else pane = `<div class="section"><p>Select a settings tab.</p></div>`;
+  // pane (always crops for now)
+  let pane = settingsPaneCrops();
 
   app.innerHTML = `
     ${tabsGrid}
     ${pane}
   `;
+
+  if (tab === 'crops') wireCropsHandlers();
+}
+  
 
   // wire up crop actions
   if (tab === 'crops') wireCropsHandlers();
