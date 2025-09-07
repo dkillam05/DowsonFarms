@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.13'; // footer shows vMAJOR.MINOR
+const APP_VERSION = 'v6.14'; // footer shows vMAJOR.MINOR
 
 // ===== Auth guard (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -604,13 +604,18 @@ function storedVersion(){ try { return localStorage.getItem('df_app_version') ||
 function needsUpdate(){ var saved=storedVersion(); var cur=normalizeVersion(APP_VERSION); return saved && saved !== cur; }
 function syncBannerWithVersion(){ if (needsUpdate()) showUpdateBanner(); else { hideUpdateBanner(); markVersionAsCurrent(); } }
 
-// Hide banner then trigger SW swap
 if (bannerBtn){
   bannerBtn.addEventListener('click', function(){
-    bannerBtn.disabled = true; bannerBtn.textContent = 'Updating…';
+    try { sessionStorage.setItem('df_updating', '1'); } catch {}
+    bannerBtn.disabled = true;
+    bannerBtn.textContent = 'Updating…';
     hideUpdateBanner();
-    if (window.__waitingSW) window.__waitingSW.postMessage({ type:'SKIP_WAITING' });
-    else location.reload();
+
+    if (window.__waitingSW) {
+      window.__waitingSW.postMessage({ type:'SKIP_WAITING' });
+    } else {
+      location.reload();
+    }
   });
 }
 
