@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v3.4.0';  // bump on each release
+const APP_VERSION = 'v3.5.0';  // bump on each release
 
 const ROUTES = {
   '': 'home',
