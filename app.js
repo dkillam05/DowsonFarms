@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v3.25';  // bump this each release (e.g. 'v3.9' or 'v3.9.0')
+const APP_VERSION = 'v4.0';  // bump this each release (e.g. 'v3.9' or 'v3.9.0')
 
 // ===== Routes =====
 const ROUTES = {
@@ -29,7 +29,7 @@ function prettyDate(d=new Date()){
   return `${dow} ${month} ${ordinal(d.getDate())} ${d.getFullYear()}`;
 }
 
-/* Normalize versions to MAJOR.MINOR strings for comparison & display */
+/* Normalize versions to MAJOR.MINOR for compare & display */
 function normalizeVersion(v){
   const m = String(v || '').trim().replace(/^v/i,'');
   const [maj='0', min='0'] = m.split('.');
@@ -123,7 +123,7 @@ function applyFooterHeightVar() {
 });
 window.addEventListener('hashchange', applyHeaderHeightVar);
 
-// ===== Update banner helpers =====
+// ===== Update banner: helpers =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
 
@@ -144,18 +144,24 @@ function syncBannerWithVersion(){
   else { hideUpdateBanner(); markVersionAsCurrent(); }
 }
 
-// ===== Banner button (optimistic hide for faster feel) =====
+// ===== Banner button (optimistic hide for speed) =====
 let _recheckTimer = null;
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
     bannerBtn.disabled = true;
     bannerBtn.textContent = 'Updating…';
-    // Hide immediately for a snappier feel
+
+    // Hide immediately for snappier feel
     hideUpdateBanner();
-    // If for some reason the SW doesn't take over, re-show after 3s
+
+    // Safety: if SW doesn't take over, re-check & re-show after 3s
     clearTimeout(_recheckTimer);
     _recheckTimer = setTimeout(() => {
-      if (needsUpdate()) { showUpdateBanner(); bannerBtn.disabled = false; bannerBtn.textContent = 'Refresh'; }
+      if (needsUpdate()) {
+        showUpdateBanner();
+        bannerBtn.disabled = false;
+        bannerBtn.textContent = 'Refresh';
+      }
     }, 3000);
 
     if (window.__waitingSW) {
@@ -175,7 +181,7 @@ if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.register('service-worker.js');
 
-      // Proactively check for updates
+      // Proactively check for updates (helps iOS/Chrome iOS)
       reg.update();
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') reg.update();
@@ -184,7 +190,8 @@ if ('serviceWorker' in navigator) {
       // Only show banner if truly out of date
       if (reg.waiting) {
         window.__waitingSW = reg.waiting;
-        if (needsUpdate()) showUpdateBanner(); else hideUpdateBanner();
+        if (needsUpdate()) showUpdateBanner();
+        else hideUpdateBanner();
       }
 
       reg.addEventListener('updatefound', () => {
@@ -192,7 +199,8 @@ if ('serviceWorker' in navigator) {
         sw.addEventListener('statechange', () => {
           if (sw.state === 'installed' && navigator.serviceWorker.controller) {
             window.__waitingSW = reg.waiting || sw;
-            if (needsUpdate()) showUpdateBanner(); else hideUpdateBanner();
+            if (needsUpdate()) showUpdateBanner();
+            else hideUpdateBanner();
           }
         });
       });
@@ -203,7 +211,7 @@ if ('serviceWorker' in navigator) {
         window.__waitingSW = null;
         hideUpdateBanner();
         markVersionAsCurrent();
-        setTimeout(() => location.reload(), 400); // slightly longer for iOS reliability
+        setTimeout(() => location.reload(), 400); // a touch longer for iOS reliability
       });
 
     } catch (e) {
