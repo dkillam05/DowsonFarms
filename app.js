@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.6';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v6.7'; // shown as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -9,6 +9,20 @@ function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } cat
     window.location.replace('login.html');
   }
 })();
+
+// ===== Theme (light / dark / auto) =====
+const THEME_KEY = 'df_theme';
+function applyTheme(theme){
+  const t = theme || loadTheme() || 'auto';
+  document.documentElement.setAttribute('data-theme', t);
+}
+function saveTheme(theme){
+  try { localStorage.setItem(THEME_KEY, theme); } catch {}
+}
+function loadTheme(){
+  try { return localStorage.getItem(THEME_KEY) || 'auto'; } catch { return 'auto'; }
+}
+applyTheme(); // apply ASAP
 
 // ===== Routes =====
 const ROUTES = {
@@ -54,6 +68,7 @@ const ROUTES = {
   // Settings
   '#/settings': 'Settings',
   '#/settings/crops': 'Settings',
+  '#/settings/theme': 'Settings',
 
   // Feedback hub + subroutes
   '#/feedback': 'Feedback',
@@ -114,6 +129,10 @@ function renderBreadcrumb(){
   }
   if (hash.startsWith('#/settings/crops')) {
     crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings">Settings</a> &nbsp;&gt;&nbsp; <span>Crop Type</span>`;
+    return;
+  }
+  if (hash.startsWith('#/settings/theme')) {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings">Settings</a> &nbsp;&gt;&nbsp; <span>Theme</span>`;
     return;
   }
 
@@ -312,7 +331,6 @@ function viewFeedbackErrors(){
     const details = (document.getElementById('err-desc').value || '').trim();
     const contact = (document.getElementById('err-contact').value || '').trim();
     if (!subject || !details) { alert('Please fill the required fields.'); return; }
-    // If contact entered, validate format
     if (contact) {
       const c = contact.trim();
       const isEmail = looksLikeEmail(c);
@@ -391,7 +409,7 @@ function viewTeamHub(){
   `;
 }
 
-// Shared person form renderer (Access optional for all kinds)
+// Shared person form (Access optional for all kinds)
 function viewPersonForm(kind){
   const icons = { employee:'👷', subcontractor:'🛠️', vendor:'🏪' };
   const titles = { employee:'Add Employee', subcontractor:'Add Subcontractor', vendor:'Add Vendor' };
@@ -482,12 +500,8 @@ function viewPersonForm(kind){
 
     // Enforce strict formats if provided
     const phoneDigits = cleanPhone(phoneRaw);
-    if (phoneDigits && phoneDigits.length !== 10) {
-      alert('Phone must be a valid 10-digit number.'); return;
-    }
-    if (email && !looksLikeEmail(email)) {
-      alert('Please enter a valid email address.'); return;
-    }
+    if (phoneDigits && phoneDigits.length !== 10) { alert('Phone must be a valid 10-digit number.'); return; }
+    if (email && !looksLikeEmail(email)) { alert('Please enter a valid email address.'); return; }
 
     const people = loadPeople();
     people.push({
@@ -518,7 +532,7 @@ function viewTeamDirectory(){
     const active = (filter === t) ? 'style="border-color:#DAA520;color:#6f5200"' : '';
     const href = t==='all' ? '#/team/dir' : `#/team/dir?type=${t}`;
     return `<a class="btn" ${active} href="${href}">${emoji} ${label}</a>`;
-    
+  }
 
   const filtered = people.filter(p => filter==='all' ? true : p.type === filter);
 
@@ -579,7 +593,10 @@ function viewSettingsHome(){
         <span class="emoji">🌱</span>
         <span class="label">Crop Type</span>
       </a>
-      <!-- Add more settings tiles later -->
+      <a class="tile" role="tab" aria-selected="false" href="#/settings/theme">
+        <span class="emoji">🌓</span>
+        <span class="label">Theme</span>
+      </a>
     </div>
 
     <div class="settings-actions">
@@ -640,6 +657,10 @@ function viewSettingsCrops(){
         <span class="emoji">🌱</span>
         <span class="label">Crop Type</span>
       </a>
+      <a class="tile" role="tab" aria-selected="false" href="#/settings/theme">
+        <span class="emoji">🌓</span>
+        <span class="label">Theme</span>
+      </a>
     </div>
 
     <section class="section">
@@ -648,9 +669,9 @@ function viewSettingsCrops(){
 
       <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
 
-      <div class="add-row">
+      <div class="add-row" style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;">
         <input id="new-crop" type="text" placeholder="e.g., Wheat" />
-        <button id="add-crop" class="btn-add">Add</button>
+        <button id="add-crop" class="btn-primary">➕ Add</button>
       </div>
 
       <a class="btn" href="#/settings">Back to Settings</a>
@@ -703,6 +724,54 @@ function wireCropsHandlers(){
   });
 }
 
+// Settings > Theme
+function viewSettingsTheme(){
+  const current = loadTheme();
+  app.innerHTML = `
+    <div class="grid settings-tabs" role="tablist" aria-label="Settings tabs">
+      <a class="tile" role="tab" href="#/settings/crops">
+        <span class="emoji">🌱</span>
+        <span class="label">Crop Type</span>
+      </a>
+      <a class="tile tab-active" role="tab" aria-selected="true" href="#/settings/theme">
+        <span class="emoji">🌓</span>
+        <span class="label">Theme</span>
+      </a>
+    </div>
+
+    <section class="section">
+      <h1>Theme</h1>
+
+      <div class="field">
+        <label style="font-weight:600; margin-bottom:6px;">Appearance</label>
+        <div>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <input type="radio" name="theme" value="auto" ${current==='auto'?'checked':''}/> Auto (follow device)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <input type="radio" name="theme" value="light" ${current==='light'?'checked':''}/> Light
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <input type="radio" name="theme" value="dark" ${current==='dark'?'checked':''}/> Dark
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <a class="btn" href="#/settings">Back to Settings</a>
+      </div>
+    </section>
+  `;
+
+  app.querySelectorAll('input[name="theme"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const val = r.value;
+      saveTheme(val);
+      applyTheme(val);
+    });
+  });
+}
+
 /* ---------------- Router ---------------- */
 function route(){
   const hash = location.hash || '#/home';
@@ -748,6 +817,8 @@ function route(){
     viewSettingsHome();
   } else if (hash.startsWith('#/settings/crops')) {
     viewSettingsCrops();
+  } else if (hash.startsWith('#/settings/theme')) {
+    viewSettingsTheme();
   }
   // Home / generic
   else if (hash === '#/home' || hash === '') {
