@@ -16,13 +16,21 @@ body{
 }
 
 /* Layout chrome */
-.app-header, .app-footer{
-  position:fixed; left:0; right:0;
-  background:var(--green); color:var(--white);
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 14px;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
-  z-index:1000;
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--green);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 14px;
+  /* ↑ adds safe-area padding for iPhones */
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  z-index: 1000;
+  min-height: 70px; /* ensures it’s taller than status bar */
 }
 .app-header{ top:0 }
 .app-footer{ bottom:0; gap:12px; justify-content:space-between; }
