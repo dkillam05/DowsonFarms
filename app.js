@@ -1,5 +1,11 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.15'; // footer shows vMAJOR.MINOR
+const APP_VERSION = 'v6.16'; // footer shows vMAJOR.MINOR
+
+// ★ Helper to detect login page (used by banner logic too)
+function isLoginPage(){
+  var here = (location.pathname.split('/').pop() || '').toLowerCase();
+  return here === 'login.html';
+}
 
 // ===== Auth guard (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -621,6 +627,13 @@ if (bannerBtn){
 
 // On load, decide banner state
 window.addEventListener('load', function(){
+  // ★ Never show banner on login page
+  if (isLoginPage()) { 
+    markVersionAsCurrent(); 
+    hideUpdateBanner(); 
+    return; 
+  }
+
   // If we just came back from pressing Refresh, suppress the banner once
   (function afterUpdateOneShot(){
     var flag = null;
@@ -635,8 +648,7 @@ window.addEventListener('load', function(){
 
   // If a SW already controls the page, keep banner hidden on hard reloads
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    markVersionAsCurrent();
-    hideUpdateBanner();
+    if (needsUpdate()) showUpdateBanner(); else { markVersionAsCurrent(); hideUpdateBanner(); }
   } else {
     syncBannerWithVersion();
   }
@@ -651,14 +663,19 @@ if ('serviceWorker' in navigator) {
         reg.update();
         document.addEventListener('visibilitychange', function(){ if (document.visibilityState==='visible') reg.update(); });
 
-        if (reg.waiting) { window.__waitingSW = reg.waiting; if (needsUpdate()) showUpdateBanner(); }
+        // ★ Only show the banner if NOT on login
+        if (reg.waiting) { 
+          window.__waitingSW = reg.waiting; 
+          if (!isLoginPage() && needsUpdate()) showUpdateBanner(); 
+        }
 
         reg.addEventListener('updatefound', function(){
           var sw = reg.installing; if(!sw) return;
           sw.addEventListener('statechange', function(){
             if (sw.state==='installed' && navigator.serviceWorker.controller){
               window.__waitingSW = reg.waiting || sw;
-              if (needsUpdate()) showUpdateBanner();
+              // ★ Only show the banner if NOT on login
+              if (!isLoginPage() && needsUpdate()) showUpdateBanner();
             }
           });
         });
