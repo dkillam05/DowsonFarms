@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.2';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v6.4';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -28,7 +28,7 @@ const ROUTES = {
   '#/calculator': 'Calculator',
   '#/field': 'Field Maintenance',
 
-  // Equipment hub + subroutes (NEW)
+  // Equipment hub + subroutes
   '#/equipment': 'Equipment',
   '#/equipment/receivers': 'Receivers & Tech',
   '#/equipment/tractors': 'Tractors',
@@ -41,7 +41,14 @@ const ROUTES = {
   '#/equipment/barcodes': 'Barcode / QR Codes',
 
   '#/grain': 'Grain Tracking',
-  '#/employees': 'Employees',
+
+  // Team & Partners (NEW)
+  '#/team': 'Team & Partners',
+  '#/team/employees': 'Team & Partners',
+  '#/team/subcontractors': 'Team & Partners',
+  '#/team/vendors': 'Team & Partners',
+  '#/team/dir': 'Team & Partners',
+
   '#/ai': 'AI Reports',
 
   // Settings
@@ -72,6 +79,17 @@ function normalizeVersion(v){
   return `${maj}.${min}`;
 }
 function displayVersion(v){ return 'v' + normalizeVersion(v); }
+function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function capFirst(s=''){
+  s = s.trim();
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e||'').trim()); }
+function cleanPhone(p){
+  const d = String(p||'').replace(/[^\d]/g,'');
+  return d; // store digits only
+}
 
 // ===== DOM refs =====
 const app = document.getElementById('app');
@@ -112,7 +130,7 @@ function renderBreadcrumb(){
     return;
   }
 
-  // Equipment crumbs (NEW)
+  // Equipment crumbs
   const eqKids = [
     '#/equipment/receivers','#/equipment/tractors','#/equipment/combines',
     '#/equipment/sprayer','#/equipment/construction','#/equipment/trucks-trailers',
@@ -140,6 +158,24 @@ function renderBreadcrumb(){
     return;
   }
 
+  // Team & Partners crumbs
+  const teamKids = ['#/team/employees','#/team/subcontractors','#/team/vendors','#/team/dir'];
+  if (hash === '#/team') {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>Team & Partners</span>`;
+    return;
+  }
+  if (teamKids.includes(hash)) {
+    const labels = {
+      '#/team/employees': 'Employees',
+      '#/team/subcontractors': 'Subcontractors',
+      '#/team/vendors': 'Vendors',
+      '#/team/dir': 'Directory'
+    };
+    const label = labels[hash] || 'Section';
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/team">Team & Partners</a> &nbsp;&gt;&nbsp; <span>${label}</span>`;
+    return;
+  }
+
   // Home or generic
   if (hash === '#/home' || hash === '') {
     crumbs.innerHTML = `<span>Home</span>`;
@@ -157,7 +193,7 @@ function viewHome(){
       ${tile('🛠️','Field Maintenance','#/field')}
       ${tile('🚜','Equipment','#/equipment')}
       ${tile('📦','Grain Tracking','#/grain')}
-      ${tile('👥','Employees','#/employees')}
+      ${tile('🤝','Team & Partners','#/team')}
       ${tile('🤖','AI Reports','#/ai')}
       ${tile('⚙️','Settings','#/settings')}
       ${tile('💬','Feedback','#/feedback')}
@@ -203,8 +239,7 @@ function viewCropHub(){
   `;
 }
 
-/* ---------------- Equipment (NEW) ---------------- */
-// Equipment hub grid with emojis & your order (Receivers first)
+/* ---------------- Equipment ---------------- */
 function viewEquipmentHub(){
   app.innerHTML = `
     <div class="grid" role="list">
@@ -317,8 +352,230 @@ function viewFeedbackFeature(){
   });
 }
 
+/* ---------------- Team & Partners (NEW) ---------------- */
+// Storage
+const PEOPLE_KEY = 'df_people';
+function loadPeople(){
+  try { return JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]'); } catch { return []; }
+}
+function savePeople(list){
+  try { localStorage.setItem(PEOPLE_KEY, JSON.stringify(list)); } catch {}
+}
+
+// Hub
+function viewTeamHub(){
+  app.innerHTML = `
+    <div class="grid" role="list">
+      ${tile('👷','Employees','#/team/employees')}
+      ${tile('🛠️','Subcontractors','#/team/subcontractors')}
+      ${tile('🏪','Vendors','#/team/vendors')}
+      ${tile('📇','Directory','#/team/dir')}
+    </div>
+
+    <div class="settings-actions">
+      <a class="btn" href="#/home">Back to Dashboard</a>
+    </div>
+  `;
+}
+
+// Shared person form renderer
+function viewPersonForm(kind){
+  const icons = { employee:'👷', subcontractor:'🛠️', vendor:'🏪' };
+  const titles = { employee:'Add Employee', subcontractor:'Add Subcontractor', vendor:'Add Vendor' };
+  const requireAccess = (kind === 'employee');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>${icons[kind]} ${titles[kind]}</h1>
+      <p class="muted small">${requireAccess ? 'Access Role is required. Names auto-capitalize.' : 'Names auto-capitalize. Access Role not required.'}</p>
+
+      <div class="field">
+        <label for="p-first">First name</label>
+        <input id="p-first" type="text" placeholder="John" inputmode="text" />
+      </div>
+
+      <div class="field">
+        <label for="p-last">Last name</label>
+        <input id="p-last" type="text" placeholder="Doe" inputmode="text" />
+      </div>
+
+      <div class="field">
+        <label for="p-role">${kind==='vendor' ? 'Role / Contact Title' : 'Job role'}</label>
+        <input id="p-role" type="text" placeholder="${kind==='vendor' ? 'Account Rep, Sales, Support…' : 'Operator, Mechanic, Agronomist…'}" />
+      </div>
+
+      <div class="field">
+        <label for="p-phone">Phone</label>
+        <input id="p-phone" type="tel" placeholder="(555) 123-4567" inputmode="tel" />
+      </div>
+
+      <div class="field">
+        <label for="p-email">Email</label>
+        <input id="p-email" type="email" placeholder="name@example.com" inputmode="email" />
+      </div>
+
+      <div class="field">
+        <label for="p-start">${kind==='vendor' ? 'Since (date)' : 'Start date'}</label>
+        <input id="p-start" type="date" />
+      </div>
+
+      <div class="field">
+        <label for="p-bday">Birthday</label>
+        <input id="p-bday" type="date" />
+      </div>
+
+      <div class="field">
+        <label for="p-notes">Notes</label>
+        <textarea id="p-notes" rows="4" placeholder="${kind==='vendor' ? 'Company name, account #, terms…' : 'Certifications, allergies, preferred equipment…'}"></textarea>
+      </div>
+
+      ${requireAccess ? `
+        <div class="field">
+          <label for="p-access">Access / Role <span class="small" style="color:#b00020;">(required)</span></label>
+          <select id="p-access">
+            <option value="">— Select access —</option>
+            <option value="Admin">Admin</option>
+            <option value="Manager">Manager</option>
+            <option value="Employee">Employee</option>
+            <option value="Guest">Guest</option>
+          </select>
+        </div>
+      ` : `
+        <div class="field">
+          <label for="p-access">Access / Role (optional)</label>
+          <select id="p-access">
+            <option value="">— None —</option>
+            <option value="Admin">Admin</option>
+            <option value="Manager">Manager</option>
+            <option value="Employee">Employee</option>
+            <option value="Guest">Guest</option>
+          </select>
+        </div>
+      `}
+
+      <button id="p-save" class="btn-primary">Save</button>
+
+      <div class="settings-actions">
+        <a class="btn" href="#/team/dir">View Directory</a>
+        <a class="btn" href="#/team">Back to Team & Partners</a>
+      </div>
+    </section>
+  `;
+
+  const first = document.getElementById('p-first');
+  const last  = document.getElementById('p-last');
+  [first,last].forEach(el => el?.addEventListener('blur', () => el.value = capFirst(el.value)));
+
+  document.getElementById('p-save')?.addEventListener('click', () => {
+    let firstName = capFirst(document.getElementById('p-first').value);
+    let lastName  = capFirst(document.getElementById('p-last').value);
+
+    if (!firstName || !lastName) {
+      alert('Please enter first and last name.'); return;
+    }
+    if (!/^[A-Z]/.test(firstName) || !/^[A-Z]/.test(lastName)) {
+      alert('First and last names must start with a capital letter.'); return;
+    }
+
+    const role     = (document.getElementById('p-role').value || '').trim();
+    const phoneRaw = document.getElementById('p-phone').value || '';
+    const email    = (document.getElementById('p-email').value || '').trim();
+    const start    = (document.getElementById('p-start').value || '').trim();
+    const bday     = (document.getElementById('p-bday').value || '').trim();
+    const notes    = (document.getElementById('p-notes').value || '').trim();
+    const access   = document.getElementById('p-access').value;
+
+    const phone = cleanPhone(phoneRaw);
+    if (email && !looksLikeEmail(email)) { alert('Please enter a valid email.'); return; }
+    if (phone && phone.length < 7) { alert('Please enter a valid phone.'); return; }
+
+    if (requireAccess && !access) {
+      alert('Access / Role is required for employees.'); return;
+    }
+
+    const people = loadPeople();
+    people.push({
+      id: uid(),
+      type: kind,            // 'employee' | 'subcontractor' | 'vendor'
+      firstName, lastName,
+      role,
+      phone, email,
+      startDate: start,
+      birthday: bday,
+      notes,
+      accessRole: access || ''
+    });
+    savePeople(people);
+
+    alert('Saved.');
+    location.hash = '#/team/dir';
+  });
+}
+
+// Directory (with filter chips)
+function viewTeamDirectory(){
+  const people = loadPeople();
+  const filter = new URLSearchParams(location.hash.split('?')[1] || '').get('type') || 'all';
+
+  function pill(t, label, emoji){
+    const active = (filter === t) ? 'style="border-color:#DAA520;color:#6f5200"' : '';
+    const href = t==='all' ? '#/team/dir' : `#/team/dir?type=${t}`;
+    return `<a class="btn" ${active} href="${href}">${emoji} ${label}</a>`;
+  }
+
+  const filtered = people.filter(p => filter==='all' ? true : p.type === filter);
+
+  const rows = filtered.map(p => {
+    const name = `${p.firstName||''} ${p.lastName||''}`.trim();
+    const badge = p.type==='employee' ? '👷'
+                : p.type==='subcontractor' ? '🛠️'
+                : '🏪';
+    const lines = [
+      p.role ? `Role: ${p.role}` : '',
+      p.email ? `Email: ${p.email}` : '',
+      p.phone ? `Phone: ${p.phone}` : '',
+      p.startDate ? `Since: ${p.startDate}` : '',
+      p.birthday ? `Birthday: ${p.birthday}` : '',
+      p.accessRole ? `Access: ${p.accessRole}` : '',
+      p.notes ? `Notes: ${p.notes}` : ''
+    ].filter(Boolean).map(s => `<div class="small muted">${s}</div>`).join('');
+
+    return `
+      <li class="crop-row">
+        <div class="crop-info">
+          <span class="chip">${badge} ${name || '(Unnamed)'}</span>
+        </div>
+        <div class="crop-actions"></div>
+        <div style="flex-basis:100%; padding-left:8px; margin-top:6px;">${lines || '<span class="small muted">No details</span>'}</div>
+      </li>
+    `;
+  }).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>📇 Team & Partners — Directory</h1>
+      <p class="muted small">Saved locally on this device for now.</p>
+
+      <div class="settings-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+        ${pill('all','All','📇')}
+        ${pill('employee','Employees','👷')}
+        ${pill('subcontractor','Subcontractors','🛠️')}
+        ${pill('vendor','Vendors','🏪')}
+      </div>
+
+      <ul class="crop-list" style="margin-top:10px;">
+        ${rows || '<li class="muted">No people yet.</li>'}
+      </ul>
+
+      <div class="settings-actions">
+        <a class="btn" href="#/team">Back to Team & Partners</a>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+      </div>
+    </section>
+  `;
+}
+
 /* ---------------- Settings ---------------- */
-// Settings HOME: show tabs (tiles) + back to dashboard
 function viewSettingsHome(){
   app.innerHTML = `
     <div class="grid settings-tabs" role="tablist" aria-label="Settings tabs">
@@ -406,7 +663,6 @@ function viewSettingsCrops(){
 
   wireCropsHandlers();
 }
-
 function wireCropsHandlers(){
   const addBtn = document.getElementById('add-crop');
   const input  = document.getElementById('new-crop');
@@ -464,7 +720,7 @@ function route(){
     const label = ROUTES[hash] || 'Section';
     viewSection(label, '#/crop', 'Back to Crop Production');
   }
-  // Equipment hub & children (NEW)
+  // Equipment hub & children
   else if (hash === '#/equipment') {
     viewEquipmentHub();
   } else if (hash.startsWith('#/equipment/')) {
@@ -478,6 +734,18 @@ function route(){
     viewFeedbackErrors();
   } else if (hash === '#/feedback/feature') {
     viewFeedbackFeature();
+  }
+  // Team & Partners hub & children
+  else if (hash === '#/team') {
+    viewTeamHub();
+  } else if (hash === '#/team/employees') {
+    viewPersonForm('employee');
+  } else if (hash === '#/team/subcontractors') {
+    viewPersonForm('subcontractor');
+  } else if (hash === '#/team/vendors') {
+    viewPersonForm('vendor');
+  } else if (hash.startsWith('#/team/dir')) {
+    viewTeamDirectory();
   }
   // Settings
   else if (hash === '#/settings') {
