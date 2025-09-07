@@ -1,3 +1,7 @@
+/* =========================
+   Dowson Farms — styles.css
+   ========================= */
+
 :root{
   --green:#1B5E20;
   --ivory:#FFFFF0;
@@ -5,11 +9,12 @@
   --text:#333;
   --white:#fff;
 
-  /* Set by JS at runtime */
+  /* set dynamically by JS */
   --header-h: 80px;
   --footer-h: 56px;
 }
 
+/* Reset / base */
 *{ box-sizing:border-box }
 html,body{ height:100% }
 body{
@@ -17,9 +22,10 @@ body{
   font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   background:var(--ivory);
   color:var(--text);
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Header & Footer chrome */
+/* -------- Header & Footer -------- */
 .app-header, .app-footer{
   position:fixed; left:0; right:0;
   background:var(--green); color:var(--white);
@@ -28,22 +34,26 @@ body{
   box-shadow:0 2px 6px rgba(0,0,0,.15);
   z-index:1000;
 }
+
+/* Header respects iOS notch */
 .app-header{
   top:0;
-  /* notch-safe padding and taller header so it doesn't blend with iOS status bar */
   padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 14px;
   min-height:70px;
 }
+
+/* Footer respects iOS home indicator */
 .app-footer{
   bottom:0;
   gap:12px; justify-content:space-between;
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  font-weight:600;
 }
 
+/* Header bits */
 .logo{ display:flex; align-items:center; gap:10px; }
 .logo img{ height:32px; width:32px; border-radius:6px; }
 .logo-text{ font-weight:700; letter-spacing:.3px; }
-
 .header-right{ display:flex; align-items:center; gap:12px; }
 .logout{
   background:transparent; color:var(--white);
@@ -52,26 +62,31 @@ body{
 }
 .logout:hover{ border-color:var(--gold); color:var(--gold); }
 
-/* Breadcrumbs use dynamic header height; always tuck under header */
+/* -------- Breadcrumbs -------- */
 .breadcrumbs{
   position:sticky;
   top: var(--header-h);
   background:#215f28; color:#eef6ee;
   padding:8px 14px; font-size:.95rem; z-index:900;
+  box-shadow:0 1px 2px rgba(0,0,0,.06) inset;
 }
-.breadcrumbs a{ color:#eef6ee; text-decoration:none; border-bottom:1px dashed rgba(255,255,255,.5) }
+.breadcrumbs a{
+  color:#eef6ee; text-decoration:none;
+  border-bottom:1px dashed rgba(255,255,255,.5)
+}
 .breadcrumbs a:hover{ color:var(--gold) }
 
-/* Main area uses dynamic header+footer paddings */
+/* -------- Main content container -------- */
+/* Keep all screens clear of the fixed header/footer */
 #app{
-  padding-top: calc(var(--header-h) + 24px);
-  padding-right: 14px;
+  padding-top: calc(var(--header-h) + 8px);
   padding-left: 14px;
+  padding-right: 14px;
   padding-bottom: calc(var(--footer-h) + 14px);
   min-height:100vh;
 }
 
-/* Dashboard grid */
+/* -------- Dashboard grid / Tiles -------- */
 .grid{
   display:grid;
   grid-template-columns:repeat(2,1fr);
@@ -88,18 +103,13 @@ body{
   text-align:center;
   box-shadow:0 2px 6px rgba(0,0,0,.08);
   cursor:pointer;
-
-  color:inherit;
-  text-decoration:none;
+  color:inherit; text-decoration:none;
 }
-.tile:link,
-.tile:visited{ color:inherit; text-decoration:none; }
-.tile *{ text-decoration:none; }
 .tile:hover{ border-color:var(--gold); box-shadow:0 3px 10px rgba(0,0,0,.12) }
 .tile .emoji{ font-size:2.2rem; display:block; margin-bottom:6px; }
 .tile .label{ font-weight:600 }
 
-/* Generic content card (used in sub-pages) */
+/* -------- Generic content card -------- */
 .section{
   background:var(--white);
   border-radius:14px;
@@ -107,16 +117,45 @@ body{
   box-shadow:0 2px 6px rgba(0,0,0,.06);
   padding:16px;
 }
-.section h1{ margin:0 0 8px }
-.section p{ margin:0 0 6px }
-a.btn{
-  display:inline-block; margin-top:12px; padding:10px 12px;
-  border-radius:10px; border:2px solid var(--green); text-decoration:none;
-  color:var(--green);
-}
-a.btn:hover{ border-color:var(--gold); color:#6f5200 }
+.section h1{ margin:0 0 8px; letter-spacing:.2px; }
+.section p{ margin:0 0 6px; }
+.muted{ color:#666 }
+.small{ font-size:.9rem }
 
-/* Bottom update banner, above the footer */
+/* Buttons */
+a.btn, .btn, .btn-add, .btn-primary, .btn-outline, .btn-link{
+  font-weight:700; text-decoration:none; display:inline-block; cursor:pointer;
+}
+a.btn, .btn{
+  margin-top:12px; padding:10px 12px;
+  border-radius:10px; border:2px solid var(--green);
+  color:var(--green); background:#fff;
+}
+a.btn:hover, .btn:hover{ border-color:var(--gold); color:#6f5200 }
+.btn-add{
+  border:2px solid var(--green); background:#fff; color:var(--green);
+  border-radius:10px; padding:8px 12px;
+}
+.btn-add:hover{ border-color:var(--gold); color:#6f5200 }
+.btn-primary{
+  width:100%;
+  margin-top:8px; padding:10px 12px;
+  border-radius:10px; border:2px solid var(--green);
+  background: var(--green); color: var(--white);
+}
+.btn-primary:hover{ filter:brightness(1.05) }
+.btn-outline{
+  width:100%;
+  padding:10px 12px; border-radius:10px; border:2px solid var(--green);
+  background:#fff; color:var(--green);
+}
+.btn-outline:disabled{ opacity:.6; cursor:not-allowed }
+.btn-link{
+  margin-top:8px; background:none; border:none; color:var(--green);
+  text-decoration:underline;
+}
+
+/* -------- Update banner (bottom, above footer) -------- */
 .update-banner{
   position: fixed;
   left: 14px;
@@ -124,16 +163,12 @@ a.btn:hover{ border-color:var(--gold); color:#6f5200 }
   bottom: calc(var(--footer-h) + 8px + env(safe-area-inset-bottom, 0px));
   z-index: 1100;
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 14px;
-  background: #fef3c7;            /* light golden */
+
+  background: #fef3c7;            /* soft yellow */
   border: 1px solid #e5b700;
-  color: #5a4a00;
-  font-weight: 600;
+  color: #5a4a00; font-weight: 600;
   border-left-width: 6px;
   border-radius: 10px;
 }
@@ -151,9 +186,12 @@ a.btn:hover{ border-color:var(--gold); color:#6f5200 }
   color: #6f5200;
 }
 
-/* Focus */
+/* -------- Focus style -------- */
 :focus-visible{ outline:3px solid var(--gold); outline-offset:3px }
-/* ---- Login page ---- */
+
+/* ======================
+   Login page styling
+   ====================== */
 .login-main{
   padding-top: calc(var(--header-h) + 24px);
   padding-bottom: calc(var(--footer-h) + 24px);
@@ -170,43 +208,25 @@ a.btn:hover{ border-color:var(--gold); color:#6f5200 }
   padding:18px 16px;
 }
 .login-card h1{ margin:0 0 6px }
-.muted{ color:#666 }
-.small{ font-size:.9rem }
 .field{ display:flex; flex-direction:column; gap:6px; margin:10px 0 }
 .field input{
   padding:10px 12px; border-radius:8px; border:1.5px solid #cfd8dc; font-size:16px;
 }
-.btn-primary{
-  width:100%;
-  margin-top:8px; padding:10px 12px;
-  border-radius:10px; border:2px solid var(--green);
-  background: var(--green); color: var(--white);
-  font-weight:700; cursor:pointer;
-}
-.btn-primary:hover{ filter:brightness(1.05) }
-.btn-outline{
-  width:100%;
-  padding:10px 12px; border-radius:10px; border:2px solid var(--green);
-  background: var(--white); color: var(--green); font-weight:700; cursor:pointer;
-}
-.btn-outline:disabled{ opacity:.6; cursor:not-allowed }
-.btn-link{
-  margin-top:8px; background:none; border:none; color:var(--green);
-  text-decoration:underline; cursor:pointer; font-weight:600;
-}
-.or{
-  text-align:center; color:#777; margin:12px 0 4px;
-}
-.msg{ margin-top:10px; font-weight:600; }
-.msg.ok{ color:#1b5e20 }
-.msg.error{ color:#b00020 }
-/* Settings tabs: reuse tiles, add active state */
+
+/* ======================
+   Settings (tabs + crops)
+   ====================== */
+
+/* Give a touch of top spacing so the first tile never kisses the breadcrumbs */
+.settings-tabs{ margin-top:8px; }
+
+/* Active tab look reusing tiles */
 .settings-tabs .tile.tab-active{
   border-color: var(--gold);
   box-shadow: 0 3px 10px rgba(0,0,0,.12);
 }
 
-/* Crop Type manager */
+/* Crop list */
 .crop-list{
   list-style:none; padding:0; margin:12px 0;
   display:flex; flex-direction:column; gap:8px;
@@ -216,37 +236,38 @@ a.btn:hover{ border-color:var(--gold); color:#6f5200 }
   background: #fff; border:1px solid rgba(0,0,0,.08);
   border-radius:10px; padding:8px 10px;
 }
+.crop-row.is-archived{ opacity:.85; }
+.crop-info{ display:flex; align-items:center; gap:8px; }
+.crop-actions{ display:flex; gap:8px; }
+
+/* Chips */
 .chip{
   display:inline-block; padding:6px 10px;
   background:#eef6ee; color:#184c1a; border:1px solid #cfe5cf;
   border-radius:999px; font-weight:600;
 }
+.chip-archived{
+  display:inline-block; padding:4px 8px; border-radius:999px;
+  background:#fff3f0; color:#8a2a0a; border:1px solid #f4c7be; font-weight:600;
+}
+
+/* Add row */
 .add-row{
   display:flex; gap:8px; margin-top:8px;
 }
 .add-row input{
   flex:1; padding:10px 12px; border-radius:8px; border:1.5px solid #cfd8dc; font-size:16px;
 }
-.btn-add{
-  border:2px solid var(--green); background:var(--white); color:var(--green);
-  border-radius:10px; padding:8px 12px; cursor:pointer; font-weight:700;
-}
-.btn-add:hover{ border-color:var(--gold); color:#6f5200 }
-button.danger.sm{
-  padding:6px 10px; border-radius:8px; border:2px solid #b00020; background:#fff; color:#b00020; cursor:pointer; font-weight:700;
-}
-button.danger.sm:hover{ filter:brightness(1.05); }
-/* Archived styling */
-.crop-row.is-archived { opacity: .8; }
-.chip-archived{
-  display:inline-block; margin-left:8px;
-  padding:4px 8px; border-radius:999px;
-  background:#fff3f0; color:#8a2a0a; border:1px solid #f4c7be; font-weight:600;
-}
 
-/* Button tones for archive/delete */
-button.sm{ padding:6px 10px; border-radius:8px; border:2px solid var(--green); background:#fff; color:var(--green); cursor:pointer; font-weight:700; }
+/* Small action buttons for list rows */
+button.sm{
+  padding:6px 10px; border-radius:8px;
+  border:2px solid var(--green); background:#fff; color:var(--green);
+  cursor:pointer; font-weight:700;
+}
 button.sm:hover{ filter:brightness(1.05); }
 button.warn.sm{ border-color:#b7791f; color:#8a5a14; background:#fffaf0; }
 button.danger.sm{ border-color:#b00020; color:#b00020; background:#fff; }
+
+/* Settings page extra spacing for the Back to Dashboard button */
 .settings-actions { margin-top: 12px; }
