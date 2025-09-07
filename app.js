@@ -27,6 +27,12 @@ function prettyDate(d=new Date()){
   const month = d.toLocaleString(undefined,{ month:'long' });
   return `${dow} ${month} ${ordinal(d.getDate())} ${d.getFullYear()}`;
 }
+/* Show only MAJOR.MINOR in the footer */
+function displayVersion(v){
+  const m = String(v || '').replace(/^v/i,'');
+  const [maj='0', min='0'] = m.split('.');
+  return `v${maj}.${min}`;
+}
 
 // ===== DOM refs =====
 const app = document.getElementById('app');
@@ -81,29 +87,36 @@ function route(){
   renderBreadcrumb(name==='home' ? 'home' : name);
   if(name==='home') viewHome(); else if(name==='Not Found') viewSection('Not Found'); else viewSection(name);
   app.focus();
-  applyHeaderHeightVar(); // keep offsets correct after content updates
+  applyHeaderHeightVar();
+  applyFooterHeightVar();
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
 
 // ===== Header / Footer =====
-if (versionEl) versionEl.textContent = APP_VERSION;
+if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
 if (todayEl) todayEl.textContent = prettyDate();
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
 tick(); setInterval(tick, 1000 * 15);
 if (logoutBtn) logoutBtn.addEventListener('click', () => alert('Logged out (placeholder).'));
 
-// ===== Dynamic header height -> CSS var (--header-h) =====
+// ===== Dynamic header/footer height -> CSS vars =====
 function applyHeaderHeightVar() {
   const header = document.querySelector('.app-header');
   if (!header) return;
-  const h = header.offsetHeight;
-  document.documentElement.style.setProperty('--header-h', h + 'px');
+  document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
+}
+function applyFooterHeightVar() {
+  const footer = document.querySelector('.app-footer');
+  if (!footer) return;
+  document.documentElement.style.setProperty('--footer-h', footer.offsetHeight + 'px');
 }
 window.addEventListener('load', applyHeaderHeightVar);
 window.addEventListener('resize', applyHeaderHeightVar);
 window.addEventListener('orientationchange', applyHeaderHeightVar);
-window.addEventListener('hashchange', applyHeaderHeightVar);
+window.addEventListener('load', applyFooterHeightVar);
+window.addEventListener('resize', applyFooterHeightVar);
+window.addEventListener('orientationchange', applyFooterHeightVar);
 
 // ===== Update banner refs & helpers =====
 const bannerEl = document.getElementById('update-banner');
@@ -124,7 +137,7 @@ function syncBannerWithVersion(){
   }
 }
 
-// Single click handler (disable + feedback)
+// Single click handler
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
     bannerBtn.disabled = true;
@@ -146,14 +159,16 @@ if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.register('service-worker.js'); // scope optional
 
-      // Proactively check for an update on load + when tab becomes visible
+      // Proactively check for updates on load and when tab returns to foreground
       reg.update();
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') reg.update();
       });
 
+      // If a new worker is already waiting, show banner
       if (reg.waiting) { window.__waitingSW = reg.waiting; showUpdateBanner(); }
 
+      // Detect a newly installed update (only when already controlled)
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing; if (!sw) return;
         sw.addEventListener('statechange', () => {
@@ -164,8 +179,8 @@ if ('serviceWorker' in navigator) {
         });
       });
 
+      // When the new worker takes control, hide banner, mark current, then reload once
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Now controlled by NEW SW -> hide + mark current, then reload once
         window.__waitingSW = null;
         hideUpdateBanner();
         markVersionAsCurrent();
