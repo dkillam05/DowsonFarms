@@ -1,6 +1,7 @@
 // ===== App constants =====
-const APP_VERSION = 'v3.12';  // bump this each release
+const APP_VERSION = 'v3.20';  // bump this each release (e.g. 'v3.9' or 'v3.9.0')
 
+// ===== Routes =====
 const ROUTES = {
   '': 'home',
   '#/home': 'home',
@@ -27,12 +28,15 @@ function prettyDate(d=new Date()){
   const month = d.toLocaleString(undefined,{ month:'long' });
   return `${dow} ${month} ${ordinal(d.getDate())} ${d.getFullYear()}`;
 }
-/* Show only MAJOR.MINOR in the footer */
-function displayVersion(v){
-  const m = String(v || '').replace(/^v/i,'');
+
+/* Normalize versions to MAJOR.MINOR strings for comparison & display */
+function normalizeVersion(v){
+  const m = String(v || '').trim().replace(/^v/i,'');
   const [maj='0', min='0'] = m.split('.');
-  return `v${maj}.${min}`;
+  return `${maj}.${min}`;
 }
+/* Footer shows only MAJOR.MINOR, prefixed with v */
+function displayVersion(v){ return 'v' + normalizeVersion(v); }
 
 // ===== DOM refs =====
 const app = document.getElementById('app');
@@ -122,16 +126,38 @@ window.addEventListener('hashchange', applyHeaderHeightVar);
 // ===== Update banner helpers =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
-function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', APP_VERSION); } catch {} }
-function storedVersion(){ try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; } }
-function needsUpdate(){ const s = storedVersion(); return s && s !== APP_VERSION; }
-function syncBannerWithVersion(){ if (needsUpdate()) showUpdateBanner(); else { hideUpdateBanner(); markVersionAsCurrent(); } }
 
-// Button
+function markVersionAsCurrent(){
+  try { localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); } catch {}
+}
+function storedVersion(){
+  try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; }
+}
+/* Only show when stored version differs from current (normalized) */
+function needsUpdate(){
+  const saved = storedVersion();
+  const current = normalizeVersion(APP_VERSION);
+  return saved && saved !== current;
+}
+function syncBannerWithVersion(){
+  if (needsUpdate()) showUpdateBanner();
+  else { hideUpdateBanner(); markVersionAsCurrent(); }
+}
+
+// ===== Banner button (optimistic hide for faster feel) =====
+let _recheckTimer = null;
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
     bannerBtn.disabled = true;
     bannerBtn.textContent = 'Updating…';
+    // Hide immediately for a snappier feel
+    hideUpdateBanner();
+    // If for some reason the SW doesn't take over, re-show after 3s
+    clearTimeout(_recheckTimer);
+    _recheckTimer = setTimeout(() => {
+      if (needsUpdate()) { showUpdateBanner(); bannerBtn.disabled = false; bannerBtn.textContent = 'Refresh'; }
+    }, 3000);
+
     if (window.__waitingSW) {
       window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
     } else {
@@ -171,12 +197,13 @@ if ('serviceWorker' in navigator) {
         });
       });
 
-      // When new worker takes control
+      // When the new worker takes control, finalize + reload
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        clearTimeout(_recheckTimer);
         window.__waitingSW = null;
         hideUpdateBanner();
         markVersionAsCurrent();
-        setTimeout(() => location.reload(), 200);
+        setTimeout(() => location.reload(), 400); // slightly longer for iOS reliability
       });
 
     } catch (e) {
