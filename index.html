@@ -1,50 +1,53 @@
 <!doctype html>
-<html lang="en" data-theme="auto">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Dowson Farms PWA</title>
-  <meta name="theme-color" content="#1B5E20" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#1B5E20">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-  <!-- Header -->
+  <!-- Fixed header -->
   <header class="app-header">
     <div class="brand">
-      <img class="logo" src="icons/logo.png" alt="" />
-      <span class="title">Dowson Farms</span>
+      <img src="icons/logo.png" alt="DF" class="logo">
+      <div class="title">Dowson Farms</div>
     </div>
-    <div class="right">
+    <div class="spacer"></div>
+    <div class="meta">
       <span id="clock" class="clock">--:-- --</span>
-      <button id="logout" class="logout btn-link">Logout</button>
+      <button id="logout" class="btn btn-link">Logout</button>
     </div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- Sticky breadcrumbs -->
   <nav class="breadcrumbs" id="breadcrumbs" aria-label="Breadcrumbs">
     <span>Home</span>
   </nav>
 
-  <!-- Main app -->
-  <main id="app" tabindex="-1" class="app" aria-live="polite"></main>
-
-  <!-- Update banner (sits above footer) -->
+  <!-- Update banner (sits just above footer) -->
   <div id="update-banner" class="update-banner" hidden>
-    <span>🔄 New update available</span>
+    <span>New update available</span>
     <button id="update-refresh" class="btn-primary sm">Refresh</button>
   </div>
 
-  <!-- Footer -->
+  <!-- Main application content -->
+  <main id="app" tabindex="-1" aria-live="polite" aria-busy="false">
+    <!-- Filled by app.js -->
+  </main>
+
+  <!-- Fixed footer -->
   <footer class="app-footer">
-    <div>v<span id="version">0.0</span></div>
+    <div>Version <strong id="version">v0.0</strong></div>
     <div id="today">—</div>
   </footer>
 
-  <script defer src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
