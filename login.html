@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dowson Farms • Login</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="theme-color" content="#1B5E20" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <img src="icons/logo.png" alt="Dowson Farms">
+      <span class="logo-text">Dowson Farms</span>
+    </div>
+    <div class="header-right">
+      <span id="clock"></span>
+    </div>
+  </header>
+
+  <!-- (No breadcrumbs on login) -->
+
+  <!-- Update banner container (kept for consistency; usually hidden on login) -->
+  <div id="update-banner" class="update-banner" hidden>
+    <span>New update available</span>
+    <button id="update-refresh" type="button">Refresh</button>
+  </div>
+
+  <!-- Main -->
+  <main id="login-main" class="login-main">
+    <section class="login-card">
+      <h1>Sign in</h1>
+      <p class="muted">Invite-only for now</p>
+
+      <form id="login-form" autocomplete="on">
+        <label class="field">
+          <span>Email</span>
+          <input id="email" type="email" inputmode="email" autocomplete="email" required placeholder="you@farm.com" />
+        </label>
+
+        <label class="field">
+          <span>Invite code</span>
+          <input id="code" type="password" inputmode="text" autocomplete="one-time-code" placeholder="From your invite email" />
+        </label>
+
+        <button id="login-btn" type="submit" class="btn-primary">Sign in</button>
+      </form>
+
+      <div class="or">or</div>
+
+      <div class="passkey-actions">
+        <button id="passkey-signin" type="button" class="btn-outline" disabled>Sign in with Face ID / Touch ID</button>
+        <button id="passkey-setup" type="button" class="btn-link">Set up Face ID / Touch ID</button>
+        <p id="passkey-note" class="muted small"></p>
+      </div>
+
+      <div id="login-msg" class="msg" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <span id="version">v0.0</span>
+    <span id="today"></span>
+  </footer>
+
+  <script src="login.js"></script>
+</body>
+</html>
