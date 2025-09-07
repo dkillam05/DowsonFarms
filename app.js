@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.12'; // footer shows vMAJOR.MINOR
+const APP_VERSION = 'v6.13'; // footer shows vMAJOR.MINOR
 
 // ===== Auth guard (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
