@@ -1,35 +1,24 @@
-// Minimal, invite-only placeholder login.
-// Any non-empty email+password succeeds. Replace with real auth later.
+// ===== Simple invite-only login mock =====
+document.addEventListener('DOMContentLoaded', function(){
+  var form = document.getElementById('login-form');
+  if(!form) return;
 
-(function applyInitialTheme(){
-  try {
-    const t = localStorage.getItem('df_theme') || 'auto';
-    document.documentElement.setAttribute('data-theme', t);
-  } catch {}
-})();
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('email').value.trim();
+    var password = document.getElementById('password').value.trim();
 
-// Never show update banner logic here; app.js handles that per-page.
+    if (!email || !password){
+      alert('Please enter email and password.');
+      return;
+    }
 
-function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
-
-document.getElementById('login-btn')?.addEventListener('click', ()=>{
-  const email = String(document.getElementById('email').value||'').trim();
-  const pass = String(document.getElementById('password').value||'').trim();
-  if(!looksLikeEmail(email) || !pass){
-    alert('Enter a valid email and password.');
-    return;
-  }
-  try {
-    localStorage.setItem('df_auth','1');
-    localStorage.setItem('df_user', JSON.stringify({ email }));
-  } catch {}
-  location.replace('index.html');
-});
-
-// Allow Enter key to submit
-['email','password'].forEach(id=>{
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('keydown', e=>{
-    if(e.key==='Enter'){ e.preventDefault(); document.getElementById('login-btn').click(); }
+    // Placeholder auth check
+    if (email.endsWith('@dowsonfarms.com') && password === 'test123'){
+      try { localStorage.setItem('df_auth', '1'); localStorage.setItem('df_user', email); } catch {}
+      window.location.replace('index.html#/home');
+    } else {
+      alert('Invalid login. Invite-only system.');
+    }
   });
 });
