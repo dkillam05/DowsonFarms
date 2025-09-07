@@ -1,5 +1,5 @@
 // === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v5.9-fresh';
+const CACHE_VERSION = 'df-v6.0-fresh';
 
 // Build correct base path (works on GitHub Pages like /USERNAME/REPO/)
 const SW_URL = new URL(self.location.href);
