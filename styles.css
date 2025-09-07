@@ -47,10 +47,14 @@ body{
 }
 .logout:hover{ border-color:var(--gold); color:var(--gold); }
 
-.breadcrumbs{
-  position:sticky; top:48px; /* below header */
-  background:#215f28; color:#eef6ee;
-  padding:8px 14px; font-size:.95rem; z-index:900;
+.breadcrumbs {
+  position: sticky;
+  top: 80px; /* was 48px */
+  background: #215f28;
+  color: #eef6ee;
+  padding: 8px 14px;
+  font-size: .95rem;
+  z-index: 900;
 }
 .breadcrumbs a{ color:#eef6ee; text-decoration:none; border-bottom:1px dashed rgba(255,255,255,.5) }
 .breadcrumbs a:hover{ color:var(--gold) }
