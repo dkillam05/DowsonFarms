@@ -1,5 +1,6 @@
-// Bump CACHE_VERSION on any deploy to force updates.
-const CACHE_VERSION = 'df-v1.0.0';
+// === Bump this on every release to bust the cache ===
+const CACHE_VERSION = 'df-v2.0.1';
+
 const PRECACHE = [
   './',
   './index.html',
@@ -11,13 +12,15 @@ const PRECACHE = [
   './icons/logo.png'
 ];
 
+// Install: cache assets (do NOT skipWaiting here)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
   );
-  self.skipWaiting();
+  // no self.skipWaiting();  <-- important for the banner flow
 });
 
+// Activate: remove old caches and take control
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -26,12 +29,10 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Cache-first for same-origin, network fallback; pass-through for cross-origin APIs.
+// Fetch: same-origin GETs cache-first, then network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-
-  // Only cache GET and same-origin.
   if (request.method !== 'GET' || url.origin !== location.origin) return;
 
   event.respondWith((async () => {
@@ -42,13 +43,13 @@ self.addEventListener('fetch', (event) => {
       const cache = await caches.open(CACHE_VERSION);
       cache.put(request, res.clone());
       return res;
-    } catch (err) {
-      // Optional: return fallback page/image if desired
+    } catch {
       return cached || Response.error();
     }
   })());
 });
 
+// Message: app tells us to activate the waiting SW now
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
