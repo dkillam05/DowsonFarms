@@ -1,5 +1,6 @@
 // ===== App constants =====
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v1.0.0';  // bump on each release
+
 const ROUTES = {
   '': 'home',
   '#/home': 'home',
@@ -35,10 +36,15 @@ function prettyDate(d=new Date()){
   return `${dow} ${month} ${ordinal(d.getDate())} ${d.getFullYear()}`;
 }
 
-// ===== Rendering =====
+// ===== DOM refs =====
 const app = document.getElementById('app');
 const crumbs = document.getElementById('breadcrumbs');
+const versionEl = document.getElementById('version');
+const todayEl = document.getElementById('today');
+const clockEl = document.getElementById('clock');
+const logoutBtn = document.getElementById('logout');
 
+// ===== Rendering =====
 function renderBreadcrumb(routeName){
   if(routeName==='home'){
     crumbs.innerHTML = `<span>Home</span>`;
@@ -48,7 +54,6 @@ function renderBreadcrumb(routeName){
 }
 
 function viewHome(){
-  // No "Dashboard" box — just the grid
   app.innerHTML = `
     <div class="grid" role="list">
       ${tile('🌽','Crop Production','#/crop')}
@@ -63,6 +68,7 @@ function viewHome(){
     </div>
   `;
 }
+
 function tile(emoji,label,href){
   return `
     <a class="tile" role="listitem" href="${href}" aria-label="${label}">
@@ -89,58 +95,28 @@ function route(){
   renderBreadcrumb(name==='home' ? 'home' : name);
 
   if(name==='home') viewHome();
-  else if(name==='Not Found') {
-    viewSection('Not Found');
-  } else {
-    viewSection(name);
-  }
+  else if(name==='Not Found') viewSection('Not Found');
+  else viewSection(name);
+
   app.focus();
-  applyHeaderHeightVar(); // ensure offsets are correct after content changes
+  applyHeaderHeightVar(); // keep offsets correct after content updates
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
 
-// ===== Header clock & footer date/version =====
-document.getElementById('version').textContent = APP_VERSION;
-document.getElementById('today').textContent = prettyDate();
+// ===== Header/ Footer info =====
+if (versionEl) versionEl.textContent = APP_VERSION;
+if (todayEl) todayEl.textContent = prettyDate();
 
 function tick(){
-  const el = document.getElementById('clock');
-  if (el) el.textContent = formatClock12(new Date());
+  if (clockEl) clockEl.textContent = formatClock12(new Date());
 }
 tick();
 setInterval(tick, 1000 * 15);
 
-// ===== Logout placeholder =====
-const logoutBtn = document.getElementById('logout');
 if (logoutBtn) {
   logoutBtn.addEventListener('click', () => {
     alert('Logged out (placeholder).');
-  });
-}
-
-// ===== Register Service Worker =====
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const reg = await navigator.serviceWorker.register('service-worker.js', { scope: './' });
-      if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
-      reg.addEventListener('updatefound', () => {
-        const sw = reg.installing;
-        if (sw) {
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage({ type:'SKIP_WAITING' });
-            }
-          });
-        }
-      });
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        location.reload();
-      });
-    } catch (e) {
-      console.error('SW registration failed', e);
-    }
   });
 }
 
@@ -155,3 +131,72 @@ window.addEventListener('load', applyHeaderHeightVar);
 window.addEventListener('resize', applyHeaderHeightVar);
 window.addEventListener('orientationchange', applyHeaderHeightVar);
 window.addEventListener('hashchange', applyHeaderHeightVar);
+
+// ===== Update banner refs & helpers =====
+const bannerEl = document.getElementById('update-banner');
+const bannerBtn = document.getElementById('update-refresh');
+
+function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
+function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
+
+function markVersionAsCurrent(){
+  try { localStorage.setItem('df_app_version', APP_VERSION); } catch {}
+}
+function storedVersion(){
+  try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; }
+}
+
+if (bannerBtn){
+  bannerBtn.addEventListener('click', () => {
+    if (window.__waitingSW) {
+      // Promote the waiting SW to active, then reload on controllerchange
+      window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      location.reload();
+    }
+  });
+}
+
+// Show banner if version bumped (even before SW finishes)
+if (storedVersion() && storedVersion() !== APP_VERSION) {
+  showUpdateBanner();
+} else {
+  markVersionAsCurrent(); // first run or already current
+}
+
+// ===== Service Worker registration + update flow =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('service-worker.js', { scope: './' });
+
+      // If a new worker is already waiting, show banner
+      if (reg.waiting) {
+        window.__waitingSW = reg.waiting;
+        showUpdateBanner();
+      }
+
+      // Detect fresh install finishes -> show banner
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            window.__waitingSW = reg.waiting || sw;
+            showUpdateBanner();
+          }
+        });
+      });
+
+      // When the new worker takes control, we’re on the latest — mark + reload
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        markVersionAsCurrent();
+        // small delay avoids reload loop on some browsers
+        setTimeout(() => location.reload(), 50);
+      });
+
+    } catch (e) {
+      console.error('SW registration failed', e);
+    }
+  });
+}
