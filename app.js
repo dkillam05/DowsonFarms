@@ -1,12 +1,11 @@
 // ===== App constants =====
-const APP_VERSION = 'v5.0';  // bump this each release (displayed as vMAJOR.MINOR)
+const APP_VERSION = 'v5.1';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
 (function enforceAuth(){
   const here = location.pathname.split('/').pop().toLowerCase();
   if (!isAuthed() && here !== 'login.html') {
-    // Not signed in -> go to login
     window.location.replace('login.html');
   }
 })();
@@ -23,6 +22,7 @@ const ROUTES = {
   '#/employees': 'Employees',
   '#/ai': 'AI Reports',
   '#/settings': 'Settings',
+  '#/settings/crops': 'Settings',     // <— Settings tab route (Crop Type)
   '#/feedback': 'Feedback',
 };
 
@@ -38,8 +38,6 @@ function prettyDate(d=new Date()){
   const month = d.toLocaleString(undefined,{ month:'long' });
   return `${dow} ${month} ${ordinal(d.getDate())} ${d.getFullYear()}`;
 }
-
-/* Normalize versions to MAJOR.MINOR for compare & display */
 function normalizeVersion(v){
   const m = String(v || '').trim().replace(/^v/i,'');
   const [maj='0', min='0'] = m.split('.');
@@ -57,11 +55,20 @@ const logoutBtn = document.getElementById('logout');
 const bannerEl = document.getElementById('update-banner');
 const bannerBtn = document.getElementById('update-refresh');
 
-// ===== Rendering =====
-function renderBreadcrumb(routeName){
-  if(routeName==='home'){ crumbs.innerHTML = `<span>Home</span>`; return; }
-  crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>${routeName}</span>`;
+// ===== Rendering: Dashboard =====
+function renderBreadcrumb(name){
+  const hash = location.hash || '#/home';
+
+  // Nested crumbs for settings tabs
+  if (hash.startsWith('#/settings/crops')) {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings">Settings</a> &nbsp;&gt;&nbsp; <span>Crop Type</span>`;
+    return;
+  }
+
+  if(name==='home'){ crumbs.innerHTML = `<span>Home</span>`; return; }
+  crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>${name}</span>`;
 }
+
 function viewHome(){
   app.innerHTML = `
     <div class="grid" role="list">
@@ -77,6 +84,7 @@ function viewHome(){
     </div>
   `;
 }
+
 function tile(emoji,label,href){
   return `
     <a class="tile" role="listitem" href="${href}" aria-label="${label}">
@@ -85,6 +93,7 @@ function tile(emoji,label,href){
     </a>
   `;
 }
+
 function viewSection(title){
   app.innerHTML = `
     <section class="section">
@@ -95,12 +104,131 @@ function viewSection(title){
   `;
 }
 
+// ===== Settings: tabs + Crop Type manager =====
+function currentSettingsTab(){
+  const hash = location.hash || '#/settings';
+  if (hash.startsWith('#/settings/crops')) return 'crops';
+  return 'none';
+}
+
+function viewSettings(){
+  const tab = currentSettingsTab();
+
+  // tabs (same tile look as main menu)
+  const tabsGrid = `
+    <div class="grid settings-tabs" role="tablist" aria-label="Settings tabs">
+      <a class="tile ${tab==='crops'?'tab-active':''}" role="tab" aria-selected="${tab==='crops'}" href="#/settings/crops">
+        <span class="emoji">🌱</span>
+        <span class="label">Crop Type</span>
+      </a>
+      <!-- Add more settings tabs later reusing the same pattern -->
+    </div>
+  `;
+
+  // pane
+  let pane = '';
+  if (tab === 'crops') pane = settingsPaneCrops();
+  else pane = `<div class="section"><p>Select a settings tab.</p></div>`;
+
+  app.innerHTML = `
+    ${tabsGrid}
+    ${pane}
+  `;
+
+  // wire up crop actions
+  if (tab === 'crops') wireCropsHandlers();
+}
+
+const CROPS_KEY = 'df_crops';
+function loadCrops(){
+  try {
+    const raw = localStorage.getItem(CROPS_KEY);
+    if (!raw) return ['Corn','Soybeans']; // defaults
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) && arr.length ? arr : ['Corn','Soybeans'];
+  } catch { return ['Corn','Soybeans']; }
+}
+function saveCrops(list){
+  try { localStorage.setItem(CROPS_KEY, JSON.stringify(list)); } catch {}
+}
+
+function settingsPaneCrops(){
+  const crops = loadCrops();
+  const items = crops.map((c,i)=>`
+    <li class="crop-row">
+      <span class="chip">${c}</span>
+      <button class="danger sm" data-remove="${i}" aria-label="Remove ${c}">Remove</button>
+    </li>
+  `).join('');
+
+  return `
+    <section class="section">
+      <h1>Crop Type</h1>
+      <p class="muted">Manage the crop types used across the app.</p>
+
+      <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
+
+      <div class="add-row">
+        <input id="new-crop" type="text" placeholder="e.g., Wheat" />
+        <button id="add-crop" class="btn-add">Add</button>
+      </div>
+
+      <a class="btn" href="#/home">Back to Dashboard</a>
+    </section>
+  `;
+}
+function wireCropsHandlers(){
+  const addBtn = document.getElementById('add-crop');
+  const input  = document.getElementById('new-crop');
+  const listEl = app.querySelector('.crop-list');
+
+  // add
+  addBtn?.addEventListener('click', () => {
+    const name = (input.value || '').trim();
+    if (!name) return;
+    const crops = loadCrops();
+    // avoid duplicates (case-insensitive)
+    if (crops.some(c => c.toLowerCase() === name.toLowerCase())) {
+      input.value = ''; return;
+    }
+    crops.push(name);
+    saveCrops(crops);
+    viewSettings(); // re-render
+  });
+
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addBtn?.click(); }
+  });
+
+  // remove
+  listEl?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-remove]');
+    if (!btn) return;
+    const idx = Number(btn.getAttribute('data-remove'));
+    const crops = loadCrops();
+    crops.splice(idx,1);
+    saveCrops(crops);
+    viewSettings();
+  });
+}
+
 // ===== Router =====
 function route(){
   const hash = location.hash || '#/home';
-  const name = ROUTES[hash] || 'Not Found';
+  const name = ROUTES[hash] || (hash.startsWith('#/settings') ? 'Settings' : 'Not Found');
+
   renderBreadcrumb(name==='home' ? 'home' : name);
-  if(name==='home') viewHome(); else if(name==='Not Found') viewSection('Not Found'); else viewSection(name);
+
+  if (hash.startsWith('#/settings')) {
+    viewSettings();
+  } else if(name==='home') {
+    viewHome();
+  } else if(name==='Not Found') {
+    viewSection('Not Found');
+  } else {
+    viewSection(name);
+  }
+
   app?.focus();
   applyHeaderHeightVar();
   applyFooterHeightVar();
@@ -114,7 +242,7 @@ if (todayEl) todayEl.textContent = prettyDate();
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
 tick(); setInterval(tick, 15000);
 
-// Logout now actually logs out
+// Logout -> clear auth and go to login
 if (logoutBtn) {
   logoutBtn.addEventListener('click', () => {
     try { localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); } catch {}
@@ -139,7 +267,7 @@ function applyFooterHeightVar() {
 });
 window.addEventListener('hashchange', applyHeaderHeightVar);
 
-// ===== Update banner (same reliable flow as before) =====
+// ===== Update banner (reliable flow) =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
 function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); } catch {} }
@@ -154,21 +282,22 @@ function syncBannerWithVersion(){
   else { hideUpdateBanner(); markVersionAsCurrent(); }
 }
 
-// Button
+// Banner button (optimistic hide + safety recheck)
+let _recheckTimer = null;
 if (bannerBtn){
-  let _timer;
   bannerBtn.addEventListener('click', () => {
     bannerBtn.disabled = true;
     bannerBtn.textContent = 'Updating…';
     hideUpdateBanner();
-    clearTimeout(_timer);
-    _timer = setTimeout(() => {
+    clearTimeout(_recheckTimer);
+    _recheckTimer = setTimeout(() => {
       if (needsUpdate()) {
         showUpdateBanner();
         bannerBtn.disabled = false;
         bannerBtn.textContent = 'Refresh';
       }
     }, 3000);
+
     if (window.__waitingSW) window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
     else location.reload();
   });
@@ -204,6 +333,7 @@ if ('serviceWorker' in navigator) {
       });
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        clearTimeout(_recheckTimer);
         window.__waitingSW = null;
         hideUpdateBanner();
         markVersionAsCurrent();
