@@ -5,39 +5,12 @@
   --text:#333;
   --white:#fff;
 
-  /* dynamic header height (set by JS) with a sensible fallback */
+  /* Will be set by JS to the exact header height */
   --header-h: 80px;
 }
 
-/* ...existing styles... */
-
-.app-header{
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  background: var(--green); color: var(--white);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 14px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.15);
-  z-index: 1000;
-  min-height: 70px;
-}
-
-/* Use the dynamic height here instead of a hard-coded 80px */
-.breadcrumbs{
-  position: sticky;
-  top: var(--header-h);
-  background:#215f28; color:#eef6ee;
-  padding:8px 14px; font-size:.95rem; z-index:900;
-}
-
-/* Also use the dynamic height for page padding */
-#app{
-  padding: calc(var(--header-h) + 24px) 14px 68px;
-  min-height:100vh;
-}
-
-*{box-sizing:border-box}
-html,body{height:100%}
+*{ box-sizing:border-box }
+html,body{ height:100% }
 body{
   margin:0;
   font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
@@ -45,24 +18,21 @@ body{
   color:var(--text);
 }
 
-/* Layout chrome */
-.app-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: var(--green);
-  color: var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 14px;
-  /* ↑ adds safe-area padding for iPhones */
-  box-shadow: 0 2px 6px rgba(0,0,0,.15);
-  z-index: 1000;
-  min-height: 70px; /* ensures it’s taller than status bar */
+/* Header & Footer chrome */
+.app-header, .app-footer{
+  position:fixed; left:0; right:0;
+  background:var(--green); color:var(--white);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+  z-index:1000;
 }
-.app-header{ top:0 }
+.app-header{
+  top:0;
+  /* Add notch-safe padding and more height so it doesn't blend with iOS status bar */
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 14px;
+  min-height:70px;
+}
 .app-footer{ bottom:0; gap:12px; justify-content:space-between; }
 
 .logo{ display:flex; align-items:center; gap:10px; }
@@ -77,21 +47,20 @@ body{
 }
 .logout:hover{ border-color:var(--gold); color:var(--gold); }
 
-.breadcrumbs {
-  position: sticky;
-  top: 80px; /* was 48px */
-  background: #215f28;
-  color: #eef6ee;
-  padding: 8px 14px;
-  font-size: .95rem;
-  z-index: 900;
+/* Breadcrumbs use dynamic header height; always tuck under header */
+.breadcrumbs{
+  position:sticky;
+  top: var(--header-h);
+  background:#215f28; color:#eef6ee;
+  padding:8px 14px; font-size:.95rem; z-index:900;
 }
 .breadcrumbs a{ color:#eef6ee; text-decoration:none; border-bottom:1px dashed rgba(255,255,255,.5) }
 .breadcrumbs a:hover{ color:var(--gold) }
 
-#app {
-  padding: 120px 14px 68px; /* was 96px top */
-  min-height: 100vh;
+/* Main area uses dynamic header height too */
+#app{
+  padding: calc(var(--header-h) + 24px) 14px 68px; /* + footer space */
+  min-height:100vh;
 }
 
 /* Dashboard grid */
@@ -111,12 +80,20 @@ body{
   text-align:center;
   box-shadow:0 2px 6px rgba(0,0,0,.08);
   cursor:pointer;
+
+  /* remove link underline/blue color inside tiles */
+  color:inherit;
+  text-decoration:none;
 }
+.tile:link,
+.tile:visited{ color:inherit; text-decoration:none; }
+.tile *{ text-decoration:none; } /* also prevents underline on emoji/label */
+
 .tile:hover{ border-color:var(--gold); box-shadow:0 3px 10px rgba(0,0,0,.12) }
 .tile .emoji{ font-size:2.2rem; display:block; margin-bottom:6px; }
 .tile .label{ font-weight:600 }
 
-/* Section content */
+/* Generic content card (used in sub-pages) */
 .section{
   background:var(--white);
   border-radius:14px;
@@ -133,5 +110,5 @@ a.btn{
 }
 a.btn:hover{ border-color:var(--gold); color:#6f5200 }
 
-/* Focus states */
+/* Focus */
 :focus-visible{ outline:3px solid var(--gold); outline-offset:3px }
