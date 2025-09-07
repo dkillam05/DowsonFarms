@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.5';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v6.6';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -518,7 +518,7 @@ function viewTeamDirectory(){
     const active = (filter === t) ? 'style="border-color:#DAA520;color:#6f5200"' : '';
     const href = t==='all' ? '#/team/dir' : `#/team/dir?type=${t}`;
     return `<a class="btn" ${active} href="${href}">${emoji} ${label}</a>`;
-    }
+    
 
   const filtered = people.filter(p => filter==='all' ? true : p.type === filter);
 
