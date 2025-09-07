@@ -59,9 +59,9 @@ body{
 .breadcrumbs a{ color:#eef6ee; text-decoration:none; border-bottom:1px dashed rgba(255,255,255,.5) }
 .breadcrumbs a:hover{ color:var(--gold) }
 
-#app{
-  padding:96px 14px 68px; /* space for header/footer */
-  min-height:100vh;
+#app {
+  padding: 120px 14px 68px; /* was 96px top */
+  min-height: 100vh;
 }
 
 /* Dashboard grid */
