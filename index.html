@@ -5,39 +5,36 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Dowson Farms</title>
 
-  <!-- PWA meta -->
   <meta name="theme-color" content="#1B5E20">
   <link rel="manifest" href="manifest.webmanifest">
-
-  <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="app-header">
-    <div class="logo">
-      <img src="icons/logo.png" alt="Dowson Farms Logo">
-      <span class="logo-text">Dowson Farms</span>
+    <div class="brand">
+      <img src="icons/logo.png" alt="" class="brand-img" />
+      <span class="brand-name">Dowson Farms</span>
     </div>
-    <div id="today"></div>
-    <div id="clock"></div>
+    <div class="spacer"></div>
+    <div id="clock" class="clock"></div>
     <button id="logout" class="logout">Logout</button>
   </header>
 
-  <nav id="breadcrumbs" class="breadcrumbs"></nav>
+  <nav id="breadcrumbs" class="breadcrumbs"><span>Home</span></nav>
 
   <main id="app" tabindex="-1"></main>
 
+  <!-- Update banner pinned just above the footer -->
   <div id="update-banner" hidden>
     <span>New update available</span>
-    <button id="update-refresh">Refresh</button>
+    <button id="update-refresh" class="btn-primary">Refresh</button>
   </div>
 
   <footer class="app-footer">
-    <span id="version"></span>
-    <span id="date"></span>
+    <span id="version">v0.0</span>
+    <span id="today"></span>
   </footer>
 
-  <!-- Scripts -->
   <script src="app.js"></script>
 </body>
 </html>
