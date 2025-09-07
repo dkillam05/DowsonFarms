@@ -48,6 +48,7 @@ function renderBreadcrumb(routeName){
 }
 
 function viewHome(){
+  // No "Dashboard" box — just the grid
   app.innerHTML = `
     <div class="grid" role="list">
       ${tile('🌽','Crop Production','#/crop')}
@@ -93,8 +94,8 @@ function route(){
   } else {
     viewSection(name);
   }
-  // move focus for a11y
   app.focus();
+  applyHeaderHeightVar(); // ensure offsets are correct after content changes
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
@@ -104,37 +105,37 @@ document.getElementById('version').textContent = APP_VERSION;
 document.getElementById('today').textContent = prettyDate();
 
 function tick(){
-  document.getElementById('clock').textContent = formatClock12(new Date());
+  const el = document.getElementById('clock');
+  if (el) el.textContent = formatClock12(new Date());
 }
 tick();
-setInterval(tick, 1000 * 15); // update every 15s is plenty
+setInterval(tick, 1000 * 15);
 
 // ===== Logout placeholder =====
-document.getElementById('logout').addEventListener('click', () => {
-  // Later: route to /login once we enable auth
-  alert('Logged out (placeholder).');
-});
+const logoutBtn = document.getElementById('logout');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    alert('Logged out (placeholder).');
+  });
+}
 
 // ===== Register Service Worker =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('service-worker.js', { scope: './' });
-      // Optional: listen for updates and prompt refresh
       if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (sw) {
           sw.addEventListener('statechange', () => {
             if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              // Auto activate new SW
               sw.postMessage({ type:'SKIP_WAITING' });
             }
           });
         }
       });
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // New SW took control; reload to get fresh files
         location.reload();
       });
     } catch (e) {
@@ -142,15 +143,15 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// ===== Dynamic header height -> CSS var (--header-h) =====
 function applyHeaderHeightVar() {
   const header = document.querySelector('.app-header');
   if (!header) return;
   const h = header.offsetHeight;
   document.documentElement.style.setProperty('--header-h', h + 'px');
 }
-
 window.addEventListener('load', applyHeaderHeightVar);
 window.addEventListener('resize', applyHeaderHeightVar);
 window.addEventListener('orientationchange', applyHeaderHeightVar);
 window.addEventListener('hashchange', applyHeaderHeightVar);
-}
