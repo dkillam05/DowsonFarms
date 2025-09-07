@@ -1,5 +1,7 @@
 // === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v6.5-fresh';
+const CACHE_VERSION = 'df-v7.0-fresh';
+
+// Build paths
 const CORE = [
   './',
   './index.html',
@@ -14,14 +16,12 @@ const ASSETS = [
 ];
 const PRECACHE = [...CORE, ...ASSETS];
 
-// Install: cache assets (do NOT skipWaiting here)
+// Install (no skipWaiting)
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
-  );
+  event.waitUntil(caches.open(CACHE_VERSION).then(cache => cache.addAll(PRECACHE)));
 });
 
-// Activate: remove old caches and take control
+// Activate: clear old caches, take control
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -30,28 +30,50 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: same-origin GETs cache-first, then network
+// Helpers
+async function networkFirst(request) {
+  try {
+    const res = await fetch(new Request(request, { cache: 'no-store' }));
+    const cache = await caches.open(CACHE_VERSION);
+    cache.put(request, res.clone());
+    return res;
+  } catch (e) {
+    const cached = await caches.match(request, { ignoreSearch: true });
+    if (cached) return cached;
+    throw e;
+  }
+}
+async function cacheFirst(request) {
+  const cached = await caches.match(request, { ignoreSearch: true });
+  if (cached) return cached;
+  const res = await fetch(request);
+  const cache = await caches.open(CACHE_VERSION);
+  cache.put(request, res.clone());
+  return res;
+}
+
+// Fetch routing
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin) return;
-  event.respondWith((async () => {
-    const cached = await caches.match(req);
-    if (cached) return cached;
-    try {
-      const res = await fetch(req);
-      const cache = await caches.open(CACHE_VERSION);
-      cache.put(req, res.clone());
-      return res;
-    } catch (err) {
-      return cached || Response.error();
-    }
-  })());
+
+  // Navigation → index (network-first)
+  if (req.mode === 'navigate') {
+    const indexReq = new Request('./index.html', { cache: 'reload' });
+    event.respondWith(networkFirst(indexReq));
+    return;
+  }
+  // Core files → network-first
+  if (CORE.includes(url.pathname)) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
+  // Everything else → cache-first
+  event.respondWith(cacheFirst(req));
 });
 
-// Message: app tells us to activate the waiting SW now
+// Promote waiting SW when app asks
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
