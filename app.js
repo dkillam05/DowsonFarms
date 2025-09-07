@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.4';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v6.5';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -42,7 +42,7 @@ const ROUTES = {
 
   '#/grain': 'Grain Tracking',
 
-  // Team & Partners (NEW)
+  // Team & Partners
   '#/team': 'Team & Partners',
   '#/team/employees': 'Team & Partners',
   '#/team/subcontractors': 'Team & Partners',
@@ -86,9 +86,11 @@ function capFirst(s=''){
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e||'').trim()); }
-function cleanPhone(p){
-  const d = String(p||'').replace(/[^\d]/g,'');
-  return d; // store digits only
+function cleanPhone(p){ return String(p||'').replace(/[^\d]/g,''); }
+function formatPhone(digits){
+  const d = cleanPhone(digits);
+  if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  return d;
 }
 
 // ===== DOM refs =====
@@ -285,21 +287,20 @@ function viewFeedbackErrors(){
   app.innerHTML = `
     <section class="section">
       <h1>🛠️ Report Errors</h1>
-      <p class="muted small">Tell us what went wrong. Details help us fix it fast.</p>
 
       <div class="field">
-        <label for="err-subj">Subject</label>
+        <label for="err-subj">Subject *</label>
         <input id="err-subj" type="text" placeholder="e.g., Crash when opening Equipment" />
       </div>
 
       <div class="field">
-        <label for="err-desc">What happened?</label>
+        <label for="err-desc">What happened? *</label>
         <textarea id="err-desc" rows="5" placeholder="Steps to reproduce, what you expected, screenshots (if any)…"></textarea>
       </div>
 
       <div class="field">
-        <label for="err-contact">Contact (optional)</label>
-        <input id="err-contact" type="text" placeholder="Phone or email" />
+        <label for="err-contact">Contact</label>
+        <input id="err-contact" type="text" placeholder="Phone or email (optional)" />
       </div>
 
       <button id="err-submit" class="btn-primary">Submit</button>
@@ -310,7 +311,14 @@ function viewFeedbackErrors(){
     const subject = (document.getElementById('err-subj').value || '').trim();
     const details = (document.getElementById('err-desc').value || '').trim();
     const contact = (document.getElementById('err-contact').value || '').trim();
-    if (!subject || !details) { alert('Please provide a subject and details.'); return; }
+    if (!subject || !details) { alert('Please fill the required fields.'); return; }
+    // If contact entered, validate format
+    if (contact) {
+      const c = contact.trim();
+      const isEmail = looksLikeEmail(c);
+      const isPhone = cleanPhone(c).length === 10;
+      if (!isEmail && !isPhone) { alert('Contact must be a valid email or 10-digit phone.'); return; }
+    }
     saveFeedback({ type:'error', subject, details, contact });
     alert('Thanks! Your error report was saved.');
     location.hash = '#/feedback';
@@ -320,21 +328,20 @@ function viewFeedbackFeature(){
   app.innerHTML = `
     <section class="section">
       <h1>💡 New Feature Request</h1>
-      <p class="muted small">What would make your day easier?</p>
 
       <div class="field">
-        <label for="feat-subj">Feature title</label>
+        <label for="feat-subj">Feature title *</label>
         <input id="feat-subj" type="text" placeholder="e.g., Barcode printing from Equipment" />
       </div>
 
       <div class="field">
-        <label for="feat-desc">Describe the idea</label>
+        <label for="feat-desc">Describe the idea *</label>
         <textarea id="feat-desc" rows="5" placeholder="What it should do, where it would live, any examples…"></textarea>
       </div>
 
       <div class="field">
-        <label for="feat-contact">Contact (optional)</label>
-        <input id="feat-contact" type="text" placeholder="Phone or email" />
+        <label for="feat-contact">Contact</label>
+        <input id="feat-contact" type="text" placeholder="Phone or email (optional)" />
       </div>
 
       <button id="feat-submit" class="btn-primary">Submit</button>
@@ -345,14 +352,20 @@ function viewFeedbackFeature(){
     const subject = (document.getElementById('feat-subj').value || '').trim();
     const details = (document.getElementById('feat-desc').value || '').trim();
     const contact = (document.getElementById('feat-contact').value || '').trim();
-    if (!subject || !details) { alert('Please provide a title and description.'); return; }
+    if (!subject || !details) { alert('Please fill the required fields.'); return; }
+    if (contact) {
+      const c = contact.trim();
+      const isEmail = looksLikeEmail(c);
+      const isPhone = cleanPhone(c).length === 10;
+      if (!isEmail && !isPhone) { alert('Contact must be a valid email or 10-digit phone.'); return; }
+    }
     saveFeedback({ type:'feature', subject, details, contact });
     alert('Thanks! Your feature request was saved.');
     location.hash = '#/feedback';
   });
 }
 
-/* ---------------- Team & Partners (NEW) ---------------- */
+/* ---------------- Team & Partners ---------------- */
 // Storage
 const PEOPLE_KEY = 'df_people';
 function loadPeople(){
@@ -378,24 +391,22 @@ function viewTeamHub(){
   `;
 }
 
-// Shared person form renderer
+// Shared person form renderer (Access optional for all kinds)
 function viewPersonForm(kind){
   const icons = { employee:'👷', subcontractor:'🛠️', vendor:'🏪' };
   const titles = { employee:'Add Employee', subcontractor:'Add Subcontractor', vendor:'Add Vendor' };
-  const requireAccess = (kind === 'employee');
 
   app.innerHTML = `
     <section class="section">
       <h1>${icons[kind]} ${titles[kind]}</h1>
-      <p class="muted small">${requireAccess ? 'Access Role is required. Names auto-capitalize.' : 'Names auto-capitalize. Access Role not required.'}</p>
 
       <div class="field">
-        <label for="p-first">First name</label>
+        <label for="p-first">First name *</label>
         <input id="p-first" type="text" placeholder="John" inputmode="text" />
       </div>
 
       <div class="field">
-        <label for="p-last">Last name</label>
+        <label for="p-last">Last name *</label>
         <input id="p-last" type="text" placeholder="Doe" inputmode="text" />
       </div>
 
@@ -429,29 +440,16 @@ function viewPersonForm(kind){
         <textarea id="p-notes" rows="4" placeholder="${kind==='vendor' ? 'Company name, account #, terms…' : 'Certifications, allergies, preferred equipment…'}"></textarea>
       </div>
 
-      ${requireAccess ? `
-        <div class="field">
-          <label for="p-access">Access / Role <span class="small" style="color:#b00020;">(required)</span></label>
-          <select id="p-access">
-            <option value="">— Select access —</option>
-            <option value="Admin">Admin</option>
-            <option value="Manager">Manager</option>
-            <option value="Employee">Employee</option>
-            <option value="Guest">Guest</option>
-          </select>
-        </div>
-      ` : `
-        <div class="field">
-          <label for="p-access">Access / Role (optional)</label>
-          <select id="p-access">
-            <option value="">— None —</option>
-            <option value="Admin">Admin</option>
-            <option value="Manager">Manager</option>
-            <option value="Employee">Employee</option>
-            <option value="Guest">Guest</option>
-          </select>
-        </div>
-      `}
+      <div class="field">
+        <label for="p-access">Access / Role</label>
+        <select id="p-access">
+          <option value="">— None —</option>
+          <option value="Admin">Admin</option>
+          <option value="Manager">Manager</option>
+          <option value="Employee">Employee</option>
+          <option value="Guest">Guest</option>
+        </select>
+      </div>
 
       <button id="p-save" class="btn-primary">Save</button>
 
@@ -469,10 +467,7 @@ function viewPersonForm(kind){
   document.getElementById('p-save')?.addEventListener('click', () => {
     let firstName = capFirst(document.getElementById('p-first').value);
     let lastName  = capFirst(document.getElementById('p-last').value);
-
-    if (!firstName || !lastName) {
-      alert('Please enter first and last name.'); return;
-    }
+    if (!firstName || !lastName) { alert('Please enter first and last name.'); return; }
     if (!/^[A-Z]/.test(firstName) || !/^[A-Z]/.test(lastName)) {
       alert('First and last names must start with a capital letter.'); return;
     }
@@ -485,12 +480,13 @@ function viewPersonForm(kind){
     const notes    = (document.getElementById('p-notes').value || '').trim();
     const access   = document.getElementById('p-access').value;
 
-    const phone = cleanPhone(phoneRaw);
-    if (email && !looksLikeEmail(email)) { alert('Please enter a valid email.'); return; }
-    if (phone && phone.length < 7) { alert('Please enter a valid phone.'); return; }
-
-    if (requireAccess && !access) {
-      alert('Access / Role is required for employees.'); return;
+    // Enforce strict formats if provided
+    const phoneDigits = cleanPhone(phoneRaw);
+    if (phoneDigits && phoneDigits.length !== 10) {
+      alert('Phone must be a valid 10-digit number.'); return;
+    }
+    if (email && !looksLikeEmail(email)) {
+      alert('Please enter a valid email address.'); return;
     }
 
     const people = loadPeople();
@@ -499,7 +495,8 @@ function viewPersonForm(kind){
       type: kind,            // 'employee' | 'subcontractor' | 'vendor'
       firstName, lastName,
       role,
-      phone, email,
+      phone: phoneDigits,    // store digits; display formatted
+      email,
       startDate: start,
       birthday: bday,
       notes,
@@ -521,7 +518,7 @@ function viewTeamDirectory(){
     const active = (filter === t) ? 'style="border-color:#DAA520;color:#6f5200"' : '';
     const href = t==='all' ? '#/team/dir' : `#/team/dir?type=${t}`;
     return `<a class="btn" ${active} href="${href}">${emoji} ${label}</a>`;
-  }
+    }
 
   const filtered = people.filter(p => filter==='all' ? true : p.type === filter);
 
@@ -533,7 +530,7 @@ function viewTeamDirectory(){
     const lines = [
       p.role ? `Role: ${p.role}` : '',
       p.email ? `Email: ${p.email}` : '',
-      p.phone ? `Phone: ${p.phone}` : '',
+      p.phone ? `Phone: ${formatPhone(p.phone)}` : '',
       p.startDate ? `Since: ${p.startDate}` : '',
       p.birthday ? `Birthday: ${p.birthday}` : '',
       p.accessRole ? `Access: ${p.accessRole}` : '',
@@ -554,7 +551,6 @@ function viewTeamDirectory(){
   app.innerHTML = `
     <section class="section">
       <h1>📇 Team & Partners — Directory</h1>
-      <p class="muted small">Saved locally on this device for now.</p>
 
       <div class="settings-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
         ${pill('all','All','📇')}
@@ -806,7 +802,7 @@ function applyFooterHeightVar() {
   window.addEventListener(evt, applyHeaderHeightVar);
   window.addEventListener(evt, applyCrumbsHeightVar);
   window.addEventListener(evt, applyFooterHeightVar);
-});
+}
 
 // ===== Update banner =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
