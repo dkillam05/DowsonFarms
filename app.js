@@ -17,19 +17,11 @@ const ROUTES = {
 
 // ===== Utilities =====
 function pad2(n){ return n<10 ? '0'+n : ''+n; }
-
 function formatClock12(d=new Date()){
-  let h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h>=12 ? 'PM':'AM';
-  h = h%12 || 12;
-  return `${h}:${pad2(m)} ${ampm}`;
+  let h = d.getHours(); const m = d.getMinutes(); const ampm = h>=12 ? 'PM':'AM';
+  h = h%12 || 12; return `${h}:${pad2(m)} ${ampm}`;
 }
-
-function ordinal(n){
-  const s=["th","st","nd","rd"], v=n%100;
-  return n + (s[(v-20)%10] || s[v] || s[0]);
-}
+function ordinal(n){ const s=["th","st","nd","rd"], v=n%100; return n + (s[(v-20)%10] || s[v] || s[0]); }
 function prettyDate(d=new Date()){
   const dow = d.toLocaleString(undefined,{ weekday:'long' });
   const month = d.toLocaleString(undefined,{ month:'long' });
@@ -46,13 +38,9 @@ const logoutBtn = document.getElementById('logout');
 
 // ===== Rendering =====
 function renderBreadcrumb(routeName){
-  if(routeName==='home'){
-    crumbs.innerHTML = `<span>Home</span>`;
-    return;
-  }
+  if(routeName==='home'){ crumbs.innerHTML = `<span>Home</span>`; return; }
   crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>${routeName}</span>`;
 }
-
 function viewHome(){
   app.innerHTML = `
     <div class="grid" role="list">
@@ -68,7 +56,6 @@ function viewHome(){
     </div>
   `;
 }
-
 function tile(emoji,label,href){
   return `
     <a class="tile" role="listitem" href="${href}" aria-label="${label}">
@@ -77,7 +64,6 @@ function tile(emoji,label,href){
     </a>
   `;
 }
-
 function viewSection(title){
   app.innerHTML = `
     <section class="section">
@@ -93,11 +79,7 @@ function route(){
   const hash = location.hash || '#/home';
   const name = ROUTES[hash] || 'Not Found';
   renderBreadcrumb(name==='home' ? 'home' : name);
-
-  if(name==='home') viewHome();
-  else if(name==='Not Found') viewSection('Not Found');
-  else viewSection(name);
-
+  if(name==='home') viewHome(); else if(name==='Not Found') viewSection('Not Found'); else viewSection(name);
   app.focus();
   applyHeaderHeightVar(); // keep offsets correct after content updates
 }
@@ -107,18 +89,9 @@ window.addEventListener('load', route);
 // ===== Header/ Footer info =====
 if (versionEl) versionEl.textContent = APP_VERSION;
 if (todayEl) todayEl.textContent = prettyDate();
-
-function tick(){
-  if (clockEl) clockEl.textContent = formatClock12(new Date());
-}
-tick();
-setInterval(tick, 1000 * 15);
-
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', () => {
-    alert('Logged out (placeholder).');
-  });
-}
+function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
+tick(); setInterval(tick, 1000 * 15);
+if (logoutBtn) logoutBtn.addEventListener('click', () => alert('Logged out (placeholder).'));
 
 // ===== Dynamic header height -> CSS var (--header-h) =====
 function applyHeaderHeightVar() {
@@ -138,18 +111,12 @@ const bannerBtn = document.getElementById('update-refresh');
 
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
-
-function markVersionAsCurrent(){
-  try { localStorage.setItem('df_app_version', APP_VERSION); } catch {}
-}
-function storedVersion(){
-  try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; }
-}
+function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', APP_VERSION); } catch {} }
+function storedVersion(){ try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; } }
 
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
     if (window.__waitingSW) {
-      // Promote the waiting SW to active, then reload on controllerchange
       window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
     } else {
       location.reload();
@@ -158,67 +125,34 @@ if (bannerBtn){
 }
 
 // Show banner if version bumped (even before SW finishes)
-if (storedVersion() && storedVersion() !== APP_VERSION) {
-  showUpdateBanner();
-} else {
-  markVersionAsCurrent(); // first run or already current
-}
+if (storedVersion() && storedVersion() !== APP_VERSION) { showUpdateBanner(); }
+else { markVersionAsCurrent(); }
 
-// === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v2.0.1';
-
-const PRECACHE = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/logo.png'
-];
-
-// Install: cache assets (do NOT skipWaiting here)
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
-  );
-  // no self.skipWaiting();  <-- important for the banner flow
-});
-
-// Activate: remove old caches and take control
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k !== CACHE_VERSION) ? caches.delete(k) : null));
-  })());
-  self.clients.claim();
-});
-
-// Fetch: same-origin GETs cache-first, then network
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== location.origin) return;
-
-  event.respondWith((async () => {
-    const cached = await caches.match(request);
-    if (cached) return cached;
+// ===== Service Worker registration + update flow =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
     try {
-      const res = await fetch(request);
-      const cache = await caches.open(CACHE_VERSION);
-      cache.put(request, res.clone());
-      return res;
-    } catch {
-      return cached || Response.error();
-    }
-  })());
-});
+      const reg = await navigator.serviceWorker.register('service-worker.js'); // scope optional
 
-// Message: app tells us to activate the waiting SW now
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+      if (reg.waiting) { window.__waitingSW = reg.waiting; showUpdateBanner(); }
+
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing; if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            window.__waitingSW = reg.waiting || sw;
+            showUpdateBanner();
+          }
+        });
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        markVersionAsCurrent();
+        setTimeout(() => location.reload(), 50);
+      });
+
+    } catch (e) {
+      console.error('SW registration failed', e);
+    }
+  });
 }
