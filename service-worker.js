@@ -1,6 +1,5 @@
 // === Bump this on every release to bust the cache ===
 const CACHE_VERSION = 'df-v6.5-fresh';
-
 const CORE = [
   './',
   './index.html',
@@ -8,13 +7,11 @@ const CORE = [
   './app.js',
   './manifest.webmanifest'
 ];
-
 const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/logo.png'
 ];
-
 const PRECACHE = [...CORE, ...ASSETS];
 
 // Install: cache assets (do NOT skipWaiting here)
@@ -22,7 +19,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
   );
-  // no self.skipWaiting();
 });
 
 // Activate: remove old caches and take control
@@ -36,19 +32,18 @@ self.addEventListener('activate', (event) => {
 
 // Fetch: same-origin GETs cache-first, then network
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== location.origin) return;
-
+  const req = event.request;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
   event.respondWith((async () => {
-    const cached = await caches.match(request);
+    const cached = await caches.match(req);
     if (cached) return cached;
     try {
-      const res = await fetch(request);
+      const res = await fetch(req);
       const cache = await caches.open(CACHE_VERSION);
-      cache.put(request, res.clone());
+      cache.put(req, res.clone());
       return res;
-    } catch {
+    } catch (err) {
       return cached || Response.error();
     }
   })());
