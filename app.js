@@ -443,7 +443,7 @@ function viewSettingsCrops(){
 }
 
 function viewSettingsTheme(){
-  var current=loadTheme();
+  var current = loadTheme();
   app.innerHTML =
     '<div class="grid settings-tabs" role="tablist" aria-label="Settings tabs">'+
       '<a class="tile" role="tab" href="#/settings/crops"><span class="emoji">🌱</span><span class="label">Crop Type</span></a>'+
@@ -453,14 +453,22 @@ function viewSettingsTheme(){
       '<h1>Theme</h1>'+
       '<div class="field">'+
         '<label style="font-weight:600;margin-bottom:6px;">Appearance</label>'+
-        '<label class="choice"><input type="radio" name="theme" value="auto" '+(current==='auto'?'checked':'')+'> Auto (follow device)</label>'+
-        '<label class="choice"><input type="radio" name="theme" value="light" '+(current==='light'?'checked':'')+'> Light</label>'+
-        '<label class="choice"><input type="radio" name="theme" value="dark" '+(current==='dark'?'checked':'')+'> Dark</label>'+
+        '<div class="theme-list">'+
+          '<label class="theme-item"><input type="radio" name="theme" value="auto" '+(current==='auto'?'checked':'')+'><span>Auto (follow device)</span></label>'+
+          '<label class="theme-item"><input type="radio" name="theme" value="light" '+(current==='light'?'checked':'')+'><span>Light</span></label>'+
+          '<label class="theme-item"><input type="radio" name="theme" value="dark" '+(current==='dark'?'checked':'')+'><span>Dark</span></label>'+
+        '</div>'+
       '</div>'+
       '<div class="settings-actions"><a class="btn" href="#/settings">Back to Settings</a></div>'+
     '</section>';
-  var radios=app.querySelectorAll('input[name="theme"]');
-  for(var i=0;i<radios.length;i++){ radios[i].addEventListener('change', function(){ saveTheme(this.value); applyTheme(this.value); }); }
+
+  var radios = app.querySelectorAll('input[name="theme"]');
+  for (var i=0; i<radios.length; i++){
+    radios[i].addEventListener('change', function(){
+      saveTheme(this.value);
+      applyTheme(this.value);
+    });
+  }
 }
 
 // ===== Grain Tracking: hub + Grain Bag =====
