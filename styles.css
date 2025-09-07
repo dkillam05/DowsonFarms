@@ -201,3 +201,28 @@ input, textarea, select {
 /* simple inline choice rows (radio/checkbox + text) */
 .choice { display: inline-flex; align-items: center; gap: 8px; }
 .choice input[type="radio"], .choice input[type="checkbox"] { margin: 0; }
+/* Theme options: stacked, aligned, comfy tap targets */
+.theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.theme-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.25;
+}
+
+.theme-item input[type="radio"] {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.theme-item span {
+  flex: 1 1 auto;
+}
