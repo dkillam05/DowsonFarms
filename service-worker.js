@@ -1,5 +1,5 @@
 // === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v7.0-fresh';
+const CACHE_VERSION = 'df-v7.1-fresh';
 
 // Build paths
 const CORE = [
