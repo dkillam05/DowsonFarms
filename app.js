@@ -86,7 +86,7 @@ function route(){
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
 
-// ===== Header/ Footer info =====
+// ===== Header / Footer =====
 if (versionEl) versionEl.textContent = APP_VERSION;
 if (todayEl) todayEl.textContent = prettyDate();
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
@@ -112,9 +112,7 @@ const bannerBtn = document.getElementById('update-refresh');
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
 function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', APP_VERSION); } catch {} }
-function storedVersion(){
-  try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; }
-}
+function storedVersion(){ try { return localStorage.getItem('df_app_version') || ''; } catch { return ''; } }
 
 function syncBannerWithVersion(){
   const stored = storedVersion();
@@ -126,11 +124,11 @@ function syncBannerWithVersion(){
   }
 }
 
+// Single click handler (disable + feedback)
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
     bannerBtn.disabled = true;
     bannerBtn.textContent = 'Updating…';
-
     if (window.__waitingSW) {
       window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
     } else {
@@ -142,25 +140,17 @@ if (bannerBtn){
 // Run once on load
 syncBannerWithVersion();
 
-if (bannerBtn){
-  bannerBtn.addEventListener('click', () => {
-    if (window.__waitingSW) {
-      window.__waitingSW.postMessage({ type: 'SKIP_WAITING' });
-    } else {
-      location.reload();
-    }
-  });
-}
-
-// Show banner if version bumped (even before SW finishes)
-if (storedVersion() && storedVersion() !== APP_VERSION) { showUpdateBanner(); }
-else { markVersionAsCurrent(); }
-
 // ===== Service Worker registration + update flow =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('service-worker.js'); // scope optional
+
+      // Proactively check for an update on load + when tab becomes visible
+      reg.update();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update();
+      });
 
       if (reg.waiting) { window.__waitingSW = reg.waiting; showUpdateBanner(); }
 
@@ -175,8 +165,11 @@ if ('serviceWorker' in navigator) {
       });
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Now controlled by NEW SW -> hide + mark current, then reload once
+        window.__waitingSW = null;
+        hideUpdateBanner();
         markVersionAsCurrent();
-        setTimeout(() => location.reload(), 50);
+        setTimeout(() => location.reload(), 200);
       });
 
     } catch (e) {
