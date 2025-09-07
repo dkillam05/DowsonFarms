@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.1';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v6.2';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -27,7 +27,19 @@ const ROUTES = {
 
   '#/calculator': 'Calculator',
   '#/field': 'Field Maintenance',
+
+  // Equipment hub + subroutes (NEW)
   '#/equipment': 'Equipment',
+  '#/equipment/receivers': 'Receivers & Tech',
+  '#/equipment/tractors': 'Tractors',
+  '#/equipment/combines': 'Combines',
+  '#/equipment/sprayer': 'Sprayer / Fertilizer Spreader',
+  '#/equipment/construction': 'Construction Equipment',
+  '#/equipment/trucks-trailers': 'Trucks & Trailers',
+  '#/equipment/implements': 'Implements',
+  '#/equipment/shop': 'Shop',
+  '#/equipment/barcodes': 'Barcode / QR Codes',
+
   '#/grain': 'Grain Tracking',
   '#/employees': 'Employees',
   '#/ai': 'AI Reports',
@@ -97,6 +109,22 @@ function renderBreadcrumb(){
   if (cropKids.includes(hash)) {
     const label = ROUTES[hash] || 'Section';
     crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/crop">Crop Production</a> &nbsp;&gt;&nbsp; <span>${label}</span>`;
+    return;
+  }
+
+  // Equipment crumbs (NEW)
+  const eqKids = [
+    '#/equipment/receivers','#/equipment/tractors','#/equipment/combines',
+    '#/equipment/sprayer','#/equipment/construction','#/equipment/trucks-trailers',
+    '#/equipment/implements','#/equipment/shop','#/equipment/barcodes'
+  ];
+  if (hash === '#/equipment') {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>Equipment</span>`;
+    return;
+  }
+  if (eqKids.includes(hash)) {
+    const label = ROUTES[hash] || 'Section';
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/equipment">Equipment</a> &nbsp;&gt;&nbsp; <span>${label}</span>`;
     return;
   }
 
@@ -175,8 +203,29 @@ function viewCropHub(){
   `;
 }
 
-/* ---------------- Feedback (new) ---------------- */
-// Feedback hub (two tiles)
+/* ---------------- Equipment (NEW) ---------------- */
+// Equipment hub grid with emojis & your order (Receivers first)
+function viewEquipmentHub(){
+  app.innerHTML = `
+    <div class="grid" role="list">
+      ${tile('📡','Receivers & Tech','#/equipment/receivers')}
+      ${tile('🚜','Tractors','#/equipment/tractors')}
+      ${tile('🌾','Combines','#/equipment/combines')}
+      ${tile('💦','Sprayer / Fertilizer Spreader','#/equipment/sprayer')}
+      ${tile('🏗️','Construction Equipment','#/equipment/construction')}
+      ${tile('🚚','Trucks & Trailers','#/equipment/trucks-trailers')}
+      ${tile('⚙️','Implements','#/equipment/implements')}
+      ${tile('🛠️','Shop','#/equipment/shop')}
+      ${tile('🔖','Barcode / QR Codes','#/equipment/barcodes')}
+    </div>
+
+    <div class="settings-actions">
+      <a class="btn" href="#/home">Back to Dashboard</a>
+    </div>
+  `;
+}
+
+/* ---------------- Feedback ---------------- */
 function viewFeedbackHub(){
   app.innerHTML = `
     <div class="grid" role="list">
@@ -189,8 +238,6 @@ function viewFeedbackHub(){
     </div>
   `;
 }
-
-// Save feedback locally (simple client log)
 function saveFeedback(entry){
   try {
     const key = 'df_feedback';
@@ -199,8 +246,6 @@ function saveFeedback(entry){
     localStorage.setItem(key, JSON.stringify(list));
   } catch {}
 }
-
-// Report Errors form
 function viewFeedbackErrors(){
   app.innerHTML = `
     <section class="section">
@@ -226,7 +271,6 @@ function viewFeedbackErrors(){
       <a class="btn" href="#/feedback">Back to Feedback</a>
     </section>
   `;
-
   document.getElementById('err-submit')?.addEventListener('click', () => {
     const subject = (document.getElementById('err-subj').value || '').trim();
     const details = (document.getElementById('err-desc').value || '').trim();
@@ -237,8 +281,6 @@ function viewFeedbackErrors(){
     location.hash = '#/feedback';
   });
 }
-
-// Feature request form
 function viewFeedbackFeature(){
   app.innerHTML = `
     <section class="section">
@@ -264,7 +306,6 @@ function viewFeedbackFeature(){
       <a class="btn" href="#/feedback">Back to Feedback</a>
     </section>
   `;
-
   document.getElementById('feat-submit')?.addEventListener('click', () => {
     const subject = (document.getElementById('feat-subj').value || '').trim();
     const details = (document.getElementById('feat-desc').value || '').trim();
@@ -276,7 +317,7 @@ function viewFeedbackFeature(){
   });
 }
 
-/* ---------------- Settings (unchanged) ---------------- */
+/* ---------------- Settings ---------------- */
 // Settings HOME: show tabs (tiles) + back to dashboard
 function viewSettingsHome(){
   app.innerHTML = `
@@ -422,6 +463,13 @@ function route(){
   } else if (hash.startsWith('#/crop/')) {
     const label = ROUTES[hash] || 'Section';
     viewSection(label, '#/crop', 'Back to Crop Production');
+  }
+  // Equipment hub & children (NEW)
+  else if (hash === '#/equipment') {
+    viewEquipmentHub();
+  } else if (hash.startsWith('#/equipment/')) {
+    const label = ROUTES[hash] || 'Section';
+    viewSection(label, '#/equipment', 'Back to Equipment');
   }
   // Feedback hub & children
   else if (hash === '#/feedback') {
