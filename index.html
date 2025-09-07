@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Dowson Farms</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1B5E20">
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo">
+      <img src="icons/logo.png" alt="Dowson Farms Logo" />
+      <span class="logo-text">Dowson Farms</span>
+    </div>
+    <div class="header-right">
+      <span id="clock" aria-live="polite"></span>
+      <button id="logout" class="logout" type="button">Logout</button>
+    </div>
+  </header>
+
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
+
+  <main id="app" tabindex="-1" role="main"></main>
+
+  <footer class="app-footer">
+    <span id="version">v1.0.0</span>
+    <span id="today"></span>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
