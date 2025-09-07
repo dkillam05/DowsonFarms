@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v6.0';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v6.1';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -31,9 +31,15 @@ const ROUTES = {
   '#/grain': 'Grain Tracking',
   '#/employees': 'Employees',
   '#/ai': 'AI Reports',
-  '#/settings': 'Settings',          // settings home (tiles only)
-  '#/settings/crops': 'Settings',    // settings > crop type detail
+
+  // Settings
+  '#/settings': 'Settings',
+  '#/settings/crops': 'Settings',
+
+  // Feedback hub + subroutes
   '#/feedback': 'Feedback',
+  '#/feedback/errors': 'Report Errors',
+  '#/feedback/feature': 'Feature Request',
 };
 
 // ===== Utilities =====
@@ -79,8 +85,8 @@ function renderBreadcrumb(){
     return;
   }
 
-  // Crop Production hub & child pages
-  const cropChildren = [
+  // Crop Production crumbs
+  const cropKids = [
     '#/crop/planting','#/crop/spraying','#/crop/aerial',
     '#/crop/harvest','#/crop/maintenance','#/crop/scouting','#/crop/trials'
   ];
@@ -88,9 +94,21 @@ function renderBreadcrumb(){
     crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>Crop Production</span>`;
     return;
   }
-  if (cropChildren.includes(hash)) {
+  if (cropKids.includes(hash)) {
     const label = ROUTES[hash] || 'Section';
     crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/crop">Crop Production</a> &nbsp;&gt;&nbsp; <span>${label}</span>`;
+    return;
+  }
+
+  // Feedback crumbs
+  const fbKids = ['#/feedback/errors', '#/feedback/feature'];
+  if (hash === '#/feedback') {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>Feedback</span>`;
+    return;
+  }
+  if (fbKids.includes(hash)) {
+    const label = ROUTES[hash];
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/feedback">Feedback</a> &nbsp;&gt;&nbsp; <span>${label}</span>`;
     return;
   }
 
@@ -139,7 +157,6 @@ function viewSection(title, backHref = '#/home', backLabel = 'Back to Dashboard'
 }
 
 /* ---------------- Crop Production ---------------- */
-// Submenu grid with your order & emojis
 function viewCropHub(){
   app.innerHTML = `
     <div class="grid" role="list">
@@ -158,7 +175,108 @@ function viewCropHub(){
   `;
 }
 
-/* ---------------- Settings ---------------- */
+/* ---------------- Feedback (new) ---------------- */
+// Feedback hub (two tiles)
+function viewFeedbackHub(){
+  app.innerHTML = `
+    <div class="grid" role="list">
+      ${tile('🛠️','Report Errors','#/feedback/errors')}
+      ${tile('💡','New Feature Request','#/feedback/feature')}
+    </div>
+
+    <div class="settings-actions">
+      <a class="btn" href="#/home">Back to Dashboard</a>
+    </div>
+  `;
+}
+
+// Save feedback locally (simple client log)
+function saveFeedback(entry){
+  try {
+    const key = 'df_feedback';
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    list.push({ ...entry, ts: Date.now() });
+    localStorage.setItem(key, JSON.stringify(list));
+  } catch {}
+}
+
+// Report Errors form
+function viewFeedbackErrors(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>🛠️ Report Errors</h1>
+      <p class="muted small">Tell us what went wrong. Details help us fix it fast.</p>
+
+      <div class="field">
+        <label for="err-subj">Subject</label>
+        <input id="err-subj" type="text" placeholder="e.g., Crash when opening Equipment" />
+      </div>
+
+      <div class="field">
+        <label for="err-desc">What happened?</label>
+        <textarea id="err-desc" rows="5" placeholder="Steps to reproduce, what you expected, screenshots (if any)…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="err-contact">Contact (optional)</label>
+        <input id="err-contact" type="text" placeholder="Phone or email" />
+      </div>
+
+      <button id="err-submit" class="btn-primary">Submit</button>
+      <a class="btn" href="#/feedback">Back to Feedback</a>
+    </section>
+  `;
+
+  document.getElementById('err-submit')?.addEventListener('click', () => {
+    const subject = (document.getElementById('err-subj').value || '').trim();
+    const details = (document.getElementById('err-desc').value || '').trim();
+    const contact = (document.getElementById('err-contact').value || '').trim();
+    if (!subject || !details) { alert('Please provide a subject and details.'); return; }
+    saveFeedback({ type:'error', subject, details, contact });
+    alert('Thanks! Your error report was saved.');
+    location.hash = '#/feedback';
+  });
+}
+
+// Feature request form
+function viewFeedbackFeature(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>💡 New Feature Request</h1>
+      <p class="muted small">What would make your day easier?</p>
+
+      <div class="field">
+        <label for="feat-subj">Feature title</label>
+        <input id="feat-subj" type="text" placeholder="e.g., Barcode printing from Equipment" />
+      </div>
+
+      <div class="field">
+        <label for="feat-desc">Describe the idea</label>
+        <textarea id="feat-desc" rows="5" placeholder="What it should do, where it would live, any examples…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="feat-contact">Contact (optional)</label>
+        <input id="feat-contact" type="text" placeholder="Phone or email" />
+      </div>
+
+      <button id="feat-submit" class="btn-primary">Submit</button>
+      <a class="btn" href="#/feedback">Back to Feedback</a>
+    </section>
+  `;
+
+  document.getElementById('feat-submit')?.addEventListener('click', () => {
+    const subject = (document.getElementById('feat-subj').value || '').trim();
+    const details = (document.getElementById('feat-desc').value || '').trim();
+    const contact = (document.getElementById('feat-contact').value || '').trim();
+    if (!subject || !details) { alert('Please provide a title and description.'); return; }
+    saveFeedback({ type:'feature', subject, details, contact });
+    alert('Thanks! Your feature request was saved.');
+    location.hash = '#/feedback';
+  });
+}
+
+/* ---------------- Settings (unchanged) ---------------- */
 // Settings HOME: show tabs (tiles) + back to dashboard
 function viewSettingsHome(){
   app.innerHTML = `
@@ -176,7 +294,7 @@ function viewSettingsHome(){
   `;
 }
 
-// Storage shape: [{ name:'Corn', archived:false }, ...]
+// Crop Types storage
 const CROPS_KEY = 'df_crops';
 function migrateCropsShape(arr){
   if (!Array.isArray(arr)) return [];
@@ -305,6 +423,14 @@ function route(){
     const label = ROUTES[hash] || 'Section';
     viewSection(label, '#/crop', 'Back to Crop Production');
   }
+  // Feedback hub & children
+  else if (hash === '#/feedback') {
+    viewFeedbackHub();
+  } else if (hash === '#/feedback/errors') {
+    viewFeedbackErrors();
+  } else if (hash === '#/feedback/feature') {
+    viewFeedbackFeature();
+  }
   // Settings
   else if (hash === '#/settings') {
     viewSettingsHome();
@@ -366,7 +492,7 @@ function applyFooterHeightVar() {
   window.addEventListener(evt, applyFooterHeightVar);
 });
 
-// ===== Update banner (reliable flow) =====
+// ===== Update banner =====
 function showUpdateBanner(){ if (bannerEl) bannerEl.hidden = false; }
 function hideUpdateBanner(){ if (bannerEl) bannerEl.hidden = true; }
 function markVersionAsCurrent(){ try { localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); } catch {} }
@@ -380,8 +506,6 @@ function syncBannerWithVersion(){
   if (needsUpdate()) showUpdateBanner();
   else { hideUpdateBanner(); markVersionAsCurrent(); }
 }
-
-// Banner button (optimistic hide + safety recheck)
 let _recheckTimer = null;
 if (bannerBtn){
   bannerBtn.addEventListener('click', () => {
@@ -401,8 +525,6 @@ if (bannerBtn){
     else location.reload();
   });
 }
-
-// Run once on load
 syncBannerWithVersion();
 
 // ===== Service Worker registration + update flow =====
@@ -438,7 +560,7 @@ if ('serviceWorker' in navigator) {
         markVersionAsCurrent();
         setTimeout(() => {
           location.reload();
-          setTimeout(syncBannerWithVersion, 800); // confirm after reload
+          setTimeout(syncBannerWithVersion, 800);
         }, 300);
       });
 
