@@ -153,3 +153,4 @@ window.addEventListener('load', applyHeaderHeightVar);
 window.addEventListener('resize', applyHeaderHeightVar);
 window.addEventListener('orientationchange', applyHeaderHeightVar);
 window.addEventListener('hashchange', applyHeaderHeightVar);
+}
