@@ -1,5 +1,5 @@
 // ===== App constants =====
-const APP_VERSION = 'v5.4';  // displayed as vMAJOR.MINOR in footer
+const APP_VERSION = 'v5.5';  // displayed as vMAJOR.MINOR in footer
 
 // ===== Auth guard (client-side demo) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -21,8 +21,8 @@ const ROUTES = {
   '#/grain': 'Grain Tracking',
   '#/employees': 'Employees',
   '#/ai': 'AI Reports',
-  '#/settings': 'Settings',
-  '#/settings/crops': 'Settings',   // Settings tab: Crop Type
+  '#/settings': 'Settings',          // settings home (tabs only)
+  '#/settings/crops': 'Settings',    // settings > crop type detail
   '#/feedback': 'Feedback',
 };
 
@@ -55,17 +55,23 @@ const logoutBtn = document.getElementById('logout');
 const bannerEl = document.getElementById('update-banner');
 const bannerBtn = document.getElementById('update-refresh');
 
-// ===== Rendering: Dashboard =====
-function renderBreadcrumb(name){
+// ===== Rendering =====
+function renderBreadcrumb(){
   const hash = location.hash || '#/home';
 
-  // Nested crumbs for settings tabs
-  if (hash.startsWith('#/settings/crops')) {
-    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings/crops">Settings</a> &nbsp;&gt;&nbsp; <span>Crop Type</span>`;
+  if (hash === '#/settings') {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>Settings</span>`;
     return;
   }
-
-  if(name==='home'){ crumbs.innerHTML = `<span>Home</span>`; return; }
+  if (hash.startsWith('#/settings/crops')) {
+    crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <a href="#/settings">Settings</a> &nbsp;&gt;&nbsp; <span>Crop Type</span>`;
+    return;
+  }
+  if (hash === '#/home' || hash === '') {
+    crumbs.innerHTML = `<span>Home</span>`;
+    return;
+  }
+  const name = ROUTES[hash] || 'Section';
   crumbs.innerHTML = `<a href="#/home">Home</a> &nbsp;&gt;&nbsp; <span>${name}</span>`;
 }
 
@@ -79,7 +85,7 @@ function viewHome(){
       ${tile('📦','Grain Tracking','#/grain')}
       ${tile('👥','Employees','#/employees')}
       ${tile('🤖','AI Reports','#/ai')}
-      ${tile('⚙️','Settings','#/settings/crops')}
+      ${tile('⚙️','Settings','#/settings')}
       ${tile('💬','Feedback','#/feedback')}
     </div>
   `;
@@ -99,108 +105,84 @@ function viewSection(title){
     <section class="section">
       <h1>${title}</h1>
       <p>Coming soon.</p>
-      <a class="btn" href="#/settings/crops">Back to Settings</a>
+      <a class="btn" href="#/home">Back to Dashboard</a>
     </section>
   `;
 }
 
-// ===== Settings: tabs + Crop Type manager (Archive-aware) =====
-function currentSettingsTab(){
-  const hash = location.hash || '#/settings/crops';
-  if (hash.startsWith('#/settings/crops')) return 'crops';
-  return 'crops'; // default to crops
-}
-
-function viewSettings(){
-  const tab = currentSettingsTab(); // always 'crops' for now
-
-  // tabs (same tile look as main menu)
-  const tabsGrid = `
+/* ---------------- Settings ---------------- */
+// Settings HOME: show tabs (tiles) only
+function viewSettingsHome(){
+  app.innerHTML = `
     <div class="grid settings-tabs" role="tablist" aria-label="Settings tabs">
-      <a class="tile ${tab==='crops'?'tab-active':''}" role="tab" aria-selected="${tab==='crops'}" href="#/settings/crops">
+      <a class="tile" role="tab" aria-selected="false" href="#/settings/crops">
         <span class="emoji">🌱</span>
         <span class="label">Crop Type</span>
       </a>
-      <!-- Add more settings tabs later -->
+      <!-- Add more settings tiles later -->
     </div>
   `;
-
-  // pane (crop manager)
-  const pane = settingsPaneCrops();
-
-  app.innerHTML = `
-    ${tabsGrid}
-    ${pane}
-  `;
-
-  wireCropsHandlers();
 }
 
-// Storage shape: [{ name: 'Corn', archived: false }, ...]
+// Storage shape: [{ name:'Corn', archived:false }, ...]
 const CROPS_KEY = 'df_crops';
 function migrateCropsShape(arr){
-  // Backward compat if old storage was array of strings
   if (!Array.isArray(arr)) return [];
-  if (arr.length && typeof arr[0] === 'string'){
-    return arr.map(n => ({ name: n, archived:false }));
+  if (arr.length && typeof arr[0] === 'string') {
+    return arr.map(n => ({ name:n, archived:false }));
   }
-  // ensure fields present
-  return arr.map(o => ({ name: String(o.name || '').trim(), archived: !!o.archived }));
+  return arr.map(o => ({ name:String(o.name||'').trim(), archived:!!o.archived }));
 }
 function loadCrops(){
   try {
     const raw = localStorage.getItem(CROPS_KEY);
-    if (!raw) return [{name:'Corn', archived:false}, {name:'Soybeans', archived:false}];
+    if (!raw) return [{name:'Corn', archived:false},{name:'Soybeans', archived:false}];
     const arr = JSON.parse(raw);
     const norm = migrateCropsShape(arr);
-    // guard defaults if empty after migration
-    return norm.length ? norm : [{name:'Corn', archived:false}, {name:'Soybeans', archived:false}];
+    return norm.length ? norm : [{name:'Corn', archived:false},{name:'Soybeans', archived:false}];
   } catch {
-    return [{name:'Corn', archived:false}, {name:'Soybeans', archived:false}];
+    return [{name:'Corn', archived:false},{name:'Soybeans', archived:false}];
   }
 }
-function saveCrops(list){
-  try { localStorage.setItem(CROPS_KEY, JSON.stringify(list)); } catch {}
-}
+function saveCrops(list){ try { localStorage.setItem(CROPS_KEY, JSON.stringify(list)); } catch {} }
 
-// Hook: tell if a crop is used anywhere in your data.
-// For now this is a placeholder. When you add real datasets (fields, yields, etc.)
-// update this to check references before allowing delete.
-function isCropInUse(cropName){
-  // Example checks (uncomment/replace when you have data persisted):
+// TODO: wire this to real datasets later
+function isCropInUse(name){
+  // Example future checks:
   // const fields = JSON.parse(localStorage.getItem('df_fields')||'[]');
-  // if (fields.some(f => (f.crop||'').toLowerCase() === cropName.toLowerCase())) return true;
-  // const lots = JSON.parse(localStorage.getItem('df_grain')||'[]');
-  // if (lots.some(l => (l.crop||'').toLowerCase() === cropName.toLowerCase())) return true;
-  // Add other datasets here…
-  return false; // <-- currently nothing references crops
+  // if (fields.some(f => (f.crop||'').toLowerCase() === name.toLowerCase())) return true;
+  return false;
 }
 
-function settingsPaneCrops(){
+// Settings > Crop Type detail
+function viewSettingsCrops(){
   const crops = loadCrops();
   const items = crops.map((o,i)=> {
-    const archived = o.archived;
-    const status = archived ? `<span class="chip chip-archived" title="Archived">Archived</span>` : '';
-    const actionBtns = archived
-      ? `<button class="sm" data-unarchive="${i}" aria-label="Unarchive ${o.name}">Unarchive</button>
-         <button class="danger sm" data-delete="${i}" aria-label="Delete ${o.name}">Delete</button>`
-      : `<button class="warn sm" data-archive="${i}" aria-label="Archive ${o.name}">Archive</button>
-         <button class="danger sm" data-delete="${i}" aria-label="Delete ${o.name}">Delete</button>`;
-
+    const status = o.archived ? `<span class="chip chip-archived" title="Archived">Archived</span>` : '';
+    const actions = o.archived
+      ? `<button class="sm" data-unarchive="${i}">Unarchive</button>
+         <button class="danger sm" data-delete="${i}">Delete</button>`
+      : `<button class="warn sm" data-archive="${i}">Archive</button>
+         <button class="danger sm" data-delete="${i}">Delete</button>`;
     return `
-      <li class="crop-row ${archived?'is-archived':''}">
+      <li class="crop-row ${o.archived?'is-archived':''}">
         <div class="crop-info">
           <span class="chip">${o.name}</span>
           ${status}
         </div>
-        <div class="crop-actions">
-          ${actionBtns}
-        </div>
+        <div class="crop-actions">${actions}</div>
       </li>
     `;
   }).join('');
 
-  return `
+  app.innerHTML = `
+    <div class="grid settings-tabs" role="tablist" aria-label="Settings tabs">
+      <a class="tile tab-active" role="tab" aria-selected="true" href="#/settings/crops">
+        <span class="emoji">🌱</span>
+        <span class="label">Crop Type</span>
+      </a>
+    </div>
+
     <section class="section">
       <h1>Crop Type</h1>
       <p class="muted">Archive crops that are in use to preserve history. Delete only if unused.</p>
@@ -212,9 +194,11 @@ function settingsPaneCrops(){
         <button id="add-crop" class="btn-add">Add</button>
       </div>
 
-      <a class="btn" href="#/settings/crops">Back to Settings</a>
+      <a class="btn" href="#/settings">Back to Settings</a>
     </section>
   `;
+
+  wireCropsHandlers();
 }
 
 function wireCropsHandlers(){
@@ -222,84 +206,61 @@ function wireCropsHandlers(){
   const input  = document.getElementById('new-crop');
   const listEl = app.querySelector('.crop-list');
 
-  // add
   addBtn?.addEventListener('click', () => {
     const name = (input.value || '').trim();
     if (!name) return;
     const crops = loadCrops();
-    // avoid duplicates (case-insensitive)
     if (crops.some(c => c.name.toLowerCase() === name.toLowerCase())) {
       input.value = ''; return;
     }
     crops.push({ name, archived:false });
     saveCrops(crops);
-    viewSettings(); // re-render
+    viewSettingsCrops();
   });
 
   input?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); addBtn?.click(); }
   });
 
-  // list actions (archive/unarchive/delete)
   listEl?.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const crops = loadCrops();
 
-    // Archive
     if (btn.hasAttribute('data-archive')) {
-      const idx = Number(btn.getAttribute('data-archive'));
-      if (!Number.isFinite(idx) || !crops[idx]) return;
-      crops[idx].archived = true;
-      saveCrops(crops);
-      viewSettings();
-      return;
+      const i = +btn.getAttribute('data-archive'); if (!crops[i]) return;
+      crops[i].archived = true; saveCrops(crops); viewSettingsCrops(); return;
     }
-
-    // Unarchive
     if (btn.hasAttribute('data-unarchive')) {
-      const idx = Number(btn.getAttribute('data-unarchive'));
-      if (!Number.isFinite(idx) || !crops[idx]) return;
-      crops[idx].archived = false;
-      saveCrops(crops);
-      viewSettings();
-      return;
+      const i = +btn.getAttribute('data-unarchive'); if (!crops[i]) return;
+      crops[i].archived = false; saveCrops(crops); viewSettingsCrops(); return;
     }
-
-    // Delete (only if not in use)
     if (btn.hasAttribute('data-delete')) {
-      const idx = Number(btn.getAttribute('data-delete'));
-      if (!Number.isFinite(idx) || !crops[idx]) return;
-      const name = crops[idx].name;
-      if (isCropInUse(name)) {
-        alert(`“${name}” is used in your data. Archive it instead to keep history.`);
-        return;
-      }
-      const ok = confirm(`Delete “${name}”? This cannot be undone.`);
-      if (!ok) return;
-      crops.splice(idx,1);
-      saveCrops(crops);
-      viewSettings();
-      return;
+      const i = +btn.getAttribute('data-delete'); if (!crops[i]) return;
+      const name = crops[i].name;
+      if (isCropInUse(name)) { alert(`“${name}” is used in your data. Archive instead.`); return; }
+      if (!confirm(`Delete “${name}”? This cannot be undone.`)) return;
+      crops.splice(i,1); saveCrops(crops); viewSettingsCrops(); return;
     }
   });
 }
 
-// ===== Router =====
+/* ---------------- Router ---------------- */
 function route(){
   const hash = location.hash || '#/home';
-  const name = ROUTES[hash] || (hash.startsWith('#/settings') ? 'Settings' : 'Not Found');
 
-  renderBreadcrumb(name==='home' ? 'home' : name);
+  renderBreadcrumb();
 
-  if (hash.startsWith('#/settings')) {
-    viewSettings();           // shows Crop Type manager
-  } else if(name==='home') {
+  if (hash === '#/settings') {
+    viewSettingsHome();                     // tabs only
+  } else if (hash.startsWith('#/settings/crops')) {
+    viewSettingsCrops();                    // detail page
+  } else if (hash === '#/home' || hash === '') {
     viewHome();
-  } else if(name==='Not Found') {
-    viewSection('Not Found');
+  } else if (ROUTES[hash]) {
+    viewSection(ROUTES[hash]);
   } else {
-    viewSection(name);
+    viewSection('Not Found');
   }
 
   app?.focus();
