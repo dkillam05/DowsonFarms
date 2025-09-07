@@ -198,3 +198,6 @@ input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .tile { transition: none; }
 }
+/* simple inline choice rows (radio/checkbox + text) */
+.choice { display: inline-flex; align-items: center; gap: 8px; }
+.choice input[type="radio"], .choice input[type="checkbox"] { margin: 0; }
