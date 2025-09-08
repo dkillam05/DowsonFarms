@@ -548,7 +548,7 @@ window.addEventListener('load', route);
 
 // ===== Footer text + clock =====
 if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
-if (todayEl) todayEl.textContent = prettyDate(new Date()));
+if (todayEl) todayEl.textContent = prettyDate(new Date());
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
 tick(); setInterval(tick, 15000);
 
