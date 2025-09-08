@@ -1,5 +1,5 @@
-// Minimal, stable cache setup
-const CACHE_VERSION = 'df-v9.0';
+// UI-only build; minimal SW for fresh assets
+const CACHE_VERSION = 'df-v9.1';
 const CORE = [
   './',
   './index.html',
@@ -23,8 +23,6 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Navigation & core → network-first (so edits show up fast)
-// Other files → cache-first
 async function networkFirst(req){
   try{
     const fresh = await fetch(new Request(req, {cache:'no-store'}));
@@ -34,10 +32,9 @@ async function networkFirst(req){
   }catch{
     const cached = await caches.match(req, {ignoreSearch:true});
     if (cached) return cached;
-    throw new Error('Network error and no cache.');
+    throw new Error('Offline and not cached.');
   }
 }
-
 async function cacheFirst(req){
   const cached = await caches.match(req, {ignoreSearch:true});
   if (cached) return cached;
