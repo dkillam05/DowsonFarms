@@ -1,5 +1,5 @@
 // ===== Version in footer =====
-const APP_VERSION = 'v9.7';
+const APP_VERSION = 'v9.8';
 
 // ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -214,17 +214,25 @@ if (todayEl) todayEl.textContent = prettyDate(new Date());
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
 tick(); setInterval(tick, 15000);
 
-// ===== Robust Logout (works after any re-render) =====
-document.addEventListener('click', (e)=>{
-  const btn = e.target.closest('#logout');
+// ===== Logout (invite-only placeholder) =====
+(function bindLogout(){
+  const btn = document.getElementById('logout');
   if (!btn) return;
-  e.preventDefault();
-  try {
-    localStorage.removeItem('df_auth');
-    localStorage.removeItem('df_user');
-  } catch {}
-  window.location.replace('login.html');
-});
+
+  btn.addEventListener('click', (e) => {
+    // Works whether it's a <button> or a link
+    e.preventDefault?.();
+
+    try {
+      localStorage.removeItem('df_auth');
+      localStorage.removeItem('df_user');
+    } catch {}
+
+    // Cache-bust to avoid any stale-cached login page
+    const ts = Date.now();
+    window.location.replace('login.html?ts=' + ts);
+  });
+})();
 
 // ===== Service Worker (optional; UI unaffected) =====
 // ===== Service Worker registration (cache-bust for Chrome) =====
