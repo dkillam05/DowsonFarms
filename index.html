@@ -1,38 +1,42 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Dowson Farms</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link rel="manifest" href="manifest.webmanifest">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dowson Farms App</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
-  <!-- Fixed header -->
-  <header class="app-header" role="banner">
+  <!-- ===== Header ===== -->
+  <header class="app-header">
     <div class="logo">
-      <img src="icons/logo.png" alt="">
+      <img src="icons/logo.png" alt="Dowson Farms Logo">
       <span class="logo-text">Dowson Farms</span>
     </div>
-    <div class="spacer"></div>
-    <time id="clock" aria-label="Current time"></time>
-    <button id="logout" class="logout" aria-label="Logout">Logout</button>
+    <span id="clock"></span>
+    <button id="logout" class="logout">Logout</button>
   </header>
 
-  <!-- Fixed breadcrumbs -->
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <div id="breadcrumbs"><span>Home</span></div>
-  </nav>
+  <!-- ===== Breadcrumbs ===== -->
+  <nav id="breadcrumbs" class="breadcrumbs"></nav>
 
-  <!-- Scrollable main content -->
-  <main id="app" tabindex="-1" role="main" aria-live="polite"></main>
+  <!-- ===== Update Banner ===== -->
+  <div id="update-banner" hidden>
+    <span>A new update is available.</span>
+    <button id="update-refresh" class="btn-primary">Refresh</button>
+  </div>
 
-  <!-- Fixed footer -->
-  <footer class="app-footer" role="contentinfo">
-    <div id="version">v9.1</div>
-    <div id="today"></div>
+  <!-- ===== Main App Area ===== -->
+  <main id="app" tabindex="-1"></main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="app-footer">
+    <span id="today"></span>
+    <span id="version"></span>
   </footer>
 
-  <script src="app.js" defer></script>
+  <!-- ===== Scripts ===== -->
+  <script src="app.js"></script>
 </body>
 </html>
