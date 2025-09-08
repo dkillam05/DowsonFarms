@@ -1,5 +1,5 @@
 // ===== Version shown in footer (vMAJOR.MINOR only) =====
-const APP_VERSION = 'v7.4';
+const APP_VERSION = 'v7.5';
 
 // ===== Minimal theme (kept as-is) =====
 (function(){ try{
@@ -33,22 +33,36 @@ const bannerEl = document.getElementById('update-banner');
 const bannerBtn = document.getElementById('update-refresh');
 
 // ===== Layout vars (CSS custom properties) =====
-function applyHeaderHeightVar(){ const el=document.querySelector('.app-header'); document.documentElement.style.setProperty('--header-h',(el?el.offsetHeight:0)+'px'); }
-function applyCrumbsHeightVar(){ const el=document.querySelector('.breadcrumbs'); document.documentElement.style.setProperty('--crumbs-h',(el?el.offsetHeight:0)+'px'); }
-function applyFooterHeightVar(){ const el=document.querySelector('.app-footer'); document.documentElement.style.setProperty('--footer-h',(el?el.offsetHeight:0)+'px'); }
-function applyBannerHeightVar(){ const el=document.getElementById('update-banner'); const h=(el && !el.hidden)? el.offsetHeight:0; document.documentElement.style.setProperty('--banner-h',h+'px'); }
+function applyHeaderHeightVar(){
+  const el = document.querySelector('.app-header');
+  document.documentElement.style.setProperty('--header-h', (el ? el.offsetHeight : 0) + 'px');
+}
+function applyCrumbsHeightVar(){
+  const el = document.querySelector('.breadcrumbs');
+  document.documentElement.style.setProperty('--crumbs-h', (el ? el.offsetHeight : 0) + 'px');
+}
+function applyFooterHeightVar(){
+  const el = document.querySelector('.app-footer');
+  document.documentElement.style.setProperty('--footer-h', (el ? el.offsetHeight : 0) + 'px');
+}
+function applyBannerHeightVar(){
+  const el = document.getElementById('update-banner');
+  const h = (el && !el.hidden) ? el.offsetHeight : 0;
+  document.documentElement.style.setProperty('--banner-h', h + 'px');
+}
 
 // Auto-update layout vars on load/resize/orientation
-['load','resize','orientationchange'].forEach(function(evt){
-  window.addEventListener(evt, function(){
+['load','resize','orientationchange'].forEach(evt => {
+  window.addEventListener(evt, () => {
     applyHeaderHeightVar();
     applyCrumbsHeightVar();
     applyFooterHeightVar();
     applyBannerHeightVar();
   });
 });
+
 // Run twice on load to catch font/safe-area settling
-window.addEventListener('load', function(){
+window.addEventListener('load', () => {
   applyHeaderHeightVar();
   setTimeout(applyHeaderHeightVar, 100);
 });
