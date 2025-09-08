@@ -61,11 +61,16 @@ html,body {
 /* ===== Main content ===== */
 main#app {
   position: relative;
-  margin-top: calc(var(--header-h) + var(--crumbs-h));
-  margin-bottom: calc(var(--footer-h) + var(--banner-h));
+
+  /* Leave room for header + crumbs, add 8px extra buffer */
+  margin-top: calc(var(--header-h) + var(--crumbs-h) + 8px);
+
+  /* Leave room for footer + banner, add 8px extra buffer */
+  margin-bottom: calc(var(--footer-h) + var(--banner-h) + 8px);
+
   padding: 12px;
 
-  /* Ensure content fills full height between header/footer */
+  /* Ensure it fills correctly without cutting off bottom */
   min-height: calc(100vh - var(--header-h) - var(--crumbs-h) - var(--footer-h) - var(--banner-h));
   box-sizing: border-box;
 }
