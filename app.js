@@ -1,7 +1,7 @@
-// ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v7.2';
+// ===== Version shown in footer (vMAJOR.MINOR only) =====
+const APP_VERSION = 'v7.3';
 
-// ===== Minimal theme hook (kept in v5) =====
+// ===== Minimal theme (kept as-is) =====
 (function(){ try{
   const t = localStorage.getItem('df_theme') || 'auto';
   document.documentElement.setAttribute('data-theme', t);
@@ -22,7 +22,7 @@ function prettyDate(d){ const dow=d.toLocaleString(undefined,{weekday:'long'}); 
 function normalizeVersion(v){ const m=String(v||'').trim().replace(/^v/i,''); const p=m.split('.'); return (p[0]||'0')+'.'+(p[1]||'0'); }
 function displayVersion(v){ return 'v'+normalizeVersion(v); }
 
-// ===== DOM =====
+// ===== DOM refs =====
 const app = document.getElementById('app');
 const crumbs = document.getElementById('breadcrumbs');
 const versionEl = document.getElementById('version');
@@ -32,13 +32,28 @@ const logoutBtn = document.getElementById('logout');
 const bannerEl = document.getElementById('update-banner');
 const bannerBtn = document.getElementById('update-refresh');
 
-// ===== Layout vars =====
+// ===== Layout vars (CSS custom properties) =====
 function applyHeaderHeightVar(){ const el=document.querySelector('.app-header'); document.documentElement.style.setProperty('--header-h',(el?el.offsetHeight:0)+'px'); }
 function applyCrumbsHeightVar(){ const el=document.querySelector('.breadcrumbs'); document.documentElement.style.setProperty('--crumbs-h',(el?el.offsetHeight:0)+'px'); }
 function applyFooterHeightVar(){ const el=document.querySelector('.app-footer'); document.documentElement.style.setProperty('--footer-h',(el?el.offsetHeight:0)+'px'); }
 function applyBannerHeightVar(){ const el=document.getElementById('update-banner'); const h=(el && !el.hidden)? el.offsetHeight:0; document.documentElement.style.setProperty('--banner-h',h+'px'); }
 
-// ===== Tiles & crumbs =====
+// Auto-update layout vars on load/resize/orientation
+['load','resize','orientationchange'].forEach(function(evt){
+  window.addEventListener(evt, function(){
+    applyHeaderHeightVar();
+    applyCrumbsHeightVar();
+    applyFooterHeightVar();
+    applyBannerHeightVar();
+  });
+});
+// Run twice on load to catch font/safe-area settling
+window.addEventListener('load', function(){
+  applyHeaderHeightVar();
+  setTimeout(applyHeaderHeightVar, 100);
+});
+
+// ===== Tiles & breadcrumbs =====
 function tile(emoji,label,href){
   return `<a class="tile" href="${href}" aria-label="${label}">
     <span class="emoji">${emoji}</span><span class="label">${label}</span>
@@ -46,7 +61,7 @@ function tile(emoji,label,href){
 }
 function renderBreadcrumb(){ crumbs.innerHTML='<span>Home</span>'; }
 
-// ===== Views =====
+// ===== Views: Home & generic section =====
 function viewHome(){
   app.innerHTML = `
     <div class="grid">
@@ -72,7 +87,7 @@ function viewSection(title, backHref, backLabel){
   `;
 }
 
-/* Settings → Crop Type */
+// ===== Settings → Crop Type =====
 const CROPS_KEY='df_crops';
 function migrateCropsShape(arr){ if(!Array.isArray(arr))return[]; if(arr.length && typeof arr[0]==='string') return arr.map(n=>({name:n,archived:false})); return arr.map(o=>({name:String(o.name||'').trim(),archived:!!o.archived})); }
 function loadCrops(){
@@ -84,7 +99,7 @@ function loadCrops(){
   }catch{ return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}]; }
 }
 function saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
-function isCropInUse(name){ return false; } // placeholder
+function isCropInUse(name){ return false; } // placeholder for future checks
 
 function viewSettingsHome(){
   app.innerHTML = `
@@ -99,10 +114,10 @@ function viewSettingsHome(){
 function viewSettingsCrops(){
   const crops=loadCrops();
   const items=crops.map((o,i)=>{
-    const status=o.archived? '<span class="chip" title="Archived">Archived</span>':'';
+    const status=o.archived? '<span class="chip chip-archived" title="Archived">Archived</span>':'';
     const actions=o.archived
-      ? `<button class="btn" data-unarchive="${i}">Unarchive</button> <button class="btn btn-danger" data-delete="${i}">Delete</button>`
-      : `<button class="btn" data-archive="${i}">Archive</button> <button class="btn btn-danger" data-delete="${i}">Delete</button>`;
+      ? `<button class="btn" data-unarchive="${i}">Unarchive</button> <button class="btn" data-delete="${i}">Delete</button>`
+      : `<button class="btn" data-archive="${i}">Archive</button> <button class="btn" data-delete="${i}">Delete</button>`;
     return `<li class="crop-row ${(o.archived?'is-archived':'')}"><div class="crop-info"><span class="chip">${o.name}</span> ${status}</div><div class="crop-actions">${actions}</div></li>`;
   }).join('');
   app.innerHTML = `
@@ -110,7 +125,7 @@ function viewSettingsCrops(){
       <h1>Crop Type</h1>
       <p class="muted">Archive crops that are in use to preserve history. Delete only if unused.</p>
       <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
-      <div class="field" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+      <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
         <input id="new-crop" type="text" placeholder="e.g., Wheat">
         <button id="add-crop" class="btn-primary">➕ Add</button>
       </div>
@@ -140,7 +155,7 @@ function viewSettingsCrops(){
   });
 }
 
-/* Feedback */
+// ===== Feedback =====
 function saveFeedback(entry){
   try{ const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]'); list.push(entry); localStorage.setItem(key, JSON.stringify(list)); }catch{}
 }
@@ -192,7 +207,7 @@ function viewFeedbackFeature(){
   });
 }
 
-/* AI Reports hub + placeholders */
+// ===== AI Reports hub + placeholders =====
 function viewReportsHub(){
   app.innerHTML = `
     <div class="grid">
@@ -211,7 +226,7 @@ function viewReportsPremade(){ viewSection('📄 Pre-made Reports','#/ai','Back 
 function viewReportsAI(){ viewSection('🤖 AI Reports','#/ai','Back to AI Reports'); }
 function viewReportsYield(){ viewSection('📊 Yield Report','#/ai','Back to AI Reports'); }
 
-// ===== Router (v5 scope) =====
+// ===== Router =====
 function route(){
   const hash = location.hash || '#/home';
   renderBreadcrumb();
@@ -235,16 +250,11 @@ function route(){
   else viewSection('Not Found','#/home');
 
   app?.focus?.();
+  // ensure offsets reflect current sizes
   applyHeaderHeightVar(); applyCrumbsHeightVar(); applyFooterHeightVar(); applyBannerHeightVar();
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
-['load','resize','orientationchange'].forEach(evt=>{
-  window.addEventListener(evt, applyHeaderHeightVar);
-  window.addEventListener(evt, applyCrumbsHeightVar);
-  window.addEventListener(evt, applyFooterHeightVar);
-  window.addEventListener(evt, applyBannerHeightVar);
-});
 
 // ===== Header/Footer text =====
 versionEl && (versionEl.textContent = displayVersion(APP_VERSION));
