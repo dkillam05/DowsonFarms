@@ -234,7 +234,6 @@ tick(); setInterval(tick, 15000);
   });
 })();
 
-// ===== Service Worker (optional; UI unaffected) =====
 // ===== Service Worker registration (cache-bust for Chrome) =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
@@ -250,11 +249,12 @@ if ('serviceWorker' in navigator) {
         if (document.visibilityState === 'visible') reg.update();
       });
 
-      // Show banner when a waiting SW exists (keep your existing logic)
+      // Show banner when a waiting SW exists
       if (reg.waiting) {
         window.__waitingSW = reg.waiting;
         if (needsUpdate()) showUpdateBanner();
       }
+
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;
