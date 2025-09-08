@@ -144,3 +144,9 @@ ul.crop-list { list-style: none; padding: 0; margin: 0; }
 /* ===== Add row ===== */
 .add-row input { flex: 1; }
 .add-row button { white-space: nowrap; }
+
+/* Remove default iOS blue focus outlines */
+a, button, input, textarea, select {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
