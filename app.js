@@ -262,10 +262,16 @@ function tick(){ clockEl && (clockEl.textContent = formatClock12(new Date())); }
 tick(); setInterval(tick, 15000);
 
 // ===== Logout =====
-logoutBtn?.addEventListener('click', ()=>{
-  try{ localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); }catch{}
-  location.replace('login.html');
-});
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    try {
+      localStorage.removeItem('df_auth');
+      localStorage.removeItem('df_user');
+    } catch {}
+    // Always send back to login page
+    window.location.replace('login.html');
+  });
+}
 
 // ===== Update banner logic =====
 function showUpdateBanner(){ if (bannerEl){ bannerEl.hidden=false; applyBannerHeightVar(); } }
