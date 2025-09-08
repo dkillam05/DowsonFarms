@@ -1,5 +1,5 @@
 // UI-only build; minimal SW for fresh assets
-const CACHE_VERSION = 'df-v9.2';
+const CACHE_VERSION = 'df-v9.3';
 const CORE = [
   './',
   './index.html',
