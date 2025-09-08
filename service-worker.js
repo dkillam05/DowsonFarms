@@ -1,5 +1,5 @@
 // === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v7.4-fresh';
+const CACHE_VERSION = 'df-v7.5-fresh';
 
 // Build a base path that works on GitHub Pages and root hosting
 const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/?$/, '/');
