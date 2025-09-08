@@ -1,5 +1,5 @@
 // === Bump this on EVERY release to bust the SW cache ===
-const CACHE_VERSION = 'df-v9.5-fresh';
+const CACHE_VERSION = 'df-v9.6-fresh';
 
 // Build paths (works on root or GitHub Pages subpaths)
 const SW_URL = new URL(self.location.href);
