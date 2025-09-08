@@ -1,27 +1,23 @@
 // === Bump on every release ===
-const CACHE_VERSION = 'df-v10.8-fresh';
+const CACHE_VERSION = 'df-v10.9-hot';
 
+// Precache only the static shell (DO NOT include app.js/styles.css)
 const CORE = [
   './',
   './index.html',
   './login.html',
-  './styles.css',
-  './app.js',
-  './manifest.webmanifest'
-];
-const ASSETS = [
+  './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/logo.png'
 ];
-const PRECACHE = [...CORE, ...ASSETS];
 
-// Install (cache everything; do NOT skipWaiting so the banner can appear)
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_VERSION).then(c => c.addAll(PRECACHE)));
+  event.waitUntil(caches.open(CACHE_VERSION).then(c => c.addAll(CORE)));
+  // We allow immediate takeover so users don't have to close all tabs
+  self.skipWaiting();
 });
 
-// Activate: purge old caches and take control
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -30,21 +26,23 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Strategies
+// ---------- Strategies ----------
 async function networkFirst(req) {
   try {
-    const res = await fetch(new Request(req, { cache: 'no-store' }));
+    // cache: 'reload' forces a fresh request and bypasses HTTP cache
+    const res = await fetch(new Request(req, { cache: 'reload' }));
     const cache = await caches.open(CACHE_VERSION);
     cache.put(req, res.clone());
     return res;
   } catch {
-    const cached = await caches.match(req, { ignoreSearch: true });
+    const cached = await caches.match(req, { ignoreSearch: false });
     if (cached) return cached;
     throw new Error('Offline and not cached');
   }
 }
+
 async function cacheFirst(req) {
-  const cached = await caches.match(req, { ignoreSearch: true });
+  const cached = await caches.match(req, { ignoreSearch: false });
   if (cached) return cached;
   const res = await fetch(req);
   const cache = await caches.open(CACHE_VERSION);
@@ -52,37 +50,35 @@ async function cacheFirst(req) {
   return res;
 }
 
-// Fetch
+// ---------- Routing ----------
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
-  if (req.method !== 'GET' || url.origin !== location.origin) return;
 
-  // Direct login navigations through network-first
-  if (req.mode === 'navigate' && /\/login\.html?$/.test(url.pathname)) {
-    event.respondWith(networkFirst(req));
-    return;
-  }
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // App HTML navigations → always fetch latest index
+  // 1) Navigations: always get the newest app shell
   if (req.mode === 'navigate') {
     event.respondWith(networkFirst(new Request('./index.html', { cache: 'reload' })));
     return;
   }
 
-  // Core files network-first
-  if (CORE.includes(url.pathname)) {
+  // 2) Versioned assets or our main bundles => network-first
+  //    (anything with ?v= OR exactly app.js/styles.css)
+  const isVersioned = url.searchParams.has('v');
+  const isAppAsset = /\/(app\.js|styles\.css)$/.test(url.pathname);
+  if (isVersioned || isAppAsset) {
     event.respondWith(networkFirst(req));
     return;
   }
 
-  // Everything else cache-first
+  // 3) Everything else (icons/images/etc) => cache-first
   event.respondWith(cacheFirst(req));
 });
 
 // Promote waiting SW when app asks
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data && event.data.type === 'SKIP_WAITING')) {
     self.skipWaiting();
   }
 });
