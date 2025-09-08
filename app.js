@@ -1,5 +1,5 @@
 // ===== Version in footer =====
-const APP_VERSION = 'v10.0';
+const APP_VERSION = 'v10.1';
 
 // ===== Theme boot (auto/light/dark) =====
 (function(){
