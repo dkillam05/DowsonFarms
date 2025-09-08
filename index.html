@@ -6,7 +6,7 @@
   <title>Dowson Farms App</title>
   <meta name="theme-color" content="#1B5E20" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=10010" />
+  <link rel="stylesheet" href="styles.css?v=10500" />
 </head>
 <body>
   <!-- ===== Header ===== -->
@@ -20,16 +20,16 @@
   </header>
 
   <!-- ===== Breadcrumbs ===== -->
-  <nav id="breadcrumbs" class="breadcrumbs"></nav>
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
 
   <!-- ===== Update Banner ===== -->
   <div id="update-banner" hidden>
-    <span>A new update is available.</span>
+    <span>New update available 🚀</span>
     <button id="update-refresh" class="btn-primary">Refresh</button>
   </div>
 
   <!-- ===== Main App Area ===== -->
-  <main id="app" tabindex="-1"></main>
+  <main id="app" tabindex="-1" role="main"></main>
 
   <!-- ===== Footer ===== -->
   <footer class="app-footer">
@@ -37,7 +37,7 @@
     <span id="version"></span>
   </footer>
 
-  <!-- App JS (cache-busted) -->
-  <script src="app.js?v=10010"></script>
+  <!-- App JS (versioned for cache-busting) -->
+  <script src="app.js?v=10500"></script>
 </body>
 </html>
