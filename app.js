@@ -1,5 +1,5 @@
 // ===== Version shown in footer (vMAJOR.MINOR only) =====
-const APP_VERSION = 'v8.3';
+const APP_VERSION = 'v8.4';
 
 // ===== Minimal theme (kept as-is) =====
 (function(){ try{
@@ -21,6 +21,7 @@ function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%
 function prettyDate(d){ const dow=d.toLocaleString(undefined,{weekday:'long'}); const mo=d.toLocaleString(undefined,{month:'long'}); return `${dow} ${mo} ${ordinal(d.getDate())} ${d.getFullYear()}`; }
 function normalizeVersion(v){ const m=String(v||'').trim().replace(/^v/i,''); const p=m.split('.'); return (p[0]||'0')+'.'+(p[1]||'0'); }
 function displayVersion(v){ return 'v'+normalizeVersion(v); }
+function scrollToTopNow(){ try{ window.scrollTo(0,0); }catch{} }
 
 // ===== DOM refs =====
 const app = document.getElementById('app');
@@ -38,18 +39,14 @@ function applyCrumbsHeightVar(){ const el=document.querySelector('.breadcrumbs')
 function applyFooterHeightVar(){ const el=document.querySelector('.app-footer'); document.documentElement.style.setProperty('--footer-h',(el?el.offsetHeight:0)+'px'); }
 function applyBannerHeightVar(){ const el=document.getElementById('update-banner'); const h=(el && !el.hidden)? el.offsetHeight:0; document.documentElement.style.setProperty('--banner-h',h+'px'); }
 
-// Auto-update layout vars on load/resize/orientation
-['load','resize','orientationchange'].forEach(function(evt){
-  window.addEventListener(evt, function(){
-    applyHeaderHeightVar();
-    applyCrumbsHeightVar();
-    applyFooterHeightVar();
-    applyBannerHeightVar();
+// keep sizes fresh
+['load','resize','orientationchange'].forEach(evt=>{
+  window.addEventListener(evt, ()=>{
+    applyHeaderHeightVar(); applyCrumbsHeightVar(); applyFooterHeightVar(); applyBannerHeightVar();
   });
 });
-// Run twice on load to catch font/safe-area settling
-window.addEventListener('load', function(){
-  applyHeaderHeightVar();
+window.addEventListener('load', ()=>{
+  // run again after fonts/safe-area settle
   setTimeout(applyHeaderHeightVar, 100);
 });
 
@@ -99,7 +96,7 @@ function loadCrops(){
   }catch{ return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}]; }
 }
 function saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
-function isCropInUse(_name){ return false; } // future hook
+function isCropInUse(){ return false; } // placeholder
 
 function viewSettingsHome(){
   app.innerHTML = `
@@ -251,9 +248,12 @@ function route(){
 
   app?.focus?.();
   applyHeaderHeightVar(); applyCrumbsHeightVar(); applyFooterHeightVar(); applyBannerHeightVar();
+  scrollToTopNow();                   // <— ensures each screen opens at the top
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
+// run one more top-scroll after hashchange paint
+window.addEventListener('hashchange', ()=>setTimeout(scrollToTopNow, 0));
 
 // ===== Header/Footer text =====
 versionEl && (versionEl.textContent = displayVersion(APP_VERSION));
@@ -262,18 +262,12 @@ function tick(){ clockEl && (clockEl.textContent = formatClock12(new Date())); }
 tick(); setInterval(tick, 15000);
 
 // ===== Logout =====
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', () => {
-    try {
-      localStorage.removeItem('df_auth');
-      localStorage.removeItem('df_user');
-    } catch {}
-    // Always send back to login page
-    window.location.replace('login.html');
-  });
-}
+logoutBtn?.addEventListener('click', ()=>{
+  try{ localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); }catch{}
+  location.replace('login.html');
+});
 
-// ===== Update banner logic =====
+// ===== Update banner logic (stable) =====
 function showUpdateBanner(){ if (bannerEl){ bannerEl.hidden=false; applyBannerHeightVar(); } }
 function hideUpdateBanner(){ if (bannerEl){ bannerEl.hidden=true; applyBannerHeightVar(); } }
 function markVersionAsCurrent(){ try{ localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); }catch{} }
