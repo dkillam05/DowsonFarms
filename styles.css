@@ -26,16 +26,8 @@ html,body {
   background: var(--green); color: #fff;
   box-shadow: var(--shadow);
 
-  /* Old: padding: 12px; */
-  /* New: slightly taller top padding */
-  padding: 20px 12px 10px;
-}
-
-/* iOS 11–12 fallback for safe-area */
-@supports (padding: constant(safe-area-inset-top)) {
-  .app-header {
-    padding-top: calc(constant(safe-area-inset-top) + 12px);
-  }
+  /* Nudge header lower, and respect safe-area notch */
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 12px 12px;
 }
 
 .logo { display: flex; align-items: center; }
@@ -81,16 +73,9 @@ main#app {
   display: flex; justify-content: space-between; align-items: center;
   box-shadow: var(--shadow);
 
-  /* Safe-area bottom padding */
+  /* Safe-area bottom padding for iPhones */
   padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 8px);
   font-size: 0.85em;
-}
-
-/* iOS 11–12 fallback for safe-area */
-@supports (padding: constant(safe-area-inset-bottom)) {
-  .app-footer {
-    padding-bottom: calc(constant(safe-area-inset-bottom) + 8px);
-  }
 }
 
 /* ===== Tiles grid ===== */
