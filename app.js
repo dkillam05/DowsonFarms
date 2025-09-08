@@ -1,5 +1,5 @@
 // ===== Version in footer =====
-const APP_VERSION = 'v9.2';
+const APP_VERSION = 'v9.3';
 
 // ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -21,6 +21,33 @@ const crumbs = document.getElementById('breadcrumbs');
 const versionEl = document.getElementById('version');
 const todayEl = document.getElementById('today');
 const clockEl = document.getElementById('clock');
+
+// ---- Robust Logout (works for button or link) ----
+function doLogout() {
+  try {
+    localStorage.removeItem('df_auth');
+    localStorage.removeItem('df_user');
+  } catch {}
+  // Bust any SW cache confusion by adding a timestamp
+  location.assign('login.html?bye=' + Date.now());
+}
+
+// 1) Direct element with id="logout"
+const logoutBtn = document.getElementById('logout');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    doLogout();
+  });
+}
+
+// 2) Safety net: delegate clicks anywhere in the doc
+document.addEventListener('click', function (e) {
+  const el = e.target.closest('#logout,[data-action="logout"],a[href="logout"]');
+  if (!el) return;
+  e.preventDefault();
+  doLogout();
+});
 
 // ===== Measure header/crumbs/footer heights -> CSS vars =====
 function setCSSVar(name, px){ document.documentElement.style.setProperty(name, `${px}px`); }
