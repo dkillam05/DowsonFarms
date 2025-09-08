@@ -1,5 +1,5 @@
 // === Bump on every release ===
-const CACHE_VERSION = 'df-v10.3-fresh';
+const CACHE_VERSION = 'df-v10.4-fresh';
 
 const CORE = [
   './',
@@ -16,13 +16,11 @@ const ASSETS = [
 ];
 const PRECACHE = [...CORE, ...ASSETS];
 
-// Install (no-waiting so user can refresh immediately)
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_VERSION).then(c => c.addAll(PRECACHE)));
   self.skipWaiting();
 });
 
-// Activate: clear old caches, take control
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -57,19 +55,17 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin) return;
 
-  // Let login.html always be latest
+  // Allow real login page fresh
   if (req.mode === 'navigate' && /\/login\.html?$/.test(url.pathname)) {
     event.respondWith(networkFirst(req));
     return;
   }
 
-  // SPA navigations → index (network-first so updates land)
   if (req.mode === 'navigate') {
     event.respondWith(networkFirst(new Request('./index.html', { cache: 'reload' })));
     return;
   }
 
-  // Core → network-first; assets → cache-first
   if (CORE.includes(url.pathname)) {
     event.respondWith(networkFirst(req));
     return;
@@ -78,7 +74,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(cacheFirst(req));
 });
 
-// Promote waiting SW when app asks
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
