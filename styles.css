@@ -103,6 +103,7 @@ main#app{
 input,textarea,select{
   width:100%; padding:8px; border-radius:6px; border:1px solid #ccc;
   font: inherit;
+  background:#fff; color:#333;
 }
 button{
   cursor:pointer; font: inherit;
@@ -134,14 +135,80 @@ a, button, input, textarea, select{
 }
 *:focus, *:focus-visible{ outline:none !important; }
 main#app:focus, main#app:focus-visible{ outline:none !important; }
-/* and globally */
 *{ -webkit-tap-highlight-color:transparent; }
 
-body.dark-theme {
-  background-color: #121212; /* dark background */
-  color: #E0E0E0;           /* light text */
+/* =====================================================
+   THEME OVERRIDES
+   - We support: data-theme="light" | "dark" | "auto"
+   - "auto" follows prefers-color-scheme
+   ===================================================== */
+
+/* Explicit LIGHT (keeps defaults) */
+html[data-theme="light"] body{
+  background: var(--ivory);
+  color: #333;
 }
 
-body.dark-theme header {
-  background-color: #0A3D0A; /* darker green header */
+/* Explicit DARK */
+html[data-theme="dark"]{ color-scheme: dark; }
+html[data-theme="dark"] body{ background:#121212; color:#EAEAEA; }
+
+html[data-theme="dark"] .app-header{ background:#134017; color:#fff; }
+html[data-theme="dark"] .breadcrumbs{ background:#1f5b23; color:#fff; }
+html[data-theme="dark"] .app-footer{ background:#134017; color:#fff; }
+
+html[data-theme="dark"] .tile{
+  background:#1E1E1E; color:#CFE7D0;
+  border-color:#2E7D32;
+}
+html[data-theme="dark"] .tile:hover{ background:#262626; }
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select{
+  background:#1E1E1E; color:#EAEAEA; border-color:#555;
+}
+html[data-theme="dark"] .btn{
+  background:#2a2a2a; color:#DDE7DE; border-color:#555;
+}
+html[data-theme="dark"] .btn:hover{ background:#333; }
+html[data-theme="dark"] .btn-primary{ background:#2E7D32; color:#fff; }
+html[data-theme="dark"] .btn-primary:hover{ background:#3b8d3f; }
+
+html[data-theme="dark"] .chip{ background:#1E1E1E; border-color:#3f8a44; color:#DDE7DE; }
+html[data-theme="dark"] .chip-archived{ background:#2a2a2a; border-color:#666; color:#aaa; }
+html[data-theme="dark"] .muted{ color:#aaa; }
+html[data-theme="dark"] .crop-row{ border-bottom-color:#444; }
+
+/* AUTO (follow device) */
+html[data-theme="auto"]{ color-scheme: light; }
+@media (prefers-color-scheme: dark){
+  html[data-theme="auto"]{ color-scheme: dark; }
+  html[data-theme="auto"] body{ background:#121212; color:#EAEAEA; }
+
+  html[data-theme="auto"] .app-header{ background:#134017; color:#fff; }
+  html[data-theme="auto"] .breadcrumbs{ background:#1f5b23; color:#fff; }
+  html[data-theme="auto"] .app-footer{ background:#134017; color:#fff; }
+
+  html[data-theme="auto"] .tile{
+    background:#1E1E1E; color:#CFE7D0; border-color:#2E7D32;
+  }
+  html[data-theme="auto"] .tile:hover{ background:#262626; }
+
+  html[data-theme="auto"] input,
+  html[data-theme="auto"] textarea,
+  html[data-theme="auto"] select{
+    background:#1E1E1E; color:#EAEAEA; border-color:#555;
+  }
+  html[data-theme="auto"] .btn{
+    background:#2a2a2a; color:#DDE7DE; border-color:#555;
+  }
+  html[data-theme="auto"] .btn:hover{ background:#333; }
+  html[data-theme="auto"] .btn-primary{ background:#2E7D32; color:#fff; }
+  html[data-theme="auto"] .btn-primary:hover{ background:#3b8d3f; }
+
+  html[data-theme="auto"] .chip{ background:#1E1E1E; border-color:#3f8a44; color:#DDE7DE; }
+  html[data-theme="auto"] .chip-archived{ background:#2a2a2a; border-color:#666; color:#aaa; }
+  html[data-theme="auto"] .muted{ color:#aaa; }
+  html[data-theme="auto"] .crop-row{ border-bottom-color:#444; }
 }
