@@ -2,43 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Dowson Farms PWA</title>
+  <title>Dowson Farms</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-  <!-- Header -->
-  <header class="app-header">
+  <!-- Fixed header -->
+  <header class="app-header" role="banner">
     <div class="logo">
-      <img src="icons/logo.png" alt="DF">
-      <div class="logo-text">Dowson Farms</div>
+      <img src="icons/logo.png" alt="" />
+      <span class="logo-text">Dowson Farms</span>
     </div>
-    <div id="clock" class="small" style="margin-left:8px;"></div>
+    <div class="spacer"></div>
+    <time id="clock" aria-label="Current time"></time>
     <button id="logout" class="logout" aria-label="Logout">Logout</button>
   </header>
 
-  <!-- Breadcrumbs -->
-  <nav id="breadcrumbs" class="breadcrumbs"><span>Home</span></nav>
+  <!-- Fixed breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <div id="breadcrumbs"><span>Home</span></div>
+  </nav>
 
-  <!-- Update banner (sits just above footer) -->
-  <div id="update-banner" hidden>
-    New Update Available
-    <button id="update-refresh" class="btn">Refresh</button>
-  </div>
+  <!-- Scrollable main content -->
+  <main id="app" tabindex="-1" role="main" aria-live="polite"></main>
 
-  <!-- Main app -->
-  <main id="app" tabindex="-1" aria-live="polite"></main>
-
-  <!-- Footer -->
-  <footer class="app-footer">
-    <div><strong id="version">v0.0</strong></div>
-    <div id="today" class="small"></div>
+  <!-- Fixed footer -->
+  <footer class="app-footer" role="contentinfo">
+    <div id="version">v9.0</div>
+    <div id="today"></div>
   </footer>
 
-  <script defer src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
