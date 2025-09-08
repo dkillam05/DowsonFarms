@@ -144,3 +144,11 @@ ul.crop-list { list-style: none; padding: 0; margin: 0; }
 /* ===== Add row ===== */
 .add-row input { flex: 1; }
 .add-row button { white-space: nowrap; }
+
+/* --- iOS tap highlight / focus ring fixes --- */
+* { -webkit-tap-highlight-color: transparent; }        /* removes blue tap bar */
+a, button { -webkit-touch-callout: none; }
+.tile:focus, .btn:focus, a:focus, button:focus {
+  outline: none;
+  box-shadow: none;
+}
