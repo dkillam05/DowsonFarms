@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.9';
+const APP_VERSION = 'v10.10';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -323,26 +323,345 @@ function viewGrainComing(name){
   `;
 }
 
-/* =========================
-   Team & Partners (stubs)
-   ========================= */
-function viewTeamHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('👷','Employees','#/team/employees')}
-      ${tile('🛠️','Subcontractors','#/team/subcontractors')}
-      ${tile('🏪','Vendors','#/team/vendors')}
-      ${tile('📇','Directory','#/team/dir')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
+// ===== Team & Partners =====
+const EMP_KEY    = 'df_employees';
+const SUBC_KEY   = 'df_subcontractors';
+const VEND_KEY   = 'df_vendors';
+const INVITE_KEY = 'df_invites';
+
+function loadJSON(key, fallback = []) {
+  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+  catch { return fallback; }
 }
-function viewTeamComing(name){
+function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+function uuid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function onlyDigits(s){ return String(s||'').replace(/\D+/g,''); }
+function fmtPhone(raw){ const d = onlyDigits(raw); return d.length===10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : raw; }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function capWord(s){ s=String(s||'').trim(); return s ? s[0].toUpperCase()+s.slice(1).toLowerCase() : ''; }
+function capName(s){ return String(s||'').trim().split(/\s+/).map(capWord).join(' '); }
+function userEmail(){ try { return localStorage.getItem('df_user') || ''; } catch { return ''; } }
+function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
+
+// ---- Hub (unchanged structure) ----
+function viewTeamHub(){
+  app.innerHTML =
+    '<div class="grid">'+
+      tile('👷','Employees','#/team/employees')+
+      tile('🛠️','Subcontractors','#/team/subcontractors')+
+      tile('🏪','Vendors','#/team/vendors')+
+      tile('📇','Directory','#/team/dir')+
+    '</div>'+
+    '<div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>';
+}
+
+// ---- Employees: form (role & permissions removed; +Birthday +Invite) ----
+function viewTeamEmployees(){
   app.innerHTML = `
     <section class="section">
-      <h1>${name}</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="#/team">Back to Team & Partners</a>
+      <h1>👷 Add Employee</h1>
+
+      <div class="field"><input id="emp-first" type="text" placeholder="First name *"></div>
+      <div class="field"><input id="emp-last"  type="text" placeholder="Last name *"></div>
+
+      <div class="field"><input id="emp-email" type="email" placeholder="Email *"></div>
+      <div class="field"><input id="emp-phone" type="tel" placeholder="Phone (optional)"></div>
+
+      <div class="field">
+        <label style="font-weight:600">Start date <span class="small muted">(Required)</span></label>
+        <input id="emp-start" type="date">
+      </div>
+
+      <div class="field">
+        <label style="font-weight:600">Birthday <span class="small muted">(Optional)</span></label>
+        <input id="emp-bday" type="date">
+      </div>
+
+      <div class="field"><textarea id="emp-notes" rows="3" placeholder="Notes (optional)"></textarea></div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="emp-save" class="btn-primary">Save</button>
+        <button id="emp-invite" class="btn">Invite</button>
+      </div>
+
+      <div class="settings-actions" style="margin-top:12px;">
+        <a class="btn" href="#/team/dir">View Directory</a>
+        <a class="btn" href="#/team">Back to Team & Partners</a>
+      </div>
+    </section>
+  `;
+
+  // defaults + capitalization
+  const first = document.getElementById('emp-first');
+  const last  = document.getElementById('emp-last');
+  const start = document.getElementById('emp-start');
+  const bday  = document.getElementById('emp-bday');
+  if (start) start.value = todayStr();
+  first?.addEventListener('blur', ()=> first.value = capName(first.value));
+  last ?.addEventListener('blur', ()=> last .value = capName(last .value));
+
+  // Save
+  document.getElementById('emp-save')?.addEventListener('click', ()=>{
+    const firstName = capName(first.value);
+    const lastName  = capName(last.value);
+    const email     = String(document.getElementById('emp-email').value||'').trim();
+    const phoneRaw  = String(document.getElementById('emp-phone').value||'');
+    const phone     = onlyDigits(phoneRaw);
+    const startDate = String(start.value||todayStr());
+    const birthday  = String(bday.value||'');
+    const notes     = String(document.getElementById('emp-notes').value||'').trim();
+
+    if (!firstName || !lastName) { alert('Please enter first and last name.'); return; }
+    if (!email || !looksLikeEmail(email)) { alert('Please enter a valid email.'); return; }
+    if (phone && phone.length !== 10) { alert('Phone must be 10 digits.'); return; }
+
+    const list = loadJSON(EMP_KEY);
+    list.push({
+      id: uuid(),
+      type:'employee',
+      firstName, lastName,
+      email, phone,
+      startDate, birthday,
+      notes,
+      createdAt: new Date().toISOString(),
+      createdBy: userEmail()
+    });
+    saveJSON(EMP_KEY, list);
+    alert('Employee saved.');
+    location.hash = '#/team/dir';
+  });
+
+  // Invite (creates one-time link in local storage and shows it)
+  document.getElementById('emp-invite')?.addEventListener('click', ()=>{
+    const email = String(document.getElementById('emp-email').value||'').trim();
+    if (!email || !looksLikeEmail(email)) { alert('Enter a valid email first.'); return; }
+
+    const invites = loadJSON(INVITE_KEY);
+    const token = uuid();
+    const link = `${location.origin}${location.pathname.replace(/index\.html?$/,'')}login.html?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+
+    invites.push({
+      id: token,
+      email,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now()+1000*60*60*24*7).toISOString(), // 7 days
+      used:false
+    });
+    saveJSON(INVITE_KEY, invites);
+
+    // Simple modal substitute
+    alert(`Invite created:\n\n${link}\n\nYou can copy that and send it. (Future: auto email)`);
+    // Optional: open an email draft (comment out if you don’t want it)
+    // location.href = `mailto:${encodeURIComponent(email)}?subject=Dowson%20Farms%20Invite&body=${encodeURIComponent('Use this link to set your password:\n\n'+link)}`;
+  });
+}
+
+// ---- Subcontractors: Company (auto-cap), Primary Contact names, all else optional ----
+function viewTeamSubcontractors(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>🛠️ Add Subcontractor</h1>
+
+      <div class="field"><input id="subc-company" type="text" placeholder="Company name"></div>
+      <div class="field"><input id="subc-first"   type="text" placeholder="Primary contact — First name"></div>
+      <div class="field"><input id="subc-last"    type="text" placeholder="Primary contact — Last name"></div>
+
+      <div class="field"><input id="subc-email" type="email" placeholder="Email (optional)"></div>
+      <div class="field"><input id="subc-phone" type="tel"   placeholder="Phone (optional)"></div>
+
+      <div class="field">
+        <label style="font-weight:600">Start date <span class="small muted">(Defaults to today)</span></label>
+        <input id="subc-start" type="date">
+      </div>
+
+      <div class="field"><textarea id="subc-notes" rows="3" placeholder="Notes (optional)"></textarea></div>
+
+      <button id="subc-save" class="btn-primary">Save</button>
+      <div class="settings-actions" style="margin-top:12px;">
+        <a class="btn" href="#/team/dir?type=subcontractor">View Directory</a>
+        <a class="btn" href="#/team">Back to Team & Partners</a>
+      </div>
+    </section>
+  `;
+
+  const company = document.getElementById('subc-company');
+  const first   = document.getElementById('subc-first');
+  const last    = document.getElementById('subc-last');
+  const start   = document.getElementById('subc-start');
+  if (start) start.value = todayStr();
+
+  company?.addEventListener('blur', ()=> company.value = capName(company.value));
+  first  ?.addEventListener('blur', ()=> first.value   = capName(first.value));
+  last   ?.addEventListener('blur', ()=> last.value    = capName(last.value));
+
+  document.getElementById('subc-save')?.addEventListener('click', ()=>{
+    const obj = {
+      id: uuid(),
+      type:'subcontractor',
+      company: capName(company.value),
+      firstName: capName(first.value),
+      lastName:  capName(last.value),
+      email: String(document.getElementById('subc-email').value||'').trim(),
+      phone: onlyDigits(String(document.getElementById('subc-phone').value||'')),
+      startDate: String(start.value||todayStr()),
+      notes: String(document.getElementById('subc-notes').value||'').trim(),
+      createdAt: new Date().toISOString(),
+      createdBy: userEmail()
+    };
+    if (obj.phone && obj.phone.length!==10) { alert('Phone must be 10 digits.'); return; }
+    if (obj.email && !looksLikeEmail(obj.email)) { alert('Email looks invalid.'); return; }
+
+    const list = loadJSON(SUBC_KEY);
+    list.push(obj); saveJSON(SUBC_KEY, list);
+    alert('Subcontractor saved.');
+    location.hash = '#/team/dir?type=subcontractor';
+  });
+}
+
+// ---- Vendors: full optional set (categories, account#, terms, address, notes, phone/email) ----
+function viewTeamVendors(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>🏪 Add Vendor</h1>
+
+      <div class="field"><input id="vend-name" type="text" placeholder="Vendor / Company name"></div>
+
+      <div class="field"><input id="vend-email" type="email" placeholder="Email (optional)"></div>
+      <div class="field"><input id="vend-phone" type="tel"   placeholder="Phone (optional)"></div>
+
+      <div class="field"><input id="vend-cats"  type="text" placeholder="Categories (comma-separated, optional)"></div>
+      <div class="field"><input id="vend-acct"  type="text" placeholder="Account # (optional)"></div>
+      <div class="field"><input id="vend-terms" type="text" placeholder="Payment terms (optional)"></div>
+
+      <div class="field"><input id="vend-addr1" type="text" placeholder="Address line 1 (optional)"></div>
+      <div class="field"><input id="vend-addr2" type="text" placeholder="Address line 2 (optional)"></div>
+      <div class="field"><input id="vend-city"  type="text" placeholder="City (optional)"></div>
+      <div class="field"><input id="vend-state" type="text" placeholder="State (optional)"></div>
+      <div class="field"><input id="vend-zip"   type="text" placeholder="ZIP (optional)"></div>
+
+      <div class="field"><textarea id="vend-notes" rows="3" placeholder="Notes (optional)"></textarea></div>
+
+      <button id="vend-save" class="btn-primary">Save</button>
+      <div class="settings-actions" style="margin-top:12px;">
+        <a class="btn" href="#/team/dir?type=vendor">View Directory</a>
+        <a class="btn" href="#/team">Back to Team & Partners</a>
+      </div>
+    </section>
+  `;
+
+  document.getElementById('vend-save')?.addEventListener('click', ()=>{
+    const obj = {
+      id: uuid(),
+      type:'vendor',
+      name: capName(String(document.getElementById('vend-name').value||'')),
+      email: String(document.getElementById('vend-email').value||'').trim(),
+      phone: onlyDigits(String(document.getElementById('vend-phone').value||'')),
+      categories: String(document.getElementById('vend-cats').value||'').trim(),
+      accountNo:  String(document.getElementById('vend-acct').value||'').trim(),
+      terms:      String(document.getElementById('vend-terms').value||'').trim(),
+      address1:   String(document.getElementById('vend-addr1').value||'').trim(),
+      address2:   String(document.getElementById('vend-addr2').value||'').trim(),
+      city:       String(document.getElementById('vend-city').value||'').trim(),
+      state:      String(document.getElementById('vend-state').value||'').trim(),
+      zip:        String(document.getElementById('vend-zip').value||'').trim(),
+      notes:      String(document.getElementById('vend-notes').value||'').trim(),
+      createdAt: new Date().toISOString(),
+      createdBy: userEmail()
+    };
+    if (obj.phone && obj.phone.length!==10) { alert('Phone must be 10 digits.'); return; }
+    if (obj.email && !looksLikeEmail(obj.email)) { alert('Email looks invalid.'); return; }
+
+    const list = loadJSON(VEND_KEY);
+    list.push(obj); saveJSON(VEND_KEY, list);
+    alert('Vendor saved.');
+    location.hash = '#/team/dir?type=vendor';
+  });
+}
+
+// ---- Directory (combined list with filter pills) ----
+function viewTeamDirectory(){
+  const people = [
+    ...loadJSON(EMP_KEY),
+    ...loadJSON(SUBC_KEY),
+    ...loadJSON(VEND_KEY)
+  ];
+
+  // Filter via query param ?type=employee|subcontractor|vendor|all
+  let filter = 'all';
+  const qs = location.hash.split('?')[1];
+  if (qs) {
+    const p = new URLSearchParams(qs);
+    filter = p.get('type') || 'all';
+  }
+
+  const filtered = people.filter(p => filter==='all' ? true : p.type === filter);
+
+  function pill(t,label,emoji){
+    const active = (filter===t) ? ' style="border-color:#DAA520;color:#6f5200"' : '';
+    const href = (t==='all') ? '#/team/dir' : `#/team/dir?type=${t}`;
+    return `<a class="btn"${active} href="${href}">${emoji} ${label}</a>`;
+  }
+
+  const rows = filtered.map(p=>{
+    const badge = p.type==='employee' ? '👷'
+                : p.type==='subcontractor' ? '🛠️'
+                : '🏪';
+    const title = p.type==='employee'
+      ? `${p.firstName||''} ${p.lastName||''}`.trim() || '(Unnamed)'
+      : (p.name || p.company || '(Untitled)');
+    const lines = [];
+
+    if (p.email) lines.push('Email: '+p.email);
+    if (p.phone) lines.push('Phone: '+fmtPhone(p.phone));
+    if (p.type==='employee'){
+      if (p.startDate) lines.push('Start: '+p.startDate);
+      if (p.birthday)  lines.push('Birthday: '+p.birthday);
+    }
+    if (p.type==='subcontractor'){
+      if (p.firstName||p.lastName) lines.push(`Primary: ${(p.firstName||'')+' '+(p.lastName||'')}`.trim());
+      if (p.startDate) lines.push('Since: '+p.startDate);
+    }
+    if (p.type==='vendor'){
+      if (p.categories) lines.push('Categories: '+p.categories);
+      if (p.accountNo)  lines.push('Account #: '+p.accountNo);
+      if (p.terms)      lines.push('Terms: '+p.terms);
+      const addr = [p.address1,p.address2,p.city,p.state,p.zip].filter(Boolean).join(', ');
+      if (addr) lines.push(addr);
+    }
+
+    const detail = lines.length
+      ? lines.map(s=>`<div class="small muted">${s}</div>`).join('')
+      : '<span class="small muted">No details</span>';
+
+    return `
+      <li class="crop-row">
+        <div class="crop-info"><span class="chip">${badge} ${title}</span></div>
+        <div class="crop-actions"></div>
+        <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">${detail}</div>
+      </li>
+    `;
+  }).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>📇 Team & Partners — Directory</h1>
+
+      <div class="settings-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${pill('all','All','📇')}
+        ${pill('employee','Employees','👷')}
+        ${pill('subcontractor','Subcontractors','🛠️')}
+        ${pill('vendor','Vendors','🏪')}
+      </div>
+
+      <ul class="crop-list" style="margin-top:10px;">
+        ${rows || '<li class="muted">No entries yet.</li>'}
+      </ul>
+
+      <div class="settings-actions" style="margin-top:12px;">
+        <a class="btn" href="#/team">Back to Team & Partners</a>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+      </div>
     </section>
   `;
 }
@@ -574,9 +893,12 @@ function route(){
   else if (hash==='#/grain/contracts') viewGrainComing('Grain Contracts');
   else if (hash==='#/grain/tickets') viewGrainComing('Grain Ticket OCR');
 
-  // Team
-  else if (hash==='#/team') viewTeamHub();
-  else if (hash.startsWith('#/team/')) viewTeamComing(LABELS[hash]||'Team & Partners');
+// --- Team & Partners routes (replace your existing team cases with these) ---
+else if (hash === '#/team') { viewTeamHub(); }
+else if (hash === '#/team/employees') { viewTeamEmployees(); }
+else if (hash === '#/team/subcontractors') { viewTeamSubcontractors(); }
+else if (hash === '#/team/vendors') { viewTeamVendors(); }
+else if (hash.indexOf('#/team/dir') === 0) { viewTeamDirectory(); }
 
   // Reports
   else if (hash==='#/ai') viewReportsHub();
