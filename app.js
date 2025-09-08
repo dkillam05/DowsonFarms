@@ -1,5 +1,5 @@
 // ===== Version shown in footer (vMAJOR.MINOR only) =====
-const APP_VERSION = 'v7.3';
+const APP_VERSION = 'v7.4';
 
 // ===== Minimal theme (kept as-is) =====
 (function(){ try{
