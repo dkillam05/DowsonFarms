@@ -1,14 +1,38 @@
 {
-  "name": "Dowson Farms",
+  "name": "Dowson Farms PWA",
   "short_name": "Dowson Farms",
-  "description": "Dowson Farms PWA — mobile dashboard for fields, yields, equipment, and reports.",
-  "start_url": "/DowsonFarms/?source=pwa",
-  "scope": "/DowsonFarms/",
+  "description": "Mobile-first farm management for Dowson Farms.",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#FFFFF0",
   "theme_color": "#1B5E20",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
-  ]
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"]
 }
