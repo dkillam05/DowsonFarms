@@ -1,5 +1,5 @@
 // ===== Version shown in footer =====
-const APP_VERSION = 'v10.2';
+const APP_VERSION = 'v10.3';
 
 // ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -444,7 +444,7 @@ window.addEventListener('load', route);
 
 // ===== Footer text + clock =====
 if (versionEl) versionEl.textContent = normalizeVersion(APP_VERSION);
-if (todayEl) todayEl.textContent = prettyDate(new Date()));
+if (todayEl) todayEl.textContent = prettyDate(new Date());
 function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
 tick(); setInterval(tick, 15000);
 
