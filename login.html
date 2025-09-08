@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* Simple centered login */
     body { background:#fff; }
     .login-wrap{
       min-height:100vh;
@@ -44,7 +43,6 @@
   </div>
 
   <script>
-    // Minimal fake auth: mark authed and go to app
     document.getElementById('login-form').addEventListener('submit', (e)=>{
       e.preventDefault();
       try { localStorage.setItem('df_auth','1'); } catch {}
