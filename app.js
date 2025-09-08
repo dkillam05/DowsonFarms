@@ -1,5 +1,5 @@
 // ===== Version in footer =====
-const APP_VERSION = 'v9.1';
+const APP_VERSION = 'v9.2';
 
 // ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -113,26 +113,38 @@ function route(){
   const hash = location.hash || '#/home';
   renderBreadcrumb();
 
-  if (hash === '#/home' || hash === '') viewHome();
-  else if (hash === '#/crop') viewSection('Crop Production');
-  else if (hash === '#/crop/maintenance') viewSection('Maintenance (Crop)', '#/crop', 'Back to Crop Production');
-  else if (hash === '#/calc') viewSection('Calculator');
-  else if (hash === '#/equipment') viewSection('Equipment');
-  else if (hash === '#/grain') viewSection('Grain Tracking');
-  else if (hash === '#/employees') viewSection('Employees');
-  else if (hash === '#/ai') viewSection('AI Reports');
-  else if (hash === '#/settings') viewSection('Settings');
-  else if (hash === '#/feedback') viewSection('Feedback');
-  else viewSection('Not Found');
+  if (hash === '#/home' || hash === '') { viewHome(); }
+  else if (hash === '#/crop') { viewSection('Crop Production','#/home'); }
+  else if (hash === '#/crop/maintenance') { viewSection('Maintenance (Crop)','#/home'); }
+  else if (hash === '#/calc') { viewSection('Calculator','#/home'); }
+  else if (hash === '#/equipment') { viewSection('Equipment','#/home'); }
+  else if (hash === '#/grain') { viewSection('Grain Tracking','#/home'); }
+  else if (hash === '#/employees') { viewSection('Employees','#/home'); }
+  else if (hash === '#/ai') { viewReportsHub(); }
+  else if (hash === '#/ai/premade') { viewReportsPremade(); }
+  else if (hash === '#/ai/ai') { viewReportsAI(); }
+  else if (hash === '#/ai/yield') { viewReportsYield(); }
+  else if (hash === '#/settings') { viewSettingsHome(); }
+  else if (hash === '#/settings/crops') { viewSettingsCrops(); }
+  else if (hash === '#/feedback') { viewFeedbackHub(); }
+  else if (hash === '#/feedback/errors') { viewFeedbackErrors(); }
+  else if (hash === '#/feedback/feature') { viewFeedbackFeature(); }
+  else { viewSection('Not Found','#/home'); }
 
-  // Start each view at the top and re-measure layout
-  try { window.scrollTo(0,0); } catch {}
-  app?.focus?.();
-  refreshLayout();
+  // (REMOVED) app.focus();  <-- this caused the blue focus bars on iOS
+
+  // Always start at the very top of the scrollable region
+  try {
+    if (app && app.scrollTo) app.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    // also reset the window scroll in case the body became scrollable
+    window.scrollTo(0, 0);
+  } catch {}
+
+  // Recompute dynamic layout offsets
+  refreshLayout(); // or: applyHeaderHeightVar(); applyCrumbsHeightVar(); applyFooterHeightVar(); applyBannerHeightVar();
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
-window.addEventListener('pageshow', route);
 
 // ===== Footer text + clock =====
 if (versionEl) versionEl.textContent = normalizeVersion(APP_VERSION);
