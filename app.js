@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.10';
+const APP_VERSION = 'v10.11'; // bumped to ensure SW cache picks up changes
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -24,6 +24,50 @@ function prettyDate(d){ const dow=d.toLocaleString(undefined,{weekday:'long'}); 
 function normalizeVersion(v){ const m=String(v||'').trim().replace(/^v/i,''); const p=m.split('.'); return (p[0]||'0')+'.'+(p[1]||'0'); }
 function displayVersion(v){ return 'v'+normalizeVersion(v); }
 function scrollTopAll(){ try{ if (app?.scrollTo) app.scrollTo({top:0,left:0,behavior:'auto'}); window.scrollTo(0,0);}catch{} }
+
+// === NEW: phone helpers (live formatter) ===
+function phoneDigitsOnly(val){ return String(val||'').replace(/\D/g,'').slice(0,10); }
+function formatPhoneUS(val){
+  const d = phoneDigitsOnly(val);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`;
+  return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+}
+function bindPhoneAutoFormat(root=document){
+  root.querySelectorAll('input[type="tel"]').forEach(inp=>{
+    if (inp.dataset._phoneBound === '1') return;
+    inp.dataset._phoneBound = '1';
+    if (inp.value) inp.value = formatPhoneUS(inp.value);
+    inp.addEventListener('input', ()=>{
+      const pos = inp.selectionStart;
+      inp.value = formatPhoneUS(inp.value);
+      try{ inp.setSelectionRange(pos,pos); }catch{}
+    });
+    inp.addEventListener('change', ()=>{
+      inp.dataset.cleanPhone = phoneDigitsOnly(inp.value);
+    });
+  });
+}
+
+// === NEW: invite helpers (opens mail draft with link) ===
+function inviteMailtoHref(email, name){
+  const who = name ? name : 'there';
+  const base = location.origin + location.pathname.replace(/index\.html?$/,'');
+  const loginUrl = base + 'login.html';
+  const subject = encodeURIComponent('Your Dowson Farms account invite');
+  const body = encodeURIComponent(
+`Hi ${who},
+
+You've been invited to join the Dowson Farms app.
+
+1) Open the login page: ${loginUrl}
+2) Sign in with your email (${email})
+3) If you haven't set a password yet, choose "Forgot / Set Password" (coming soon) or contact the admin.
+
+— Dowson Farms`
+  );
+  return `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
+}
 
 // ===== DOM refs =====
 const app = document.getElementById('app');
@@ -106,6 +150,7 @@ const LABELS = {
   // Reports
   '#/ai':'Reports',
   '#/ai/premade':'Pre-made Reports',
+  '#/ai/premade/feedback':'Feedback Summary', // NEW
   '#/ai/ai':'AI Reports',
   '#/ai/yield':'Yield Report',
 
@@ -344,7 +389,7 @@ function capName(s){ return String(s||'').trim().split(/\s+/).map(capWord).join(
 function userEmail(){ try { return localStorage.getItem('df_user') || ''; } catch { return ''; } }
 function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
 
-// ---- Hub (unchanged structure) ----
+// ---- Hub ----
 function viewTeamHub(){
   app.innerHTML =
     '<div class="grid">'+
@@ -356,7 +401,7 @@ function viewTeamHub(){
     '<div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>';
 }
 
-// ---- Employees: form (role & permissions removed; +Birthday +Invite) ----
+// ---- Employees (Role/Permissions removed; Birthday + Invite) ----
 function viewTeamEmployees(){
   app.innerHTML = `
     <section class="section">
@@ -366,7 +411,7 @@ function viewTeamEmployees(){
       <div class="field"><input id="emp-last"  type="text" placeholder="Last name *"></div>
 
       <div class="field"><input id="emp-email" type="email" placeholder="Email *"></div>
-      <div class="field"><input id="emp-phone" type="tel" placeholder="Phone (optional)"></div>
+      <div class="field"><input id="emp-phone" type="tel"  placeholder="Phone (optional)"></div>
 
       <div class="field">
         <label style="font-weight:600">Start date <span class="small muted">(Required)</span></label>
@@ -392,7 +437,6 @@ function viewTeamEmployees(){
     </section>
   `;
 
-  // defaults + capitalization
   const first = document.getElementById('emp-first');
   const last  = document.getElementById('emp-last');
   const start = document.getElementById('emp-start');
@@ -401,7 +445,6 @@ function viewTeamEmployees(){
   first?.addEventListener('blur', ()=> first.value = capName(first.value));
   last ?.addEventListener('blur', ()=> last .value = capName(last .value));
 
-  // Save
   document.getElementById('emp-save')?.addEventListener('click', ()=>{
     const firstName = capName(first.value);
     const lastName  = capName(last.value);
@@ -432,32 +475,26 @@ function viewTeamEmployees(){
     location.hash = '#/team/dir';
   });
 
-  // Invite (creates one-time link in local storage and shows it)
   document.getElementById('emp-invite')?.addEventListener('click', ()=>{
     const email = String(document.getElementById('emp-email').value||'').trim();
+    const name  = `${capName(first.value)} ${capName(last.value)}`.trim();
     if (!email || !looksLikeEmail(email)) { alert('Enter a valid email first.'); return; }
 
+    // store a simple invite token (local-only, placeholder for real backend)
     const invites = loadJSON(INVITE_KEY);
     const token = uuid();
     const link = `${location.origin}${location.pathname.replace(/index\.html?$/,'')}login.html?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
-
-    invites.push({
-      id: token,
-      email,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now()+1000*60*60*24*7).toISOString(), // 7 days
-      used:false
-    });
+    invites.push({ id:token, email, createdAt:new Date().toISOString(), expiresAt:new Date(Date.now()+7*864e5).toISOString(), used:false });
     saveJSON(INVITE_KEY, invites);
 
-    // Simple modal substitute
-    alert(`Invite created:\n\n${link}\n\nYou can copy that and send it. (Future: auto email)`);
-    // Optional: open an email draft (comment out if you don’t want it)
-    // location.href = `mailto:${encodeURIComponent(email)}?subject=Dowson%20Farms%20Invite&body=${encodeURIComponent('Use this link to set your password:\n\n'+link)}`;
+    // open mail draft with instructions
+    const mailto = inviteMailtoHref(email, name);
+    alert(`Invite link created:\n\n${link}\n\nA mail draft will open next so you can send it.`);
+    setTimeout(()=>{ location.href = mailto; }, 50);
   });
 }
 
-// ---- Subcontractors: Company (auto-cap), Primary Contact names, all else optional ----
+// ---- Subcontractors ----
 function viewTeamSubcontractors(){
   app.innerHTML = `
     <section class="section">
@@ -519,7 +556,7 @@ function viewTeamSubcontractors(){
   });
 }
 
-// ---- Vendors: full optional set (categories, account#, terms, address, notes, phone/email) ----
+// ---- Vendors ----
 function viewTeamVendors(){
   app.innerHTML = `
     <section class="section">
@@ -579,7 +616,7 @@ function viewTeamVendors(){
   });
 }
 
-// ---- Directory (combined list with filter pills) ----
+// ---- Directory ----
 function viewTeamDirectory(){
   const people = [
     ...loadJSON(EMP_KEY),
@@ -587,7 +624,6 @@ function viewTeamDirectory(){
     ...loadJSON(VEND_KEY)
   ];
 
-  // Filter via query param ?type=employee|subcontractor|vendor|all
   let filter = 'all';
   const qs = location.hash.split('?')[1];
   if (qs) {
@@ -683,7 +719,81 @@ function viewReportsHub(){
     <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
 }
-function viewReportsPremade(){ app.innerHTML = `<section class="section"><h1>📄 Pre-made Reports</h1><p>🚧 Coming soon.</p><div class="section"><a class="btn" href="#/ai">Back to Reports</a></div></section>`; }
+
+// === NEW: feedback loader for reporting ===
+function loadFeedback(){
+  try { return JSON.parse(localStorage.getItem('df_feedback') || '[]'); }
+  catch { return []; }
+}
+
+function viewReportsPremade(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
+    </div>
+    <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
+  `;
+}
+
+// === NEW: Printable Feedback Summary report ===
+function viewReportsPremadeFeedback(){
+  const items = loadFeedback().sort((a,b)=> (a.ts||0)-(b.ts||0));
+  const rows = items.map((it,i)=>{
+    const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
+    const kind = it.type==='feature' ? 'Feature' : 'Error';
+    const subj = (it.subject||'').replace(/</g,'&lt;');
+    const dets = (it.details||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    const by   = (it.by||'').replace(/</g,'&lt;');
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${when}</td>
+      <td>${kind}</td>
+      <td>${subj}</td>
+      <td>${dets}</td>
+      <td>${by}</td>
+    </tr>`;
+  }).join('');
+
+  app.innerHTML = `
+    <section class="report-page">
+      <header class="report-head">
+        <div class="head-left">
+          <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+          <div class="org">
+            <div class="org-name">Dowson Farms</div>
+            <div class="org-sub">Pre-Made Report</div>
+          </div>
+        </div>
+        <div class="head-right">
+          <div class="r-title">Feedback Summary</div>
+          <div class="r-date">${prettyDate(new Date())}</div>
+        </div>
+      </header>
+
+      <div class="report-body watermark">
+        ${items.length ? `
+        <table class="report-table">
+          <thead>
+            <tr><th>#</th><th>When</th><th>Type</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>` : `<p class="muted">No feedback saved yet.</p>`}
+      </div>
+
+      <footer class="report-foot">
+        <div>${displayVersion(APP_VERSION)}</div>
+        <div class="page-num">Page 1</div>
+      </footer>
+
+      <div class="report-actions">
+        <button class="btn-primary" id="print-report">Print / Save PDF</button>
+        <a class="btn" href="#/ai/premade">Back</a>
+      </div>
+    </section>
+  `;
+  document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
+}
+
 function viewReportsAI(){ app.innerHTML = `<section class="section"><h1>🤖 AI Reports</h1><p>🚧 Coming soon.</p><div class="section"><a class="btn" href="#/ai">Back to Reports</a></div></section>`; }
 function viewReportsYield(){ app.innerHTML = `<section class="section"><h1>📊 Yield Report</h1><p>🚧 Coming soon.</p><div class="section"><a class="btn" href="#/ai">Back to Reports</a></div></section>`; }
 
@@ -893,16 +1003,17 @@ function route(){
   else if (hash==='#/grain/contracts') viewGrainComing('Grain Contracts');
   else if (hash==='#/grain/tickets') viewGrainComing('Grain Ticket OCR');
 
-// --- Team & Partners routes (replace your existing team cases with these) ---
-else if (hash === '#/team') { viewTeamHub(); }
-else if (hash === '#/team/employees') { viewTeamEmployees(); }
-else if (hash === '#/team/subcontractors') { viewTeamSubcontractors(); }
-else if (hash === '#/team/vendors') { viewTeamVendors(); }
-else if (hash.indexOf('#/team/dir') === 0) { viewTeamDirectory(); }
+  // Team & Partners
+  else if (hash === '#/team') { viewTeamHub(); }
+  else if (hash === '#/team/employees') { viewTeamEmployees(); }
+  else if (hash === '#/team/subcontractors') { viewTeamSubcontractors(); }
+  else if (hash === '#/team/vendors') { viewTeamVendors(); }
+  else if (hash.indexOf('#/team/dir') === 0) { viewTeamDirectory(); }
 
   // Reports
   else if (hash==='#/ai') viewReportsHub();
   else if (hash==='#/ai/premade') viewReportsPremade();
+  else if (hash==='#/ai/premade/feedback') viewReportsPremadeFeedback(); // NEW
   else if (hash==='#/ai/ai') viewReportsAI();
   else if (hash==='#/ai/yield') viewReportsYield();
 
@@ -921,6 +1032,8 @@ else if (hash.indexOf('#/team/dir') === 0) { viewTeamDirectory(); }
   // Reset scroll & layout on every route
   scrollTopAll();
   refreshLayout();
+  // NEW: bind live phone formatting for any tel inputs shown in this view
+  bindPhoneAutoFormat(app);
 }
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
