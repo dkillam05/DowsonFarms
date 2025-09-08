@@ -1,53 +1,69 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Login — Dowson Farms</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dowson Farms — Login</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    body { background:#fff; }
-    .login-wrap{
-      min-height:100vh;
-      padding-top: calc(env(safe-area-inset-top,0px) + 40px);
-      padding-bottom: calc(env(safe-area-inset-bottom,0px) + 40px);
-      display:flex; align-items:center; justify-content:center;
+    /* Extra styling just for login */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: var(--ivory);
+      margin: 0;
     }
-    .login-card{
-      width:min(92vw, 420px);
-      background:#fff; border:1px solid #ddd; border-radius:12px;
-      box-shadow:0 6px 20px rgba(0,0,0,.08);
-      padding:20px;
+    .login-wrapper {
+      width: 100%;
+      max-width: 360px;
+      padding: 20px;
     }
-    .login-card h1{ margin:0 0 12px; color:#1B5E20; font-size:1.4em; }
-    .login-card .field{ margin:10px 0; }
-    .login-card .btn-primary{ width:100%; margin-top:8px; }
-    .hint{ color:#666; font-size:.9em; margin-top:8px; }
+    .login-box {
+      background: #fff;
+      border: 2px solid var(--green);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .login-box h1 {
+      font-size: 1.5em;
+      margin: 0 0 12px;
+      text-align: center;
+      color: var(--green);
+    }
+    .login-box p {
+      font-size: 0.9em;
+      color: #555;
+      text-align: center;
+      margin: 0 0 20px;
+    }
   </style>
 </head>
 <body>
-  <div class="login-wrap">
-    <form class="login-card" id="login-form">
-      <h1>Dowson Farms Login</h1>
-      <div class="field">
-        <label>Email</label>
-        <input id="email" type="email" placeholder="you@example.com" required>
+  <!-- ===== Login Wrapper ===== -->
+  <div class="login-wrapper">
+    <div class="login-box">
+      <div class="logo" style="justify-content:center; margin-bottom: 16px;">
+        <img src="icons/logo.png" alt="Dowson Farms Logo" style="height:64px; margin-right:10px;">
+        <span class="logo-text">Dowson Farms</span>
       </div>
-      <div class="field">
-        <label>Password</label>
-        <input id="password" type="password" placeholder="••••••••" required>
-      </div>
-      <button class="btn-primary" type="submit">Login</button>
-      <div class="hint">Invite-only access.</div>
-    </form>
+      <h1>Welcome</h1>
+      <p>Please log in with your assigned credentials.<br>
+         🔒 Keep your login secure and never share your password.</p>
+      <form id="login-form">
+        <div class="field">
+          <input type="email" id="login-email" placeholder="Email" required>
+        </div>
+        <div class="field">
+          <input type="password" id="login-pass" placeholder="Password" required>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:12px;">Log In</button>
+      </form>
+    </div>
   </div>
 
-  <script>
-    document.getElementById('login-form').addEventListener('submit', (e)=>{
-      e.preventDefault();
-      try { localStorage.setItem('df_auth','1'); } catch {}
-      location.replace('index.html');
-    });
-  </script>
+  <script src="login.js"></script>
 </body>
 </html>
