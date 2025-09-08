@@ -1,11 +1,11 @@
 // === Bump this on every release to bust the cache ===
-const CACHE_VERSION = 'df-v7.5-fresh';
+const CACHE_VERSION = 'df-v8.0-fresh';
 
 // Build a base path that works on GitHub Pages and root hosting
 const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/?$/, '/');
 function join(p) { return (p === '' ? SCOPE_PATH : SCOPE_PATH + p); }
 
-// Precache lists (use pathnames, not "./...")
+// Precache lists (use pathnames)
 const CORE = [
   '',                // the scope root (for "/")
   'index.html',
@@ -22,7 +22,7 @@ const ASSETS = [
 
 const PRECACHE = [...CORE, ...ASSETS];
 
-// Install (no skipWaiting; we want the app to control activation)
+// Install (no skipWaiting)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE))
@@ -65,21 +65,20 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Only same-origin GET requests
+  // Only same-origin GET
   if (req.method !== 'GET' || url.origin !== location.origin) return;
 
-  // Normalize path to match our CORE entries
   const path = url.pathname;
 
-  // 1) Navigation → always network-first to the indexed document
+  // Navigation → index (network-first)
   if (req.mode === 'navigate') {
     event.respondWith(networkFirst(join('index.html')));
     return;
   }
 
-  // 2) Core files → network-first (ensures new JS/CSS are picked up)
+  // Core files → network-first
   const isCore =
-    path === join('').slice(0, -1) ||       // scope root
+    path === join('').slice(0, -1) || // scope root
     path === join('index.html') ||
     path === join('app.js') ||
     path === join('styles.css') ||
@@ -90,7 +89,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3) Everything else (icons/images) → cache-first
+  // Everything else → cache-first
   event.respondWith(cacheFirst(req));
 });
 
