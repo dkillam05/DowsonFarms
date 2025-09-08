@@ -39,6 +39,22 @@ function applyHeaderHeightVar(){ const el=document.querySelector('.app-header');
 function applyCrumbsHeightVar(){ const el=document.querySelector('.breadcrumbs'); document.documentElement.style.setProperty('--crumbs-h',(el?el.offsetHeight:0)+'px'); }
 function applyFooterHeightVar(){ const el=document.querySelector('.app-footer'); document.documentElement.style.setProperty('--footer-h',(el?el.offsetHeight:0)+'px'); }
 function applyBannerHeightVar(){ const el=document.getElementById('update-banner'); const h=(el && !el.hidden)? el.offsetHeight:0; document.documentElement.style.setProperty('--banner-h',h+'px'); }
+function refreshLayout(){
+  applyHeaderHeightVar();
+  applyCrumbsHeightVar();
+  applyFooterHeightVar();
+  applyBannerHeightVar();
+  requestAnimationFrame(()=>{
+    applyHeaderHeightVar();
+    applyCrumbsHeightVar();
+    applyFooterHeightVar();
+    applyBannerHeightVar();
+  });
+}
+['load','resize','orientationchange'].forEach(evt=>{
+  window.addEventListener(evt, refreshLayout);
+});
+// Also call after each route render:
 
 /* Re-measure a few times to let iOS safe-area + fonts settle */
 function refreshLayout(){
@@ -244,29 +260,89 @@ function route(){
   const hash = location.hash || '#/home';
   renderBreadcrumb();
 
-  if (hash==='#/home'||hash==='') viewHome();
-  else if (hash==='#/crop') viewSection('Crop Production','#/home');
-  else if (hash==='#/crop/maintenance') viewSection('Maintenance (Crop)','#/home');
-  else if (hash==='#/calc') viewSection('Calculator','#/home');
-  else if (hash==='#/equipment') viewSection('Equipment','#/home');
-  else if (hash==='#/grain') viewSection('Grain Tracking','#/home');
-  else if (hash==='#/employees') viewSection('Employees','#/home');
-  else if (hash==='#/ai') viewReportsHub();
-  else if (hash==='#/ai/premade') viewReportsPremade();
-  else if (hash==='#/ai/ai') viewReportsAI();
-  else if (hash==='#/ai/yield') viewReportsYield();
-  else if (hash==='#/settings') viewSettingsHome();
-  else if (hash==='#/settings/crops') viewSettingsCrops();
-  else if (hash==='#/feedback') viewFeedbackHub();
-  else if (hash==='#/feedback/errors') viewFeedbackErrors();
-  else if (hash==='#/feedback/feature') viewFeedbackFeature();
-  else viewSection('Not Found','#/home');
+  // Optional: show busy state during view swap (nice on slower phones)
+  if (app) app.setAttribute('aria-busy', 'true');
 
+  if (hash === '#/home' || hash === '') {
+    viewHome();
+  }
+  // Crop
+  else if (hash === '#/crop') {
+    viewSection('Crop Production', '#/home');
+  } else if (hash === '#/crop/maintenance') {
+    viewSection('Maintenance (Crop)', '#/home');
+  }
+  // Calculator
+  else if (hash === '#/calc') {
+    viewSection('Calculator', '#/home');
+  }
+  // Equipment
+  else if (hash === '#/equipment') {
+    viewSection('Equipment', '#/home');
+  }
+  // Grain
+  else if (hash === '#/grain') {
+    viewSection('Grain Tracking', '#/home');
+  }
+  // Employees (placeholder hub)
+  else if (hash === '#/employees') {
+    viewSection('Employees', '#/home');
+  }
+  // AI Reports
+  else if (hash === '#/ai') {
+    viewReportsHub();
+  } else if (hash === '#/ai/premade') {
+    viewReportsPremade();
+  } else if (hash === '#/ai/ai') {
+    viewReportsAI();
+  } else if (hash === '#/ai/yield') {
+    viewReportsYield();
+  }
+  // Settings
+  else if (hash === '#/settings') {
+    viewSettingsHome();
+  } else if (hash === '#/settings/crops') {
+    viewSettingsCrops();
+  }
+  // Feedback
+  else if (hash === '#/feedback') {
+    viewFeedbackHub();
+  } else if (hash === '#/feedback/errors') {
+    viewFeedbackErrors();
+  } else if (hash === '#/feedback/feature') {
+    viewFeedbackFeature();
+  }
+  // Fallback
+  else {
+    viewSection('Not Found', '#/home');
+  }
+
+  // Focus the app region for better a11y
   app?.focus?.();
-  refreshLayout(); // <-- new unified layout fix
+
+  // Ensure the page starts at the top for each view
+  // (window scroll affects iOS/Android; app.scrollTop covers nested scroll containers)
+  try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch {}
+  if (app) app.scrollTop = 0;
+
+  // Recompute layout vars (header/breadcrumb/footer/banner) after DOM swap
+  refreshLayout();
+
+  // Clear busy state
+  if (app) app.removeAttribute('aria-busy');
 }
+
+// Route on hash change and initial load
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
+
+// Handle iOS/Android back-forward cache restoring stale layout
+window.addEventListener('pageshow', route);
+
+// When tab/app returns to foreground, re-measure once
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshLayout();
+});
 
 // ===== Header/Footer text =====
 versionEl && (versionEl.textContent = displayVersion(APP_VERSION));
