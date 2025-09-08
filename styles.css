@@ -1,91 +1,84 @@
-/* ===== Root + safe-area variables (static sizes, no JS measuring) ===== */
+/* ===== Root variables ===== */
 :root{
   --green:#1B5E20;
+  --green-2:#2E7D32;
   --ivory:#FFFFF0;
   --gold:#DAA520;
-  --shadow:0 2px 4px rgba(0,0,0,0.15);
+  --shadow:0 2px 4px rgba(0,0,0,.15);
 
-  /* Base block sizes (tweak as you like) */
-  --header-base: 64px;
-  --crumbs-base: 36px;
-  --footer-base: 44px;
-
-  /* Safe-area shims */
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* These get measured by JS for perfect spacing */
+  --header-h: 52px;   /* fallback */
+  --crumbs-h: 36px;   /* fallback */
+  --footer-h: 44px;   /* fallback */
+  --banner-h: 0px;
 }
 
-html, body{
+*{ box-sizing:border-box; }
+html,body{
+  height:100%; width:100%;
   margin:0; padding:0;
-  width:100%; height:100%;
   background:var(--ivory); color:#333;
   font-family:'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   -webkit-text-size-adjust:100%;
 }
 
-/* ===== Fixed header ===== */
+/* ===== Header (smaller, notch-safe) ===== */
 .app-header{
-  position:fixed; left:0; right:0; top:0; z-index:1000;
+  position:fixed; inset:0 0 auto 0; z-index:1000;
   display:flex; align-items:center; gap:10px;
   background:var(--green); color:#fff; box-shadow:var(--shadow);
 
-  /* Height & padding respect the notch */
-  height: calc(var(--header-base) + var(--safe-top));
-  padding: calc(var(--safe-top) + 8px) 12px 8px;
-
-  /* Kill iOS hairline seams */
+  /* Shorter, but still safe under the notch */
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 8px;
   transform: translateZ(0); backface-visibility:hidden;
 }
 .logo{display:flex; align-items:center;}
-.logo img{height:36px; margin-right:8px;}
-.logo-text{font-size:1.2em; font-weight:600;}
+.logo img{height:32px; margin-right:8px;}
+.logo-text{font-size:1.1em; font-weight:600;}
 .spacer{flex:1 1 auto;}
-.logout{background:none; border:none; color:#fff; font-size:.9em; cursor:pointer;}
+#clock{opacity:.95;}
+.logout{margin-left:8px; background:none; border:none; color:#fff; font-size:.9em; cursor:pointer;}
 .logout:hover{color:var(--gold);}
 
-/* ===== Fixed breadcrumbs below header ===== */
+/* ===== Breadcrumbs (more air below header) ===== */
 .breadcrumbs{
-  position:fixed; left:0; right:0; z-index:900;
-  top: calc(var(--header-base) + var(--safe-top));
-  height: var(--crumbs-base);
-  display:flex; align-items:center;
-  background:#2E7D32; color:#fff; padding:0 12px; font-size:.9em;
-
+  position:fixed; left:0; right:0; top:var(--header-h); z-index:900;
+  background:var(--green-2); color:#fff; font-size:.95em;
+  padding:8px 12px;
+  line-height:1.2;
   transform: translateZ(0); backface-visibility:hidden;
+  box-shadow:0 1px 0 rgba(0,0,0,.08);
 }
 .breadcrumbs a{ color:#fff; text-decoration:underline; }
+.breadcrumbs [aria-current="page"]{ font-weight:700; text-decoration:none; }
 
-/* ===== Scrollable main content between bars ===== */
+/* ===== Main content (scrolls naturally) ===== */
 main#app{
   position:relative;
 
-  /* Reserve space above and below using static sizes + safe areas */
-  padding-top: calc(var(--header-base) + var(--safe-top) + var(--crumbs-base) + 12px);
-  padding-bottom: calc(var(--footer-base) + var(--safe-bottom) + 12px);
+  /* Reserve space above & below using measured vars */
+  margin-top: calc(var(--header-h) + var(--crumbs-h));
+  margin-bottom: calc(var(--footer-h) + var(--banner-h));
 
-  /* Allow content to scroll naturally */
-  min-height: auto;
+  padding: 12px;
   overflow-y: auto;
-
-  padding-left:12px; padding-right:12px;
+  -webkit-overflow-scrolling: touch;
 
   transform: translateZ(0); backface-visibility:hidden;
 }
 
-/* ===== Fixed footer ===== */
+/* ===== Footer ===== */
 .app-footer{
-  position:fixed; left:0; right:0; bottom:0; z-index:1000;
-  height: calc(var(--footer-base) + var(--safe-bottom));
-  display:flex; align-items:center; justify-content:space-between;
-  background:var(--green); color:#fff; box-shadow:var(--shadow);
-  padding: 0 12px calc(var(--safe-bottom));
-
+  position:fixed; inset:auto 0 0 0; z-index:1000;
+  background:var(--green); color:#fff;
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 8px 12px calc(env(safe-area-inset-bottom,0px) + 8px);
+  font-size:.9em; box-shadow:var(--shadow);
   transform: translateZ(0); backface-visibility:hidden;
-  font-size:.9em;
 }
 
-/* ===== Grid tiles ===== */
-.grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:12px;}
+/* ===== Tiles grid ===== */
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
 .tile{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   padding:20px; border-radius:12px; border:2px solid var(--green);
@@ -93,15 +86,15 @@ main#app{
   text-decoration:none; box-shadow:var(--shadow); transition: transform .1s, background .2s;
 }
 .tile:hover{ background:var(--ivory); transform:translateY(-2px); }
-.emoji{font-size:2em;}
-.label{margin-top:6px;}
+.emoji{ font-size:2em; }
+.label{ margin-top:6px; }
 
 /* ===== Sections ===== */
 .section{ padding:12px 0; }
 .section h1{ margin:0 0 8px; }
 
 /* ===== Forms & buttons ===== */
-.field{margin:10px 0;}
+.field{ margin:10px 0; }
 input,textarea,select{
   width:100%; padding:8px; border-radius:6px; border:1px solid #ccc;
   font: inherit;
@@ -110,29 +103,27 @@ button{
   cursor:pointer; font: inherit;
   border:none; border-radius:6px; padding:8px 14px;
 }
-.btn-primary{background:var(--green); color:#fff; font-weight:600;}
-.btn-primary:hover{background:#2E7D32;}
+.btn-primary{ background:var(--green); color:#fff; font-weight:600; }
+.btn-primary:hover{ background:#2E7D32; }
 .btn{
   background:#eee; border:1px solid #ccc; margin-top:8px;
-  display:inline-block; text-decoration:none; text-align:center;
+  display:inline-block; text-decoration:none; text-align:center; color:#1B5E20; border-radius:6px; padding:8px 14px;
 }
-.btn:hover{background:#ddd;}
+.btn:hover{ background:#ddd; }
 
 /* ===== Lists ===== */
-ul.crop-list{list-style:none; margin:0; padding:0;}
-.crop-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #ccc;}
-.crop-info{display:flex; align-items:center; gap:8px;}
-.chip{background:var(--ivory); border:1px solid var(--green); padding:2px 6px; border-radius:6px;}
-.chip-archived{background:#eee; border-color:#888; color:#666;}
+ul.crop-list{ list-style:none; margin:0; padding:0; }
+.crop-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #ccc; }
+.crop-info{ display:flex; align-items:center; gap:8px; }
+.chip{ background:var(--ivory); border:1px solid var(--green); padding:2px 6px; border-radius:6px; }
+.chip-archived{ background:#eee; border-color:#888; color:#666; }
 
-/* ===== Utility ===== */
-.muted{color:#666;}
-.small{font-size:.85em;}
-.add-row input{flex:1;}
-.add-row button{white-space:nowrap;}
+/* ===== Small text ===== */
+.muted{ color:#666; }
+.small{ font-size:.85em; }
 
-/* Remove blue iOS focus/tap outlines */
+/* ===== iOS artifacts: kill blue outlines / tap highlight ===== */
 a, button, input, textarea, select{
-  outline:none;
+  outline:none !important;
   -webkit-tap-highlight-color:transparent;
 }
