@@ -53,18 +53,18 @@ html,body{
 .breadcrumbs [aria-current="page"]{ font-weight:700; text-decoration:none; }
 
 /* ===== Main content (scrolls naturally) ===== */
-main#app{
-  position:relative;
-
-  /* Reserve space above & below using measured vars */
+main#app {
+  position: relative;
   margin-top: calc(var(--header-h) + var(--crumbs-h));
   margin-bottom: calc(var(--footer-h) + var(--banner-h));
-
   padding: 12px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 
-  transform: translateZ(0); backface-visibility:hidden;
+  /* Let it scroll if content is taller than screen */
+  min-height: auto;
+  overflow-y: auto;
+
+  /* NEW: ensure room above footer */
+  padding-bottom: 60px;
 }
 
 /* ===== Footer ===== */
