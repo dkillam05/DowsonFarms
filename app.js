@@ -227,21 +227,43 @@ document.addEventListener('click', (e)=>{
 });
 
 // ===== Service Worker (optional; UI unaffected) =====
-// app.js — SW registration (replace your existing register call)
+// ===== Service Worker registration (cache-bust for Chrome) =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register(
         `service-worker.js?v=${normalizeVersion(APP_VERSION)}`,
-        { updateViaCache: 'none' }   // <-- Chrome: don't use HTTP cache for SW
+        { updateViaCache: 'none' }
       );
 
-      reg.update(); // grab fresh SW on load
+      // Proactively look for updates
+      reg.update();
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') reg.update();
       });
 
-      // ...keep the rest of your “waiting/banners/controllerchange” logic as-is
+      // Show banner when a waiting SW exists (keep your existing logic)
+      if (reg.waiting) {
+        window.__waitingSW = reg.waiting;
+        if (needsUpdate()) showUpdateBanner();
+      }
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            window.__waitingSW = reg.waiting || sw;
+            if (needsUpdate()) showUpdateBanner();
+          }
+        });
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.__waitingSW = null;
+        markVersionAsCurrent();
+        hideUpdateBanner();
+        setTimeout(() => location.reload(), 200);
+      });
     } catch (e) {
       console.error('SW registration failed', e);
     }
