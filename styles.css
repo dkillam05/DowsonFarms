@@ -5,7 +5,8 @@
   --gold: #DAA520;
   --shadow: 0 2px 4px rgba(0,0,0,0.15);
 
-  --header-h: 0px;   /* now dynamic — JS updates this */
+  /* Let JS measure/set these at runtime */
+  --header-h: 0px;   /* dynamic via app.js */
   --crumbs-h: 32px;
   --footer-h: 40px;
   --banner-h: 0px;
@@ -26,7 +27,7 @@ html,body {
   background: var(--green); color: #fff;
   box-shadow: var(--shadow);
 
-  /* Nudge header lower, respect safe-area notch */
+  /* Nudge header lower and respect iPhone notch */
   padding: calc(env(safe-area-inset-top, 0px) + 18px) 12px 12px;
 }
 
@@ -48,6 +49,7 @@ html,body {
   background: #2E7D32; color: #fff;
   font-size: 0.9em; padding: 6px 12px;
 }
+.breadcrumbs a { color: #fff; text-decoration: underline; }
 
 /* ===== Update Banner ===== */
 #update-banner {
@@ -57,6 +59,7 @@ html,body {
   z-index: 950;
 }
 #update-banner[hidden]{ display: none; }
+#update-banner .btn { margin-left: 8px; }
 
 /* ===== Main content ===== */
 main#app {
@@ -107,7 +110,7 @@ main#app {
 input,textarea,select {
   width: 100%; padding: 8px; border-radius: 6px;
   border: 1px solid #ccc; font-size: 1em;
-  font-family: inherit;
+  font-family: inherit; box-sizing: border-box;
 }
 button {
   cursor: pointer; font-family: inherit; font-size: 1em;
@@ -120,6 +123,7 @@ button {
 .btn {
   background: #eee; border: 1px solid #ccc; margin-top: 8px;
   text-decoration: none; display: inline-block; text-align: center;
+  padding: 8px 14px; border-radius: 6px; color: #000;
 }
 .btn:hover { background: #ddd; }
 
