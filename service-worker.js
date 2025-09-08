@@ -1,5 +1,5 @@
 // === Bump on every release ===
-const CACHE_VERSION = 'df-v10.6-fresh';
+const CACHE_VERSION = 'df-v10.7-fresh';
 
 const CORE = [
   './',
