@@ -1,5 +1,5 @@
 // ===== Version in footer =====
-const APP_VERSION = 'v9.5';
+const APP_VERSION = 'v9.6';
 
 // ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -227,8 +227,23 @@ document.addEventListener('click', (e)=>{
 });
 
 // ===== Service Worker (optional; UI unaffected) =====
-if ('serviceWorker' in navigator){
-  window.addEventListener('load', async ()=>{
-    try { await navigator.serviceWorker.register('service-worker.js'); } catch(e){ console.error(e); }
+// app.js — SW registration (replace your existing register call)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register(
+        `service-worker.js?v=${normalizeVersion(APP_VERSION)}`,
+        { updateViaCache: 'none' }   // <-- Chrome: don't use HTTP cache for SW
+      );
+
+      reg.update(); // grab fresh SW on load
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update();
+      });
+
+      // ...keep the rest of your “waiting/banners/controllerchange” logic as-is
+    } catch (e) {
+      console.error('SW registration failed', e);
+    }
   });
 }
