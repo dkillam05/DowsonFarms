@@ -117,7 +117,7 @@ function viewHome(){
       ${tile('🛠️','Field Maintenance','#/crop/maintenance')}
       ${tile('🚜','Equipment','#/equipment')}
       ${tile('📦','Grain Tracking','#/grain')}
-      ${tile('👥','Employees','#/employees')}
+      ${tile('🤝','Team & Partners','#/team')}
       ${tile('🤖','AI Reports','#/ai')}
       ${tile('⚙️','Settings','#/settings')}
       ${tile('💬','Feedback','#/feedback')}
@@ -132,6 +132,41 @@ function viewSection(title, backHref = '#/home', backLabel = 'Back to Dashboard'
       <p>Coming soon.</p>
       <a class="btn" href="${backHref}">${backLabel}</a>
     </section>
+  `;
+}
+
+function viewReportsHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('📄','Pre-made Reports','#/ai/premade')}
+      ${tile('🤖','AI Reports','#/ai/ai')}
+      ${tile('📊','Yield Report','#/ai/yield')}
+    </div>
+    <section class="section" style="margin-top:12px;">
+      <h2>🔮 Future</h2>
+      <p class="muted">ChatGPT integration to generate & save custom reports is planned.</p>
+    </section>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+function viewSettingsHome(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🌱','Crop Type','#/settings/crops')}
+      ${tile('🌓','Theme','#/settings/theme')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+function viewFeedbackHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🛠️','Report Errors','#/feedback/errors')}
+      ${tile('💡','New Feature Request','#/feedback/feature')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
 }
 
