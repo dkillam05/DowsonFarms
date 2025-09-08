@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v7.1';
+const APP_VERSION = 'v7.2';
 
 // ===== Minimal theme hook (kept in v5) =====
 (function(){ try{
