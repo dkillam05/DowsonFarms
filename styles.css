@@ -127,3 +127,19 @@ a, button, input, textarea, select{
   outline:none !important;
   -webkit-tap-highlight-color:transparent;
 }
+/* Kill iOS/Safari blue focus ring anywhere (you asked for no focus glow) */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+}
+
+/* Specifically ensure the main app region never shows a focus ring */
+main#app:focus,
+main#app:focus-visible {
+  outline: none !important;
+}
+
+/* Already had tap highlight removal on controls; extend to all elements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
