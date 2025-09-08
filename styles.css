@@ -149,3 +149,8 @@ a, button, input, textarea, select {
   outline: none;
   -webkit-tap-highlight-color: transparent;
 }
+.app-header, .breadcrumbs, .app-footer, main#app {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
