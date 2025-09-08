@@ -1,5 +1,5 @@
 // ===== Version shown in footer (vMAJOR.MINOR only) =====
-const APP_VERSION = 'v7.5';
+const APP_VERSION = 'v8.0';
 
 // ===== Minimal theme (kept as-is) =====
 (function(){ try{
@@ -33,36 +33,22 @@ const bannerEl = document.getElementById('update-banner');
 const bannerBtn = document.getElementById('update-refresh');
 
 // ===== Layout vars (CSS custom properties) =====
-function applyHeaderHeightVar(){
-  const el = document.querySelector('.app-header');
-  document.documentElement.style.setProperty('--header-h', (el ? el.offsetHeight : 0) + 'px');
-}
-function applyCrumbsHeightVar(){
-  const el = document.querySelector('.breadcrumbs');
-  document.documentElement.style.setProperty('--crumbs-h', (el ? el.offsetHeight : 0) + 'px');
-}
-function applyFooterHeightVar(){
-  const el = document.querySelector('.app-footer');
-  document.documentElement.style.setProperty('--footer-h', (el ? el.offsetHeight : 0) + 'px');
-}
-function applyBannerHeightVar(){
-  const el = document.getElementById('update-banner');
-  const h = (el && !el.hidden) ? el.offsetHeight : 0;
-  document.documentElement.style.setProperty('--banner-h', h + 'px');
-}
+function applyHeaderHeightVar(){ const el=document.querySelector('.app-header'); document.documentElement.style.setProperty('--header-h',(el?el.offsetHeight:0)+'px'); }
+function applyCrumbsHeightVar(){ const el=document.querySelector('.breadcrumbs'); document.documentElement.style.setProperty('--crumbs-h',(el?el.offsetHeight:0)+'px'); }
+function applyFooterHeightVar(){ const el=document.querySelector('.app-footer'); document.documentElement.style.setProperty('--footer-h',(el?el.offsetHeight:0)+'px'); }
+function applyBannerHeightVar(){ const el=document.getElementById('update-banner'); const h=(el && !el.hidden)? el.offsetHeight:0; document.documentElement.style.setProperty('--banner-h',h+'px'); }
 
 // Auto-update layout vars on load/resize/orientation
-['load','resize','orientationchange'].forEach(evt => {
-  window.addEventListener(evt, () => {
+['load','resize','orientationchange'].forEach(function(evt){
+  window.addEventListener(evt, function(){
     applyHeaderHeightVar();
     applyCrumbsHeightVar();
     applyFooterHeightVar();
     applyBannerHeightVar();
   });
 });
-
 // Run twice on load to catch font/safe-area settling
-window.addEventListener('load', () => {
+window.addEventListener('load', function(){
   applyHeaderHeightVar();
   setTimeout(applyHeaderHeightVar, 100);
 });
@@ -113,7 +99,7 @@ function loadCrops(){
   }catch{ return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}]; }
 }
 function saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
-function isCropInUse(name){ return false; } // placeholder for future checks
+function isCropInUse(_name){ return false; } // future hook
 
 function viewSettingsHome(){
   app.innerHTML = `
@@ -264,7 +250,6 @@ function route(){
   else viewSection('Not Found','#/home');
 
   app?.focus?.();
-  // ensure offsets reflect current sizes
   applyHeaderHeightVar(); applyCrumbsHeightVar(); applyFooterHeightVar(); applyBannerHeightVar();
 }
 window.addEventListener('hashchange', route);
@@ -282,7 +267,7 @@ logoutBtn?.addEventListener('click', ()=>{
   location.replace('login.html');
 });
 
-// ===== Update banner logic (stable) =====
+// ===== Update banner logic =====
 function showUpdateBanner(){ if (bannerEl){ bannerEl.hidden=false; applyBannerHeightVar(); } }
 function hideUpdateBanner(){ if (bannerEl){ bannerEl.hidden=true; applyBannerHeightVar(); } }
 function markVersionAsCurrent(){ try{ localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); }catch{} }
