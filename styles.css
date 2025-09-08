@@ -212,3 +212,33 @@ html[data-theme="auto"]{ color-scheme: light; }
   html[data-theme="auto"] .muted{ color:#aaa; }
   html[data-theme="auto"] .crop-row{ border-bottom-color:#444; }
 }
+/* ===== Report Template (letterhead + watermark + print) ===== */
+.report-page { padding: 12px; }
+.report-head{
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:2px solid var(--green); padding-bottom:8px; margin-bottom:12px;
+}
+.report-logo{ height:40px; margin-right:10px; }
+.head-left{ display:flex; align-items:center; gap:10px; }
+.org-name{ font-weight:700; color:var(--green); }
+.r-title{ font-size:1.2em; font-weight:700; text-align:right; }
+.report-body{ position:relative; min-height:200px; }
+.report-table{ width:100%; border-collapse:collapse; background:#fff; }
+.report-table th, .report-table td{ border:1px solid #ccc; padding:6px; vertical-align:top; }
+.report-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; color:#444; }
+.report-actions{ margin-top:12px; }
+
+/* Watermark image: place 'watermark.png' in the root (same level as index.html) */
+.watermark{
+  background-image: url('watermark.png');
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: 75%;
+}
+
+@media print {
+  body { background:#fff; }
+  .app-header, .breadcrumbs, .app-footer, #update-banner, .report-actions { display:none !important; }
+  .report-page { padding: 0; }
+  .report-table th, .report-table td { padding: 8px; }
+}
