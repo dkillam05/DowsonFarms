@@ -136,3 +136,12 @@ a, button, input, textarea, select{
 main#app:focus, main#app:focus-visible{ outline:none !important; }
 /* and globally */
 *{ -webkit-tap-highlight-color:transparent; }
+
+body.dark-theme {
+  background-color: #121212; /* dark background */
+  color: #E0E0E0;           /* light text */
+}
+
+body.dark-theme header {
+  background-color: #0A3D0A; /* darker green header */
+}
