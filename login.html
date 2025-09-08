@@ -1,69 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dowson Farms — Login</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=10010" />
   <style>
-    /* Extra styling just for login */
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: var(--ivory);
-      margin: 0;
-    }
-    .login-wrapper {
-      width: 100%;
-      max-width: 360px;
-      padding: 20px;
-    }
-    .login-box {
-      background: #fff;
-      border: 2px solid var(--green);
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: var(--shadow);
-    }
-    .login-box h1 {
-      font-size: 1.5em;
-      margin: 0 0 12px;
-      text-align: center;
-      color: var(--green);
-    }
-    .login-box p {
-      font-size: 0.9em;
-      color: #555;
-      text-align: center;
-      margin: 0 0 20px;
-    }
+    body{display:flex;justify-content:center;align-items:center;height:100vh;background:var(--ivory);margin:0;}
+    .login-wrapper{width:100%;max-width:360px;padding:20px;}
+    .login-box{background:#fff;border:2px solid var(--green);border-radius:12px;padding:24px;box-shadow:var(--shadow);}
+    .login-box h1{font-size:1.5em;margin:0 0 12px;text-align:center;color:var(--green);}
+    .login-box p{font-size:.9em;color:#555;text-align:center;margin:0 0 16px;}
   </style>
 </head>
 <body>
-  <!-- ===== Login Wrapper ===== -->
   <div class="login-wrapper">
     <div class="login-box">
-      <div class="logo" style="justify-content:center; margin-bottom: 16px;">
-        <img src="icons/logo.png" alt="Dowson Farms Logo" style="height:64px; margin-right:10px;">
+      <div class="logo" style="justify-content:center;margin-bottom:12px">
+        <img src="icons/logo.png" alt="Dowson Farms Logo" style="height:64px;margin-right:10px" />
         <span class="logo-text">Dowson Farms</span>
       </div>
       <h1>Welcome</h1>
-      <p>Please log in with your assigned credentials.<br>
-         🔒 Keep your login secure and never share your password.</p>
+      <p>Use your assigned credentials. 🔒 Never share your password.</p>
       <form id="login-form">
-        <div class="field">
-          <input type="email" id="login-email" placeholder="Email" required>
-        </div>
-        <div class="field">
-          <input type="password" id="login-pass" placeholder="Password" required>
-        </div>
-        <button type="submit" class="btn-primary" style="width:100%; margin-top:12px;">Log In</button>
+        <div class="field"><input type="email" id="login-email" placeholder="Email" required /></div>
+        <div class="field"><input type="password" id="login-pass" placeholder="Password" required /></div>
+        <button type="submit" class="btn-primary" style="width:100%;margin-top:12px">Log In</button>
       </form>
     </div>
   </div>
-
-  <script src="login.js"></script>
+  <script src="login.js?v=10010"></script>
 </body>
 </html>
