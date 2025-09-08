@@ -1,5 +1,13 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.7';
+const APP_VERSION = 'v10.8';
+
+// ===== Init theme asap (auto/light/dark) =====
+(function applySavedTheme() {
+  try {
+    const t = localStorage.getItem('df_theme') || 'auto';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch {}
+})();
 
 // ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
@@ -119,7 +127,7 @@ function renderBreadcrumb(){
     crumbs.innerHTML = `<span aria-current="page">Home</span>`;
     return;
   }
-  const parts = hash.split('/').filter(Boolean); // ["#", "crop", "planting"]
+  const parts = hash.split('/').filter(Boolean);
   let trail = [`<a href="#/home">Home</a>`];
   let cur = '#';
   for (let i=1;i<parts.length;i++){
@@ -181,60 +189,20 @@ function viewCropComing(name){
 function viewCalcHub(){
   app.innerHTML = `
     <div class="grid">
-      ${tile('🧮','Fertilizer','#/calc/fertilizer')}
-      ${tile('🏗️','Bin Volume','#/calc/bin')}
+      ${tile('👨🏼‍🔬','Fertilizer','#/calc/fertilizer')}
+      ${tile('🗑️','Bin Volume','#/calc/bin')}
       ${tile('📐','Area','#/calc/area')}
-      ${tile('🧮','Combine Yield','#/calc/combine')}
+      ${tile('🌽','Combine Yield','#/calc/combine')}
       ${tile('🧪','Chemical Mix','#/calc/chem')}
     </div>
     <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
 }
-function viewCalcFertilizer(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>🧮 Fertilizer Calculator</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="#/calc">Back to Calculator</a>
-    </section>
-  `;
-}
-function viewCalcBin(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>🏗️ Bin Volume Calculator</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="#/calc">Back to Calculator</a>
-    </section>
-  `;
-}
-function viewCalcArea(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>📐 Area Calculator</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="#/calc">Back to Calculator</a>
-    </section>
-  `;
-}
-function viewCalcCombine(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>🧮 Combine Yield Calculator</h1>
-      <p>🚧 Coming soon (corn/soy, true shrink, adjustable head width 30’/40’/45’).</p>
-      <a class="btn" href="#/calc">Back to Calculator</a>
-    </section>
-  `;
-}
-function viewCalcChem(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>🧪 Chemical Mix Sheet</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="#/calc">Back to Calculator</a>
-    </section>
-  `;
-}
+function viewCalcFertilizer(){ app.innerHTML = `<section class="section"><h1>🧮 Fertilizer Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcBin(){ app.innerHTML = `<section class="section"><h1>🏗️ Bin Volume Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcArea(){ app.innerHTML = `<section class="section"><h1>📐 Area Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcCombine(){ app.innerHTML = `<section class="section"><h1>🧮 Combine Yield Calculator</h1><p>🚧 Coming soon (corn/soy, true shrink, head width 30’/40’/45’).</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcChem(){ app.innerHTML = `<section class="section"><h1>🧪 Chemical Mix Sheet</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
 
 /* =========================
    Equipment
@@ -494,7 +462,7 @@ function viewSettingsTheme(){
 }
 
 /* =========================
-   Feedback (WORKING forms)
+   Feedback (working forms)
    ========================= */
 function saveFeedback(entry){
   try{ const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]'); list.push(entry); localStorage.setItem(key, JSON.stringify(list)); }catch{}
