@@ -1,5 +1,5 @@
 // ===== Version in footer =====
-const APP_VERSION = 'v9.8';
+const APP_VERSION = 'v9.9';
 
 // ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
