@@ -5,8 +5,7 @@
   --gold: #DAA520;
   --shadow: 0 2px 4px rgba(0,0,0,0.15);
 
-  /* Let JS measure/set these at runtime */
-  --header-h: 0px;   /* dynamic via app.js */
+  --header-h: 56px;
   --crumbs-h: 32px;
   --footer-h: 40px;
   --banner-h: 0px;
@@ -15,7 +14,7 @@
 html,body {
   margin: 0; padding: 0;
   height: 100%; width: 100%;
-  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background: var(--ivory);
   color: #333;
 }
@@ -26,40 +25,45 @@ html,body {
   display: flex; align-items: center; gap: 10px;
   background: var(--green); color: #fff;
   box-shadow: var(--shadow);
-
-  /* Nudge header lower + respect iPhone notch */
+  /* nudged lower + safe-area */
   padding: calc(env(safe-area-inset-top, 0px) + 18px) 12px 12px;
 }
 
 .logo { display: flex; align-items: center; }
 .logo img { height: 36px; margin-right: 8px; }
 .logo-text { font-size: 1.2em; font-weight: 600; }
+#clock { margin-left: auto; margin-right: 12px; opacity: .9; }
 
 .logout {
-  margin-left: auto;
-  background: none; border: none; color: #fff;
-  font-size: 0.9em; cursor: pointer;
+  background: none; border: 1px solid rgba(255,255,255,.4);
+  color: #fff; border-radius: 10px; padding: 6px 12px;
+  font-size: 0.95em; cursor: pointer;
 }
-.logout:hover { color: var(--gold); }
+.logout:hover { color: var(--gold); border-color: var(--gold); }
 
 /* ===== Breadcrumbs ===== */
 .breadcrumbs {
   position: fixed; left: 0; right: 0; z-index: 900;
   top: var(--header-h);
   background: #2E7D32; color: #fff;
-  font-size: 0.9em; padding: 6px 12px;
+  font-size: 0.95em; padding: 8px 12px;
 }
-.breadcrumbs a { color: #fff; text-decoration: underline; }
+.breadcrumbs a { color: #fff; }
+.breadcrumbs a:hover { text-decoration: underline; }
 
 /* ===== Update Banner ===== */
 #update-banner {
   position: fixed; left: 0; right: 0; bottom: var(--footer-h);
-  background: var(--gold); color: #000;
-  text-align: center; padding: 8px; font-weight: 600;
-  z-index: 950;
+  background: #F7E6A1; color: #3a2f00;
+  text-align: center; padding: 10px; font-weight: 600;
+  z-index: 950; box-shadow: var(--shadow);
 }
 #update-banner[hidden]{ display: none; }
-#update-banner .btn { margin-left: 8px; }
+#update-refresh {
+  margin-left: 10px; border-radius: 10px; padding: 6px 12px;
+  border: 1px solid #8d7400; background: #fff; color: #6f5200;
+}
+#update-refresh:disabled { opacity: .6; }
 
 /* ===== Main content ===== */
 main#app {
@@ -75,55 +79,55 @@ main#app {
   background: var(--green); color: #fff;
   display: flex; justify-content: space-between; align-items: center;
   box-shadow: var(--shadow);
-
-  /* Safe-area bottom padding for iPhones */
   padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 8px);
-  font-size: 0.85em;
+  font-size: 0.9em;
 }
 
 /* ===== Tiles grid ===== */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(140px,1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill,minmax(150px,1fr));
+  gap: 14px;
 }
 
 .tile {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 20px; border-radius: 12px; border: 2px solid var(--green);
+  min-height: 120px;
+  padding: 20px; border-radius: 14px; border: 2px solid var(--green);
   background: #fff; color: var(--green);
-  font-weight: 600; text-align: center;
+  font-weight: 700; text-align: center;
   text-decoration: none;
   box-shadow: var(--shadow);
   transition: transform 0.1s, background 0.2s;
 }
 .tile:hover { background: var(--ivory); transform: translateY(-2px); }
-.emoji { font-size: 2em; }
-.label { margin-top: 6px; }
+.emoji { font-size: 2.1em; }
+.label { margin-top: 6px; line-height: 1.2; }
 
 /* ===== Sections ===== */
-.section { padding: 12px; }
-.section h1 { margin-top: 0; }
+.section { padding: 12px; background: #fff; border-radius: 12px; box-shadow: var(--shadow); }
+.section h1 { margin: 0 0 10px; }
 
 /* ===== Forms & buttons ===== */
 .field { margin: 10px 0; }
 input,textarea,select {
-  width: 100%; padding: 8px; border-radius: 6px;
-  border: 1px solid #ccc; font-size: 1em;
-  font-family: inherit; box-sizing: border-box;
+  width: 100%; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid #cfcfcf; font-size: 1em; background: #fff;
+  font-family: inherit;
 }
 button {
   cursor: pointer; font-family: inherit; font-size: 1em;
-  border-radius: 6px; padding: 8px 14px; border: none;
+  border-radius: 10px; padding: 10px 14px; border: 1px solid #cfcfcf;
+  background: #eee;
 }
 .btn-primary {
-  background: var(--green); color: #fff; font-weight: 600;
+  background: var(--green); color: #fff; border-color: var(--green);
+  font-weight: 700;
 }
 .btn-primary:hover { background: #2E7D32; }
 .btn {
-  background: #eee; border: 1px solid #ccc; margin-top: 8px;
-  text-decoration: none; display: inline-block; text-align: center;
-  padding: 8px 14px; border-radius: 6px; color: #000;
+  background: #eee; border: 1px solid #cfcfcf; margin-top: 8px;
+  text-decoration: none; display: inline-block; text-align: center; color: #123;
 }
 .btn:hover { background: #ddd; }
 
@@ -131,24 +135,17 @@ button {
 ul.crop-list { list-style: none; padding: 0; margin: 0; }
 .crop-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 8px; border-bottom: 1px solid #ccc;
+  padding: 10px; border-bottom: 1px solid #e6e6e6;
 }
 .crop-info { display: flex; gap: 8px; align-items: center; }
-.chip { background: var(--ivory); border: 1px solid var(--green); padding: 2px 6px; border-radius: 6px; }
-.chip-archived { background: #eee; border-color: #888; color: #666; }
+.chip { background: var(--ivory); border: 1px solid var(--green); padding: 3px 8px; border-radius: 999px; font-weight: 600; }
+.chip-archived { background: #f1f1f1; border-color: #aaa; color: #666; }
 
 /* ===== Small text ===== */
 .muted { color: #666; }
-.small { font-size: 0.85em; }
+.small { font-size: 0.9em; }
 
-/* ===== Add row ===== */
-.add-row input { flex: 1; }
-.add-row button { white-space: nowrap; }
-
-/* --- iOS tap highlight / focus ring fixes --- */
-* { -webkit-tap-highlight-color: transparent; }        /* removes blue tap bar */
+/* ===== iOS tap highlight / focus ring fixes ===== */
+* { -webkit-tap-highlight-color: transparent; }
 a, button { -webkit-touch-callout: none; }
-.tile:focus, .btn:focus, a:focus, button:focus {
-  outline: none;
-  box-shadow: none;
-}
+.tile:focus, .btn:focus, a:focus, button:focus { outline: none; box-shadow: none; }
