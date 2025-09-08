@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.8';
+const APP_VERSION = 'v10.9';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
