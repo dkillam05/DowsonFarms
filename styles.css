@@ -61,16 +61,13 @@ html,body {
 /* ===== Main content ===== */
 main#app {
   position: relative;
-
-  /* extra breathing room so cards never hide under bars */
-  margin-top: calc(var(--header-h) + var(--crumbs-h) + 16px);
-  margin-bottom: calc(var(--footer-h) + var(--banner-h) + 16px);
-
+  margin-top: calc(var(--header-h) + var(--crumbs-h));
+  margin-bottom: calc(var(--footer-h) + var(--banner-h));
   padding: 12px;
 
-  /* also ensure the area fills between header/footer */
-  min-height: calc(100vh - var(--header-h) - var(--crumbs-h) - var(--footer-h) - var(--banner-h));
-  box-sizing: border-box;
+  /* Let it scroll if content is taller than screen */
+  min-height: auto;          /* remove forced full fit */
+  overflow-y: auto;          /* allow vertical scrolling */
 }
 
 /* ===== Footer ===== */
