@@ -1,5 +1,5 @@
 // === Bump on every release ===
-const CACHE_VERSION = 'df-v10.11-hot';
+const CACHE_VERSION = 'df-v10.12-hot';
 
 // Precache only the static shell (DO NOT include app.js/styles.css)
 const CORE = [
