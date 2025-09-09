@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.14.2';
+const APP_VERSION = 'v10.14.3';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -1486,4 +1486,11 @@ function __df_commas(n){ try { return Number(n).toLocaleString(); } catch { retu
       window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
     });
   };
+})();
+/* === Patch: show full version in footer === */
+(function showFullVersionInFooter(){
+  try {
+    const el = document.getElementById('version');
+    if (el) el.textContent = String(APP_VERSION); // e.g., 'v10.14.3'
+  } catch {}
 })();
