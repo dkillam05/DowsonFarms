@@ -1253,3 +1253,54 @@ function __df_commas(n){ try { return Number(n).toLocaleString(); } catch { retu
     });
   };
 })();
+/* =========================
+   PATCH v10.14.1 — startup + shim + bg
+   ========================= */
+
+// 1) Guarantee background never shows ivory in dark mode
+(function dfBgFix(){
+  if (document.getElementById('df-bgfix-10141')) return;
+  const s = document.createElement('style');
+  s.id = 'df-bgfix-10141';
+  s.textContent = `
+    :root{ --page-bg:#f6f6e8; } 
+    [data-theme="dark"]{ --page-bg:#0f0f0f; }
+    html,body,#app{ background:var(--page-bg)!important; min-height:100%; }
+  `;
+  document.head.appendChild(s);
+})();
+
+// 2) Safety shims so the router never explodes if a view is missing
+(function dfViewShims(){
+  const noop = (title)=>()=>{ 
+    app.innerHTML = `<section class="section"><h1>${title||'Coming Soon'}</h1><p class="muted">Screen not wired yet.</p><a class="btn" href="#/home">Back to Dashboard</a></section>`;
+  };
+  window.viewTeamHub            = window.viewTeamHub            || noop('Team & Partners');
+  window.viewTeamEmployees      = window.viewTeamEmployees      || noop('Employees');
+  window.viewTeamSubcontractors = window.viewTeamSubcontractors || noop('Subcontractors');
+  window.viewTeamVendors        = window.viewTeamVendors        || noop('Vendors');
+  window.viewTeamDirectory      = window.viewTeamDirectory      || noop('Directory');
+  window.viewReportsAI          = window.viewReportsAI          || noop('AI Reports');
+  window.viewReportsYield       = window.viewReportsYield       || noop('Yield Report');
+  window.viewGrainComing        = window.viewGrainComing        || noop('Grain — Coming Soon');
+})();
+
+// 3) Make sure a hash exists and kick the router once DOM is ready
+(function dfBootstrap(){
+  function start(){
+    try{
+      if (!location.hash || location.hash==='#') location.replace('#/home');
+      // force one route pass after hash set
+      if (typeof route==='function') route();
+      // ensure footer version shows current constant
+      if (window.versionEl && typeof displayVersion==='function'){
+        versionEl.textContent = displayVersion(typeof APP_VERSION!=='undefined'?APP_VERSION:'v10.14.1');
+      }
+    }catch(e){ console.error('bootstrap', e); }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
