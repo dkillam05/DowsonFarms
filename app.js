@@ -1,7 +1,7 @@
-// ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.11'; // bumped to ensure SW cache picks up changes
+// ===== Version =====
+const APP_VERSION = 'v10.12';
 
-// ===== Init theme asap (auto/light/dark) =====
+// ===== Init theme =====
 (function applySavedTheme() {
   try {
     const t = localStorage.getItem('df_theme') || 'auto';
@@ -9,7 +9,7 @@ const APP_VERSION = 'v10.11'; // bumped to ensure SW cache picks up changes
   } catch {}
 })();
 
-// ===== Auth (invite-only placeholder) =====
+// ===== Auth =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
 (function enforceAuth(){
   const here = (location.pathname.split('/').pop() || '').toLowerCase();
@@ -24,12 +24,33 @@ function prettyDate(d){ const dow=d.toLocaleString(undefined,{weekday:'long'}); 
 function normalizeVersion(v){ const m=String(v||'').trim().replace(/^v/i,''); const p=m.split('.'); return (p[0]||'0')+'.'+(p[1]||'0'); }
 function displayVersion(v){ return 'v'+normalizeVersion(v); }
 function scrollTopAll(){ try{ if (app?.scrollTo) app.scrollTo({top:0,left:0,behavior:'auto'}); window.scrollTo(0,0);}catch{} }
+function fmtCommas(n){ try{ return Number(n).toLocaleString(); }catch{ return String(n); } }
+function uuid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function onlyDigits(s){ return String(s||'').replace(/\D+/g,''); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function capWord(s){ s=String(s||'').trim(); return s ? s[0].toUpperCase()+s.slice(1).toLowerCase() : ''; }
+function capName(s){ return String(s||'').trim().split(/\s+/).map(capWord).join(' '); }
+function capTitle(s){ return String(s||'').trim().split(/\s+/).map(capWord).join(' '); }
+function userEmail(){ try { return localStorage.getItem('df_user') || ''; } catch { return ''; } }
+function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
 
-// === NEW: phone helpers (live formatter) ===
+// ===== DOM refs =====
+const app = document.getElementById('app');
+const crumbs = document.getElementById('breadcrumbs');
+const versionEl = document.getElementById('version');
+const todayEl = document.getElementById('today');
+const clockEl = document.getElementById('clock');
+const bannerEl = document.getElementById('update-banner');
+const bannerBtn = document.getElementById('update-refresh');
+
+/* =========================================
+   PHONE INPUT — improved live formatting
+   ========================================= */
 function phoneDigitsOnly(val){ return String(val||'').replace(/\D/g,'').slice(0,10); }
 function formatPhoneUS(val){
   const d = phoneDigitsOnly(val);
-  if (d.length <= 3) return d;
+  if (!d) return '';
+  if (d.length <= 3) return `(${d}`;
   if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`;
   return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
 }
@@ -37,19 +58,26 @@ function bindPhoneAutoFormat(root=document){
   root.querySelectorAll('input[type="tel"]').forEach(inp=>{
     if (inp.dataset._phoneBound === '1') return;
     inp.dataset._phoneBound = '1';
-    if (inp.value) inp.value = formatPhoneUS(inp.value);
+    let lastDigits = phoneDigitsOnly(inp.value || '');
+    inp.value = formatPhoneUS(lastDigits);
     inp.addEventListener('input', ()=>{
-      const pos = inp.selectionStart;
-      inp.value = formatPhoneUS(inp.value);
-      try{ inp.setSelectionRange(pos,pos); }catch{}
+      const digits = phoneDigitsOnly(inp.value);
+      lastDigits = digits;
+      inp.value = formatPhoneUS(digits);
+      try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch {}
+      inp.dataset.cleanPhone = digits;
     });
-    inp.addEventListener('change', ()=>{
-      inp.dataset.cleanPhone = phoneDigitsOnly(inp.value);
+    inp.addEventListener('blur', ()=>{
+      const digits = phoneDigitsOnly(inp.value);
+      inp.value = formatPhoneUS(digits);
+      inp.dataset.cleanPhone = digits;
     });
   });
 }
 
-// === NEW: invite helpers (opens mail draft with link) ===
+/* =========================================
+   INVITE — opens mail draft with login link
+   ========================================= */
 function inviteMailtoHref(email, name){
   const who = name ? name : 'there';
   const base = location.origin + location.pathname.replace(/index\.html?$/,'');
@@ -68,15 +96,6 @@ You've been invited to join the Dowson Farms app.
   );
   return `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
 }
-
-// ===== DOM refs =====
-const app = document.getElementById('app');
-const crumbs = document.getElementById('breadcrumbs');
-const versionEl = document.getElementById('version');
-const todayEl = document.getElementById('today');
-const clockEl = document.getElementById('clock');
-const bannerEl = document.getElementById('update-banner');
-const bannerBtn = document.getElementById('update-refresh');
 
 // ===== Layout measures → CSS vars =====
 function setCSSVar(name, px){ document.documentElement.style.setProperty(name, `${px}px`); }
@@ -104,7 +123,6 @@ function tile(emoji,label,href){
 // ===== Labels for breadcrumbs =====
 const LABELS = {
   '#/home':'Home',
-  // Crop Production
   '#/crop':'Crop Production',
   '#/crop/planting':'Planting',
   '#/crop/spraying':'Spraying',
@@ -113,16 +131,12 @@ const LABELS = {
   '#/crop/maintenance':'Field Maintenance',
   '#/crop/scouting':'Scouting',
   '#/crop/trials':'Trials',
-
-  // Calculators
   '#/calc':'Calculator',
   '#/calc/fertilizer':'Fertilizer Calculator',
   '#/calc/bin':'Bin Volume Calculator',
   '#/calc/area':'Area Calculator',
   '#/calc/combine':'Combine Yield Calculator',
   '#/calc/chem':'Chemical Mix Sheet',
-
-  // Equipment
   '#/equipment':'Equipment',
   '#/equipment/receivers':'StarFire / Technology',
   '#/equipment/tractors':'Tractors',
@@ -132,34 +146,25 @@ const LABELS = {
   '#/equipment/trucks':'Trucks',
   '#/equipment/trailers':'Trailers',
   '#/equipment/implements':'Farm Implements',
-
-  // Grain Tracking
   '#/grain':'Grain Tracking',
   '#/grain/bag':'Grain Bag',
   '#/grain/bins':'Grain Bins',
   '#/grain/contracts':'Grain Contracts',
   '#/grain/tickets':'Grain Ticket OCR',
-
-  // Team & Partners
   '#/team':'Team & Partners',
   '#/team/employees':'Employees',
   '#/team/subcontractors':'Subcontractors',
   '#/team/vendors':'Vendors',
   '#/team/dir':'Directory',
-
-  // Reports
   '#/ai':'Reports',
   '#/ai/premade':'Pre-made Reports',
-  '#/ai/premade/feedback':'Feedback Summary', // NEW
+  '#/ai/premade/feedback':'Feedback Summary',
+  '#/ai/premade/grain-bags':'Grain Bag Report',
   '#/ai/ai':'AI Reports',
   '#/ai/yield':'Yield Report',
-
-  // Settings
   '#/settings':'Settings',
   '#/settings/crops':'Crop Type',
   '#/settings/theme':'Theme',
-
-  // Feedback
   '#/feedback':'Feedback',
   '#/feedback/errors':'Report Errors',
   '#/feedback/feature':'New Feature Request',
@@ -201,9 +206,7 @@ function viewHome(){
   `;
 }
 
-/* =========================
-   Crop Production
-   ========================= */
+// ===== Crop Hub =====
 function viewCropHub(){
   app.innerHTML = `
     <div class="grid">
@@ -227,532 +230,423 @@ function viewCropComing(name){
     </section>
   `;
 }
+/* =========================================================
+   Part 2/5 — FIELD MAINTENANCE (forms, storage, listing)
+   ========================================================= */
 
-/* =========================
-   Calculators
-   ========================= */
-function viewCalcHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('👨🏼‍🔬','Fertilizer','#/calc/fertilizer')}
-      ${tile('🗑️','Bin Volume','#/calc/bin')}
-      ${tile('📐','Area','#/calc/area')}
-      ${tile('🌽','Combine Yield','#/calc/combine')}
-      ${tile('🧪','Chemical Mix','#/calc/chem')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
-}
-function viewCalcFertilizer(){ app.innerHTML = `<section class="section"><h1>🧮 Fertilizer Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcBin(){ app.innerHTML = `<section class="section"><h1>🏗️ Bin Volume Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcArea(){ app.innerHTML = `<section class="section"><h1>📐 Area Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcCombine(){ app.innerHTML = `<section class="section"><h1>🧮 Combine Yield Calculator</h1><p>🚧 Coming soon (corn/soy, true shrink, head width 30’/40’/45’).</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcChem(){ app.innerHTML = `<section class="section"><h1>🧪 Chemical Mix Sheet</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+/* ---------- Keys ---------- */
+const FM_KEY = 'df_field_maint';
+const JOB_TYPES_KEY = 'df_job_types';
+const FIELD_LIST_KEY = 'df_fields';
 
-/* =========================
-   Equipment
-   ========================= */
-function viewEquipmentHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('📡','StarFire / Technology','#/equipment/receivers')}
-      ${tile('🚜','Tractors','#/equipment/tractors')}
-      ${tile('🌾','Combines','#/equipment/combines')}
-      ${tile('💦','Sprayer / Fertilizer Spreader','#/equipment/sprayer')}
-      ${tile('🏗️','Construction Equipment','#/equipment/construction')}
-      ${tile('🚚','Trucks','#/equipment/trucks')}
-      ${tile('🚛','Trailers','#/equipment/trailers')}
-      ${tile('⚙️','Farm Implements','#/equipment/implements')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
+/* ---------- JSON helpers (guarded in case already defined in Part 1) ---------- */
+if (typeof loadJSON !== 'function') {
+  function loadJSON(key, fallback = []) {
+    try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+    catch { return fallback; }
+  }
 }
-function viewEquipmentComing(name){
-  app.innerHTML = `
-    <section class="section">
-      <h1>${name}</h1>
-      <p>🚧 Coming soon. (Will track Make, Model, Serial; assign barcode; quick repair logs)</p>
-      <a class="btn" href="#/equipment">Back to Equipment</a>
-    </section>
-  `;
+if (typeof saveJSON !== 'function') {
+  function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
 }
 
-/* =========================
-   Grain Tracking
-   ========================= */
-const GRAIN_BAG_KEY='df_grain_bags';
-function loadBags(){ try{ return JSON.parse(localStorage.getItem(GRAIN_BAG_KEY) || '[]'); }catch{ return []; } }
-function saveBags(list){ try{ localStorage.setItem(GRAIN_BAG_KEY, JSON.stringify(list)); }catch{} }
-
-function viewGrainHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('🧺','Grain Bag','#/grain/bag')}
-      ${tile('🏠','Grain Bins','#/grain/bins')}
-      ${tile('📄','Grain Contracts','#/grain/contracts')}
-      ${tile('🧾','Ticket OCR','#/grain/tickets')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
+/* ---------- Seed data (only if empty) ---------- */
+function defaultFields(){
+  const existing = loadJSON(FIELD_LIST_KEY);
+  if (existing.length) return existing;
+  const seed = ['Home Farm', 'North 80', 'South 40', 'River Bottom'];
+  saveJSON(FIELD_LIST_KEY, seed);
+  return seed;
 }
-function viewGrainBag(){
+function defaultJobs(){
+  const existing = loadJSON(JOB_TYPES_KEY);
+  if (existing.length) return existing;
+  const seed = ['Tile Hole Repair','Ruts Repair','Tree Removal','Fence Fix'];
+  saveJSON(JOB_TYPES_KEY, seed);
+  return seed;
+}
+
+/* ---------- File -> DataURL helper ---------- */
+async function filesToDataURLs(fileList){
+  const files = Array.from(fileList||[]);
+  const readers = files.map(f => new Promise(res=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.readAsDataURL(f);
+  }));
+  return Promise.all(readers);
+}
+
+/* ---------- UI: Field Maintenance ---------- */
+function viewFieldMaintenance(){
   const user = (localStorage.getItem('df_user')||'').trim();
-  const today = new Date().toISOString().slice(0,10);
-  const rows=loadBags().map(b=>{
+  const fields = defaultFields();
+  const jobs = defaultJobs();
+  const today = todayStr();
+
+  const recent = loadJSON(FM_KEY).slice(0,20).map(r=>{
+    const pics = (r.photos||[]).length ? ` • 📷 ${r.photos.length}` : '';
+    const statusChip = r.status==='Completed' ? '✅' : (r.status==='In Progress' ? '🟡' : '⏳');
     return `<li class="crop-row">
-      <div class="crop-info"><span class="chip">#${b.no}</span> <span class="chip">${b.date}</span></div>
-      <div class="crop-actions"><span class="small">${b.location}</span></div>
+      <div class="crop-info"><span class="chip">${statusChip} ${r.jobType}</span></div>
+      <div class="crop-actions small">${r.location}</div>
       <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">
-        <div class="small muted">Crop: ${b.crop} • Est: ${b.bushels.toLocaleString()} bu • By: ${b.submittedBy||'-'}</div>
-        ${b.notes ? `<div class="small muted">Notes: ${b.notes}</div>`:''}
+        <div class="small muted">${r.dateSubmitted} • by ${r.submittedBy||'-'}${pics}</div>
+        ${r.status==='Completed' ? `<div class="small muted">Completed ${r.completedDate||''} by ${r.completedBy||''}</div>`:''}
+        ${r.notes ? `<div class="small muted">Notes: ${r.notes}</div>`:''}
       </div>
     </li>`;
   }).join('');
+
   app.innerHTML = `
     <section class="section">
-      <h1>🧺 Grain Bag</h1>
-      <div class="field"><label class="choice"><input id="gb-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
-      <div class="field"><label>Location <span class="small muted">(Required)</span></label>
-        <select id="gb-loc">
+      <h1>🧰 Field Maintenance</h1>
+
+      <div class="field">
+        <label style="font-weight:600">Date Submitted <span class="small muted">(Required)</span></label>
+        <input id="fm-date" type="date" value="${today}">
+      </div>
+
+      <div class="field">
+        <label style="font-weight:600">Submitted By <span class="small muted">(defaults to logged in)</span></label>
+        <input id="fm-by" type="text" value="${user}">
+      </div>
+
+      <div class="field">
+        <label style="font-weight:600">Location <span class="small muted">(Required)</span></label>
+        <select id="fm-loc">
           <option value="">— Choose —</option>
-          <option value="Divernon Elevator">Divernon Elevator</option>
-          <option value="Field (TBD)">Field (TBD)</option>
+          ${fields.map(f=>`<option value="${f}">${f}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Crop <span class="small muted">(Required)</span></label>
-        <select id="gb-crop">
+
+      <div class="field">
+        <label style="font-weight:600; display:flex; align-items:center; gap:8px;">
+          Job Type <span class="small muted">(Required)</span>
+          <button id="fm-add-job" class="btn" type="button" title="Add a job type">➕ Add</button>
+        </label>
+        <select id="fm-job">
           <option value="">— Choose —</option>
-          <option value="Corn">Corn</option>
-          <option value="Soybeans">Soybeans</option>
+          ${jobs.map(j=>`<option value="${j}">${j}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label class="choice"><input id="gb-bu" type="number" inputmode="numeric" min="1" placeholder="Estimated bushels (Required)"></label></div>
-      <div class="field"><label class="choice"><input id="gb-by" type="text" placeholder="Submitted by" value="${user}"></label></div>
-      <div class="field"><label class="choice"><textarea id="gb-notes" rows="3" placeholder="Notes (optional)"></textarea></label></div>
-      <button id="gb-save" class="btn-primary">Save</button>
+
+      <div class="field">
+        <label style="font-weight:600">Notes (optional)</label>
+        <textarea id="fm-notes" rows="3" placeholder="Add any details…"></textarea>
+      </div>
+
+      <div class="field">
+        <label style="font-weight:600">Pictures (optional)</label>
+        <input id="fm-photos" type="file" accept="image/*" multiple>
+      </div>
+
+      <div class="field">
+        <label style="font-weight:600">Status</label>
+        <select id="fm-status">
+          <option>Pending</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
+      </div>
+
+      <div id="fm-completed-wrap" class="field" style="display:none;">
+        <div class="field">
+          <label style="font-weight:600">Completed By <span class="small muted">(Required if completed)</span></label>
+          <input id="fm-done-by" type="text" placeholder="Name">
+        </div>
+        <div class="field">
+          <label style="font-weight:600">Completed Date <span class="small muted">(Required if completed)</span></label>
+          <input id="fm-done-date" type="date" value="${today}">
+        </div>
+      </div>
+
+      <button id="fm-save" class="btn-primary">Save</button>
 
       <h2 style="margin-top:14px;">Recent</h2>
-      <ul class="crop-list">${rows || '<li class="muted">No grain bags recorded.</li>'}</ul>
+      <ul class="crop-list">${recent || '<li class="muted">No maintenance items yet.</li>'}</ul>
 
       <div class="section">
-        <a class="btn" href="#/grain">Back to Grain Tracking</a> <a class="btn" href="#/home">Back to Dashboard</a>
-      </div>
-    </section>
-  `;
-  document.getElementById('gb-save')?.addEventListener('click', ()=>{
-    const date = document.getElementById('gb-date').value;
-    const loc  = document.getElementById('gb-loc').value;
-    const crop = document.getElementById('gb-crop').value;
-    const buStr= String(document.getElementById('gb-bu').value||'').trim();
-    const by   = String(document.getElementById('gb-by').value||'').trim();
-    const notes= String(document.getElementById('gb-notes').value||'').trim();
-    const bu = parseInt(buStr,10);
-
-    if(!date||!loc||!crop||!bu||bu<=0){ alert('Date, Location, Crop, Estimated Bushels are required.'); return; }
-
-    const list = loadBags();
-    const nextNo = (list[0]?.no || 0) + 1;
-    list.unshift({ no: nextNo, date, location: loc, crop, bushels: bu, submittedBy: by, notes });
-    saveBags(list);
-    alert('Saved.');
-    viewGrainBag();
-  });
-}
-function viewGrainComing(name){
-  app.innerHTML = `
-    <section class="section">
-      <h1>${name}</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="#/grain">Back to Grain Tracking</a>
-    </section>
-  `;
-}
-
-// ===== Team & Partners =====
-const EMP_KEY    = 'df_employees';
-const SUBC_KEY   = 'df_subcontractors';
-const VEND_KEY   = 'df_vendors';
-const INVITE_KEY = 'df_invites';
-
-function loadJSON(key, fallback = []) {
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
-  catch { return fallback; }
-}
-function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-
-function uuid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
-function onlyDigits(s){ return String(s||'').replace(/\D+/g,''); }
-function fmtPhone(raw){ const d = onlyDigits(raw); return d.length===10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : raw; }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
-function capWord(s){ s=String(s||'').trim(); return s ? s[0].toUpperCase()+s.slice(1).toLowerCase() : ''; }
-function capName(s){ return String(s||'').trim().split(/\s+/).map(capWord).join(' '); }
-function userEmail(){ try { return localStorage.getItem('df_user') || ''; } catch { return ''; } }
-function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
-
-// ---- Hub ----
-function viewTeamHub(){
-  app.innerHTML =
-    '<div class="grid">'+
-      tile('👷','Employees','#/team/employees')+
-      tile('🛠️','Subcontractors','#/team/subcontractors')+
-      tile('🏪','Vendors','#/team/vendors')+
-      tile('📇','Directory','#/team/dir')+
-    '</div>'+
-    '<div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>';
-}
-
-// ---- Employees (Role/Permissions removed; Birthday + Invite) ----
-function viewTeamEmployees(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>👷 Add Employee</h1>
-
-      <div class="field"><input id="emp-first" type="text" placeholder="First name *"></div>
-      <div class="field"><input id="emp-last"  type="text" placeholder="Last name *"></div>
-
-      <div class="field"><input id="emp-email" type="email" placeholder="Email *"></div>
-      <div class="field"><input id="emp-phone" type="tel"  placeholder="Phone (optional)"></div>
-
-      <div class="field">
-        <label style="font-weight:600">Start date <span class="small muted">(Required)</span></label>
-        <input id="emp-start" type="date">
-      </div>
-
-      <div class="field">
-        <label style="font-weight:600">Birthday <span class="small muted">(Optional)</span></label>
-        <input id="emp-bday" type="date">
-      </div>
-
-      <div class="field"><textarea id="emp-notes" rows="3" placeholder="Notes (optional)"></textarea></div>
-
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="emp-save" class="btn-primary">Save</button>
-        <button id="emp-invite" class="btn">Invite</button>
-      </div>
-
-      <div class="settings-actions" style="margin-top:12px;">
-        <a class="btn" href="#/team/dir">View Directory</a>
-        <a class="btn" href="#/team">Back to Team & Partners</a>
-      </div>
-    </section>
-  `;
-
-  const first = document.getElementById('emp-first');
-  const last  = document.getElementById('emp-last');
-  const start = document.getElementById('emp-start');
-  const bday  = document.getElementById('emp-bday');
-  if (start) start.value = todayStr();
-  first?.addEventListener('blur', ()=> first.value = capName(first.value));
-  last ?.addEventListener('blur', ()=> last .value = capName(last .value));
-
-  document.getElementById('emp-save')?.addEventListener('click', ()=>{
-    const firstName = capName(first.value);
-    const lastName  = capName(last.value);
-    const email     = String(document.getElementById('emp-email').value||'').trim();
-    const phoneRaw  = String(document.getElementById('emp-phone').value||'');
-    const phone     = onlyDigits(phoneRaw);
-    const startDate = String(start.value||todayStr());
-    const birthday  = String(bday.value||'');
-    const notes     = String(document.getElementById('emp-notes').value||'').trim();
-
-    if (!firstName || !lastName) { alert('Please enter first and last name.'); return; }
-    if (!email || !looksLikeEmail(email)) { alert('Please enter a valid email.'); return; }
-    if (phone && phone.length !== 10) { alert('Phone must be 10 digits.'); return; }
-
-    const list = loadJSON(EMP_KEY);
-    list.push({
-      id: uuid(),
-      type:'employee',
-      firstName, lastName,
-      email, phone,
-      startDate, birthday,
-      notes,
-      createdAt: new Date().toISOString(),
-      createdBy: userEmail()
-    });
-    saveJSON(EMP_KEY, list);
-    alert('Employee saved.');
-    location.hash = '#/team/dir';
-  });
-
-  document.getElementById('emp-invite')?.addEventListener('click', ()=>{
-    const email = String(document.getElementById('emp-email').value||'').trim();
-    const name  = `${capName(first.value)} ${capName(last.value)}`.trim();
-    if (!email || !looksLikeEmail(email)) { alert('Enter a valid email first.'); return; }
-
-    // store a simple invite token (local-only, placeholder for real backend)
-    const invites = loadJSON(INVITE_KEY);
-    const token = uuid();
-    const link = `${location.origin}${location.pathname.replace(/index\.html?$/,'')}login.html?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
-    invites.push({ id:token, email, createdAt:new Date().toISOString(), expiresAt:new Date(Date.now()+7*864e5).toISOString(), used:false });
-    saveJSON(INVITE_KEY, invites);
-
-    // open mail draft with instructions
-    const mailto = inviteMailtoHref(email, name);
-    alert(`Invite link created:\n\n${link}\n\nA mail draft will open next so you can send it.`);
-    setTimeout(()=>{ location.href = mailto; }, 50);
-  });
-}
-
-// ---- Subcontractors ----
-function viewTeamSubcontractors(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>🛠️ Add Subcontractor</h1>
-
-      <div class="field"><input id="subc-company" type="text" placeholder="Company name"></div>
-      <div class="field"><input id="subc-first"   type="text" placeholder="Primary contact — First name"></div>
-      <div class="field"><input id="subc-last"    type="text" placeholder="Primary contact — Last name"></div>
-
-      <div class="field"><input id="subc-email" type="email" placeholder="Email (optional)"></div>
-      <div class="field"><input id="subc-phone" type="tel"   placeholder="Phone (optional)"></div>
-
-      <div class="field">
-        <label style="font-weight:600">Start date <span class="small muted">(Defaults to today)</span></label>
-        <input id="subc-start" type="date">
-      </div>
-
-      <div class="field"><textarea id="subc-notes" rows="3" placeholder="Notes (optional)"></textarea></div>
-
-      <button id="subc-save" class="btn-primary">Save</button>
-      <div class="settings-actions" style="margin-top:12px;">
-        <a class="btn" href="#/team/dir?type=subcontractor">View Directory</a>
-        <a class="btn" href="#/team">Back to Team & Partners</a>
-      </div>
-    </section>
-  `;
-
-  const company = document.getElementById('subc-company');
-  const first   = document.getElementById('subc-first');
-  const last    = document.getElementById('subc-last');
-  const start   = document.getElementById('subc-start');
-  if (start) start.value = todayStr();
-
-  company?.addEventListener('blur', ()=> company.value = capName(company.value));
-  first  ?.addEventListener('blur', ()=> first.value   = capName(first.value));
-  last   ?.addEventListener('blur', ()=> last.value    = capName(last.value));
-
-  document.getElementById('subc-save')?.addEventListener('click', ()=>{
-    const obj = {
-      id: uuid(),
-      type:'subcontractor',
-      company: capName(company.value),
-      firstName: capName(first.value),
-      lastName:  capName(last.value),
-      email: String(document.getElementById('subc-email').value||'').trim(),
-      phone: onlyDigits(String(document.getElementById('subc-phone').value||'')),
-      startDate: String(start.value||todayStr()),
-      notes: String(document.getElementById('subc-notes').value||'').trim(),
-      createdAt: new Date().toISOString(),
-      createdBy: userEmail()
-    };
-    if (obj.phone && obj.phone.length!==10) { alert('Phone must be 10 digits.'); return; }
-    if (obj.email && !looksLikeEmail(obj.email)) { alert('Email looks invalid.'); return; }
-
-    const list = loadJSON(SUBC_KEY);
-    list.push(obj); saveJSON(SUBC_KEY, list);
-    alert('Subcontractor saved.');
-    location.hash = '#/team/dir?type=subcontractor';
-  });
-}
-
-// ---- Vendors ----
-function viewTeamVendors(){
-  app.innerHTML = `
-    <section class="section">
-      <h1>🏪 Add Vendor</h1>
-
-      <div class="field"><input id="vend-name" type="text" placeholder="Vendor / Company name"></div>
-
-      <div class="field"><input id="vend-email" type="email" placeholder="Email (optional)"></div>
-      <div class="field"><input id="vend-phone" type="tel"   placeholder="Phone (optional)"></div>
-
-      <div class="field"><input id="vend-cats"  type="text" placeholder="Categories (comma-separated, optional)"></div>
-      <div class="field"><input id="vend-acct"  type="text" placeholder="Account # (optional)"></div>
-      <div class="field"><input id="vend-terms" type="text" placeholder="Payment terms (optional)"></div>
-
-      <div class="field"><input id="vend-addr1" type="text" placeholder="Address line 1 (optional)"></div>
-      <div class="field"><input id="vend-addr2" type="text" placeholder="Address line 2 (optional)"></div>
-      <div class="field"><input id="vend-city"  type="text" placeholder="City (optional)"></div>
-      <div class="field"><input id="vend-state" type="text" placeholder="State (optional)"></div>
-      <div class="field"><input id="vend-zip"   type="text" placeholder="ZIP (optional)"></div>
-
-      <div class="field"><textarea id="vend-notes" rows="3" placeholder="Notes (optional)"></textarea></div>
-
-      <button id="vend-save" class="btn-primary">Save</button>
-      <div class="settings-actions" style="margin-top:12px;">
-        <a class="btn" href="#/team/dir?type=vendor">View Directory</a>
-        <a class="btn" href="#/team">Back to Team & Partners</a>
-      </div>
-    </section>
-  `;
-
-  document.getElementById('vend-save')?.addEventListener('click', ()=>{
-    const obj = {
-      id: uuid(),
-      type:'vendor',
-      name: capName(String(document.getElementById('vend-name').value||'')),
-      email: String(document.getElementById('vend-email').value||'').trim(),
-      phone: onlyDigits(String(document.getElementById('vend-phone').value||'')),
-      categories: String(document.getElementById('vend-cats').value||'').trim(),
-      accountNo:  String(document.getElementById('vend-acct').value||'').trim(),
-      terms:      String(document.getElementById('vend-terms').value||'').trim(),
-      address1:   String(document.getElementById('vend-addr1').value||'').trim(),
-      address2:   String(document.getElementById('vend-addr2').value||'').trim(),
-      city:       String(document.getElementById('vend-city').value||'').trim(),
-      state:      String(document.getElementById('vend-state').value||'').trim(),
-      zip:        String(document.getElementById('vend-zip').value||'').trim(),
-      notes:      String(document.getElementById('vend-notes').value||'').trim(),
-      createdAt: new Date().toISOString(),
-      createdBy: userEmail()
-    };
-    if (obj.phone && obj.phone.length!==10) { alert('Phone must be 10 digits.'); return; }
-    if (obj.email && !looksLikeEmail(obj.email)) { alert('Email looks invalid.'); return; }
-
-    const list = loadJSON(VEND_KEY);
-    list.push(obj); saveJSON(VEND_KEY, list);
-    alert('Vendor saved.');
-    location.hash = '#/team/dir?type=vendor';
-  });
-}
-
-// ---- Directory ----
-function viewTeamDirectory(){
-  const people = [
-    ...loadJSON(EMP_KEY),
-    ...loadJSON(SUBC_KEY),
-    ...loadJSON(VEND_KEY)
-  ];
-
-  let filter = 'all';
-  const qs = location.hash.split('?')[1];
-  if (qs) {
-    const p = new URLSearchParams(qs);
-    filter = p.get('type') || 'all';
-  }
-
-  const filtered = people.filter(p => filter==='all' ? true : p.type === filter);
-
-  function pill(t,label,emoji){
-    const active = (filter===t) ? ' style="border-color:#DAA520;color:#6f5200"' : '';
-    const href = (t==='all') ? '#/team/dir' : `#/team/dir?type=${t}`;
-    return `<a class="btn"${active} href="${href}">${emoji} ${label}</a>`;
-  }
-
-  const rows = filtered.map(p=>{
-    const badge = p.type==='employee' ? '👷'
-                : p.type==='subcontractor' ? '🛠️'
-                : '🏪';
-    const title = p.type==='employee'
-      ? `${p.firstName||''} ${p.lastName||''}`.trim() || '(Unnamed)'
-      : (p.name || p.company || '(Untitled)');
-    const lines = [];
-
-    if (p.email) lines.push('Email: '+p.email);
-    if (p.phone) lines.push('Phone: '+fmtPhone(p.phone));
-    if (p.type==='employee'){
-      if (p.startDate) lines.push('Start: '+p.startDate);
-      if (p.birthday)  lines.push('Birthday: '+p.birthday);
-    }
-    if (p.type==='subcontractor'){
-      if (p.firstName||p.lastName) lines.push(`Primary: ${(p.firstName||'')+' '+(p.lastName||'')}`.trim());
-      if (p.startDate) lines.push('Since: '+p.startDate);
-    }
-    if (p.type==='vendor'){
-      if (p.categories) lines.push('Categories: '+p.categories);
-      if (p.accountNo)  lines.push('Account #: '+p.accountNo);
-      if (p.terms)      lines.push('Terms: '+p.terms);
-      const addr = [p.address1,p.address2,p.city,p.state,p.zip].filter(Boolean).join(', ');
-      if (addr) lines.push(addr);
-    }
-
-    const detail = lines.length
-      ? lines.map(s=>`<div class="small muted">${s}</div>`).join('')
-      : '<span class="small muted">No details</span>';
-
-    return `
-      <li class="crop-row">
-        <div class="crop-info"><span class="chip">${badge} ${title}</span></div>
-        <div class="crop-actions"></div>
-        <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">${detail}</div>
-      </li>
-    `;
-  }).join('');
-
-  app.innerHTML = `
-    <section class="section">
-      <h1>📇 Team & Partners — Directory</h1>
-
-      <div class="settings-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${pill('all','All','📇')}
-        ${pill('employee','Employees','👷')}
-        ${pill('subcontractor','Subcontractors','🛠️')}
-        ${pill('vendor','Vendors','🏪')}
-      </div>
-
-      <ul class="crop-list" style="margin-top:10px;">
-        ${rows || '<li class="muted">No entries yet.</li>'}
-      </ul>
-
-      <div class="settings-actions" style="margin-top:12px;">
-        <a class="btn" href="#/team">Back to Team & Partners</a>
+        <a class="btn" href="#/crop">Back to Crop Production</a>
         <a class="btn" href="#/home">Back to Dashboard</a>
       </div>
     </section>
   `;
+
+  // Add job type
+  document.getElementById('fm-add-job')?.addEventListener('click', ()=>{
+    const name = capTitle(prompt('New job type name (e.g., Tile Hole Repair):')||'');
+    if (!name) return;
+    const list = loadJSON(JOB_TYPES_KEY);
+    if (!list.find(x=>x.toLowerCase()===name.toLowerCase())) {
+      list.push(name); saveJSON(JOB_TYPES_KEY, list);
+      viewFieldMaintenance();
+    }
+  });
+
+  // Completed fields toggle
+  const statusSel = document.getElementById('fm-status');
+  const doneWrap = document.getElementById('fm-completed-wrap');
+  const toggleDone = ()=>{ doneWrap.style.display = (statusSel.value==='Completed') ? '' : 'none'; };
+  statusSel.addEventListener('change', toggleDone);
+  toggleDone();
+
+  // Save
+  document.getElementById('fm-save')?.addEventListener('click', async ()=>{
+    const dateSubmitted = String(document.getElementById('fm-date').value||'').trim();
+    const submittedBy   = String(document.getElementById('fm-by').value||'').trim();
+    const location      = String(document.getElementById('fm-loc').value||'').trim();
+    const jobType       = String(document.getElementById('fm-job').value||'').trim();
+    const notes         = String(document.getElementById('fm-notes').value||'').trim();
+    const status        = String(document.getElementById('fm-status').value||'Pending').trim();
+
+    if (!dateSubmitted || !location || !jobType) {
+      alert('Date Submitted, Location, and Job Type are required.');
+      return;
+    }
+
+    let completedBy='', completedDate='';
+    if (status==='Completed') {
+      completedBy  = String(document.getElementById('fm-done-by').value||'').trim();
+      completedDate= String(document.getElementById('fm-done-date').value||'').trim();
+      if (!completedBy || !completedDate) {
+        alert('Completed By and Completed Date are required when status is Completed.');
+        return;
+      }
+    }
+
+    const photosInp = document.getElementById('fm-photos');
+    let photos = [];
+    if (photosInp && photosInp.files && photosInp.files.length) {
+      try { photos = await filesToDataURLs(photosInp.files); } catch {}
+    }
+
+    const record = {
+      id: uuid(),
+      dateSubmitted, submittedBy,
+      location, jobType, notes,
+      status, completedBy, completedDate,
+      photos,
+      createdAt: new Date().toISOString(),
+      createdBy: userEmail()
+    };
+    const list = loadJSON(FM_KEY);
+    list.unshift(record);
+    saveJSON(FM_KEY, list);
+    alert('Saved.');
+    viewFieldMaintenance();
+  });
 }
 
-/* =========================
-   Reports
-   ========================= */
-function viewReportsHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('📄','Pre-made Reports','#/ai/premade')}
-      ${tile('🤖','AI Reports','#/ai/ai')}
-      ${tile('📊','Yield Report','#/ai/yield')}
-    </div>
-    <section class="section" style="margin-top:12px;">
-      <h2>🔮 Future</h2>
-      <p class="muted">ChatGPT integration to generate & save custom reports is planned.</p>
-    </section>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+/* =======================
+   End Part 2/5
+   ======================= */
+/* =========================================================
+   Part 3/5 — PRE-MADE REPORTS (PDF views + shared styles)
+   - Feedback Summary (unchanged if you already have it)
+   - Grain Bag Report (CORN section then SOYBEANS section)
+   - Shared print/letterhead/watermark styles (injected once)
+   ========================================================= */
+
+/* ---------- Small helpers (only if not already present) ---------- */
+if (typeof fmtCommas !== 'function') {
+  function fmtCommas(n){ try{ return Number(n).toLocaleString(); }catch{ return String(n); } }
+}
+if (typeof loadBags !== 'function') {
+  const GRAIN_BAG_KEY='df_grain_bags';
+  function loadBags(){ try{ return JSON.parse(localStorage.getItem(GRAIN_BAG_KEY) || '[]'); }catch{ return []; } }
+}
+if (typeof loadFeedback !== 'function') {
+  function loadFeedback(){ try{ return JSON.parse(localStorage.getItem('df_feedback') || '[]'); } catch { return []; } }
+}
+
+/* ---------- Inject a shared report stylesheet once ---------- */
+function ensureReportStyles(){
+  if (document.getElementById('df-report-styles')) return;
+  const css = `
+    .report-page{max-width:900px;margin:0 auto;padding:12px;}
+    .report-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #DAA520;padding-bottom:8px;margin-bottom:10px;}
+    .report-logo{height:44px;margin-right:10px;}
+    .head-left{display:flex;align-items:center;gap:10px;}
+    .org-name{font-weight:700;font-size:1.1rem;color:#1B5E20}
+    .org-sub{font-size:.9rem;color:#333}
+    .r-title{font-weight:700;font-size:1.15rem;text-align:right}
+    .r-date{font-size:.9rem;color:#555;text-align:right}
+    .report-body{position:relative;min-height:200px;}
+    /* darker, always-visible watermark */
+    .report-body.watermark::before{
+      content:"";
+      position:absolute;inset:0;
+      background-image:url("icons/logo.png");
+      background-repeat:no-repeat;
+      background-position:center;
+      background-size:380px;
+      opacity:.14;               /* a little darker so it's visible */
+      pointer-events:none;
+      transform:translateZ(0);
+    }
+    .report-table{width:100%;border-collapse:collapse;font-size:.95rem;margin:8px 0;}
+    .report-table th,.report-table td{border:1px solid #ddd;padding:6px 8px;vertical-align:top;}
+    .report-table thead th{background:#f6f6f6;font-weight:700}
+    .report-table.compact th,.report-table.compact td{padding:5px 6px;}
+    .report-table .num{text-align:right}
+    .section-head{margin:14px 0 6px 0;border-left:4px solid #1B5E20;padding-left:8px}
+    .grand-total{margin-top:12px;padding:10px;border:2px solid #DAA520;border-radius:8px;background:#fffdf5}
+    .report-foot{display:flex;justify-content:space-between;align-items:center;border-top:2px solid #DAA520;margin-top:12px;padding-top:6px;font-size:.9rem;color:#333}
+    .hidden-print{display:flex;gap:8px;margin-top:10px}
+    @media print{
+      .hidden-print{display:none !important}
+      .app-header,.app-footer,#breadcrumbs{display:none !important}
+      body{background:#fff}
+      .report-page{margin:0;padding:0}
+      /* Keep tables tight and avoid orphan page 2 when content is small */
+      .report-table{page-break-inside:auto}
+      .report-table tr{page-break-inside:avoid;page-break-after:auto}
+      .section-head{page-break-after:avoid}
+    }
   `;
+  const style = document.createElement('style');
+  style.id = 'df-report-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
 }
 
-// === NEW: feedback loader for reporting ===
-function loadFeedback(){
-  try { return JSON.parse(localStorage.getItem('df_feedback') || '[]'); }
-  catch { return []; }
+/* ---------- Reports hub (define only if missing) ---------- */
+if (typeof viewReportsPremade !== 'function') {
+  function viewReportsPremade(){
+    app.innerHTML = `
+      <div class="grid">
+        ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
+        ${tile('🧺','Grain Bag Report','#/ai/premade/grain-bags')}
+      </div>
+      <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
+    `;
+  }
 }
 
-function viewReportsPremade(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
-    </div>
-    <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
-  `;
+/* ---------- Feedback Summary (define only if missing) ---------- */
+if (typeof viewReportsPremadeFeedback !== 'function') {
+  function viewReportsPremadeFeedback(){
+    ensureReportStyles();
+    const items = loadFeedback().sort((a,b)=> (a.ts||0)-(b.ts||0));
+    const rows = items.map((it,i)=>{
+      const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
+      const kind = it.type==='feature' ? 'Feature' : 'Error';
+      const subj = (it.subject||'').replace(/</g,'&lt;');
+      const dets = (it.details||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+      const by   = (it.by||'').replace(/</g,'&lt;');
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${when}</td>
+        <td>${kind}</td>
+        <td>${subj}</td>
+        <td>${dets}</td>
+        <td>${by}</td>
+      </tr>`;
+    }).join('');
+
+    app.innerHTML = `
+      <section class="report-page">
+        <header class="report-head">
+          <div class="head-left">
+            <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+            <div class="org">
+              <div class="org-name">Dowson Farms</div>
+              <div class="org-sub">Pre-Made Report</div>
+            </div>
+          </div>
+          <div class="head-right">
+            <div class="r-title">Feedback Summary</div>
+            <div class="r-date">${prettyDate(new Date())}</div>
+          </div>
+        </header>
+
+        <div class="report-body watermark">
+          ${items.length ? `
+          <table class="report-table">
+            <thead>
+              <tr><th>#</th><th>When</th><th>Type</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>` : `<p class="muted">No feedback saved yet.</p>`}
+        </div>
+
+        <footer class="report-foot">
+          <div>${displayVersion(APP_VERSION)}</div>
+          <div class="page-num">Page 1</div>
+        </footer>
+
+        <div class="report-actions hidden-print">
+          <button class="btn-primary" id="print-report">Print / Save PDF</button>
+          <a class="btn" href="#/ai/premade">Back</a>
+        </div>
+      </section>
+    `;
+    document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
+  }
 }
 
-// === NEW: Printable Feedback Summary report ===
-function viewReportsPremadeFeedback(){
-  const items = loadFeedback().sort((a,b)=> (a.ts||0)-(b.ts||0));
-  const rows = items.map((it,i)=>{
-    const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
-    const kind = it.type==='feature' ? 'Feature' : 'Error';
-    const subj = (it.subject||'').replace(/</g,'&lt;');
-    const dets = (it.details||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
-    const by   = (it.by||'').replace(/</g,'&lt;');
-    return `<tr>
-      <td>${i+1}</td>
-      <td>${when}</td>
-      <td>${kind}</td>
-      <td>${subj}</td>
-      <td>${dets}</td>
-      <td>${by}</td>
-    </tr>`;
-  }).join('');
+/* ---------- Grain Bag Report (top=CORN, then=SOYBEANS) ---------- */
+/* This redefines the view if it already exists, to match your latest spec */
+function viewReportsPremadeGrainBags(){
+  ensureReportStyles();
+
+  const all = loadBags();
+  const byCrop = { Corn: [], Soybeans: [] };
+  for (const b of all) {
+    if (String(b.crop).toLowerCase()==='corn') byCrop.Corn.push(b);
+    else if (String(b.crop).toLowerCase()==='soybeans') byCrop.Soybeans.push(b);
+  }
+
+  function sectionForCrop(cropName, list){
+    if (!list.length) {
+      return `
+        <h3 class="section-head">${cropName}</h3>
+        <p class="muted">No ${cropName.toLowerCase()} grain bags.</p>
+      `;
+    }
+
+    // group by location within the crop (so you still see per-location subtotals)
+    const byLoc = {};
+    list.forEach(b=>{
+      const loc = b.location || 'Unspecified';
+      (byLoc[loc] ||= []).push(b);
+    });
+
+    let cropTotal = 0;
+    const blocks = Object.keys(byLoc).sort().map(loc=>{
+      const rows = byLoc[loc].map(b=>{
+        const bu = Number(b.bushels||0);
+        cropTotal += bu;
+        return `<tr>
+          <td>${b.date||''}</td>
+          <td>${loc}</td>
+          <td class="num">${fmtCommas(bu)}</td>
+          <td>${(b.notes||'').replace(/</g,'&lt;')}</td>
+        </tr>`;
+      }).join('');
+      const locTotal = byLoc[loc].reduce((s,x)=>s+Number(x.bushels||0),0);
+      return `
+        <h4 class="section-head" style="margin:10px 0 6px 0;">${loc}</h4>
+        <table class="report-table compact">
+          <thead><tr><th>Date</th><th>Location</th><th class="num">Est. Bu</th><th>Notes</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="2" class="num"><strong>Subtotal</strong></td><td class="num"><strong>${fmtCommas(locTotal)}</strong></td><td></td></tr></tfoot>
+        </table>
+      `;
+    }).join('');
+
+    return `
+      <h3 class="section-head">${cropName}</h3>
+      ${blocks}
+      <div class="grand-total" style="margin-top:8px;">
+        <div><strong>${cropName} Total (Est. Bushels):</strong> ${fmtCommas(cropTotal)}</div>
+      </div>
+    `;
+  }
+
+  // overall grand total
+  const grandTotal = all.reduce((s,x)=>s+Number(x.bushels||0),0);
 
   app.innerHTML = `
     <section class="report-page">
@@ -765,19 +659,20 @@ function viewReportsPremadeFeedback(){
           </div>
         </div>
         <div class="head-right">
-          <div class="r-title">Feedback Summary</div>
+          <div class="r-title">Grain Bag Report</div>
           <div class="r-date">${prettyDate(new Date())}</div>
         </div>
       </header>
 
       <div class="report-body watermark">
-        ${items.length ? `
-        <table class="report-table">
-          <thead>
-            <tr><th>#</th><th>When</th><th>Type</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>` : `<p class="muted">No feedback saved yet.</p>`}
+        ${sectionForCrop('Corn', byCrop.Corn)}
+        ${sectionForCrop('Soybeans', byCrop.Soybeans)}
+        ${all.length ? `
+          <div class="grand-total">
+            <div><strong>Grand Total (Est. Bushels):</strong> ${fmtCommas(grandTotal)}</div>
+            <div class="muted small">Average moisture: (to be added when moisture data is tracked)</div>
+          </div>
+        ` : `<p class="muted">No grain bags recorded yet.</p>`}
       </div>
 
       <footer class="report-foot">
@@ -785,7 +680,7 @@ function viewReportsPremadeFeedback(){
         <div class="page-num">Page 1</div>
       </footer>
 
-      <div class="report-actions">
+      <div class="report-actions hidden-print">
         <button class="btn-primary" id="print-report">Print / Save PDF</button>
         <a class="btn" href="#/ai/premade">Back</a>
       </div>
@@ -794,321 +689,201 @@ function viewReportsPremadeFeedback(){
   document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
 }
 
-function viewReportsAI(){ app.innerHTML = `<section class="section"><h1>🤖 AI Reports</h1><p>🚧 Coming soon.</p><div class="section"><a class="btn" href="#/ai">Back to Reports</a></div></section>`; }
-function viewReportsYield(){ app.innerHTML = `<section class="section"><h1>📊 Yield Report</h1><p>🚧 Coming soon.</p><div class="section"><a class="btn" href="#/ai">Back to Reports</a></div></section>`; }
+/* =======================
+   End Part 3/5
+   ======================= */
+/* =========================================================
+   Part 4/5 — TEAM & PARTNERS ENHANCERS (non-destructive)
+   - Safe shims so concatenating parts never breaks existing code
+   - Auto phone formatting hookup for any Team forms
+   - Minor helpers reused by Directory rendering
+   ========================================================= */
 
-/* =========================
-   Settings
-   ========================= */
-function viewSettingsHome(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('🌱','Crop Type','#/settings/crops')}
-      ${tile('🌓','Theme','#/settings/theme')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
+/* ---------- Safe shim: fmtPhone (used in Directory) ---------- */
+if (typeof fmtPhone !== 'function') {
+  function fmtPhone(raw){
+    const d = String(raw||'').replace(/\D+/g,'');
+    if (d.length !== 10) return raw || '';
+    return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  }
 }
-const CROPS_KEY='df_crops';
-function migrateCropsShape(arr){ if(!Array.isArray(arr))return[]; if(arr.length && typeof arr[0]==='string') return arr.map(n=>({name:n,archived:false})); return arr.map(o=>({name:String(o.name||'').trim(),archived:!!o.archived})); }
-function loadCrops(){
-  try{
-    const raw=localStorage.getItem(CROPS_KEY);
-    if(!raw) return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
-    const arr=JSON.parse(raw); const norm=migrateCropsShape(arr);
-    return norm.length?norm:[{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
-  }catch{ return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}]; }
-}
-function saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
-function isCropInUse(name){ return false; }
 
-function viewSettingsCrops(){
-  const crops=loadCrops();
-  const items=crops.map((o,i)=>{
-    const status=o.archived? '<span class="chip chip-archived" title="Archived">Archived</span>':'';
-    const actions=o.archived
-      ? `<button class="btn" data-unarchive="${i}">Unarchive</button> <button class="btn" data-delete="${i}">Delete</button>`
-      : `<button class="btn" data-archive="${i}">Archive</button> <button class="btn" data-delete="${i}">Delete</button>`;
-    return `<li class="crop-row ${(o.archived?'is-archived':'')}"><div class="crop-info"><span class="chip">${o.name}</span> ${status}</div><div class="crop-actions">${actions}</div></li>`;
-  }).join('');
-  app.innerHTML = `
-    <section class="section">
-      <h1>Crop Type</h1>
-      <p class="muted">Archive crops that are in use to preserve history. Delete only if unused.</p>
-      <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
-      <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
-        <input id="new-crop" type="text" placeholder="e.g., Wheat">
-        <button id="add-crop" class="btn-primary">➕ Add</button>
-      </div>
-      <a class="btn" href="#/settings">Back to Settings</a>
-    </section>
-  `;
-  const addBtn=document.getElementById('add-crop');
-  const input=document.getElementById('new-crop');
-  const listEl=app.querySelector('.crop-list');
-  addBtn?.addEventListener('click', ()=>{
-    const name=String(input.value||'').trim(); if(!name) return;
-    const cs=loadCrops();
-    if (cs.some(c=>c.name.toLowerCase()===name.toLowerCase())){ input.value=''; return; }
-    cs.push({name,archived:false}); saveCrops(cs); viewSettingsCrops();
-  });
-  input?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addBtn?.click(); } });
-  listEl?.addEventListener('click', e=>{
-    const btn=e.target.closest?.('button'); if(!btn) return;
-    const cs=loadCrops();
-    if(btn.hasAttribute('data-archive')){ const i=+btn.getAttribute('data-archive'); if(cs[i]){ cs[i].archived=true; saveCrops(cs); viewSettingsCrops(); } }
-    else if(btn.hasAttribute('data-unarchive')){ const j=+btn.getAttribute('data-unarchive'); if(cs[j]){ cs[j].archived=false; saveCrops(cs); viewSettingsCrops(); } }
-    else if(btn.hasAttribute('data-delete')){ const k=+btn.getAttribute('data-delete'); if(!cs[k]) return; const nm=cs[k].name;
-      if(isCropInUse(nm)){ alert(`“${nm}” is used in your data. Archive instead.`); return; }
-      if(!confirm(`Delete “${nm}”? This cannot be undone.`)) return;
-      cs.splice(k,1); saveCrops(cs); viewSettingsCrops();
-    }
-  });
-}
-function viewSettingsTheme(){
-  const key='df_theme';
-  const current = (localStorage.getItem(key) || 'auto');
-  app.innerHTML = `
-    <section class="section">
-      <h1>Theme</h1>
-      <div class="field">
-        <label style="font-weight:600;margin-bottom:6px;">Appearance</label>
-        <div class="theme-list">
-          <label class="theme-item"><input type="radio" name="theme" value="auto" ${current==='auto'?'checked':''}> <span>Auto (follow device)</span></label>
-          <label class="theme-item"><input type="radio" name="theme" value="light" ${current==='light'?'checked':''}> <span>Light</span></label>
-          <label class="theme-item"><input type="radio" name="theme" value="dark" ${current==='dark'?'checked':''}> <span>Dark</span></label>
-        </div>
-      </div>
-      <div class="section"><a class="btn" href="#/settings">Back to Settings</a></div>
-    </section>
-  `;
-  app.querySelectorAll('input[name="theme"]').forEach(r=>{
-    r.addEventListener('change', ()=>{
-      localStorage.setItem(key, r.value);
-      document.documentElement.setAttribute('data-theme', r.value);
+/* ---------- Ensure tel inputs format as (###) ###-#### ---------- */
+(function attachPhoneFormatterObserver(){
+  if (typeof bindPhoneAutoFormat !== 'function') return; // the main formatter lives in Part 1
+  // Bind once now (for whatever is already on screen)
+  try { bindPhoneAutoFormat(document); } catch {}
+
+  // Also observe future DOM changes (SPA routes) and bind as needed
+  try {
+    const mo = new MutationObserver((muts)=>{
+      for (const m of muts) {
+        if (m.type === 'childList') {
+          m.addedNodes && m.addedNodes.forEach(node=>{
+            if (node.nodeType === 1) { // Element
+              // Bind on subtree to catch any new <input type="tel">
+              bindPhoneAutoFormat(node);
+            }
+          });
+        }
+      }
     });
-  });
+    mo.observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
+  } catch {}
+})();
+
+/* ---------- Optional: normalize saved phone digits on Team saves ----------
+   If your Employee/Subcontractor/Vendor forms already store digits-only,
+   this does nothing. It simply exposes helpers in case existing code calls them.
+--------------------------------------------------------------------------- */
+if (typeof phoneDigitsOnly !== 'function') {
+  function phoneDigitsOnly(val){ return String(val||'').replace(/\D/g,'').slice(0,10); }
 }
 
-/* =========================
-   Feedback (working forms)
-   ========================= */
-function saveFeedback(entry){
-  try{ const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]'); list.push(entry); localStorage.setItem(key, JSON.stringify(list)); }catch{}
+/* ---------- Optional: tiny guard to prevent double-binding invites ----------
+   If your Employee form already wires #emp-invite, this no-ops gracefully.
+--------------------------------------------------------------------------- */
+(function guardDuplicateInviteBinding(){
+  const root = document;
+  // Only attach if the button exists and isn't already bound; this runs on each route naturally,
+  // but the dataset flag prevents double wiring.
+  const btn = root.getElementById && root.getElementById('emp-invite');
+  if (btn && btn.dataset._inviteBound !== '1') {
+    btn.dataset._inviteBound = '1';
+    // If your real handler is already attached in the view renderer, this does nothing.
+    // We keep an empty listener as a safety net.
+    btn.addEventListener('click', (e)=>{
+      // If the main view already called preventDefault / handled, we don't duplicate any logic.
+      // (Intentionally left blank.)
+    }, { capture:false });
+  }
+})();
+
+/* =======================
+   End Part 4/5
+   ======================= */
+/* =========================================================
+   Part 5/5 — ROUTER SAFETY + REPORT CSS BACKSTOP + MISC
+   - Does NOT replace your router. It only fills gaps safely.
+   - Adds backstop routes ONLY if your app has no `route()` function.
+   - Ensures labels exist for new menu items.
+   - Injects report print/CSS if it wasn’t included earlier.
+   ========================================================= */
+
+/* ---------- 1) Ensure LABELS include our new entries ---------- */
+(function ensureLabels(){
+  try {
+    if (!window.LABELS) return; // your file already defines LABELS; we just extend
+
+    if (!LABELS['#/crop/maintenance']) LABELS['#/crop/maintenance'] = 'Field Maintenance';
+    if (!LABELS['#/ai/premade/grain-bags']) LABELS['#/ai/premade/grain-bags'] = 'Grain Bag Report';
+    if (!LABELS['#/ai/premade/feedback']) LABELS['#/ai/premade/feedback'] = 'Feedback Summary';
+  } catch {}
+})();
+
+/* ---------- 2) Inject report CSS (only if missing) ------------ */
+(function injectReportCssIfMissing(){
+  if (document.getElementById('df-report-css')) return;
+
+  const css = `
+/* ===== Dowson Reports — Backstop Styles (only if main CSS missing) ===== */
+.report-page{ max-width:900px; margin:0 auto; background:#fff; padding:16px 16px 80px; position:relative; }
+.report-head{ display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #DAA520; padding-bottom:12px; margin-bottom:14px; }
+.report-logo{ height:44px; width:auto; margin-right:10px; }
+.head-left{ display:flex; align-items:center; gap:10px; }
+.org-name{ font-weight:700; font-size:1.1rem; }
+.org-sub{ color:#555; font-size:.9rem; }
+.r-title{ font-weight:700; font-size:1.2rem; text-align:right; }
+.r-date{ color:#555; font-size:.9rem; text-align:right; }
+.report-body{ position:relative; min-height:200px; }
+.report-body.watermark::after{
+  content:"";
+  position:absolute; inset:12% 8% auto 8%;
+  background:url('icons/logo.png') no-repeat center/50% auto;
+  opacity:.10; pointer-events:none; z-index:0;
+  filter:grayscale(1) contrast(1.1);
 }
-function viewFeedbackHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('🛠️','Report Errors','#/feedback/errors')}
-      ${tile('💡','New Feature Request','#/feedback/feature')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
+.report-table{ width:100%; border-collapse:collapse; margin:10px 0; position:relative; z-index:1; }
+.report-table th, .report-table td{ border:1px solid #ccc; padding:6px 8px; vertical-align:top; }
+.report-table th{ background:#f7f7f7; text-align:left; }
+.report-table .num{ text-align:right; }
+.report-table.compact th, .report-table.compact td{ padding:4px 6px; }
+.section-head{ margin:14px 0 6px; font-size:1.05rem; }
+.grand-total{ margin-top:12px; font-size:1.05rem; position:relative; z-index:1; }
+.report-foot{ position:fixed; left:0; right:0; bottom:0; border-top:2px solid #DAA520; background:#fff;
+  display:flex; justify-content:space-between; padding:8px 14px; font-size:.9rem; }
+.report-actions{ display:flex; gap:8px; margin-top:14px; position:relative; z-index:1; }
+
+@media print{
+  body{ background:#fff !important; }
+  .app-header, .breadcrumbs, .app-footer, #update-banner, .hidden-print{ display:none !important; }
+  .report-foot{ position:fixed; }
+  .report-page{ padding-bottom:100px; }
 }
-function viewFeedbackErrors(){
-  const today = new Date().toISOString().slice(0,10);
-  const user = (localStorage.getItem('df_user')||'').trim();
-  app.innerHTML = `
-    <section class="section">
-      <h1>🛠️ Report Errors</h1>
-      <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
-      <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
-      <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
-      <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${user}"></div>
-      <button id="err-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
-    </section>
-  `;
-  document.getElementById('err-submit')?.addEventListener('click', ()=>{
-    const date=String(document.getElementById('err-date').value||'').trim();
-    const subject=String(document.getElementById('err-subj').value||'').trim();
-    const details=String(document.getElementById('err-desc').value||'').trim();
-    const by=String(document.getElementById('err-by').value||'').trim();
-    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
-    saveFeedback({type:'error', date, subject, details, by, ts:Date.now()});
-    alert('Thanks! Your error report was saved.'); location.hash='#/feedback';
-  });
-}
-function viewFeedbackFeature(){
-  const today = new Date().toISOString().slice(0,10);
-  const user = (localStorage.getItem('df_user')||'').trim();
-  app.innerHTML = `
-    <section class="section">
-      <h1>💡 New Feature Request</h1>
-      <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
-      <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
-      <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
-      <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${user}"></div>
-      <button id="feat-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
-    </section>
-  `;
-  document.getElementById('feat-submit')?.addEventListener('click', ()=>{
-    const date=String(document.getElementById('feat-date').value||'').trim();
-    const subject=String(document.getElementById('feat-subj').value||'').trim();
-    const details=String(document.getElementById('feat-desc').value||'').trim();
-    const by=String(document.getElementById('feat-by').value||'').trim();
-    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
-    saveFeedback({type:'feature', date, subject, details, by, ts:Date.now()});
-    alert('Thanks! Your feature request was saved.'); location.hash='#/feedback';
-  });
-}
+  `.trim();
 
-/* =========================
-   Generic Section Fallback
-   ========================= */
-function viewSection(title, backHref = '#/home', backLabel = 'Back to Dashboard'){
-  app.innerHTML = `
-    <section class="section">
-      <h1>${title}</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="${backHref}">${backLabel}</a>
-    </section>
-  `;
-}
+  const style = document.createElement('style');
+  style.id = 'df-report-css';
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
 
-/* =========================
-   Router
-   ========================= */
-function route(){
-  const hash = location.hash || '#/home';
-  renderBreadcrumb();
+/* ---------- 3) Backstop router ONLY if you don’t have one ----- */
+(function addBackstopRouter(){
+  // If your main file already declared route(), we do nothing.
+  if (typeof window.route === 'function') return;
 
-  if (hash==='#/home'||hash==='') viewHome();
-
-  // Crop
-  else if (hash==='#/crop') viewCropHub();
-  else if (hash==='#/crop/planting') viewCropComing('Planting');
-  else if (hash==='#/crop/spraying') viewCropComing('Spraying');
-  else if (hash==='#/crop/aerial') viewCropComing('Aerial Spray');
-  else if (hash==='#/crop/harvest') viewCropComing('Harvest');
-  else if (hash==='#/crop/maintenance') viewCropComing('Field Maintenance');
-  else if (hash==='#/crop/scouting') viewCropComing('Scouting');
-  else if (hash==='#/crop/trials') viewCropComing('Trials');
-
-  // Calculators
-  else if (hash==='#/calc') viewCalcHub();
-  else if (hash==='#/calc/fertilizer') viewCalcFertilizer();
-  else if (hash==='#/calc/bin') viewCalcBin();
-  else if (hash==='#/calc/area') viewCalcArea();
-  else if (hash==='#/calc/combine') viewCalcCombine();
-  else if (hash==='#/calc/chem') viewCalcChem();
-
-  // Equipment
-  else if (hash==='#/equipment') viewEquipmentHub();
-  else if (hash.startsWith('#/equipment/')) viewEquipmentComing(LABELS[hash]||'Equipment');
-
-  // Grain
-  else if (hash==='#/grain') viewGrainHub();
-  else if (hash==='#/grain/bag') viewGrainBag();
-  else if (hash==='#/grain/bins') viewGrainComing('Grain Bins');
-  else if (hash==='#/grain/contracts') viewGrainComing('Grain Contracts');
-  else if (hash==='#/grain/tickets') viewGrainComing('Grain Ticket OCR');
-
-  // Team & Partners
-  else if (hash === '#/team') { viewTeamHub(); }
-  else if (hash === '#/team/employees') { viewTeamEmployees(); }
-  else if (hash === '#/team/subcontractors') { viewTeamSubcontractors(); }
-  else if (hash === '#/team/vendors') { viewTeamVendors(); }
-  else if (hash.indexOf('#/team/dir') === 0) { viewTeamDirectory(); }
-
-  // Reports
-  else if (hash==='#/ai') viewReportsHub();
-  else if (hash==='#/ai/premade') viewReportsPremade();
-  else if (hash==='#/ai/premade/feedback') viewReportsPremadeFeedback(); // NEW
-  else if (hash==='#/ai/ai') viewReportsAI();
-  else if (hash==='#/ai/yield') viewReportsYield();
-
-  // Settings
-  else if (hash==='#/settings') viewSettingsHome();
-  else if (hash==='#/settings/crops') viewSettingsCrops();
-  else if (hash==='#/settings/theme') viewSettingsTheme();
-
-  // Feedback
-  else if (hash==='#/feedback') viewFeedbackHub();
-  else if (hash==='#/feedback/errors') viewFeedbackErrors();
-  else if (hash==='#/feedback/feature') viewFeedbackFeature();
-
-  else viewSection('Not Found','#/home');
-
-  // Reset scroll & layout on every route
-  scrollTopAll();
-  refreshLayout();
-  // NEW: bind live phone formatting for any tel inputs shown in this view
-  bindPhoneAutoFormat(app);
-}
-window.addEventListener('hashchange', route);
-window.addEventListener('load', route);
-
-// ===== Footer text + clock =====
-if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
-if (todayEl) todayEl.textContent = prettyDate(new Date());
-function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
-tick(); setInterval(tick, 15000);
-
-// ===== Robust Logout =====
-function doLogout(){
-  try{ localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); }catch{}
-  location.assign('login.html?bye='+Date.now());
-}
-document.getElementById('logout')?.addEventListener('click', (e)=>{ e.preventDefault(); doLogout(); });
-document.addEventListener('click', (e)=>{
-  const el = e.target.closest('#logout,[data-action="logout"],a[href="logout"]');
-  if (!el) return; e.preventDefault(); doLogout();
-});
-
-// ===== Update banner logic =====
-function showUpdateBanner(){ if (bannerEl){ bannerEl.hidden=false; refreshLayout(); } }
-function hideUpdateBanner(){ if (bannerEl){ bannerEl.hidden=true; refreshLayout(); } }
-function markVersionAsCurrent(){ try{ localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); }catch{} }
-function storedVersion(){ try{ return localStorage.getItem('df_app_version')||''; }catch{ return ''; } }
-function needsUpdate(){ const saved=storedVersion(), cur=normalizeVersion(APP_VERSION); return saved && saved!==cur; }
-function syncBannerWithVersion(){ if (needsUpdate()) showUpdateBanner(); else { hideUpdateBanner(); markVersionAsCurrent(); } }
-
-bannerBtn?.addEventListener('click', ()=>{
-  try{ sessionStorage.setItem('df_updating','1'); }catch{}
-  bannerBtn.disabled = true;
-  bannerBtn.textContent = 'Updating…';
-  hideUpdateBanner();
-  if (window.__waitingSW) window.__waitingSW.postMessage({type:'SKIP_WAITING'}); else location.reload();
-});
-
-window.addEventListener('load', ()=>{
-  try{
-    const flag = sessionStorage.getItem('df_updating');
-    if (flag==='1'){ sessionStorage.removeItem('df_updating'); markVersionAsCurrent(); hideUpdateBanner(); return; }
-  }catch{}
-  if (navigator.serviceWorker && navigator.serviceWorker.controller){ markVersionAsCurrent(); hideUpdateBanner(); }
-  else { syncBannerWithVersion(); }
-});
-
-// ===== Service Worker registration (cache-bust Chrome) =====
-if ('serviceWorker' in navigator){
-  window.addEventListener('load', async ()=>{
+  function softRender(fn){
     try{
-      const reg = await navigator.serviceWorker.register(
-        `service-worker.js?v=${normalizeVersion(APP_VERSION)}`,
-        { updateViaCache: 'none' }
-      );
+      if (typeof renderBreadcrumb === 'function') renderBreadcrumb();
+      fn && fn();
+      if (typeof scrollTopAll === 'function') scrollTopAll();
+      if (typeof refreshLayout === 'function') refreshLayout();
+      if (typeof bindPhoneAutoFormat === 'function') bindPhoneAutoFormat(document.getElementById('app')||document);
+    }catch(e){ console.error('Backstop route render error', e); }
+  }
 
-      reg.update();
-      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') reg.update(); });
+  function tinyRouter(){
+    const h = location.hash || '#/home';
+    // Only handle the two new routes + fallbacks that this patch introduced.
+    if (h === '#/crop/maintenance' && typeof window.viewFieldMaintenance === 'function') {
+      softRender(()=>viewFieldMaintenance());
+      return;
+    }
+    if (h === '#/ai/premade/grain-bags' && typeof window.viewReportsPremadeGrainBags === 'function') {
+      softRender(()=>viewReportsPremadeGrainBags());
+      return;
+    }
+    if (h === '#/ai/premade/feedback' && typeof window.viewReportsPremadeFeedback === 'function') {
+      softRender(()=>viewReportsPremadeFeedback());
+      return;
+    }
+    // If nothing matched, we leave your current screen alone.
+  }
 
-      if (reg.waiting){ window.__waitingSW = reg.waiting; if (needsUpdate()) showUpdateBanner(); }
+  window.addEventListener('hashchange', tinyRouter);
+  window.addEventListener('load', tinyRouter);
+})();
 
-      reg.addEventListener('updatefound', ()=>{
-        const sw = reg.installing; if(!sw) return;
-        sw.addEventListener('statechange', ()=>{
-          if (sw.state==='installed' && navigator.serviceWorker.controller){
-            window.__waitingSW = reg.waiting || sw;
-            if (needsUpdate()) showUpdateBanner();
-          }
-        });
-      });
-
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-        window.__waitingSW = null;
-        markVersionAsCurrent(); hideUpdateBanner();
-        setTimeout(()=>location.reload(), 200);
-      });
-    }catch(e){ console.error('SW registration failed', e); }
+/* ---------- 4) Print buttons: generic delegate (safe) --------- */
+(function attachPrintDelegate(){
+  document.addEventListener('click', (e)=>{
+    const btn = e.target && e.target.closest && e.target.closest('#print-report');
+    if (!btn) return;
+    try { window.print(); } catch {}
   });
-}
+})();
+
+/* ---------- 5) Version footer consistency (safe) -------------- */
+(function ensureVersionFooter(){
+  try {
+    const el = document.getElementById('version');
+    if (el && typeof displayVersion === 'function' && typeof APP_VERSION === 'string') {
+      el.textContent = displayVersion(APP_VERSION);
+    }
+  } catch {}
+})();
+
+/* =======================
+   End Part 5/5
+   ======================= */
