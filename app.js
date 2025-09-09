@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.14.6';
+const APP_VERSION = 'v10.14.7';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -2546,3 +2546,600 @@ window.viewTeamDirectory = function(){
   };
 
 })(); // end PATCH v10.14.6
+<!-- === DF PATCH v10.14.7 — Crop Year dropdown, Feedback dropdowns, Global number commas, Settings: Farms & Fields === -->
+<script>
+(function DF_PATCH_10147(){
+  'use strict';
+
+  /* ---------------------------
+     Small helpers (safe names)
+  ----------------------------*/
+  const $ = (sel,root=document)=>root.querySelector(sel);
+  const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+  const now = new Date();
+  const CURR_YEAR = now.getFullYear();
+  const MIN_YEAR = 2024;
+  const MAX_YEAR = CURR_YEAR + 1;
+
+  function userEmailSafe(){
+    try { return (localStorage.getItem('df_user')||'').trim(); } catch { return ''; }
+  }
+  function loadJSONSafe(k, fb){ try { const raw=localStorage.getItem(k); return raw?JSON.parse(raw):fb; } catch { return fb; } }
+  function saveJSONSafe(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  function uniqCaseInsensitive(arr){
+    const seen = new Set();
+    const out = [];
+    for (const s of arr){
+      const key = String(s).trim().toLowerCase();
+      if (!key) continue;
+      if (!seen.has(key)){ seen.add(key); out.push(String(s).trim()); }
+    }
+    return out;
+  }
+  function clampYear(y){
+    y = Number(y);
+    if (!Number.isFinite(y)) return null;
+    if (y < MIN_YEAR || y > MAX_YEAR) return null;
+    return y|0;
+  }
+
+  // ---- Global number formatting (outputs only) ----
+  // Override app's fmtCommas (without breaking callers).
+  window.fmtCommas = function fmtCommasPatched(n, opts={}){
+    const {decimals=null} = opts;
+    const val = Number(n);
+    if (!Number.isFinite(val)) return String(n);
+    const d = (decimals===null)
+      ? (Math.abs(val)%1===0 ? 0 : (Math.abs(val) >= 100 ? 1 : 2))
+      : Math.max(0, Math.min(6, decimals));
+    try { return val.toLocaleString(undefined,{maximumFractionDigits:d, minimumFractionDigits:d}); }
+    catch { return String(val); }
+  };
+
+  // Also provide a helper for raw -> number
+  function toNum(x){ const n = Number(String(x).replace(/,/g,'')); return Number.isFinite(n)?n:0; }
+
+  // ---- Footer version override so you can see patch active ----
+  try{ const vEl = document.getElementById('version'); if (vEl) vEl.textContent = 'v10.14.7'; }catch{}
+
+  /* ===========================================================
+     1) Crop Year: clean dropdown on Crop Production hub
+     - Years stored at key 'df_crop_years'
+     - Per-user last selection at 'df_crop_year_selected::<email>'
+     =========================================================== */
+  const YEARS_KEY = 'df_crop_years';
+  function seedYearsIfMissing(){
+    let years = loadJSONSafe(YEARS_KEY, null);
+    if (!Array.isArray(years) || !years.length){
+      years = [];
+      for (let y=MIN_YEAR; y<=Math.min(CURR_YEAR, MAX_YEAR); y++) years.push(y);
+      saveJSONSafe(YEARS_KEY, years);
+    }
+    return years;
+  }
+  function allYearsSorted(){
+    const years = (loadJSONSafe(YEARS_KEY, seedYearsIfMissing())||[]).map(y=>Number(y)).filter(y=>clampYear(y)!==null);
+    const uniq = Array.from(new Set(years));
+    uniq.sort((a,b)=>b-a); // newest first
+    return uniq;
+  }
+  function selectedYearKey(){ return `df_crop_year_selected::${userEmailSafe()||'anon'}`; }
+  function getSelectedYear(){
+    const raw = localStorage.getItem(selectedYearKey());
+    const y = clampYear(raw);
+    if (y!==null) return y;
+    const years = allYearsSorted();
+    return years.length ? years[0] : CURR_YEAR; // default to newest
+  }
+  function setSelectedYear(y){
+    const yr = clampYear(y); if (yr===null) return false;
+    try { localStorage.setItem(selectedYearKey(), String(yr)); } catch {}
+    return true;
+  }
+  function addYearFlow(){
+    let input = prompt(`Add crop year (between ${MIN_YEAR} and ${MAX_YEAR}):`, String(Math.min(MAX_YEAR, CURR_YEAR)));
+    if (input===null) return; // cancelled
+    const y = clampYear(input);
+    if (y===null){ alert(`Year must be between ${MIN_YEAR} and ${MAX_YEAR}.`); return; }
+    const years = allYearsSorted();
+    if (!years.includes(y)){
+      years.push(y);
+      saveJSONSafe(YEARS_KEY, Array.from(new Set(years)).sort((a,b)=>b-a));
+    }
+    setSelectedYear(y);
+    // If we're on crop hub, re-render to reflect
+    if (location.hash==='#/crop' && typeof window.viewCropHub==='function') window.viewCropHub();
+  }
+
+  // Patch viewCropHub to prepend the dropdown row
+  if (!window.__dfPatchedCropYear){
+    window.__dfPatchedCropYear = true;
+    const origViewCropHub = window.viewCropHub;
+    window.viewCropHub = function(){
+      const years = allYearsSorted();
+      const sel = getSelectedYear();
+
+      // UI row
+      const rowHTML = `
+        <section class="section" style="padding-bottom:0;">
+          <h1>Crop Production</h1>
+          <div class="field" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <label style="font-weight:600;">Crop Year:</label>
+            <select id="cy-year" style="min-width:140px;">
+              ${years.map(y=>`<option value="${y}" ${y===sel?'selected':''}>${y}</option>`).join('')}
+            </select>
+            <button id="cy-add" class="btn">➕ Add year…</button>
+            <span class="small muted">Allowed ${MIN_YEAR} – ${MAX_YEAR}. Defaults to your last choice.</span>
+          </div>
+        </section>
+      `;
+
+      // Render original tiles under the selector
+      const tmpDiv = document.createElement('div');
+      origViewCropHub.call(window); // this fills #app with grid + back
+      const appEl = document.getElementById('app');
+      const oldHTML = appEl.innerHTML;
+      appEl.innerHTML = rowHTML + oldHTML;
+
+      // Wire up
+      $('#cy-year')?.addEventListener('change', (e)=>{
+        if (!setSelectedYear(e.target.value)){
+          alert('Invalid year.');
+          e.target.value = getSelectedYear();
+        }
+      });
+      $('#cy-add')?.addEventListener('click', addYearFlow);
+    };
+  }
+
+  /* ===========================================================
+     2) Feedback forms: add Main/Sub/Category dropdowns (required)
+     - Save into existing feedback objects
+     - Show in Feedback Summary
+     =========================================================== */
+  const MAIN_TO_SUB = {
+    'Crop Production': ['Planting','Spraying','Aerial Spray','Harvest','Field Maintenance','Scouting','Trials'],
+    'Calculator': ['Fertilizer','Bin Volume','Area','Combine Yield','Chemical Mix'],
+    'Equipment': ['StarFire / Technology','Tractors','Combines','Sprayer / Fertilizer Spreader','Construction Equipment','Trucks','Trailers','Farm Implements'],
+    'Grain Tracking': ['Grain Bag','Grain Bins','Grain Contracts','Grain Ticket OCR'],
+    'Team & Partners': ['Employees','Subcontractors','Vendors','Directory'],
+    'Reports': ['Pre-made Reports','Feedback Summary','Grain Bag Report','AI Reports','Yield Report'],
+    'Settings': ['Crop Type','Theme','Farms','Fields'],
+    'Feedback': ['Report Errors','New Feature Request']
+  };
+  const CATEGORIES = ['Bug / Error','New Feature','UI / Design'];
+
+  function feedbackCommonHeader(title){
+    return `
+      <section class="section">
+        <h1>${title}</h1>
+
+        <div class="field" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+          <label>
+            <span class="small muted">Main Menu *</span>
+            <select id="fb-main" required>
+              <option value="">— Choose —</option>
+              ${Object.keys(MAIN_TO_SUB).map(m=>`<option>${m}</option>`).join('')}
+            </select>
+          </label>
+          <label>
+            <span class="small muted">Sub Menu *</span>
+            <select id="fb-sub" required><option value="">— Choose —</option></select>
+          </label>
+          <label>
+            <span class="small muted">Category *</span>
+            <select id="fb-cat" required>
+              <option value="">— Choose —</option>
+              ${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+    `;
+  }
+
+  function wireFeedbackDDL(){
+    const mainSel = $('#fb-main'), subSel = $('#fb-sub');
+    if (!mainSel || !subSel) return;
+    const fillSubs = ()=>{
+      const main = mainSel.value;
+      const list = MAIN_TO_SUB[main] || [];
+      subSel.innerHTML = `<option value="">— Choose —</option>` + list.map(s=>`<option>${s}</option>`).join('');
+    };
+    mainSel.addEventListener('change', fillSubs);
+    fillSubs();
+  }
+
+  // Override viewFeedbackErrors
+  if (!window.__dfPatchedFeedback){
+    window.__dfPatchedFeedback = true;
+
+    const origErr = window.viewFeedbackErrors;
+    window.viewFeedbackErrors = function(){
+      const today = new Date().toISOString().slice(0,10);
+      const user = (localStorage.getItem('df_user')||'').trim();
+      const app = document.getElementById('app');
+      app.innerHTML = feedbackCommonHeader('🛠️ Report Errors') + `
+        <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+        <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
+        <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
+        <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${user}"></div>
+        <button id="err-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+      </section>
+      `;
+      wireFeedbackDDL();
+      $('#err-submit')?.addEventListener('click', ()=>{
+        const date=String($('#err-date').value||'').trim();
+        const subject=String($('#err-subj').value||'').trim();
+        const details=String($('#err-desc').value||'').trim();
+        const by=String($('#err-by').value||'').trim();
+        const main=String($('#fb-main').value||'').trim();
+        const sub =String($('#fb-sub').value||'').trim();
+        const cat =String($('#fb-cat').value||'').trim();
+        if(!date||!subject||!details||!main||!sub||!cat){ alert('Please fill all required fields.'); return; }
+        try{
+          const key='df_feedback';
+          const list=JSON.parse(localStorage.getItem(key)||'[]');
+          list.push({type:'error', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
+          localStorage.setItem(key, JSON.stringify(list));
+        }catch{}
+        alert('Thanks! Your error report was saved.');
+        location.hash='#/feedback';
+      });
+    };
+
+    // Override viewFeedbackFeature
+    const origFeat = window.viewFeedbackFeature;
+    window.viewFeedbackFeature = function(){
+      const today = new Date().toISOString().slice(0,10);
+      const user = (localStorage.getItem('df_user')||'').trim();
+      const app = document.getElementById('app');
+      app.innerHTML = feedbackCommonHeader('💡 New Feature Request') + `
+        <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+        <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
+        <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
+        <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${user}"></div>
+        <button id="feat-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+      </section>
+      `;
+      wireFeedbackDDL();
+      $('#feat-submit')?.addEventListener('click', ()=>{
+        const date=String($('#feat-date').value||'').trim();
+        const subject=String($('#feat-subj').value||'').trim();
+        const details=String($('#feat-desc').value||'').trim();
+        const by=String($('#feat-by').value||'').trim();
+        const main=String($('#fb-main').value||'').trim();
+        const sub =String($('#fb-sub').value||'').trim();
+        const cat =String($('#fb-cat').value||'').trim();
+        if(!date||!subject||!details||!main||!sub||!cat){ alert('Please fill all required fields.'); return; }
+        try{
+          const key='df_feedback';
+          const list=JSON.parse(localStorage.getItem(key)||'[]');
+          list.push({type:'feature', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
+          localStorage.setItem(key, JSON.stringify(list));
+        }catch{}
+        alert('Thanks! Your feature request was saved.');
+        location.hash='#/feedback';
+      });
+    };
+
+    // Patch Feedback Summary to show the 3 new columns if present
+    const origSummary = window.viewReportsPremadeFeedback;
+    if (typeof origSummary === 'function'){
+      window.viewReportsPremadeFeedback = function(){
+        const items = (function(){ try { return JSON.parse(localStorage.getItem('df_feedback')||'[]'); } catch { return []; } })()
+          .sort((a,b)=>(a.ts||0)-(b.ts||0));
+        const rows = items.map((it,i)=>{
+          const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
+          const kind = it.type==='feature' ? 'Feature' : 'Error';
+          const esc = s=>String(s||'').replace(/</g,'&lt;');
+          return `<tr>
+            <td>${i+1}</td>
+            <td>${when}</td>
+            <td>${kind}</td>
+            <td>${esc(it.main||'')}</td>
+            <td>${esc(it.sub||'')}</td>
+            <td>${esc(it.category||'')}</td>
+            <td>${esc(it.subject||'')}</td>
+            <td>${esc((it.details||'').replace(/\n/g,'<br>'))}</td>
+            <td>${esc(it.by||'')}</td>
+          </tr>`;
+        }).join('');
+
+        const app = document.getElementById('app');
+        app.innerHTML = `
+          <section class="report-page">
+            <header class="report-head">
+              <div class="head-left">
+                <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+                <div class="org"><div class="org-name">Dowson Farms</div><div class="org-sub">Pre-Made Report</div></div>
+              </div>
+              <div class="head-right"><div class="r-title">Feedback Summary</div><div class="r-date">${new Date().toLocaleDateString()}</div></div>
+            </header>
+
+            <div class="report-body watermark">
+              ${items.length ? `
+              <table class="report-table">
+                <thead>
+                  <tr><th>#</th><th>When</th><th>Type</th><th>Main</th><th>Sub</th><th>Category</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>` : `<p class="muted">No feedback saved yet.</p>`}
+            </div>
+
+            <footer class="report-foot"><div>v10.14.7</div><div class="page-num">Page 1</div></footer>
+            <div class="report-actions hidden-print"><button class="btn-primary" id="print-report">Print / Save PDF</button><a class="btn" href="#/ai/premade">Back</a></div>
+          </section>
+        `;
+        $('#print-report')?.addEventListener('click', ()=>window.print());
+      };
+    }
+  }
+
+  /* ===========================================================
+     3) Settings → Farms & Fields
+     =========================================================== */
+  const FARMS_KEY = 'df_farms';
+  const FIELDS_KEY = 'df_fields2'; // new structure; leaves your old placeholder alone
+
+  function loadFarms(){ return loadJSONSafe(FARMS_KEY, []); }
+  function saveFarms(a){ saveJSONSafe(FARMS_KEY, a); }
+  function loadFields(){ return loadJSONSafe(FIELDS_KEY, []); }
+  function saveFields(a){ saveJSONSafe(FIELDS_KEY, a); }
+
+  function ensureSettingsLabelsAndRoutes(){
+    // Add to LABELS for breadcrumbs
+    try{
+      window.LABELS['#/settings/farms'] = 'Farms';
+      window.LABELS['#/settings/fields'] = 'Fields';
+    }catch{}
+    // Patch Settings home to show tiles for Farms & Fields
+    const origSettingsHome = window.viewSettingsHome;
+    if (!window.__dfPatchedSettingsHome && typeof origSettingsHome === 'function'){
+      window.__dfPatchedSettingsHome = true;
+      window.viewSettingsHome = function(){
+        origSettingsHome.call(window);
+        const app = document.getElementById('app');
+        // inject two tiles between Crop Type and Theme (simple append is ok)
+        if (!/href="#\/settings\/farms"/.test(app.innerHTML)){
+          const inject = `
+            <div class="grid" style="margin-top:12px;">
+              <a class="tile" href="#/settings/farms" aria-label="Farms"><span class="emoji">🏠</span><span class="label">Farms</span></a>
+              <a class="tile" href="#/settings/fields" aria-label="Fields"><span class="emoji">🗺️</span><span class="label">Fields</span></a>
+            </div>`;
+          app.innerHTML = app.innerHTML.replace('</div>\n    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>', 
+            `</div>${inject}\n    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>`);
+        }
+      };
+    }
+
+    // Router hooks
+    const origRoute = window.route;
+    if (!window.__dfPatchedRouteFarms && typeof origRoute === 'function'){
+      window.__dfPatchedRouteFarms = true;
+      // We won't override router; we just rely on existing router handling new hashes below via our functions.
+    }
+  }
+
+  // --- Farms screen ---
+  window.viewSettingsFarms = function(){
+    const app = document.getElementById('app');
+    let farms = loadFarms();
+    farms.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}));
+
+    const rows = farms.map((f,i)=>{
+      const arch = f.archived ? '<span class="chip chip-archived">Archived</span>' : '';
+      const actions = f.archived
+        ? `<button class="btn" data-act="unarchive" data-i="${i}">Unarchive</button>
+           <button class="btn" data-act="delete" data-i="${i}">Delete</button>`
+        : `<button class="btn" data-act="edit" data-i="${i}">Edit</button>
+           <button class="btn" data-act="archive" data-i="${i}">Archive</button>
+           <button class="btn" data-act="delete" data-i="${i}">Delete</button>`;
+      return `<li class="crop-row ${f.archived?'is-archived':''}">
+        <div class="crop-info"><span class="chip">${(f.name||'').replace(/</g,'&lt;')}</span> ${arch}</div>
+        <div class="crop-actions">${actions}</div>
+      </li>`;
+    }).join('');
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>🏠 Farms</h1>
+        <p class="muted">Manage farm names. Sorts A–Z. Prevent delete if farm still has fields assigned.</p>
+        <ul class="crop-list">${rows || '<li class="muted">No farms yet.</li>'}</ul>
+        <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+          <input id="farm-name" type="text" placeholder="e.g., Home Farm">
+          <button id="farm-add" class="btn-primary">➕ Add</button>
+        </div>
+        <a class="btn" href="#/settings">Back to Settings</a>
+      </section>
+    `;
+
+    $('#farm-add')?.addEventListener('click', ()=>{
+      const name = String($('#farm-name').value||'').trim();
+      if (!name) return;
+      const exists = farms.some(f=>String(f.name).toLowerCase()===name.toLowerCase());
+      if (exists){ alert('That farm name already exists.'); return; }
+      farms.push({id: cryptoRandom(), name, archived:false});
+      saveFarms(farms); window.viewSettingsFarms();
+    });
+
+    app.querySelector('.crop-list')?.addEventListener('click', (e)=>{
+      const btn=e.target.closest('button'); if (!btn) return;
+      const i = Number(btn.getAttribute('data-i'));
+      const act = btn.getAttribute('data-act');
+      if (!farms[i]) return;
+
+      if (act==='edit'){
+        const newName = prompt('Rename farm:', farms[i].name||'');
+        if (!newName) return;
+        if (farms.some((f,ix)=>ix!==i && String(f.name).toLowerCase()===newName.toLowerCase())){
+          alert('Another farm already uses that name.'); return;
+        }
+        farms[i].name = newName.trim();
+      } else if (act==='archive'){ farms[i].archived=true; }
+      else if (act==='unarchive'){ farms[i].archived=false; }
+      else if (act==='delete'){
+        // prevent delete if used by fields
+        const used = loadFields().some(fl=>fl.farmId === farms[i].id);
+        if (used){ alert('This farm has fields assigned. Archive instead, or move/delete fields first.'); return; }
+        if (!confirm(`Delete “${farms[i].name}”? This cannot be undone.`)) return;
+        farms.splice(i,1);
+      }
+      saveFarms(farms); window.viewSettingsFarms();
+    });
+  };
+
+  // --- Fields screen ---
+  window.viewSettingsFields = function(){
+    const app = document.getElementById('app');
+    const farms = loadFarms().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}));
+    let fields = loadFields();
+
+    // build farm selector and list
+    const farmOptions = farms.map(f=>`<option value="${f.id}">${(f.name||'').replace(/</g,'&lt;')}</option>`).join('');
+    fields.sort((a,b)=>{
+      const fa = farms.find(f=>f.id===a.farmId)?.name||'';
+      const fb = farms.find(f=>f.id===b.farmId)?.name||'';
+      const n = fa.localeCompare(fb,undefined,{sensitivity:'base'});
+      if (n) return n;
+      return String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'});
+    });
+
+    const rows = fields.map((fl,i)=>{
+      const farmName = farms.find(f=>f.id===fl.farmId)?.name || '(Unknown)';
+      const arch = fl.archived ? '<span class="chip chip-archived">Archived</span>' : '';
+      const actions = fl.archived
+        ? `<button class="btn" data-act="unarchive" data-i="${i}">Unarchive</button>
+           <button class="btn" data-act="delete" data-i="${i}">Delete</button>`
+        : `<button class="btn" data-act="edit" data-i="${i}">Edit</button>
+           <button class="btn" data-act="archive" data-i="${i}">Archive</button>
+           <button class="btn" data-act="delete" data-i="${i}">Delete</button>`;
+      const badges = [];
+      if (fl.crp?.yes) badges.push(`CRP ${fl.crp.acres||0} ac`);
+      if (fl.hel?.yes) badges.push(`HEL ${fl.hel.acres||0} ac`);
+      return `<li class="crop-row ${fl.archived?'is-archived':''}">
+        <div class="crop-info"><span class="chip">${(fl.name||'').replace(/</g,'&lt;')}</span> ${arch}</div>
+        <div class="crop-actions small">${(farmName||'').replace(/</g,'&lt;')}</div>
+        <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">
+          <div class="small muted">Tillable: ${fmtCommas(fl.tillable||0)} ac${badges.length?` • ${badges.join(' • ')}`:''}</div>
+        </div>
+        <div class="crop-actions">${actions}</div>
+      </li>`;
+    }).join('');
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>🗺️ Fields</h1>
+        <p class="muted">Each field belongs to a farm. Enter tillable acres, optional CRP and HEL details.</p>
+        <ul class="crop-list">${rows || '<li class="muted">No fields yet.</li>'}</ul>
+
+        <h3 style="margin-top:14px;">Add Field</h3>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <label><span class="small muted">Farm *</span>
+            <select id="fld-farm">${farmOptions}</select>
+          </label>
+          <label><span class="small muted">Field Name *</span>
+            <input id="fld-name" type="text" placeholder="e.g., North 80">
+          </label>
+        </div>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <label><span class="small muted">Tillable Acres *</span><input id="fld-till" type="number" step="any" min="0.01" placeholder="e.g., 79.5"></label>
+          <label><span class="small muted">CRP?</span>
+            <select id="fld-crp-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select>
+          </label>
+          <label><span class="small muted">CRP Acres</span><input id="fld-crp-ac" type="number" step="any" min="0" placeholder="optional" disabled></label>
+        </div>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <label><span class="small muted">HEL?</span>
+            <select id="fld-hel-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select>
+          </label>
+          <label><span class="small muted">HEL Acres</span><input id="fld-hel-ac" type="number" step="any" min="0" placeholder="optional" disabled></label>
+        </div>
+        <button id="fld-add" class="btn-primary">➕ Add Field</button>
+        <a class="btn" href="#/settings">Back to Settings</a>
+      </section>
+    `;
+
+    const crpSel = $('#fld-crp-yes'), crpAc = $('#fld-crp-ac');
+    const helSel = $('#fld-hel-yes'), helAc = $('#fld-hel-ac');
+    crpSel.addEventListener('change', ()=>{ crpAc.disabled = crpSel.value!=='yes'; if (crpAc.disabled) crpAc.value=''; });
+    helSel.addEventListener('change', ()=>{ helAc.disabled = helSel.value!=='yes'; if (helAc.disabled) helAc.value=''; });
+
+    $('#fld-add')?.addEventListener('click', ()=>{
+      const farmId = $('#fld-farm').value;
+      const name = String($('#fld-name').value||'').trim();
+      const till = toNum($('#fld-till').value);
+      const crpYes = $('#fld-crp-yes').value==='yes';
+      const crpA = toNum($('#fld-crp-ac').value);
+      const helYes = $('#fld-hel-yes').value==='yes';
+      const helA = toNum($('#fld-hel-ac').value);
+
+      if (!farmId || !name || !(till>0)){ alert('Farm, Field Name, and Tillable Acres are required.'); return; }
+      if (crpYes && !(crpA>0)){ alert('Enter CRP acres (or set CRP to No).'); return; }
+      if (helYes && !(helA>0)){ alert('Enter HEL acres (or set HEL to No).'); return; }
+      if (crpYes && crpA>till){ alert('CRP acres cannot exceed Tillable.'); return; }
+      if (helYes && helA>till){ alert('HEL acres cannot exceed Tillable.'); return; }
+
+      // uniqueness within farm
+      if (fields.some(f=>f.farmId===farmId && String(f.name).toLowerCase()===name.toLowerCase())){
+        alert('A field with that name already exists in this farm.'); return;
+      }
+
+      fields.push({
+        id: cryptoRandom(),
+        farmId, name,
+        tillable: till,
+        crp: { yes: crpYes, acres: crpYes?crpA:0 },
+        hel: { yes: helYes, acres: helYes?helA:0 },
+        archived:false
+      });
+      saveFields(fields);
+      window.viewSettingsFields();
+    });
+
+    app.querySelector('.crop-list')?.addEventListener('click',(e)=>{
+      const btn = e.target.closest('button'); if (!btn) return;
+      const i = Number(btn.getAttribute('data-i')); if (!fields[i]) return;
+      const act = btn.getAttribute('data-act');
+
+      if (act==='edit'){
+        const nf = prompt('Rename field:', fields[i].name||''); if (!nf) return;
+        const farmId = fields[i].farmId;
+        if (fields.some((f,ix)=>ix!==i && f.farmId===farmId && String(f.name).toLowerCase()===nf.toLowerCase())){
+          alert('Another field in this farm already uses that name.'); return;
+        }
+        fields[i].name = nf.trim();
+      } else if (act==='archive'){ fields[i].archived = true; }
+      else if (act==='unarchive'){ fields[i].archived = false; }
+      else if (act==='delete'){
+        if (!confirm(`Delete “${fields[i].name}”? This cannot be undone.`)) return;
+        fields.splice(i,1);
+      }
+      saveFields(fields); window.viewSettingsFields();
+    });
+  };
+
+  // crypto-safe-ish id
+  function cryptoRandom(){ try{ return (crypto.getRandomValues(new Uint32Array(2))[0].toString(36)+Date.now().toString(36)); }catch{ return Math.random().toString(36).slice(2)+Date.now().toString(36); } }
+
+  // Add the new routes to the existing router without overriding it:
+  // Your router already calls specific functions by hash. We only need
+  // to ensure LABELS and that those functions exist (done above).  
+
+  // Make sure Settings → Farms/Fields tiles and routes work
+  ensureSettingsLabelsAndRoutes();
+
+  // If user lands directly on our new routes, let the router call them.
+  // If your router doesn't know these yet, you can navigate manually:
+  window.addEventListener('hashchange', ()=>{
+    const h = location.hash;
+    if (h==='#/settings/farms' && typeof window.viewSettingsFarms==='function') window.viewSettingsFarms();
+    if (h==='#/settings/fields' && typeof window.viewSettingsFields==='function') window.viewSettingsFields();
+  });
+
+  // If you're already on one of the new hashes at load, render it.
+  if (location.hash==='#/settings/farms') window.viewSettingsFarms();
+  if (location.hash==='#/settings/fields') window.viewSettingsFields();
+
+})();
+</script>
+<!-- === /DF PATCH v10.14.7 === -->
