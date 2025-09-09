@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.14.4';
+const APP_VERSION = 'v10.14.5';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -1528,3 +1528,367 @@ function __df_commas(n){ try { return Number(n).toLocaleString(); } catch { retu
   `;
   document.head.appendChild(css);
 })();
+/* =========================
+   PATCH v10.14.5 — Team & Partners (restore + forms)
+   - Employees, Subcontractors, Vendors, Directory
+   - Clean phone storage (digits); pretty display; email validation
+   - LocalStorage keys:
+       df_team_employees, df_team_subs, df_team_vendors
+   ========================= */
+
+// ------- Small shared helpers (safe to re-declare) -------
+function df_load(key, fb = []){ try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fb)); } catch { return fb; } }
+function df_save(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+function df_uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function df_onlyDigits(s){ return String(s||'').replace(/\D+/g,''); }
+function df_fmtPhone(d){
+  d = df_onlyDigits(d).slice(0,10);
+  if (!d) return '';
+  if (d.length <= 3) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`;
+  return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+}
+function df_html(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m])); }
+function df_emailOk(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
+function df_chip(txt){ return `<span class="chip">${df_html(txt)}</span>`; }
+
+// Bind our phone auto-formatter in case the core didn’t yet
+function df_bindPhones(root=document){ 
+  try { if (typeof bindPhoneAutoFormat==='function') bindPhoneAutoFormat(root); } catch {}
+}
+
+// ------- Storage keys -------
+const EMP_KEY = 'df_team_employees';
+const SUB_KEY = 'df_team_subs';
+const VEN_KEY = 'df_team_vendors';
+
+// ------- 0) Hub -------
+window.viewTeamHub = function(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('👷','Employees','#/team/employees')}
+      ${tile('🛠️','Subcontractors','#/team/subcontractors')}
+      ${tile('🏪','Vendors','#/team/vendors')}
+      ${tile('📇','Directory','#/team/dir')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+};
+
+// ------- 1) Employees -------
+window.viewTeamEmployees = function(){
+  const list = df_load(EMP_KEY);
+  const rows = list.map(p=>`
+    <tr data-id="${p.id}">
+      <td>${df_html(p.name)}</td>
+      <td>${df_html(p.role||'')}</td>
+      <td>${df_fmtPhone(p.phone||'')}</td>
+      <td>${df_html(p.email||'')}</td>
+      <td>${df_html(p.notes||'')}</td>
+      <td><button class="btn small" data-edit>Edit</button> <button class="btn small" data-del>Delete</button></td>
+    </tr>
+  `).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>👷 Employees</h1>
+
+      <div class="field" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+        <input id="e-name" type="text" placeholder="Full name *">
+        <input id="e-role" type="text" placeholder="Role / Title">
+      </div>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <input id="e-phone" type="tel" placeholder="Phone (digits only)">
+        <input id="e-email" type="email" placeholder="Email">
+      </div>
+      <div class="field">
+        <textarea id="e-notes" rows="2" placeholder="Notes (optional)"></textarea>
+      </div>
+      <div class="field">
+        <button id="e-save" class="btn-primary">Save</button>
+        <button id="e-clear" class="btn">Clear</button>
+      </div>
+
+      <h2>Team</h2>
+      <table class="report-table">
+        <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Email</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="e-tbody">${rows||''}</tbody>
+      </table>
+      ${rows? '' : '<p class="muted">No employees yet.</p>'}
+
+      <div class="section"><a class="btn" href="#/team">Back to Team & Partners</a></div>
+    </section>
+  `;
+
+  df_bindPhones(app);
+
+  let editId = null;
+
+  function readForm(){
+    const name  = document.getElementById('e-name').value.trim();
+    const role  = document.getElementById('e-role').value.trim();
+    const phone = df_onlyDigits(document.getElementById('e-phone').value);
+    const email = document.getElementById('e-email').value.trim();
+    const notes = document.getElementById('e-notes').value.trim();
+    if (!name){ alert('Name is required.'); return null; }
+    if (email && !df_emailOk(email)){ alert('Email looks invalid.'); return null; }
+    return { id: editId || df_uid(), name, role, phone, email, notes };
+  }
+  function loadForm(p){
+    editId = p?.id || null;
+    document.getElementById('e-name').value  = p?.name || '';
+    document.getElementById('e-role').value  = p?.role || '';
+    document.getElementById('e-phone').value = df_fmtPhone(p?.phone||'');
+    document.getElementById('e-email').value = p?.email || '';
+    document.getElementById('e-notes').value = p?.notes || '';
+    df_bindPhones(app);
+  }
+  function clearForm(){ loadForm({}); }
+
+  document.getElementById('e-save').addEventListener('click', ()=>{
+    const rec = readForm(); if (!rec) return;
+    const arr = df_load(EMP_KEY);
+    const i = arr.findIndex(x=>x.id===rec.id);
+    if (i>=0) arr[i]=rec; else arr.unshift(rec);
+    df_save(EMP_KEY, arr);
+    alert('Saved.');
+    viewTeamEmployees();
+  });
+  document.getElementById('e-clear').addEventListener('click', clearForm);
+
+  document.getElementById('e-tbody')?.addEventListener('click', (e)=>{
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const id = tr.getAttribute('data-id');
+    if (e.target.matches('[data-edit]')){
+      const p = df_load(EMP_KEY).find(x=>x.id===id);
+      if (p) loadForm(p);
+    } else if (e.target.matches('[data-del]')){
+      if (!confirm('Delete this employee?')) return;
+      const arr = df_load(EMP_KEY).filter(x=>x.id!==id);
+      df_save(EMP_KEY, arr);
+      viewTeamEmployees();
+    }
+  });
+};
+
+// ------- 2) Subcontractors -------
+window.viewTeamSubcontractors = function(){
+  const list = df_load(SUB_KEY);
+  const rows = list.map(p=>`
+    <tr data-id="${p.id}">
+      <td>${df_html(p.company)}</td>
+      <td>${df_html(p.contact||'')}</td>
+      <td>${df_fmtPhone(p.phone||'')}</td>
+      <td>${df_html(p.email||'')}</td>
+      <td>${df_html(p.services||'')}</td>
+      <td><button class="btn small" data-edit>Edit</button> <button class="btn small" data-del>Delete</button></td>
+    </tr>
+  `).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>🛠️ Subcontractors</h1>
+
+      <div class="field" style="display:grid;grid-template-columns:1.5fr 1fr;gap:8px;">
+        <input id="s-company" type="text" placeholder="Company *">
+        <input id="s-contact" type="text" placeholder="Primary contact">
+      </div>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <input id="s-phone" type="tel" placeholder="Phone">
+        <input id="s-email" type="email" placeholder="Email">
+      </div>
+      <div class="field">
+        <input id="s-services" type="text" placeholder="Services (e.g., tiling, trucking)">
+      </div>
+      <div class="field">
+        <button id="s-save" class="btn-primary">Save</button>
+        <button id="s-clear" class="btn">Clear</button>
+      </div>
+
+      <h2>List</h2>
+      <table class="report-table">
+        <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th><th>Services</th><th></th></tr></thead>
+        <tbody id="s-tbody">${rows||''}</tbody>
+      </table>
+      ${rows? '' : '<p class="muted">No subcontractors yet.</p>'}
+
+      <div class="section"><a class="btn" href="#/team">Back to Team & Partners</a></div>
+    </section>
+  `;
+
+  df_bindPhones(app);
+  let editId = null;
+
+  function readForm(){
+    const company = document.getElementById('s-company').value.trim();
+    const contact = document.getElementById('s-contact').value.trim();
+    const phone   = df_onlyDigits(document.getElementById('s-phone').value);
+    const email   = document.getElementById('s-email').value.trim();
+    const services= document.getElementById('s-services').value.trim();
+    if (!company){ alert('Company is required.'); return null; }
+    if (email && !df_emailOk(email)){ alert('Email looks invalid.'); return null; }
+    return { id: editId || df_uid(), company, contact, phone, email, services };
+  }
+  function loadForm(p){
+    editId = p?.id || null;
+    document.getElementById('s-company').value = p?.company||'';
+    document.getElementById('s-contact').value = p?.contact||'';
+    document.getElementById('s-phone').value   = df_fmtPhone(p?.phone||'');
+    document.getElementById('s-email').value   = p?.email||'';
+    document.getElementById('s-services').value= p?.services||'';
+    df_bindPhones(app);
+  }
+  function clearForm(){ loadForm({}); }
+
+  document.getElementById('s-save').addEventListener('click', ()=>{
+    const rec = readForm(); if (!rec) return;
+    const arr = df_load(SUB_KEY);
+    const i = arr.findIndex(x=>x.id===rec.id);
+    if (i>=0) arr[i]=rec; else arr.unshift(rec);
+    df_save(SUB_KEY, arr);
+    alert('Saved.');
+    viewTeamSubcontractors();
+  });
+  document.getElementById('s-clear').addEventListener('click', clearForm);
+
+  document.getElementById('s-tbody')?.addEventListener('click', (e)=>{
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const id = tr.getAttribute('data-id');
+    if (e.target.matches('[data-edit]')){
+      const p = df_load(SUB_KEY).find(x=>x.id===id);
+      if (p) loadForm(p);
+    } else if (e.target.matches('[data-del]')){
+      if (!confirm('Delete this subcontractor?')) return;
+      const arr = df_load(SUB_KEY).filter(x=>x.id!==id);
+      df_save(SUB_KEY, arr);
+      viewTeamSubcontractors();
+    }
+  });
+};
+
+// ------- 3) Vendors -------
+window.viewTeamVendors = function(){
+  const list = df_load(VEN_KEY);
+  const rows = list.map(v=>`
+    <tr data-id="${v.id}">
+      <td>${df_html(v.company)}</td>
+      <td>${df_html(v.account||'')}</td>
+      <td>${df_fmtPhone(v.phone||'')}</td>
+      <td>${df_html(v.email||'')}</td>
+      <td>${df_html(v.notes||'')}</td>
+      <td><button class="btn small" data-edit>Edit</button> <button class="btn small" data-del>Delete</button></td>
+    </tr>
+  `).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>🏪 Vendors</h1>
+
+      <div class="field" style="display:grid;grid-template-columns:1.5fr 1fr;gap:8px;">
+        <input id="v-company" type="text" placeholder="Company *">
+        <input id="v-account" type="text" placeholder="Account #">
+      </div>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <input id="v-phone" type="tel" placeholder="Phone">
+        <input id="v-email" type="email" placeholder="Email">
+      </div>
+      <div class="field">
+        <textarea id="v-notes" rows="2" placeholder="Notes (optional)"></textarea>
+      </div>
+      <div class="field">
+        <button id="v-save" class="btn-primary">Save</button>
+        <button id="v-clear" class="btn">Clear</button>
+      </div>
+
+      <h2>List</h2>
+      <table class="report-table">
+        <thead><tr><th>Company</th><th>Account #</th><th>Phone</th><th>Email</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="v-tbody">${rows||''}</tbody>
+      </table>
+      ${rows? '' : '<p class="muted">No vendors yet.</p>'}
+
+      <div class="section"><a class="btn" href="#/team">Back to Team & Partners</a></div>
+    </section>
+  `;
+
+  df_bindPhones(app);
+  let editId = null;
+
+  function readForm(){
+    const company = document.getElementById('v-company').value.trim();
+    const account = document.getElementById('v-account').value.trim();
+    const phone   = df_onlyDigits(document.getElementById('v-phone').value);
+    const email   = document.getElementById('v-email').value.trim();
+    const notes   = document.getElementById('v-notes').value.trim();
+    if (!company){ alert('Company is required.'); return null; }
+    if (email && !df_emailOk(email)){ alert('Email looks invalid.'); return null; }
+    return { id: editId || df_uid(), company, account, phone, email, notes };
+  }
+  function loadForm(p){
+    editId = p?.id || null;
+    document.getElementById('v-company').value = p?.company||'';
+    document.getElementById('v-account').value = p?.account||'';
+    document.getElementById('v-phone').value   = df_fmtPhone(p?.phone||'');
+    document.getElementById('v-email').value   = p?.email||'';
+    document.getElementById('v-notes').value   = p?.notes||'';
+    df_bindPhones(app);
+  }
+  function clearForm(){ loadForm({}); }
+
+  document.getElementById('v-save').addEventListener('click', ()=>{
+    const rec = readForm(); if (!rec) return;
+    const arr = df_load(VEN_KEY);
+    const i = arr.findIndex(x=>x.id===rec.id);
+    if (i>=0) arr[i]=rec; else arr.unshift(rec);
+    df_save(VEN_KEY, arr);
+    alert('Saved.');
+    viewTeamVendors();
+  });
+  document.getElementById('v-clear').addEventListener('click', clearForm);
+
+  document.getElementById('v-tbody')?.addEventListener('click', (e)=>{
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const id = tr.getAttribute('data-id');
+    if (e.target.matches('[data-edit]')){
+      const v = df_load(VEN_KEY).find(x=>x.id===id);
+      if (v) loadForm(v);
+    } else if (e.target.matches('[data-del]')){
+      if (!confirm('Delete this vendor?')) return;
+      const arr = df_load(VEN_KEY).filter(x=>x.id!==id);
+      df_save(VEN_KEY, arr);
+      viewTeamVendors();
+    }
+  });
+};
+
+// ------- 4) Directory (roll-up) -------
+window.viewTeamDirectory = function(){
+  const emps = df_load(EMP_KEY).map(x=>({ type:'Employee', name:x.name, org:x.role||'', phone:x.phone, email:x.email }));
+  const subs = df_load(SUB_KEY).map(x=>({ type:'Sub',      name:x.company, org:x.contact||'', phone:x.phone, email:x.email }));
+  const vens = df_load(VEN_KEY).map(x=>({ type:'Vendor',   name:x.company, org:x.account||'', phone:x.phone, email:x.email }));
+  const all = [...emps,...subs,...vens].sort((a,b)=>a.name.localeCompare(b.name));
+
+  const rows = all.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${df_html(r.type)}</td>
+      <td>${df_html(r.name)}</td>
+      <td>${df_html(r.org||'')}</td>
+      <td>${df_fmtPhone(r.phone||'')}</td>
+      <td>${df_html(r.email||'')}</td>
+    </tr>
+  `).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>📇 Directory</h1>
+      ${all.length ? `
+        <table class="report-table">
+          <thead><tr><th>#</th><th>Type</th><th>Name</th><th>Role/Acct</th><th>Phone</th><th>Email</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      ` : `<p class="muted">No contacts yet. Add employees, subcontractors, or vendors to populate this directory.</p>`}
+      <div class="section"><a class="btn" href="#/team">Back to Team & Partners</a></div>
+    </section>
+  `;
+};
