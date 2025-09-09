@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v11.0.0';
+const APP_VERSION = 'v10.14.7';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -2546,3 +2546,390 @@ window.viewTeamDirectory = function(){
   };
 
 })(); // end PATCH v10.14.6
+/* ============================
+   Dowson Farms — Patch v10.14.7
+   Scope:
+     • Crop Year dropdown selector (persisted)
+     • Feedback dropdowns (Main/Sub/Category with simple dependency)
+     • Global number formatting with commas
+     • Settings → Farms management (CRUD + localStorage)
+     • Settings → Fields management (CRUD + localStorage)
+   Append at end of app.js
+   ============================ */
+(function DF_v10147_patch(){
+  const NS = (window.DF = window.DF || {});
+  const Patch = NS.v10147 = {};
+
+  /* ---------- Utilities ---------- */
+  const ls = {
+    get(key, fallback){
+      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+    },
+    set(key, value){ try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
+  };
+
+  // Number formatting with commas (keeps decimals)
+  function formatNumberWithCommas(value){
+    if (value === null || value === undefined) return '';
+    const str = String(value).replace(/,/g, '').trim();
+    if (str === '' || isNaN(Number(str))) return value; // leave as-is if non-numeric
+    const [intPart, decPart] = str.split('.');
+    const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return decPart !== undefined ? `${withCommas}.${decPart}` : withCommas;
+  }
+  Patch.formatNumberWithCommas = formatNumberWithCommas;
+
+  /* Auto-format: any input/element with data-format="number"
+     - Formats on blur
+     - Cleans commas for value retrieval on change
+  */
+  document.addEventListener('blur', (e)=>{
+    const el = e.target;
+    if (el && el.matches('[data-format="number"]')){
+      const caret = el.selectionStart;
+      el.value = formatNumberWithCommas(el.value);
+      // Try to keep caret near end (best effort)
+      try { el.setSelectionRange(caret, caret); } catch {}
+    }
+  }, true);
+
+  // Provide a helper to read numeric values (without commas)
+  Patch.readNumeric = (el)=> {
+    if (!el) return null;
+    const raw = String(el.value || '').replace(/,/g,'').trim();
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  /* ---------- Crop Year Selector ---------- */
+  function initCropYearSelects(){
+    const STORAGE_KEY = 'df.cropYear';
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const years = [];
+    const start = currentYear + 1;  // include next crop year
+    const end = currentYear - 10;   // 10 years back
+    for (let y = start; y >= end; y--) years.push(y);
+
+    const saved = ls.get(STORAGE_KEY, null);
+    document.querySelectorAll('select[data-df="cropYear"]').forEach(sel=>{
+      // If the select is empty, populate; otherwise leave user-defined options
+      if (!sel.options.length){
+        const ph = document.createElement('option');
+        ph.value = ''; ph.textContent = 'Select Crop Year';
+        sel.appendChild(ph);
+        years.forEach(y=>{
+          const o = document.createElement('option');
+          o.value = String(y);
+          o.textContent = String(y);
+          sel.appendChild(o);
+        });
+      }
+      // Set saved or default to currentYear
+      const toSet = saved || String(currentYear);
+      if ([...sel.options].some(o=>o.value===String(toSet))) sel.value = String(toSet);
+
+      sel.addEventListener('change', ()=>{
+        if (sel.value) ls.set(STORAGE_KEY, sel.value);
+      });
+    });
+  }
+
+  /* ---------- Feedback Dropdowns (Main/Sub/Category) ---------- */
+  // Defaults (override by putting JSON on data-options on the main select)
+  const DEFAULT_FEEDBACK = {
+    main: ['Bug', 'Idea', 'Data Fix', 'UX', 'Performance'],
+    sub: {
+      'Bug': ['Crash', 'Wrong calc', 'Bad link', 'Visual glitch'],
+      'Idea': ['New feature', 'Report layout', 'Workflow'],
+      'Data Fix': ['Field boundary', 'Acres', 'Crop type', 'Yield entry'],
+      'UX': ['Navigation', 'Buttons', 'Accessibility'],
+      'Performance': ['Slow load', 'Offline cache', 'Sync issues']
+    },
+    category: ['Low', 'Normal', 'High', 'Critical']
+  };
+
+  function initFeedbackDropdowns(){
+    const mainSel = document.querySelector('select[data-df="feedback-main"]');
+    const subSel  = document.querySelector('select[data-df="feedback-sub"]');
+    const catSel  = document.querySelector('select[data-df="feedback-category"]');
+
+    if (!mainSel && !subSel && !catSel) return; // nothing to do
+
+    // Load overrides if present on main select
+    let cfg = DEFAULT_FEEDBACK;
+    try {
+      if (mainSel && mainSel.dataset.options){
+        const parsed = JSON.parse(mainSel.dataset.options);
+        cfg = {
+          main: parsed.main || DEFAULT_FEEDBACK.main,
+          sub:  parsed.sub  || DEFAULT_FEEDBACK.sub,
+          category: parsed.category || DEFAULT_FEEDBACK.category
+        };
+      }
+    } catch {}
+
+    // Populate helper
+    const fill = (sel, arr, placeholder)=>{
+      if (!sel) return;
+      if (!sel.options.length){
+        const ph = document.createElement('option'); ph.value=''; ph.textContent=placeholder;
+        sel.appendChild(ph);
+      } else {
+        // keep existing if already filled
+        return;
+      }
+      (arr||[]).forEach(v=>{
+        const o = document.createElement('option');
+        o.value = v; o.textContent = v;
+        sel.appendChild(o);
+      });
+    };
+
+    fill(mainSel, cfg.main, 'Main…');
+    fill(catSel, cfg.category, 'Category…');
+
+    // Populate sub based on current main (or placeholder)
+    function repopulateSub(mainVal){
+      if (!subSel) return;
+      const selVal = subSel.value;
+      // Clear (except maybe keep first placeholder)
+      subSel.innerHTML = '';
+      const ph = document.createElement('option'); ph.value=''; ph.textContent='Sub…';
+      subSel.appendChild(ph);
+      const subs = (cfg.sub && cfg.sub[mainVal]) ? cfg.sub[mainVal] : [];
+      subs.forEach(s=>{
+        const o = document.createElement('option'); o.value = s; o.textContent = s;
+        subSel.appendChild(o);
+      });
+      // Try restore previous choice if still valid
+      if ([...subSel.options].some(o=>o.value===selVal)) subSel.value = selVal;
+    }
+
+    if (mainSel){
+      // initial
+      repopulateSub(mainSel.value || '');
+      // on change
+      mainSel.addEventListener('change', ()=>repopulateSub(mainSel.value||''));
+    }
+  }
+
+  /* ---------- Settings: Farms Management ---------- */
+  // Data shape: { id: string, name: string, location?: string }
+  const FARMS_KEY = 'df.farms';
+  function getFarms(){ return ls.get(FARMS_KEY, []); }
+  function saveFarms(list){ ls.set(FARMS_KEY, list); }
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+
+  function renderFarms(){
+    const wrap = document.querySelector('[data-df="farm-list"]');
+    if (!wrap) return;
+    const farms = getFarms();
+    wrap.innerHTML = farms.length ? '' : '<div class="muted">No farms yet.</div>';
+    farms.forEach(f=>{
+      const row = document.createElement('div');
+      row.className = 'df-row df-farm';
+      row.dataset.id = f.id;
+      row.innerHTML = `
+        <div class="df-cell">
+          <strong>${f.name || '(unnamed)'}</strong>
+          ${f.location ? `<div class="df-sub">${f.location}</div>` : ''}
+        </div>
+        <div class="df-actions">
+          <button type="button" data-action="edit-farm">Edit</button>
+          <button type="button" data-action="delete-farm">Delete</button>
+        </div>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
+  function bindFarmForm(){
+    const form = document.querySelector('[data-df="farm-form"]');
+    if (!form) return;
+    const nameEl = form.querySelector('[name="farmName"]');
+    const locEl  = form.querySelector('[name="farmLocation"]');
+    const idEl   = form.querySelector('[name="farmId"]'); // hidden for edit
+
+    form.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const name = (nameEl?.value||'').trim();
+      const location = (locEl?.value||'').trim();
+      if (!name){ alert('Farm name is required.'); return; }
+      const list = getFarms();
+      const existingId = (idEl?.value||'').trim();
+      if (existingId){
+        const idx = list.findIndex(f=>f.id===existingId);
+        if (idx>=0){ list[idx] = {...list[idx], name, location}; }
+      } else {
+        list.push({ id: uid(), name, location});
+      }
+      saveFarms(list);
+      form.reset();
+      if (idEl) idEl.value = '';
+      renderFarms();
+    });
+
+    document.addEventListener('click',(e)=>{
+      const btn = e.target.closest?.('button[data-action="edit-farm"], button[data-action="delete-farm"]');
+      if (!btn) return;
+      const row = btn.closest('.df-farm'); if (!row) return;
+      const id = row.dataset.id;
+      const list = getFarms();
+      const farm = list.find(f=>f.id===id);
+      if (btn.dataset.action === 'edit-farm'){
+        if (!farm) return;
+        if (nameEl) nameEl.value = farm.name||'';
+        if (locEl)  locEl.value  = farm.location||'';
+        if (idEl)   idEl.value   = farm.id;
+        nameEl?.focus();
+      } else if (btn.dataset.action === 'delete-farm'){
+        if (confirm('Delete this farm?')){
+          saveFarms(list.filter(f=>f.id!==id));
+          renderFarms();
+        }
+      }
+    });
+  }
+
+  /* ---------- Settings: Fields Management ---------- */
+  // Data shape: { id, farmId, name, acres:number|null, crop?:string }
+  const FIELDS_KEY = 'df.fields';
+  function getFields(){ return ls.get(FIELDS_KEY, []); }
+  function saveFields(list){ ls.set(FIELDS_KEY, list); }
+
+  function renderFields(){
+    const wrap = document.querySelector('[data-df="field-list"]');
+    if (!wrap) return;
+    const fields = getFields();
+    const farms  = getFarms();
+    const farmName = (id)=> (farms.find(f=>f.id===id)?.name)||'—';
+
+    wrap.innerHTML = fields.length ? '' : '<div class="muted">No fields yet.</div>';
+    fields.forEach(fd=>{
+      const acresTxt = (fd.acres!=null && !isNaN(fd.acres)) ? formatNumberWithCommas(fd.acres) : '—';
+      const row = document.createElement('div');
+      row.className = 'df-row df-field';
+      row.dataset.id = fd.id;
+      row.innerHTML = `
+        <div class="df-cell">
+          <strong>${fd.name || '(unnamed field)'}</strong>
+          <div class="df-sub">${farmName(fd.farmId)} • ${acresTxt} acres${fd.crop?` • ${fd.crop}`:''}</div>
+        </div>
+        <div class="df-actions">
+          <button type="button" data-action="edit-field">Edit</button>
+          <button type="button" data-action="delete-field">Delete</button>
+        </div>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
+  function bindFieldForm(){
+    const form = document.querySelector('[data-df="field-form"]');
+    if (!form) return;
+    const idEl   = form.querySelector('[name="fieldId"]'); // hidden for edit
+    const nameEl = form.querySelector('[name="fieldName"]');
+    const acresEl= form.querySelector('[name="fieldAcres"]');
+    const cropEl = form.querySelector('[name="fieldCrop"]');
+    const farmSel= form.querySelector('[name="fieldFarmId"]');
+
+    // Populate farm selector if present
+    if (farmSel && !farmSel.options.length){
+      const farms = getFarms();
+      const ph = document.createElement('option'); ph.value=''; ph.textContent='Select Farm';
+      farmSel.appendChild(ph);
+      farms.forEach(f=>{
+        const o = document.createElement('option'); o.value=f.id; o.textContent=f.name;
+        farmSel.appendChild(o);
+      });
+    }
+
+    form.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const name  = (nameEl?.value||'').trim();
+      const farmId= (farmSel?.value||'').trim();
+      const acres = Patch.readNumeric(acresEl);
+      const crop  = (cropEl?.value||'').trim() || undefined;
+      if (!name){ alert('Field name is required.'); return; }
+      if (!farmId){ alert('Select a farm.'); return; }
+
+      const list = getFields();
+      const existingId = (idEl?.value||'').trim();
+      if (existingId){
+        const idx = list.findIndex(f=>f.id===existingId);
+        if (idx>=0){ list[idx] = {...list[idx], name, farmId, acres, crop}; }
+      } else {
+        list.push({ id: uid(), name, farmId, acres, crop });
+      }
+      saveFields(list);
+      form.reset();
+      if (idEl) idEl.value = '';
+      renderFields();
+    });
+
+    document.addEventListener('click',(e)=>{
+      const btn = e.target.closest?.('button[data-action="edit-field"], button[data-action="delete-field"]');
+      if (!btn) return;
+      const row = btn.closest('.df-field'); if (!row) return;
+      const id = row.dataset.id;
+      const list = getFields();
+      const field = list.find(f=>f.id===id);
+      if (btn.dataset.action === 'edit-field'){
+        if (!field) return;
+        if (idEl)    idEl.value    = field.id;
+        if (nameEl)  nameEl.value  = field.name||'';
+        if (acresEl) acresEl.value = field.acres!=null ? formatNumberWithCommas(field.acres) : '';
+        if (cropEl)  cropEl.value  = field.crop||'';
+        if (farmSel){
+          // Ensure farm list is present/updated
+          if (!farmSel.options.length){
+            const farms = getFarms();
+            const ph = document.createElement('option'); ph.value=''; ph.textContent='Select Farm';
+            farmSel.appendChild(ph);
+            farms.forEach(f=>{
+              const o = document.createElement('option'); o.value=f.id; o.textContent=f.name;
+              farmSel.appendChild(o);
+            });
+          }
+          farmSel.value = field.farmId || '';
+        }
+        nameEl?.focus();
+      } else if (btn.dataset.action === 'delete-field'){
+        if (confirm('Delete this field?')){
+          saveFields(list.filter(f=>f.id!==id));
+          renderFields();
+        }
+      }
+    });
+  }
+
+  /* ---------- Bootstrapping ---------- */
+  function init(){
+    initCropYearSelects();
+    initFeedbackDropdowns();
+    bindFarmForm();
+    bindFieldForm();
+    renderFarms();
+    renderFields();
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  /* ---------- Minimal styles (optional, safe) ---------- */
+  const styleTag = document.createElement('style');
+  styleTag.setAttribute('data-df','v10.14.7');
+  styleTag.textContent = `
+    .df-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:1px solid #e3e3e3; border-radius:6px; background:#fff; margin:6px 0; }
+    .df-cell{ min-width:0; }
+    .df-sub{ color:#666; font-size:0.9em; margin-top:2px; }
+    .df-actions button{ margin-left:6px; }
+    .muted{ color:#777; font-style:italic; }
+  `;
+  document.head.appendChild(styleTag);
+
+})();
