@@ -37,8 +37,6 @@
     <span id="version"></span>
   </footer>
 
-  <!-- App JS (versioned for cache-busting) -->
-  <script src="app.js?v=10506"></script>
   <script>
 /* =========================================================
    Dowson Farms — Patch v10.13.1
@@ -593,6 +591,8 @@
   });
 
 })();
+<!-- in index.html, near the bottom before </body> -->
+<script src="app.js?v=10.14.0"></script>
 </script>
 </body>
 </html>
