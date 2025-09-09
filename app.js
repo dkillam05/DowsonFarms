@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.13';
+const APP_VERSION = 'v10.13.2';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -1070,3 +1070,186 @@ if ('serviceWorker' in navigator){
     }catch(e){ console.error('SW registration failed', e); }
   });
 }
+/* =========================
+   PATCH v10.13.2 — UI polish + dark theme bg fix + Combine calc (length + header)
+   Append this at the very end of app.js.
+   ========================= */
+
+// --- 1) Dark-theme background “ivory flash” fix ---
+(function injectPageBgFix(){
+  if (document.getElementById('df-patch-10132-css')) return;
+  const css = document.createElement('style');
+  css.id = 'df-patch-10132-css';
+  css.textContent = `
+    :root { --page-bg: #f6f6e8; }                 /* light */
+    [data-theme="dark"] { --page-bg: #0f0f0f; }   /* dark */
+    html, body, #app { background-color: var(--page-bg) !important; }
+    /* calculator grid alignment */
+    .calc-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 540px){
+      .calc-grid { grid-template-columns: 1fr 1fr; } /* stays two-up on phones */
+    }
+    .calc-row { display:flex; gap:10px; flex-wrap:wrap; }
+    .calc-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+    .result-card {
+      border:1px solid rgba(0,0,0,.12);
+      border-radius:10px;
+      padding:10px;
+      margin-top:10px;
+      background:rgba(255,255,255,.05);
+    }
+    [data-theme="light"] .result-card { background:#fff; }
+  `;
+  document.head.appendChild(css);
+})();
+
+// small helpers (safe re-declare pattern)
+function __df_digits(s){ return String(s||'').replace(/\D+/g,''); }
+function __df_number(x){ const n = Number(String(x).replace(/,/g,'')); return Number.isFinite(n)?n:0; }
+function __df_commas(n){ try { return Number(n).toLocaleString(); } catch { return String(n); } }
+
+// --- 2) Override Combine Yield Calculator with Length + Header Width ---
+(function patchCombineCalculator(){
+  if (window.__dfPatched_Combine) return; // avoid double patch
+  window.__dfPatched_Combine = true;
+
+  // keep your dry-basis & test weight defaults
+  const CROP_PRESETS = {
+    'Corn':     { dryBasis: 15.5, testWt: 56, emoji: '🌽' },
+    'Soybeans': { dryBasis: 13.0, testWt: 60, emoji: '🫘' }
+  };
+
+  // Override function from core
+  window.viewCalcCombine = function(){
+    const cropOpts = Object.keys(CROP_PRESETS).map(c=>`<option value="${c}">${c}</option>`).join('');
+    const todayEmoji = '🌽🌱'; // keeps your breadcrumb emoji feel
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>${todayEmoji} Combine Yield Calculator</h1>
+
+        <div class="calc-grid">
+          <div class="field">
+            <label>Crop</label>
+            <select id="cy-crop">${cropOpts}</select>
+          </div>
+
+          <div class="field">
+            <label>Wet Weight (lb) *</label>
+            <input id="cy-wet" type="number" inputmode="decimal" placeholder="e.g., 54,000">
+          </div>
+
+          <div class="field">
+            <label>Moisture % *</label>
+            <input id="cy-moist" type="number" inputmode="decimal" placeholder="e.g., 18">
+          </div>
+
+          <div class="field">
+            <label>Length (ft) *</label>
+            <input id="cy-length" type="number" inputmode="decimal" placeholder="Feet harvested">
+          </div>
+
+          <div class="field">
+            <label>Header Width *</label>
+            <select id="cy-width">
+              <option value="30">30’</option>
+              <option value="35">35’</option>
+              <option value="40" selected>40’</option>
+              <option value="45">45’</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Dry Basis %</label>
+            <input id="cy-dry" type="number" inputmode="decimal" placeholder="Auto by crop">
+          </div>
+
+          <div class="field">
+            <label>lb / bu (test wt)</label>
+            <input id="cy-test" type="number" inputmode="decimal" placeholder="Auto by crop">
+          </div>
+        </div>
+
+        <div class="small muted" style="margin-top:6px;">
+          Leave “Dry Basis %” and “lb/bu” blank to auto-fill by crop. Acres will be calculated from Length × Header Width.
+        </div>
+
+        <div class="calc-actions">
+          <button id="cy-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back to Calculator</a>
+          <a class="btn" href="#/home">Back to Dashboard</a>
+        </div>
+
+        <div id="cy-out" class="result-card" style="display:none;"></div>
+      </section>
+    `;
+
+    // auto-fill presets on crop change
+    const cropSel = document.getElementById('cy-crop');
+    const dryInp  = document.getElementById('cy-dry');
+    const testInp = document.getElementById('cy-test');
+    function applyPreset(){
+      const p = CROP_PRESETS[cropSel.value];
+      if (!dryInp.value)  dryInp.value  = p.dryBasis;
+      if (!testInp.value) testInp.value = p.testWt;
+    }
+    cropSel.addEventListener('change', applyPreset);
+    applyPreset();
+
+    document.getElementById('cy-go')?.addEventListener('click', ()=>{
+      const crop   = cropSel.value;
+      const wetLb  = __df_number(document.getElementById('cy-wet').value);
+      const moist  = __df_number(document.getElementById('cy-moist').value);
+      const lenFt  = __df_number(document.getElementById('cy-length').value);
+      const headFt = __df_number(document.getElementById('cy-width').value);
+      const dryPct = __df_number(dryInp.value || CROP_PRESETS[crop].dryBasis);
+      const testWt = __df_number(testInp.value || CROP_PRESETS[crop].testWt);
+
+      if (!wetLb || !moist || !lenFt || !headFt){
+        alert('Please fill Wet Weight, Moisture, Length and Header Width.');
+        return;
+      }
+
+      // Acres from length × header width
+      const acres = (lenFt * headFt) / 43560; // 43,560 sq ft per acre
+      if (acres <= 0){ alert('Calculated acres is zero or negative. Check length/header width.'); return; }
+
+      // Wet bushels from test weight
+      const wetBu = wetLb / testWt;
+
+      // Convert to dry (true shrink): factor = (100 - actual) / (100 - dryBasis)
+      const dryFactor = (100 - moist) / (100 - dryPct);
+      const adjBu = wetBu * dryFactor;
+
+      // Yield (bu/ac)
+      const yieldBuAc = adjBu / acres;
+
+      // Simple shrink % shown for clarity
+      const shrinkPct = (1 - dryFactor) * 100;
+
+      const out = document.getElementById('cy-out');
+      out.style.display = '';
+      out.innerHTML = `
+        <div><strong>Crop:</strong> ${CROP_PRESETS[crop].emoji} ${crop}</div>
+        <div class="calc-row">
+          <div><strong>Acres (calc):</strong> ${acres.toFixed(3)}</div>
+          <div><strong>Wet Bushels:</strong> ${__df_commas(wetBu.toFixed(2))}</div>
+        </div>
+        <div class="calc-row">
+          <div><strong>Dry Basis %:</strong> ${dryPct}%</div>
+          <div><strong>Test Wt:</strong> ${testWt} lb/bu</div>
+        </div>
+        <div class="calc-row">
+          <div><strong>Adjusted (dry) Bu:</strong> ${__df_commas(adjBu.toFixed(2))}</div>
+          <div><strong>Yield:</strong> ${__df_commas(yieldBuAc.toFixed(1))} bu/ac</div>
+        </div>
+        <div class="small muted">Shrink applied ≈ ${shrinkPct.toFixed(1)}% from ${moist}% to ${dryPct}%.</div>
+      `;
+      window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
+    });
+  };
+})();
