@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.14.5';
+const APP_VERSION = 'v10.14.6';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -1892,3 +1892,657 @@ window.viewTeamDirectory = function(){
     </section>
   `;
 };
+/* =========================================================
+   Dowson Farms — PATCH v10.14.6
+   Paste at the very bottom of app.js
+   Covers:
+   - Footer version override to v10.14.6
+   - Calculator hub order
+   - All 5 calculators working (incl. Elevator Shrink compare)
+   - Crop Year selector on Crop hub (multi-year, per-user, +Add next year only)
+   - UI polish (result cards, number formatting, small “Add job type” button)
+   - Theme Settings: segmented 3-way switch (Auto/Light/Dark)
+   ========================================================= */
+
+(function DF_PATCH_10146(){
+  'use strict';
+
+  // ---------- Small helpers ----------
+  const $ = (sel, root=document)=>root.querySelector(sel);
+  const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+  const num = v => { const n = Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; };
+  const commas = v => { try{ return Number(v).toLocaleString(); }catch{ return String(v); } };
+  const html = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  // ---------- Footer version override (keeps incremental patching) ----------
+  try{ const vEl = document.getElementById('version'); if (vEl) vEl.textContent = 'v10.14.6'; }catch{}
+
+  // ---------- Minimal CSS for UI polish ----------
+  (function injectCSS(){
+    if (document.getElementById('df-patch-10146-css')) return;
+    const s = document.createElement('style');
+    s.id = 'df-patch-10146-css';
+    s.textContent = `
+      /* result cards & grids */
+      .result-card{
+        border:1px solid rgba(0,0,0,.12);
+        border-radius:10px;
+        padding:12px;
+        margin-top:12px;
+        background:rgba(255,255,255,.05);
+      }
+      [data-theme="light"] .result-card{ background:#fff; }
+      .calc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      @media (max-width:560px){ .calc-grid{ grid-template-columns:1fr 1fr; } }
+
+      /* compact button */
+      .btn-compact{ padding:4px 8px; font-size:.85rem; line-height:1.2; }
+
+      /* segmented control for theme */
+      .seg{
+        display:inline-flex; border:1px solid var(--border,rgba(0,0,0,.2));
+        border-radius:10px; overflow:hidden;
+      }
+      .seg button{
+        appearance:none; background:transparent; border:0; padding:8px 14px; cursor:pointer;
+      }
+      .seg button.active{
+        background:var(--seg-active,#1b5e20); color:#fff;
+      }
+
+      /* crop year chips */
+      .year-bar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 14px; }
+      .chip-toggle{
+        display:inline-flex; align-items:center; gap:6px;
+        border:1px solid rgba(0,0,0,.2); border-radius:999px; padding:6px 10px;
+        cursor:pointer; user-select:none;
+      }
+      .chip-toggle input{ accent-color:#1b5e20; }
+      .year-add{ margin-left:4px; }
+    `;
+    document.head.appendChild(s);
+  })();
+
+  // ---------- Field Maintenance: shrink the “Add” button ----------
+  (function smallAddJobBtn(){
+    const obs = new MutationObserver(()=>{
+      const btn = document.getElementById('fm-add-job');
+      if (btn && !btn.classList.contains('btn-compact')) btn.classList.add('btn-compact');
+    });
+    obs.observe(document.getElementById('app')||document.body, {childList:true, subtree:true});
+  })();
+
+  // =========================================================
+  // 1) Calculator Hub — reorder tiles as requested
+  // Row 1: Combine (L) + Bin (R)
+  // Row 2: Fertilizer (L) + Chemical (R)
+  // Row 3: Area (centered)
+  // =========================================================
+  window.viewCalcHub = function(){
+    const row = (a,b)=>`<div class="grid">${a}${b}</div>`;
+    const solo = a => `<div class="grid" style="grid-template-columns:1fr;max-width:380px;margin-inline:auto;">${a}</div>`;
+    const t = (emoji,label,href)=>`<a class="tile" href="${href}"><span class="emoji">${emoji}</span><span class="label">${label}</span></a>`;
+    app.innerHTML = `
+      ${row(t('🌽🌱','Combine Yield','#/calc/combine'), t('🛢️','Bin Volume','#/calc/bin'))}
+      ${row(t('👨🏼‍🔬','Fertilizer','#/calc/fertilizer'), t('🧪','Chemical Mix','#/calc/chem'))}
+      ${solo(t('📐','Area','#/calc/area'))}
+      <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+    `;
+  };
+
+  // =========================================================
+  // 2) Combine Yield Calculator — Length + Header + True vs Elevator Shrink
+  // =========================================================
+  (function overrideCombine(){
+    const PRESETS = {
+      Corn:     { base: 15.5, lbbu:56, emoji:'🌽' },
+      Soybeans: { base: 13.0, lbbu:60, emoji:'🫘' }
+    };
+
+    // Elevator shrink model:
+    //  - 0% at/below base moisture
+    //  - Linear up to 21% shrink at 29% moisture (per your earlier guidance)
+    //  - Above 29%: clamp at 21% (or expand later if your schedule dictates)
+    function elevatorShrinkPct(moist, base){
+      if (moist <= base) return 0;
+      const maxM = 29;
+      const maxS = 21;
+      if (moist >= maxM) return maxS;
+      const slope = maxS / (maxM - base);
+      return slope * (moist - base);
+    }
+
+    window.viewCalcCombine = function(){
+      const crops = Object.keys(PRESETS).map(c=>`<option value="${c}">${c}</option>`).join('');
+      app.innerHTML = `
+        <section class="section">
+          <h1>🌽🌱 Combine Yield Calculator</h1>
+
+          <div class="calc-grid">
+            <label><span class="small muted">Crop</span>
+              <select id="cy-crop">${crops}</select>
+            </label>
+            <label><span class="small muted">Wet Weight (lb) *</span><input id="cy-wet" type="number" step="any" placeholder="e.g. 54,000"></label>
+            <label><span class="small muted">Moisture % *</span><input id="cy-moist" type="number" step="any" placeholder="e.g. 18"></label>
+            <label><span class="small muted">Length (ft) *</span><input id="cy-length" type="number" step="any" placeholder="Feet harvested"></label>
+            <label><span class="small muted">Header Width *</span>
+              <select id="cy-width">
+                <option value="30">30’</option>
+                <option value="35">35’</option>
+                <option value="40" selected>40’</option>
+                <option value="45">45’</option>
+              </select>
+            </label>
+            <label><span class="small muted">Dry Basis % (auto)</span><input id="cy-base" type="number" step="any" placeholder="e.g. 15.5"></label>
+            <label><span class="small muted">lb / bu (auto)</span><input id="cy-lbbu" type="number" step="any" placeholder="Corn 56 / Soy 60"></label>
+          </div>
+
+          <div class="small muted" style="margin-top:6px;">
+            Leave “Dry Basis %” and “lb/bu” blank to auto-fill by crop. Acres = Length × Header ÷ 43,560.
+          </div>
+
+          <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
+            <button id="cy-go" class="btn-primary">Calculate</button>
+            <a class="btn" href="#/calc">Back</a>
+            <a class="btn" href="#/home">Dashboard</a>
+          </div>
+
+          <div id="cy-out" class="result-card" style="display:none;"></div>
+        </section>
+      `;
+
+      const cropSel = $('#cy-crop'), baseInp = $('#cy-base'), lbbuInp = $('#cy-lbbu');
+      function fillDefaults(){ const p = PRESETS[cropSel.value]; if(!baseInp.value) baseInp.value=p.base; if(!lbbuInp.value) lbbuInp.value=p.lbbu; }
+      cropSel.addEventListener('change', fillDefaults); fillDefaults();
+
+      $('#cy-go').addEventListener('click', ()=>{
+        const crop   = cropSel.value;
+        const wetLb  = num($('#cy-wet').value);
+        const moist  = num($('#cy-moist').value);
+        const lenFt  = num($('#cy-length').value);
+        const headFt = num($('#cy-width').value);
+        const base   = num(baseInp.value || PRESETS[crop].base);
+        const lbbu   = num(lbbuInp.value || PRESETS[crop].lbbu);
+
+        if (!wetLb || !moist || !lenFt || !headFt){ alert('Enter Wet Weight, Moisture, Length and Header Width.'); return; }
+
+        const acres = (lenFt * headFt) / 43560;
+        if (acres <= 0){ alert('Calculated acres <= 0. Check length/header width.'); return; }
+
+        const wetBu = wetLb / lbbu;
+
+        // True shrink factor:
+        const dryFactor = (100 - moist) / (100 - base);
+        const trueBu = wetBu * dryFactor;
+        const trueYield = trueBu / acres;
+        const trueShrinkPct = (1 - dryFactor) * 100;
+
+        // Elevator shrink (percentage off wet bushels), then bu/ac
+        const elevShrink = elevatorShrinkPct(moist, base);
+        const elevBu = wetBu * (1 - (elevShrink/100));
+        const elevYield = elevBu / acres;
+
+        const out = $('#cy-out'); out.style.display='';
+        out.innerHTML = `
+          <div><strong>Crop:</strong> ${PRESETS[crop].emoji} ${crop}</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;">
+            <div><strong>Acres (calc):</strong> ${acres.toFixed(3)}</div>
+            <div><strong>Wet Bushels:</strong> ${commas(wetBu.toFixed(2))}</div>
+            <div><strong>Test Wt:</strong> ${lbbu} lb/bu</div>
+            <div><strong>Dry Basis:</strong> ${base}%</div>
+          </div>
+
+          <hr style="border:none;border-top:1px solid rgba(0,0,0,.12);margin:10px 0;">
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="margin:0 0 6px 0;">True Shrink</h3>
+              <div><strong>Adj. Bushels:</strong> ${commas(trueBu.toFixed(2))}</div>
+              <div><strong>Yield:</strong> ${commas(trueYield.toFixed(1))} bu/ac</div>
+              <div class="small muted">Shrink applied ≈ ${trueShrinkPct.toFixed(1)}% (to ${base}%).</div>
+            </div>
+            <div>
+              <h3 style="margin:0 0 6px 0;">Elevator Shrink</h3>
+              <div><strong>Adj. Bushels:</strong> ${commas(elevBu.toFixed(2))}</div>
+              <div><strong>Yield:</strong> ${commas(elevYield.toFixed(1))} bu/ac</div>
+              <div class="small muted">Prorated elevator shrink ≈ ${elevShrink.toFixed(1)}%.</div>
+            </div>
+          </div>
+        `;
+        window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
+      });
+    };
+  })();
+
+  // =========================================================
+  // 3) Fertilizer Calculator (target lb/ac → lb/ac & gal/ac + totals)
+  // =========================================================
+  window.viewCalcFertilizer = function(){
+    const KEY='df_calc_fert';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+    app.innerHTML = `
+      <section class="section">
+        <h1>👨🏼‍🔬 Fertilizer Calculator</h1>
+        <div class="calc-grid">
+          <label><span class="small muted">Nutrient</span>
+            <select id="f-nutrient">
+              <option ${s.nutrient==='N'?'selected':''}>N</option>
+              <option ${s.nutrient==='P₂O₅'?'selected':''}>P₂O₅</option>
+              <option ${s.nutrient==='K₂O'?'selected':''}>K₂O</option>
+            </select>
+          </label>
+          <label><span class="small muted">Target lb/acre *</span><input id="f-target" type="number" step="any" value="${html(s.target||'')}"></label>
+          <label><span class="small muted">Product Analysis % *</span><input id="f-analysis" type="number" step="any" value="${html(s.analysis||'')}" placeholder="e.g. 32"></label>
+          <label><span class="small muted">Density (lb/gal)</span>
+            <select id="f-density">
+              <option value="11.06" ${String(s.density||'11.06')==='11.06'?'selected':''}>UAN 32 (11.06)</option>
+              <option value="10.67" ${String(s.density)==='10.67'?'selected':''}>UAN 28 (10.67)</option>
+              <option value="8.34"  ${String(s.density)==='8.34'?'selected':''}>Water (8.34)</option>
+              <option value="${html(s.density||'11.06')}" ${!['11.06','10.67','8.34'].includes(String(s.density))?'selected':''}>Custom (${html(s.density||'11.06')})</option>
+            </select>
+          </label>
+          <label><span class="small muted">Acres *</span><input id="f-acres" type="number" step="any" value="${html(s.acres||'')}"></label>
+        </div>
+
+        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
+          <button id="f-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+          <a class="btn" href="#/home">Dashboard</a>
+        </div>
+
+        <div id="f-out" class="result-card" style="display:none;"></div>
+      </section>
+    `;
+    $('#f-go').addEventListener('click', ()=>{
+      const payload = {
+        nutrient: $('#f-nutrient').value,
+        target:   num($('#f-target').value),
+        analysis: num($('#f-analysis').value),
+        density:  num($('#f-density').value||'11.06'),
+        acres:    num($('#f-acres').value)
+      };
+      localStorage.setItem(KEY, JSON.stringify(payload));
+      const {target,analysis,density,acres} = payload;
+      if (!target || !analysis || !acres || analysis<=0 || analysis>100){ alert('Enter valid target, analysis(1–100) and acres.'); return; }
+      const frac = analysis/100;
+      const lbA  = target/frac;
+      const galA = lbA/(density||1);
+      const out = $('#f-out'); out.style.display='';
+      out.innerHTML = `
+        <div><strong>Product lb/acre:</strong> ${commas(lbA.toFixed(2))}</div>
+        <div><strong>Product gal/acre:</strong> ${commas(galA.toFixed(2))}</div>
+        <div><strong>Total lbs:</strong> ${commas((lbA*acres).toFixed(0))}</div>
+        <div><strong>Total gal:</strong> ${commas((galA*acres).toFixed(1))}</div>
+        <div class="small muted" style="margin-top:6px;">Density affects gal/acre; analysis drives lb/acre.</div>
+      `;
+    });
+  };
+
+  // =========================================================
+  // 4) Bin Volume Calculator (cyl + optional cone)
+  // =========================================================
+  window.viewCalcBin = function(){
+    const KEY='df_calc_bin';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+    app.innerHTML = `
+      <section class="section">
+        <h1>🛢️ Bin Volume Calculator</h1>
+
+        <div class="calc-grid">
+          <label><span class="small muted">Diameter (ft) *</span><input id="b-d" type="number" step="any" value="${html(s.d||'')}"></label>
+          <label><span class="small muted">Grain Depth (ft) *</span><input id="b-h" type="number" step="any" value="${html(s.h||'')}"></label>
+          <label><span class="small muted">Roof</span>
+            <select id="b-roof">
+              <option value="flat" ${(!s.roof||s.roof==='flat')?'selected':''}>Flat/Simplified</option>
+              <option value="cone" ${s.roof==='cone'?'selected':''}>Cone (add rise)</option>
+            </select>
+          </label>
+          <label id="b-rise-wrap" style="display:${s.roof==='cone'?'block':'none'};"><span class="small muted">Cone Rise (ft)</span><input id="b-rise" type="number" step="any" value="${html(s.rise||'')}"></label>
+          <label><span class="small muted">Crop</span>
+            <select id="b-crop">
+              <option ${(!s.crop||s.crop==='Corn')?'selected':''}>Corn</option>
+              <option ${s.crop==='Soybeans'?'selected':''}>Soybeans</option>
+              <option ${s.crop==='Custom'?'selected':''}>Custom</option>
+            </select>
+          </label>
+          <label><span class="small muted">lb / bu</span><input id="b-lbbu" type="number" step="any" value="${html(s.lbbu||'56')}"></label>
+          <label><span class="small muted">ft³ / bu</span><input id="b-buft3" type="number" step="any" value="${html(s.buft3||'1.244')}"></label>
+        </div>
+
+        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
+          <button id="b-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+          <a class="btn" href="#/home">Dashboard</a>
+        </div>
+
+        <div id="b-out" class="result-card" style="display:none;"></div>
+      </section>
+    `;
+    $('#b-roof').addEventListener('change', ()=>{ $('#b-rise-wrap').style.display = ($('#b-roof').value==='cone')?'block':'none'; });
+    $('#b-crop').addEventListener('change', ()=>{
+      if ($('#b-crop').value==='Corn') $('#b-lbbu').value='56';
+      else if ($('#b-crop').value==='Soybeans') $('#b-lbbu').value='60';
+    });
+    $('#b-go').addEventListener('click', ()=>{
+      const d=num($('#b-d').value), h=num($('#b-h').value), roof=$('#b-roof').value, rise=num($('#b-rise')?.value||0);
+      const lbbu=num($('#b-lbbu').value||56), buft3=num($('#b-buft3').value||1.244);
+      localStorage.setItem(KEY, JSON.stringify({d,h,roof,rise,crop:$('#b-crop').value,lbbu,buft3}));
+      if(!d||!h||!lbbu||!buft3){ alert('Enter diameter, depth, lb/bu, ft³/bu.'); return; }
+      const r=d/2;
+      const volCyl = Math.PI*r*r*h;
+      const volCone = roof==='cone' && rise>0 ? (Math.PI*r*r*rise)/3 : 0;
+      const vol = volCyl + volCone;
+      const bu = vol / buft3;
+      const wt = bu * lbbu;
+      const out=$('#b-out'); out.style.display='';
+      out.innerHTML = `
+        <div><strong>Volume (ft³):</strong> ${commas(vol.toFixed(0))}</div>
+        <div><strong>Bushels:</strong> ${commas(bu.toFixed(0))}</div>
+        <div><strong>Estimated Weight (lb):</strong> ${commas(wt.toFixed(0))}</div>
+        <div class="small muted" style="margin-top:6px;">Assumes ideal fill; adjust for void/packing as needed.</div>
+      `;
+    });
+  };
+
+  // =========================================================
+  // 5) Area Calculator (rect/circle/triangle; feet/meters; acres)
+  // =========================================================
+  window.viewCalcArea = function(){
+    const KEY='df_calc_area';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+    app.innerHTML = `
+      <section class="section">
+        <h1>📐 Area Calculator</h1>
+
+        <div class="calc-grid">
+          <label><span class="small muted">Shape</span>
+            <select id="a-shape">
+              <option ${s.shape==='Rectangle'?'selected':''}>Rectangle</option>
+              <option ${s.shape==='Circle'?'selected':''}>Circle</option>
+              <option ${s.shape==='Triangle'?'selected':''}>Triangle</option>
+            </select>
+          </label>
+          <label><span class="small muted">Units</span>
+            <select id="a-unit">
+              <option value="ft" ${s.unit!=='m'?'selected':''}>Feet</option>
+              <option value="m"  ${s.unit==='m'?'selected':''}>Meters</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="a-rect" class="calc-grid" style="display:${(!s.shape||s.shape==='Rectangle')?'grid':'none'};">
+          <label><span class="small muted">Length *</span><input id="a-len" type="number" step="any" value="${html(s.len||'')}"></label>
+          <label><span class="small muted">Width *</span><input id="a-wid" type="number" step="any" value="${html(s.wid||'')}"></label>
+        </div>
+
+        <div id="a-circ" class="calc-grid" style="display:${s.shape==='Circle'?'grid':'none'};">
+          <label><span class="small muted">Diameter *</span><input id="a-dia" type="number" step="any" value="${html(s.dia||'')}"></label>
+          <div></div>
+        </div>
+
+        <div id="a-tri" class="calc-grid" style="display:${s.shape==='Triangle'?'grid':'none'};">
+          <label><span class="small muted">Base *</span><input id="a-base" type="number" step="any" value="${html(s.base||'')}"></label>
+          <label><span class="small muted">Height *</span><input id="a-height" type="number" step="any" value="${html(s.height||'')}"></label>
+        </div>
+
+        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
+          <button id="a-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+          <a class="btn" href="#/home">Dashboard</a>
+        </div>
+
+        <div id="a-out" class="result-card" style="display:none;"></div>
+      </section>
+    `;
+    function showShape(){
+      $('#a-rect').style.display = ($('#a-shape').value==='Rectangle')?'grid':'none';
+      $('#a-circ').style.display = ($('#a-shape').value==='Circle')?'grid':'none';
+      $('#a-tri').style.display  = ($('#a-shape').value==='Triangle')?'grid':'none';
+    }
+    $('#a-shape').addEventListener('change', showShape); showShape();
+
+    $('#a-go').addEventListener('click', ()=>{
+      const shape=$('#a-shape').value, unit=$('#a-unit').value;
+      let A=0;
+      if (shape==='Rectangle'){
+        const L=num($('#a-len').value), W=num($('#a-wid').value); if(!L||!W) return alert('Enter length & width.');
+        A=L*W;
+      } else if (shape==='Circle'){
+        const D=num($('#a-dia').value); if(!D) return alert('Enter diameter.'); const r=D/2; A=Math.PI*r*r;
+      } else {
+        const B=num($('#a-base').value), H=num($('#a-height').value); if(!B||!H) return alert('Enter base & height.');
+        A=0.5*B*H;
+      }
+      localStorage.setItem('df_calc_area', JSON.stringify({
+        shape, unit,
+        len:$('#a-len')?.value, wid:$('#a-wid')?.value,
+        dia:$('#a-dia')?.value, base:$('#a-base')?.value, height:$('#a-height')?.value
+      }));
+      const acres = unit==='ft' ? (A/43560) : (A/4046.8564224);
+      const out=$('#a-out'); out.style.display='';
+      out.innerHTML = `
+        <div><strong>Area (${unit==='ft'?'ft²':'m²'}):</strong> ${commas(A.toFixed(2))}</div>
+        <div><strong>Area (acres):</strong> ${commas(acres.toFixed(4))}</div>
+      `;
+    });
+  };
+
+  // =========================================================
+  // 6) Chemical Mix Sheet (up to 6 products → per tank gallons)
+  // =========================================================
+  window.viewCalcChem = function(){
+    const KEY='df_calc_chem';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+    const prods = s.prods || Array.from({length:6}).map(()=>({name:'',rate:'',unit:'oz'}));
+
+    function row(i,p){
+      return `
+        <div class="calc-grid">
+          <label><span class="small muted">Product ${i+1}</span><input id="ch-name-${i}" type="text" value="${html(p.name||'')}" placeholder="Name"></label>
+          <label><span class="small muted">Rate / acre</span><input id="ch-rate-${i}" type="number" step="any" value="${html(p.rate||'')}"></label>
+          <label><span class="small muted">Unit</span>
+            <select id="ch-unit-${i}">
+              <option ${p.unit==='oz'?'selected':''} value="oz">oz</option>
+              <option ${p.unit==='pt'?'selected':''} value="pt">pt</option>
+              <option ${p.unit==='qt'?'selected':''} value="qt">qt</option>
+              <option ${p.unit==='gal'?'selected':''} value="gal">gal</option>
+            </select>
+          </label>
+        </div>`;
+    }
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>🧪 Chemical Mix Sheet</h1>
+
+        <div class="calc-grid">
+          <label><span class="small muted">Tank Size (gal) *</span><input id="ch-tank" type="number" step="any" value="${html(s.tank||'')}"></label>
+          <label><span class="small muted">Carrier GPA *</span><input id="ch-gpa" type="number" step="any" value="${html(s.gpa||'')}"></label>
+          <label><span class="small muted">Job Acres (optional)</span><input id="ch-job" type="number" step="any" value="${html(s.job||'')}"></label>
+        </div>
+
+        <h3 style="margin-top:10px;">Products (rate per acre)</h3>
+        ${prods.map((p,i)=>row(i,p)).join('')}
+
+        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
+          <button id="ch-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+          <a class="btn" href="#/home">Dashboard</a>
+        </div>
+
+        <div id="ch-out" class="result-card" style="display:none;"></div>
+      </section>
+    `;
+
+    function unitToGal(u,a){
+      const x=num(a); if(!x) return 0;
+      if(u==='gal') return x;
+      if(u==='qt') return x/4;
+      if(u==='pt') return x/8;
+      if(u==='oz') return x/128;
+      return 0;
+    }
+
+    $('#ch-go').addEventListener('click', ()=>{
+      const tank=num($('#ch-tank').value), gpa=num($('#ch-gpa').value), job=num($('#ch-job').value);
+      const ps=[];
+      for(let i=0;i<6;i++){ ps.push({ name:$('#ch-name-'+i).value, rate:$('#ch-rate-'+i).value, unit:$('#ch-unit-'+i).value }); }
+      localStorage.setItem(KEY, JSON.stringify({tank,gpa,job,prods:ps}));
+      if(!tank||!gpa){ alert('Enter Tank Size and Carrier GPA.'); return; }
+      const acPerTank = tank/gpa;
+      let total=0;
+      const lines = ps.filter(p=>num(p.rate)>0).map(p=>{
+        const perAcreGal = unitToGal(p.unit, p.rate);
+        const perTankGal = perAcreGal * acPerTank;
+        total += perTankGal;
+        return `<li>${html(p.name||'(Unnamed)')}: <strong>${commas(perTankGal.toFixed(3))}</strong> gal / tank <span class="small muted">(${p.rate} ${p.unit}/ac)</span></li>`;
+      });
+      const out=$('#ch-out'); out.style.display='';
+      const tanks = job>0 ? `<li><strong>Tanks needed for ${commas(job)} ac:</strong> ${commas(Math.ceil(job/acPerTank))}</li>` : '';
+      out.innerHTML = `
+        <div><strong>Acres per tank:</strong> ${commas(acPerTank.toFixed(2))}</div>
+        <div><strong>Carrier per tank (gal):</strong> ${commas(tank)}</div>
+        <ul style="margin:8px 0 0 18px;">${lines.join('') || '<li class="muted">No products entered.</li>'}</ul>
+        <div style="margin-top:6px;"><strong>Total product volume in mix (gal):</strong> ${commas(total.toFixed(3))}</div>
+        ${tanks}
+        <div class="small muted" style="margin-top:6px;">Confirm compatibility and label requirements.</div>
+      `;
+    });
+  };
+
+  // =========================================================
+  // 7) Crop Year selector (Crop hub): multi-select + “Add next year only”
+  //    - Per user last selection persists
+  // =========================================================
+  (function overrideCropHub(){
+    const YEARS_KEY = 'df_crop_years';
+    const SEL_KEY = email => `df_crop_year_sel:${email||'anon'}`;
+
+    function getYears(){
+      try{
+        const arr = JSON.parse(localStorage.getItem(YEARS_KEY)||'[]');
+        if (Array.isArray(arr) && arr.length) return arr.sort((a,b)=>a-b);
+      }catch{}
+      const start = 2024;
+      const cur = new Date().getFullYear();
+      const seed = [];
+      for (let y=start; y<=cur; y++) seed.push(y);
+      localStorage.setItem(YEARS_KEY, JSON.stringify(seed));
+      return seed;
+    }
+    function saveYears(arr){ try{ localStorage.setItem(YEARS_KEY, JSON.stringify(Array.from(new Set(arr)).sort((a,b)=>a-b))); }catch{} }
+    function getSel(user){ try{ const v=JSON.parse(localStorage.getItem(SEL_KEY(user))||'[]'); return Array.isArray(v)&&v.length?v:[]; }catch{ return []; } }
+    function saveSel(user, years){ try{ localStorage.setItem(SEL_KEY(user), JSON.stringify(Array.from(new Set(years)).sort((a,b)=>a-b))); }catch{} }
+
+    // Expose getter for other screens if needed later:
+    window.df_getSelectedCropYears = function(){
+      const user = (localStorage.getItem('df_user')||'').trim();
+      const sel = getSel(user);
+      return sel.length ? sel : [new Date().getFullYear()]; // default to this year if none chosen
+    };
+
+    window.viewCropHub = function(){
+      const user = (localStorage.getItem('df_user')||'').trim();
+      const years = getYears();
+      let selected = getSel(user);
+      if (!selected.length){
+        // default: last used if present, else current year
+        const cur = new Date().getFullYear();
+        selected = [cur];
+        saveSel(user, selected);
+      }
+
+      function chip(y){
+        const id = `year-${y}`;
+        const checked = selected.includes(y) ? 'checked' : '';
+        return `<label class="chip-toggle" for="${id}">
+          <input id="${id}" type="checkbox" ${checked} data-year="${y}"> ${y}
+        </label>`;
+      }
+
+      // Tiles (same as before)
+      const tiles = `
+        <div class="grid">
+          ${tile('🌱','Planting','#/crop/planting')}
+          ${tile('🧪','Spraying','#/crop/spraying')}
+          ${tile('🚁','Aerial Spray','#/crop/aerial')}
+          ${tile('🌾','Harvest','#/crop/harvest')}
+          ${tile('🧰','Field Maintenance','#/crop/maintenance')}
+          ${tile('🔎','Scouting','#/crop/scouting')}
+          ${tile('🧬','Trials','#/crop/trials')}
+        </div>
+        <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+      `;
+
+      app.innerHTML = `
+        <section class="section">
+          <h1>Crop Production</h1>
+
+          <div class="year-bar" id="year-bar">
+            <span class="small muted">Crop Year:</span>
+            ${years.map(chip).join('')}
+            <button id="year-add" class="btn btn-compact year-add" title="Add next year">➕ Add</button>
+          </div>
+
+          ${tiles}
+        </section>
+      `;
+
+      // Wire selection changes
+      $('#year-bar').addEventListener('change', (e)=>{
+        if (e.target && e.target.matches('input[type="checkbox"][data-year]')){
+          const y = Number(e.target.getAttribute('data-year'));
+          if (e.target.checked){ if (!selected.includes(y)) selected.push(y); }
+          else { selected = selected.filter(v=>v!==y); }
+          if (!selected.length){
+            // Always keep at least one selected; revert toggle
+            selected = [y];
+            e.target.checked = true;
+          }
+          saveSel(user, selected);
+        }
+      });
+
+      // Add next year (only allow current max + 1, and not beyond (currentYear+1))
+      $('#year-add').addEventListener('click', ()=>{
+        const list = getYears();
+        const cur = new Date().getFullYear();
+        const allowedMax = cur + 1;
+        const next = (list[list.length-1]||cur) + 1;
+        if (next > allowedMax){ alert(`You can only add up to ${allowedMax}.`); return; }
+        list.push(next); saveYears(list);
+        // re-render quickly
+        viewCropHub();
+      });
+    };
+  })();
+
+  // =========================================================
+  // 8) Theme Settings — segmented buttons (Auto/Light/Dark)
+  // =========================================================
+  window.viewSettingsTheme = function(){
+    const KEY='df_theme';
+    const cur = (localStorage.getItem(KEY)||'auto');
+    function btn(label,val){ const active = cur===val?'active':''; return `<button type="button" class="${active}" data-val="${val}">${label}</button>`; }
+    app.innerHTML = `
+      <section class="section">
+        <h1>Theme</h1>
+        <div class="field">
+          <label style="font-weight:600;margin-bottom:6px;">Appearance</label>
+          <div class="seg" id="theme-seg">
+            ${btn('Auto','auto')}${btn('Light','light')}${btn('Dark','dark')}
+          </div>
+        </div>
+        <div class="section"><a class="btn" href="#/settings">Back to Settings</a></div>
+      </section>
+    `;
+    $('#theme-seg').addEventListener('click', (e)=>{
+      const b = e.target.closest('button[data-val]'); if(!b) return;
+      const v = b.getAttribute('data-val');
+      localStorage.setItem(KEY, v);
+      document.documentElement.setAttribute('data-theme', v);
+      $$('#theme-seg button').forEach(x=>x.classList.toggle('active', x===b));
+    });
+  };
+
+})(); // end PATCH v10.14.6
