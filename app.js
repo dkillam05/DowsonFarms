@@ -1,7 +1,7 @@
-// ===== Version =====
-const APP_VERSION = 'v10.12';
+// ===== Version (footer shows vMAJOR.MINOR) =====
+const APP_VERSION = 'v10.13';
 
-// ===== Init theme =====
+// ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
   try {
     const t = localStorage.getItem('df_theme') || 'auto';
@@ -9,7 +9,7 @@ const APP_VERSION = 'v10.12';
   } catch {}
 })();
 
-// ===== Auth =====
+// ===== Auth (invite-only placeholder) =====
 function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
 (function enforceAuth(){
   const here = (location.pathname.split('/').pop() || '').toLowerCase();
@@ -43,6 +43,13 @@ const clockEl = document.getElementById('clock');
 const bannerEl = document.getElementById('update-banner');
 const bannerBtn = document.getElementById('update-refresh');
 
+// ===== Ensure we always have a hash (prevents blank page if none) =====
+function ensureHomeHash() {
+  if (!location.hash || location.hash === '#') {
+    location.replace('#/home');
+  }
+}
+
 /* =========================================
    PHONE INPUT — improved live formatting
    ========================================= */
@@ -58,11 +65,12 @@ function bindPhoneAutoFormat(root=document){
   root.querySelectorAll('input[type="tel"]').forEach(inp=>{
     if (inp.dataset._phoneBound === '1') return;
     inp.dataset._phoneBound = '1';
-    let lastDigits = phoneDigitsOnly(inp.value || '');
-    inp.value = formatPhoneUS(lastDigits);
+
+    // initialize display
+    inp.value = formatPhoneUS(phoneDigitsOnly(inp.value || ''));
+
     inp.addEventListener('input', ()=>{
       const digits = phoneDigitsOnly(inp.value);
-      lastDigits = digits;
       inp.value = formatPhoneUS(digits);
       try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch {}
       inp.dataset.cleanPhone = digits;
@@ -123,6 +131,7 @@ function tile(emoji,label,href){
 // ===== Labels for breadcrumbs =====
 const LABELS = {
   '#/home':'Home',
+  // Crop Production
   '#/crop':'Crop Production',
   '#/crop/planting':'Planting',
   '#/crop/spraying':'Spraying',
@@ -131,12 +140,16 @@ const LABELS = {
   '#/crop/maintenance':'Field Maintenance',
   '#/crop/scouting':'Scouting',
   '#/crop/trials':'Trials',
+
+  // Calculators
   '#/calc':'Calculator',
   '#/calc/fertilizer':'Fertilizer Calculator',
   '#/calc/bin':'Bin Volume Calculator',
   '#/calc/area':'Area Calculator',
   '#/calc/combine':'Combine Yield Calculator',
   '#/calc/chem':'Chemical Mix Sheet',
+
+  // Equipment
   '#/equipment':'Equipment',
   '#/equipment/receivers':'StarFire / Technology',
   '#/equipment/tractors':'Tractors',
@@ -146,25 +159,35 @@ const LABELS = {
   '#/equipment/trucks':'Trucks',
   '#/equipment/trailers':'Trailers',
   '#/equipment/implements':'Farm Implements',
+
+  // Grain Tracking
   '#/grain':'Grain Tracking',
   '#/grain/bag':'Grain Bag',
   '#/grain/bins':'Grain Bins',
   '#/grain/contracts':'Grain Contracts',
   '#/grain/tickets':'Grain Ticket OCR',
+
+  // Team & Partners
   '#/team':'Team & Partners',
   '#/team/employees':'Employees',
   '#/team/subcontractors':'Subcontractors',
   '#/team/vendors':'Vendors',
   '#/team/dir':'Directory',
+
+  // Reports
   '#/ai':'Reports',
   '#/ai/premade':'Pre-made Reports',
   '#/ai/premade/feedback':'Feedback Summary',
   '#/ai/premade/grain-bags':'Grain Bag Report',
   '#/ai/ai':'AI Reports',
   '#/ai/yield':'Yield Report',
+
+  // Settings
   '#/settings':'Settings',
   '#/settings/crops':'Crop Type',
   '#/settings/theme':'Theme',
+
+  // Feedback
   '#/feedback':'Feedback',
   '#/feedback/errors':'Report Errors',
   '#/feedback/feature':'New Feature Request',
@@ -205,8 +228,9 @@ function viewHome(){
     </div>
   `;
 }
-
-// ===== Crop Hub =====
+/* =========================
+   Crop Production
+   ========================= */
 function viewCropHub(){
   app.innerHTML = `
     <div class="grid">
@@ -230,27 +254,17 @@ function viewCropComing(name){
     </section>
   `;
 }
-/* =========================================================
-   Part 2/5 — FIELD MAINTENANCE (forms, storage, listing)
-   ========================================================= */
 
-/* ---------- Keys ---------- */
+/* =========================
+   Field Maintenance (FULL)
+   ========================= */
 const FM_KEY = 'df_field_maint';
 const JOB_TYPES_KEY = 'df_job_types';
 const FIELD_LIST_KEY = 'df_fields';
 
-/* ---------- JSON helpers (guarded in case already defined in Part 1) ---------- */
-if (typeof loadJSON !== 'function') {
-  function loadJSON(key, fallback = []) {
-    try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
-    catch { return fallback; }
-  }
-}
-if (typeof saveJSON !== 'function') {
-  function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-}
+function loadJSON(key, fallback = []) { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }
+function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
 
-/* ---------- Seed data (only if empty) ---------- */
 function defaultFields(){
   const existing = loadJSON(FIELD_LIST_KEY);
   if (existing.length) return existing;
@@ -266,7 +280,6 @@ function defaultJobs(){
   return seed;
 }
 
-/* ---------- File -> DataURL helper ---------- */
 async function filesToDataURLs(fileList){
   const files = Array.from(fileList||[]);
   const readers = files.map(f => new Promise(res=>{
@@ -277,7 +290,6 @@ async function filesToDataURLs(fileList){
   return Promise.all(readers);
 }
 
-/* ---------- UI: Field Maintenance ---------- */
 function viewFieldMaintenance(){
   const user = (localStorage.getItem('df_user')||'').trim();
   const fields = defaultFields();
@@ -438,215 +450,259 @@ function viewFieldMaintenance(){
   });
 }
 
-/* =======================
-   End Part 2/5
-   ======================= */
-/* =========================================================
-   Part 3/5 — PRE-MADE REPORTS (PDF views + shared styles)
-   - Feedback Summary (unchanged if you already have it)
-   - Grain Bag Report (CORN section then SOYBEANS section)
-   - Shared print/letterhead/watermark styles (injected once)
-   ========================================================= */
-
-/* ---------- Small helpers (only if not already present) ---------- */
-if (typeof fmtCommas !== 'function') {
-  function fmtCommas(n){ try{ return Number(n).toLocaleString(); }catch{ return String(n); } }
-}
-if (typeof loadBags !== 'function') {
-  const GRAIN_BAG_KEY='df_grain_bags';
-  function loadBags(){ try{ return JSON.parse(localStorage.getItem(GRAIN_BAG_KEY) || '[]'); }catch{ return []; } }
-}
-if (typeof loadFeedback !== 'function') {
-  function loadFeedback(){ try{ return JSON.parse(localStorage.getItem('df_feedback') || '[]'); } catch { return []; } }
-}
-
-/* ---------- Inject a shared report stylesheet once ---------- */
-function ensureReportStyles(){
-  if (document.getElementById('df-report-styles')) return;
-  const css = `
-    .report-page{max-width:900px;margin:0 auto;padding:12px;}
-    .report-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #DAA520;padding-bottom:8px;margin-bottom:10px;}
-    .report-logo{height:44px;margin-right:10px;}
-    .head-left{display:flex;align-items:center;gap:10px;}
-    .org-name{font-weight:700;font-size:1.1rem;color:#1B5E20}
-    .org-sub{font-size:.9rem;color:#333}
-    .r-title{font-weight:700;font-size:1.15rem;text-align:right}
-    .r-date{font-size:.9rem;color:#555;text-align:right}
-    .report-body{position:relative;min-height:200px;}
-    /* darker, always-visible watermark */
-    .report-body.watermark::before{
-      content:"";
-      position:absolute;inset:0;
-      background-image:url("icons/logo.png");
-      background-repeat:no-repeat;
-      background-position:center;
-      background-size:380px;
-      opacity:.14;               /* a little darker so it's visible */
-      pointer-events:none;
-      transform:translateZ(0);
-    }
-    .report-table{width:100%;border-collapse:collapse;font-size:.95rem;margin:8px 0;}
-    .report-table th,.report-table td{border:1px solid #ddd;padding:6px 8px;vertical-align:top;}
-    .report-table thead th{background:#f6f6f6;font-weight:700}
-    .report-table.compact th,.report-table.compact td{padding:5px 6px;}
-    .report-table .num{text-align:right}
-    .section-head{margin:14px 0 6px 0;border-left:4px solid #1B5E20;padding-left:8px}
-    .grand-total{margin-top:12px;padding:10px;border:2px solid #DAA520;border-radius:8px;background:#fffdf5}
-    .report-foot{display:flex;justify-content:space-between;align-items:center;border-top:2px solid #DAA520;margin-top:12px;padding-top:6px;font-size:.9rem;color:#333}
-    .hidden-print{display:flex;gap:8px;margin-top:10px}
-    @media print{
-      .hidden-print{display:none !important}
-      .app-header,.app-footer,#breadcrumbs{display:none !important}
-      body{background:#fff}
-      .report-page{margin:0;padding:0}
-      /* Keep tables tight and avoid orphan page 2 when content is small */
-      .report-table{page-break-inside:auto}
-      .report-table tr{page-break-inside:avoid;page-break-after:auto}
-      .section-head{page-break-after:avoid}
-    }
+/* =========================
+   Calculators
+   ========================= */
+function viewCalcHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('👨🏼‍🔬','Fertilizer','#/calc/fertilizer')}
+      ${tile('🛢️','Bin Volume','#/calc/bin')}
+      ${tile('📐','Area','#/calc/area')}
+      ${tile('🌽🌱','Combine Yield','#/calc/combine')}
+      ${tile('🧪','Chemical Mix','#/calc/chem')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
-  const style = document.createElement('style');
-  style.id = 'df-report-styles';
-  style.textContent = css;
-  document.head.appendChild(style);
 }
+function viewCalcFertilizer(){ app.innerHTML = `<section class="section"><h1>👨🏼‍🔬 Fertilizer Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcBin(){ app.innerHTML = `<section class="section"><h1>🛢️ Bin Volume Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcArea(){ app.innerHTML = `<section class="section"><h1>📐 Area Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcCombine(){ app.innerHTML = `<section class="section"><h1>🌽🌱 Combine Yield Calculator</h1><p>🚧 Coming soon (corn/soy, true shrink, head width 30’/40’/45’).</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
+function viewCalcChem(){ app.innerHTML = `<section class="section"><h1>🧪 Chemical Mix Sheet</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
 
-/* ---------- Reports hub (define only if missing) ---------- */
-if (typeof viewReportsPremade !== 'function') {
-  function viewReportsPremade(){
-    app.innerHTML = `
-      <div class="grid">
-        ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
-        ${tile('🧺','Grain Bag Report','#/ai/premade/grain-bags')}
+/* =========================
+   Equipment
+   ========================= */
+function viewEquipmentHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🛰️','StarFire / Technology','#/equipment/receivers')}
+      ${tile('🚜','Tractors','#/equipment/tractors')}
+      ${tile('🌾','Combines','#/equipment/combines')}
+      ${tile('💦','Sprayer / Fertilizer Spreader','#/equipment/sprayer')}
+      ${tile('🚧','Construction Equipment','#/equipment/construction')}
+      ${tile('🚚','Trucks','#/equipment/trucks')}
+      ${tile('🚛','Trailers','#/equipment/trailers')}
+      ${tile('⚙️','Farm Implements','#/equipment/implements')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+function viewEquipmentComing(name){
+  app.innerHTML = `
+    <section class="section">
+      <h1>${name}</h1>
+      <p>🚧 Coming soon. (Will track Make, Model, Serial; assign barcode; quick repair logs)</p>
+      <a class="btn" href="#/equipment">Back to Equipment</a>
+    </section>
+  `;
+}
+/* =========================
+   Grain Tracking
+   ========================= */
+const GRAIN_BAG_KEY='df_grain_bags';
+function loadBags(){ try{ return JSON.parse(localStorage.getItem(GRAIN_BAG_KEY) || '[]'); }catch{ return []; } }
+function saveBags(list){ try{ localStorage.setItem(GRAIN_BAG_KEY, JSON.stringify(list)); }catch{} }
+
+function viewGrainHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🧺','Grain Bag','#/grain/bag')}
+      ${tile('🛢️','Grain Bins','#/grain/bins')}
+      ${tile('📄','Grain Contracts','#/grain/contracts')}
+      ${tile('🧾','Ticket OCR','#/grain/tickets')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+function viewGrainBag(){
+  const user = (localStorage.getItem('df_user')||'').trim();
+  const today = new Date().toISOString().slice(0,10);
+  const rows=loadBags().map(b=>{
+    return `<li class="crop-row">
+      <div class="crop-info"><span class="chip">#${b.no}</span> <span class="chip">${b.date}</span></div>
+      <div class="crop-actions"><span class="small">${b.location}</span></div>
+      <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">
+        <div class="small muted">Crop: ${b.crop} • Est: ${b.bushels.toLocaleString()} bu • By: ${b.submittedBy||'-'}</div>
+        ${b.notes ? `<div class="small muted">Notes: ${b.notes}</div>`:''}
       </div>
-      <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
-    `;
-  }
+    </li>`;
+  }).join('');
+  app.innerHTML = `
+    <section class="section">
+      <h1>🧺 Grain Bag</h1>
+      <div class="field"><label class="choice"><input id="gb-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+      <div class="field"><label>Location <span class="small muted">(Required)</span></label>
+        <select id="gb-loc">
+          <option value="">— Choose —</option>
+          <option value="Divernon Elevator">Divernon Elevator</option>
+          <option value="Field (TBD)">Field (TBD)</option>
+        </select>
+      </div>
+      <div class="field"><label>Crop <span class="small muted">(Required)</span></label>
+        <select id="gb-crop">
+          <option value="">— Choose —</option>
+          <option value="Corn">Corn</option>
+          <option value="Soybeans">Soybeans</option>
+        </select>
+      </div>
+      <div class="field"><label class="choice"><input id="gb-bu" type="number" inputmode="numeric" min="1" placeholder="Estimated bushels (Required)"></label></div>
+      <div class="field"><label class="choice"><input id="gb-by" type="text" placeholder="Submitted by" value="${user}"></label></div>
+      <div class="field"><label class="choice"><textarea id="gb-notes" rows="3" placeholder="Notes (optional)"></textarea></label></div>
+      <button id="gb-save" class="btn-primary">Save</button>
+
+      <h2 style="margin-top:14px;">Recent</h2>
+      <ul class="crop-list">${rows || '<li class="muted">No grain bags recorded.</li>'}</ul>
+
+      <div class="section">
+        <a class="btn" href="#/grain">Back to Grain Tracking</a> <a class="btn" href="#/home">Back to Dashboard</a>
+      </div>
+    </section>
+  `;
+  document.getElementById('gb-save')?.addEventListener('click', ()=>{
+    const date = document.getElementById('gb-date').value;
+    const loc  = document.getElementById('gb-loc').value;
+    const crop = document.getElementById('gb-crop').value;
+    const buStr= String(document.getElementById('gb-bu').value||'').trim();
+    const by   = String(document.getElementById('gb-by').value||'').trim();
+    const notes= String(document.getElementById('gb-notes').value||'').trim();
+    const bu = parseInt(buStr,10);
+
+    if(!date||!loc||!crop||!bu||bu<=0){ alert('Date, Location, Crop, Estimated Bushels are required.'); return; }
+
+    const list = loadBags();
+    const nextNo = (list[0]?.no || 0) + 1;
+    list.unshift({ no: nextNo, date, location: loc, crop, bushels: bu, submittedBy: by, notes });
+    saveBags(list);
+    alert('Saved.');
+    viewGrainBag();
+  });
 }
 
-/* ---------- Feedback Summary (define only if missing) ---------- */
-if (typeof viewReportsPremadeFeedback !== 'function') {
-  function viewReportsPremadeFeedback(){
-    ensureReportStyles();
-    const items = loadFeedback().sort((a,b)=> (a.ts||0)-(b.ts||0));
-    const rows = items.map((it,i)=>{
-      const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
-      const kind = it.type==='feature' ? 'Feature' : 'Error';
-      const subj = (it.subject||'').replace(/</g,'&lt;');
-      const dets = (it.details||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
-      const by   = (it.by||'').replace(/</g,'&lt;');
+/* =========================
+   Reports
+   ========================= */
+function viewReportsHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('📄','Pre-made Reports','#/ai/premade')}
+      ${tile('🤖','AI Reports','#/ai/ai')}
+      ${tile('📊','Yield Report','#/ai/yield')}
+    </div>
+    <section class="section" style="margin-top:12px;">
+      <h2>🔮 Future</h2>
+      <p class="muted">ChatGPT integration to generate & save custom reports is planned.</p>
+    </section>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+// feedback storage (already used by your forms)
+function loadFeedback(){
+  try { return JSON.parse(localStorage.getItem('df_feedback') || '[]'); }
+  catch { return []; }
+}
+
+function viewReportsPremade(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
+      ${tile('🧺','Grain Bag Report','#/ai/premade/grain-bags')}
+    </div>
+    <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
+  `;
+}
+function viewReportsPremadeFeedback(){
+  const items = loadFeedback().sort((a,b)=> (a.ts||0)-(b.ts||0));
+  const rows = items.map((it,i)=>{
+    const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
+    const kind = it.type==='feature' ? 'Feature' : 'Error';
+    const subj = (it.subject||'').replace(/</g,'&lt;');
+    const dets = (it.details||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    const by   = (it.by||'').replace(/</g,'&lt;');
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${when}</td>
+      <td>${kind}</td>
+      <td>${subj}</td>
+      <td>${dets}</td>
+      <td>${by}</td>
+    </tr>`;
+  }).join('');
+
+  app.innerHTML = `
+    <section class="report-page">
+      <header class="report-head">
+        <div class="head-left">
+          <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+          <div class="org">
+            <div class="org-name">Dowson Farms</div>
+            <div class="org-sub">Pre-Made Report</div>
+          </div>
+        </div>
+        <div class="head-right">
+          <div class="r-title">Feedback Summary</div>
+          <div class="r-date">${prettyDate(new Date())}</div>
+        </div>
+      </header>
+
+      <div class="report-body watermark">
+        ${items.length ? `
+        <table class="report-table">
+          <thead>
+            <tr><th>#</th><th>When</th><th>Type</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>` : `<p class="muted">No feedback saved yet.</p>`}
+      </div>
+
+      <footer class="report-foot">
+        <div>${displayVersion(APP_VERSION)}</div>
+        <div class="page-num">Page 1</div>
+      </footer>
+
+      <div class="report-actions hidden-print">
+        <button class="btn-primary" id="print-report">Print / Save PDF</button>
+        <a class="btn" href="#/ai/premade">Back</a>
+      </div>
+    </section>
+  `;
+  document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
+}
+
+// Group by Location; show subtotals and grand total
+function viewReportsPremadeGrainBags(){
+  const bags = loadBags();
+  const byLoc = {};
+  for (const b of bags) {
+    const loc = b.location || 'Unspecified';
+    if (!byLoc[loc]) byLoc[loc] = [];
+    byLoc[loc].push(b);
+  }
+
+  let grandTotal = 0;
+  const sections = Object.keys(byLoc).sort().map(loc=>{
+    const rows = byLoc[loc].map(b=>{
+      grandTotal += Number(b.bushels||0);
       return `<tr>
-        <td>${i+1}</td>
-        <td>${when}</td>
-        <td>${kind}</td>
-        <td>${subj}</td>
-        <td>${dets}</td>
-        <td>${by}</td>
+        <td>${b.date||''}</td>
+        <td>${b.crop||''}</td>
+        <td class="num">${fmtCommas(b.bushels||0)}</td>
+        <td>${(b.notes||'').replace(/</g,'&lt;')}</td>
       </tr>`;
     }).join('');
 
-    app.innerHTML = `
-      <section class="report-page">
-        <header class="report-head">
-          <div class="head-left">
-            <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
-            <div class="org">
-              <div class="org-name">Dowson Farms</div>
-              <div class="org-sub">Pre-Made Report</div>
-            </div>
-          </div>
-          <div class="head-right">
-            <div class="r-title">Feedback Summary</div>
-            <div class="r-date">${prettyDate(new Date())}</div>
-          </div>
-        </header>
-
-        <div class="report-body watermark">
-          ${items.length ? `
-          <table class="report-table">
-            <thead>
-              <tr><th>#</th><th>When</th><th>Type</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>` : `<p class="muted">No feedback saved yet.</p>`}
-        </div>
-
-        <footer class="report-foot">
-          <div>${displayVersion(APP_VERSION)}</div>
-          <div class="page-num">Page 1</div>
-        </footer>
-
-        <div class="report-actions hidden-print">
-          <button class="btn-primary" id="print-report">Print / Save PDF</button>
-          <a class="btn" href="#/ai/premade">Back</a>
-        </div>
-      </section>
-    `;
-    document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
-  }
-}
-
-/* ---------- Grain Bag Report (top=CORN, then=SOYBEANS) ---------- */
-/* This redefines the view if it already exists, to match your latest spec */
-function viewReportsPremadeGrainBags(){
-  ensureReportStyles();
-
-  const all = loadBags();
-  const byCrop = { Corn: [], Soybeans: [] };
-  for (const b of all) {
-    if (String(b.crop).toLowerCase()==='corn') byCrop.Corn.push(b);
-    else if (String(b.crop).toLowerCase()==='soybeans') byCrop.Soybeans.push(b);
-  }
-
-  function sectionForCrop(cropName, list){
-    if (!list.length) {
-      return `
-        <h3 class="section-head">${cropName}</h3>
-        <p class="muted">No ${cropName.toLowerCase()} grain bags.</p>
-      `;
-    }
-
-    // group by location within the crop (so you still see per-location subtotals)
-    const byLoc = {};
-    list.forEach(b=>{
-      const loc = b.location || 'Unspecified';
-      (byLoc[loc] ||= []).push(b);
-    });
-
-    let cropTotal = 0;
-    const blocks = Object.keys(byLoc).sort().map(loc=>{
-      const rows = byLoc[loc].map(b=>{
-        const bu = Number(b.bushels||0);
-        cropTotal += bu;
-        return `<tr>
-          <td>${b.date||''}</td>
-          <td>${loc}</td>
-          <td class="num">${fmtCommas(bu)}</td>
-          <td>${(b.notes||'').replace(/</g,'&lt;')}</td>
-        </tr>`;
-      }).join('');
-      const locTotal = byLoc[loc].reduce((s,x)=>s+Number(x.bushels||0),0);
-      return `
-        <h4 class="section-head" style="margin:10px 0 6px 0;">${loc}</h4>
-        <table class="report-table compact">
-          <thead><tr><th>Date</th><th>Location</th><th class="num">Est. Bu</th><th>Notes</th></tr></thead>
-          <tbody>${rows}</tbody>
-          <tfoot><tr><td colspan="2" class="num"><strong>Subtotal</strong></td><td class="num"><strong>${fmtCommas(locTotal)}</strong></td><td></td></tr></tfoot>
-        </table>
-      `;
-    }).join('');
-
+    const locTotal = byLoc[loc].reduce((s,x)=>s+Number(x.bushels||0),0);
     return `
-      <h3 class="section-head">${cropName}</h3>
-      ${blocks}
-      <div class="grand-total" style="margin-top:8px;">
-        <div><strong>${cropName} Total (Est. Bushels):</strong> ${fmtCommas(cropTotal)}</div>
-      </div>
+      <h3 class="section-head">${loc}</h3>
+      <table class="report-table compact">
+        <thead><tr><th>Date</th><th>Crop</th><th class="num">Est. Bu</th><th>Notes</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="2" class="num">Subtotal</td><td class="num">${fmtCommas(locTotal)}</td><td></td></tr></tfoot>
+      </table>
     `;
-  }
-
-  // overall grand total
-  const grandTotal = all.reduce((s,x)=>s+Number(x.bushels||0),0);
+  }).join('') || `<p class="muted">No grain bags recorded yet.</p>`;
 
   app.innerHTML = `
     <section class="report-page">
@@ -665,14 +721,13 @@ function viewReportsPremadeGrainBags(){
       </header>
 
       <div class="report-body watermark">
-        ${sectionForCrop('Corn', byCrop.Corn)}
-        ${sectionForCrop('Soybeans', byCrop.Soybeans)}
-        ${all.length ? `
+        ${sections}
+        ${bags.length ? `
           <div class="grand-total">
             <div><strong>Grand Total (Est. Bushels):</strong> ${fmtCommas(grandTotal)}</div>
-            <div class="muted small">Average moisture: (to be added when moisture data is tracked)</div>
+            <div class="muted small">Average moisture: (tracking to be added)</div>
           </div>
-        ` : `<p class="muted">No grain bags recorded yet.</p>`}
+        `:''}
       </div>
 
       <footer class="report-foot">
@@ -689,201 +744,329 @@ function viewReportsPremadeGrainBags(){
   document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
 }
 
-/* =======================
-   End Part 3/5
-   ======================= */
-/* =========================================================
-   Part 4/5 — TEAM & PARTNERS ENHANCERS (non-destructive)
-   - Safe shims so concatenating parts never breaks existing code
-   - Auto phone formatting hookup for any Team forms
-   - Minor helpers reused by Directory rendering
-   ========================================================= */
-
-/* ---------- Safe shim: fmtPhone (used in Directory) ---------- */
-if (typeof fmtPhone !== 'function') {
-  function fmtPhone(raw){
-    const d = String(raw||'').replace(/\D+/g,'');
-    if (d.length !== 10) return raw || '';
-    return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
-  }
+/* =========================
+   Settings
+   ========================= */
+function viewSettingsHome(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🌱','Crop Type','#/settings/crops')}
+      ${tile('🌓','Theme','#/settings/theme')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
 }
-
-/* ---------- Ensure tel inputs format as (###) ###-#### ---------- */
-(function attachPhoneFormatterObserver(){
-  if (typeof bindPhoneAutoFormat !== 'function') return; // the main formatter lives in Part 1
-  // Bind once now (for whatever is already on screen)
-  try { bindPhoneAutoFormat(document); } catch {}
-
-  // Also observe future DOM changes (SPA routes) and bind as needed
-  try {
-    const mo = new MutationObserver((muts)=>{
-      for (const m of muts) {
-        if (m.type === 'childList') {
-          m.addedNodes && m.addedNodes.forEach(node=>{
-            if (node.nodeType === 1) { // Element
-              // Bind on subtree to catch any new <input type="tel">
-              bindPhoneAutoFormat(node);
-            }
-          });
-        }
-      }
-    });
-    mo.observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
-  } catch {}
-})();
-
-/* ---------- Optional: normalize saved phone digits on Team saves ----------
-   If your Employee/Subcontractor/Vendor forms already store digits-only,
-   this does nothing. It simply exposes helpers in case existing code calls them.
---------------------------------------------------------------------------- */
-if (typeof phoneDigitsOnly !== 'function') {
-  function phoneDigitsOnly(val){ return String(val||'').replace(/\D/g,'').slice(0,10); }
+const CROPS_KEY='df_crops';
+function migrateCropsShape(arr){ if(!Array.isArray(arr))return[]; if(arr.length && typeof arr[0]==='string') return arr.map(n=>({name:n,archived:false})); return arr.map(o=>({name:String(o.name||'').trim(),archived:!!o.archived})); }
+function loadCrops(){
+  try{
+    const raw=localStorage.getItem(CROPS_KEY);
+    if(!raw) return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+    const arr=JSON.parse(raw); const norm=migrateCropsShape(arr);
+    return norm.length?norm:[{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+  }catch{ return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}]; }
 }
+function saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
+function isCropInUse(name){ return false; }
 
-/* ---------- Optional: tiny guard to prevent double-binding invites ----------
-   If your Employee form already wires #emp-invite, this no-ops gracefully.
---------------------------------------------------------------------------- */
-(function guardDuplicateInviteBinding(){
-  const root = document;
-  // Only attach if the button exists and isn't already bound; this runs on each route naturally,
-  // but the dataset flag prevents double wiring.
-  const btn = root.getElementById && root.getElementById('emp-invite');
-  if (btn && btn.dataset._inviteBound !== '1') {
-    btn.dataset._inviteBound = '1';
-    // If your real handler is already attached in the view renderer, this does nothing.
-    // We keep an empty listener as a safety net.
-    btn.addEventListener('click', (e)=>{
-      // If the main view already called preventDefault / handled, we don't duplicate any logic.
-      // (Intentionally left blank.)
-    }, { capture:false });
-  }
-})();
-
-/* =======================
-   End Part 4/5
-   ======================= */
-/* =========================================================
-   Part 5/5 — ROUTER SAFETY + REPORT CSS BACKSTOP + MISC
-   - Does NOT replace your router. It only fills gaps safely.
-   - Adds backstop routes ONLY if your app has no `route()` function.
-   - Ensures labels exist for new menu items.
-   - Injects report print/CSS if it wasn’t included earlier.
-   ========================================================= */
-
-/* ---------- 1) Ensure LABELS include our new entries ---------- */
-(function ensureLabels(){
-  try {
-    if (!window.LABELS) return; // your file already defines LABELS; we just extend
-
-    if (!LABELS['#/crop/maintenance']) LABELS['#/crop/maintenance'] = 'Field Maintenance';
-    if (!LABELS['#/ai/premade/grain-bags']) LABELS['#/ai/premade/grain-bags'] = 'Grain Bag Report';
-    if (!LABELS['#/ai/premade/feedback']) LABELS['#/ai/premade/feedback'] = 'Feedback Summary';
-  } catch {}
-})();
-
-/* ---------- 2) Inject report CSS (only if missing) ------------ */
-(function injectReportCssIfMissing(){
-  if (document.getElementById('df-report-css')) return;
-
-  const css = `
-/* ===== Dowson Reports — Backstop Styles (only if main CSS missing) ===== */
-.report-page{ max-width:900px; margin:0 auto; background:#fff; padding:16px 16px 80px; position:relative; }
-.report-head{ display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #DAA520; padding-bottom:12px; margin-bottom:14px; }
-.report-logo{ height:44px; width:auto; margin-right:10px; }
-.head-left{ display:flex; align-items:center; gap:10px; }
-.org-name{ font-weight:700; font-size:1.1rem; }
-.org-sub{ color:#555; font-size:.9rem; }
-.r-title{ font-weight:700; font-size:1.2rem; text-align:right; }
-.r-date{ color:#555; font-size:.9rem; text-align:right; }
-.report-body{ position:relative; min-height:200px; }
-.report-body.watermark::after{
-  content:"";
-  position:absolute; inset:12% 8% auto 8%;
-  background:url('icons/logo.png') no-repeat center/50% auto;
-  opacity:.10; pointer-events:none; z-index:0;
-  filter:grayscale(1) contrast(1.1);
-}
-.report-table{ width:100%; border-collapse:collapse; margin:10px 0; position:relative; z-index:1; }
-.report-table th, .report-table td{ border:1px solid #ccc; padding:6px 8px; vertical-align:top; }
-.report-table th{ background:#f7f7f7; text-align:left; }
-.report-table .num{ text-align:right; }
-.report-table.compact th, .report-table.compact td{ padding:4px 6px; }
-.section-head{ margin:14px 0 6px; font-size:1.05rem; }
-.grand-total{ margin-top:12px; font-size:1.05rem; position:relative; z-index:1; }
-.report-foot{ position:fixed; left:0; right:0; bottom:0; border-top:2px solid #DAA520; background:#fff;
-  display:flex; justify-content:space-between; padding:8px 14px; font-size:.9rem; }
-.report-actions{ display:flex; gap:8px; margin-top:14px; position:relative; z-index:1; }
-
-@media print{
-  body{ background:#fff !important; }
-  .app-header, .breadcrumbs, .app-footer, #update-banner, .hidden-print{ display:none !important; }
-  .report-foot{ position:fixed; }
-  .report-page{ padding-bottom:100px; }
-}
-  `.trim();
-
-  const style = document.createElement('style');
-  style.id = 'df-report-css';
-  style.textContent = css;
-  document.head.appendChild(style);
-})();
-
-/* ---------- 3) Backstop router ONLY if you don’t have one ----- */
-(function addBackstopRouter(){
-  // If your main file already declared route(), we do nothing.
-  if (typeof window.route === 'function') return;
-
-  function softRender(fn){
-    try{
-      if (typeof renderBreadcrumb === 'function') renderBreadcrumb();
-      fn && fn();
-      if (typeof scrollTopAll === 'function') scrollTopAll();
-      if (typeof refreshLayout === 'function') refreshLayout();
-      if (typeof bindPhoneAutoFormat === 'function') bindPhoneAutoFormat(document.getElementById('app')||document);
-    }catch(e){ console.error('Backstop route render error', e); }
-  }
-
-  function tinyRouter(){
-    const h = location.hash || '#/home';
-    // Only handle the two new routes + fallbacks that this patch introduced.
-    if (h === '#/crop/maintenance' && typeof window.viewFieldMaintenance === 'function') {
-      softRender(()=>viewFieldMaintenance());
-      return;
-    }
-    if (h === '#/ai/premade/grain-bags' && typeof window.viewReportsPremadeGrainBags === 'function') {
-      softRender(()=>viewReportsPremadeGrainBags());
-      return;
-    }
-    if (h === '#/ai/premade/feedback' && typeof window.viewReportsPremadeFeedback === 'function') {
-      softRender(()=>viewReportsPremadeFeedback());
-      return;
-    }
-    // If nothing matched, we leave your current screen alone.
-  }
-
-  window.addEventListener('hashchange', tinyRouter);
-  window.addEventListener('load', tinyRouter);
-})();
-
-/* ---------- 4) Print buttons: generic delegate (safe) --------- */
-(function attachPrintDelegate(){
-  document.addEventListener('click', (e)=>{
-    const btn = e.target && e.target.closest && e.target.closest('#print-report');
-    if (!btn) return;
-    try { window.print(); } catch {}
+function viewSettingsCrops(){
+  const crops=loadCrops();
+  const items=crops.map((o,i)=>{
+    const status=o.archived? '<span class="chip chip-archived" title="Archived">Archived</span>':'';
+    const actions=o.archived
+      ? `<button class="btn" data-unarchive="${i}">Unarchive</button> <button class="btn" data-delete="${i}">Delete</button>`
+      : `<button class="btn" data-archive="${i}">Archive</button> <button class="btn" data-delete="${i}">Delete</button>`;
+    return `<li class="crop-row ${(o.archived?'is-archived':'')}"><div class="crop-info"><span class="chip">${o.name}</span> ${status}</div><div class="crop-actions">${actions}</div></li>`;
+  }).join('');
+  app.innerHTML = `
+    <section class="section">
+      <h1>Crop Type</h1>
+      <p class="muted">Archive crops that are in use to preserve history. Delete only if unused.</p>
+      <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
+      <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+        <input id="new-crop" type="text" placeholder="e.g., Wheat">
+        <button id="add-crop" class="btn-primary">➕ Add</button>
+      </div>
+      <a class="btn" href="#/settings">Back to Settings</a>
+    </section>
+  `;
+  const addBtn=document.getElementById('add-crop');
+  const input=document.getElementById('new-crop');
+  const listEl=app.querySelector('.crop-list');
+  addBtn?.addEventListener('click', ()=>{
+    const name=String(input.value||'').trim(); if(!name) return;
+    const cs=loadCrops();
+    if (cs.some(c=>c.name.toLowerCase()===name.toLowerCase())){ input.value=''; return; }
+    cs.push({name,archived:false}); saveCrops(cs); viewSettingsCrops();
   });
-})();
-
-/* ---------- 5) Version footer consistency (safe) -------------- */
-(function ensureVersionFooter(){
-  try {
-    const el = document.getElementById('version');
-    if (el && typeof displayVersion === 'function' && typeof APP_VERSION === 'string') {
-      el.textContent = displayVersion(APP_VERSION);
+  input?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addBtn?.click(); } });
+  listEl?.addEventListener('click', e=>{
+    const btn=e.target.closest?.('button'); if(!btn) return;
+    const cs=loadCrops();
+    if(btn.hasAttribute('data-archive')){ const i=+btn.getAttribute('data-archive'); if(cs[i]){ cs[i].archived=true; saveCrops(cs); viewSettingsCrops(); } }
+    else if(btn.hasAttribute('data-unarchive')){ const j=+btn.getAttribute('data-unarchive'); if(cs[j]){ cs[j].archived=false; saveCrops(cs); viewSettingsCrops(); } }
+    else if(btn.hasAttribute('data-delete')){ const k=+btn.getAttribute('data-delete'); if(!cs[k]) return; const nm=cs[k].name;
+      if(isCropInUse(nm)){ alert(`“${nm}” is used in your data. Archive instead.`); return; }
+      if(!confirm(`Delete “${nm}”? This cannot be undone.`)) return;
+      cs.splice(k,1); saveCrops(cs); viewSettingsCrops();
     }
-  } catch {}
-})();
+  });
+}
+function viewSettingsTheme(){
+  const key='df_theme';
+  const current = (localStorage.getItem(key) || 'auto');
+  app.innerHTML = `
+    <section class="section">
+      <h1>Theme</h1>
+      <div class="field">
+        <label style="font-weight:600;margin-bottom:6px;">Appearance</label>
+        <div class="theme-list">
+          <label class="theme-item"><input type="radio" name="theme" value="auto" ${current==='auto'?'checked':''}> <span>Auto (follow device)</span></label>
+          <label class="theme-item"><input type="radio" name="theme" value="light" ${current==='light'?'checked':''}> <span>Light</span></label>
+          <label class="theme-item"><input type="radio" name="theme" value="dark" ${current==='dark'?'checked':''}> <span>Dark</span></label>
+        </div>
+      </div>
+      <div class="section"><a class="btn" href="#/settings">Back to Settings</a></div>
+    </section>
+  `;
+  app.querySelectorAll('input[name="theme"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      localStorage.setItem(key, r.value);
+      document.documentElement.setAttribute('data-theme', r.value);
+    });
+  });
+}
 
-/* =======================
-   End Part 5/5
-   ======================= */
+/* =========================
+   Feedback (working forms)
+   ========================= */
+function saveFeedback(entry){
+  try{ const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]'); list.push(entry); localStorage.setItem(key, JSON.stringify(list)); }catch{}
+}
+function viewFeedbackHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🛠️','Report Errors','#/feedback/errors')}
+      ${tile('💡','New Feature Request','#/feedback/feature')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+function viewFeedbackErrors(){
+  const today = new Date().toISOString().slice(0,10);
+  const user = (localStorage.getItem('df_user')||'').trim();
+  app.innerHTML = `
+    <section class="section">
+      <h1>🛠️ Report Errors</h1>
+      <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+      <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
+      <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
+      <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${user}"></div>
+      <button id="err-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+    </section>
+  `;
+  document.getElementById('err-submit')?.addEventListener('click', ()=>{
+    const date=String(document.getElementById('err-date').value||'').trim();
+    const subject=String(document.getElementById('err-subj').value||'').trim();
+    const details=String(document.getElementById('err-desc').value||'').trim();
+    const by=String(document.getElementById('err-by').value||'').trim();
+    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
+    saveFeedback({type:'error', date, subject, details, by, ts:Date.now()});
+    alert('Thanks! Your error report was saved.'); location.hash='#/feedback';
+  });
+}
+function viewFeedbackFeature(){
+  const today = new Date().toISOString().slice(0,10);
+  const user = (localStorage.getItem('df_user')||'').trim();
+  app.innerHTML = `
+    <section class="section">
+      <h1>💡 New Feature Request</h1>
+      <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+      <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
+      <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
+      <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${user}"></div>
+      <button id="feat-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+    </section>
+  `;
+  document.getElementById('feat-submit')?.addEventListener('click', ()=>{
+    const date=String(document.getElementById('feat-date').value||'').trim();
+    const subject=String(document.getElementById('feat-subj').value||'').trim();
+    const details=String(document.getElementById('feat-desc').value||'').trim();
+    const by=String(document.getElementById('feat-by').value||'').trim();
+    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
+    saveFeedback({type:'feature', date, subject, details, by, ts:Date.now()});
+    alert('Thanks! Your feature request was saved.'); location.hash='#/feedback';
+  });
+}
+/* =========================
+   Generic Section Fallback
+   ========================= */
+function viewSection(title, backHref = '#/home', backLabel = 'Back to Dashboard'){
+  app.innerHTML = `
+    <section class="section">
+      <h1>${title}</h1>
+      <p>🚧 Coming soon.</p>
+      <a class="btn" href="${backHref}">${backLabel}</a>
+    </section>
+  `;
+}
+
+/* =========================
+   Router (guarded)
+   ========================= */
+function route(){
+  try {
+    ensureHomeHash();
+    const hash = location.hash || '#/home';
+    renderBreadcrumb();
+
+    if (hash==='#/home'||hash==='') viewHome();
+
+    // Crop
+    else if (hash==='#/crop') viewCropHub();
+    else if (hash==='#/crop/planting') viewCropComing('Planting');
+    else if (hash==='#/crop/spraying') viewCropComing('Spraying');
+    else if (hash==='#/crop/aerial') viewCropComing('Aerial Spray');
+    else if (hash==='#/crop/harvest') viewCropComing('Harvest');
+    else if (hash==='#/crop/maintenance') viewFieldMaintenance();
+    else if (hash==='#/crop/scouting') viewCropComing('Scouting');
+    else if (hash==='#/crop/trials') viewCropComing('Trials');
+
+    // Calculators
+    else if (hash==='#/calc') viewCalcHub();
+    else if (hash==='#/calc/fertilizer') viewCalcFertilizer();
+    else if (hash==='#/calc/bin') viewCalcBin();
+    else if (hash==='#/calc/area') viewCalcArea();
+    else if (hash==='#/calc/combine') viewCalcCombine();
+    else if (hash==='#/calc/chem') viewCalcChem();
+
+    // Equipment
+    else if (hash==='#/equipment') viewEquipmentHub();
+    else if (hash.startsWith('#/equipment/')) viewEquipmentComing(LABELS[hash]||'Equipment');
+
+    // Grain
+    else if (hash==='#/grain') viewGrainHub();
+    else if (hash==='#/grain/bag') viewGrainBag();
+    else if (hash==='#/grain/bins') viewGrainComing('Grain Bins');
+    else if (hash==='#/grain/contracts') viewGrainComing('Grain Contracts');
+    else if (hash==='#/grain/tickets') viewGrainComing('Grain Ticket OCR');
+
+    // Team & Partners (your existing screens elsewhere in your file)
+    else if (hash === '#/team') { viewTeamHub(); }
+    else if (hash === '#/team/employees') { viewTeamEmployees(); }
+    else if (hash === '#/team/subcontractors') { viewTeamSubcontractors(); }
+    else if (hash === '#/team/vendors') { viewTeamVendors(); }
+    else if (hash.indexOf('#/team/dir') === 0) { viewTeamDirectory(); }
+
+    // Reports
+    else if (hash==='#/ai') viewReportsHub();
+    else if (hash==='#/ai/premade') viewReportsPremade();
+    else if (hash==='#/ai/premade/feedback') viewReportsPremadeFeedback();
+    else if (hash==='#/ai/premade/grain-bags') viewReportsPremadeGrainBags();
+    else if (hash==='#/ai/ai') viewReportsAI();
+    else if (hash==='#/ai/yield') viewReportsYield();
+
+    // Settings
+    else if (hash==='#/settings') viewSettingsHome();
+    else if (hash==='#/settings/crops') viewSettingsCrops();
+    else if (hash==='#/settings/theme') viewSettingsTheme();
+
+    // Feedback
+    else if (hash==='#/feedback') viewFeedbackHub();
+    else if (hash==='#/feedback/errors') viewFeedbackErrors();
+    else if (hash==='#/feedback/feature') viewFeedbackFeature();
+
+    else viewSection('Not Found','#/home');
+
+  } catch (err) {
+    console.error('Route error:', err);
+    app.innerHTML = `
+      <section class="section">
+        <h1>Something went wrong</h1>
+        <p class="muted">The view failed to render. We’ve defaulted you back to the dashboard.</p>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+      </section>
+    `;
+  } finally {
+    scrollTopAll();
+    refreshLayout();
+    bindPhoneAutoFormat(app);
+  }
+}
+window.addEventListener('hashchange', route);
+window.addEventListener('load', () => { ensureHomeHash(); route(); });
+
+// ===== Footer text + clock =====
+if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
+if (todayEl) todayEl.textContent = prettyDate(new Date());
+function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
+tick(); setInterval(tick, 15000);
+
+// ===== Robust Logout =====
+function doLogout(){
+  try{ localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); }catch{}
+  location.assign('login.html?bye='+Date.now());
+}
+document.getElementById('logout')?.addEventListener('click', (e)=>{ e.preventDefault(); doLogout(); });
+document.addEventListener('click', (e)=>{
+  const el = e.target.closest('#logout,[data-action="logout"],a[href="logout"]');
+  if (!el) return; e.preventDefault(); doLogout();
+});
+
+// ===== Update banner logic =====
+function showUpdateBanner(){ if (bannerEl){ bannerEl.hidden=false; refreshLayout(); } }
+function hideUpdateBanner(){ if (bannerEl){ bannerEl.hidden=true; refreshLayout(); } }
+function markVersionAsCurrent(){ try{ localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); }catch{} }
+function storedVersion(){ try{ return localStorage.getItem('df_app_version')||''; }catch{ return ''; } }
+function needsUpdate(){ const saved=storedVersion(), cur=normalizeVersion(APP_VERSION); return saved && saved!==cur; }
+function syncBannerWithVersion(){ if (needsUpdate()) showUpdateBanner(); else { hideUpdateBanner(); markVersionAsCurrent(); } }
+
+bannerBtn?.addEventListener('click', ()=>{
+  try{ sessionStorage.setItem('df_updating','1'); }catch{}
+  bannerBtn.disabled = true;
+  bannerBtn.textContent = 'Updating…';
+  hideUpdateBanner();
+  if (window.__waitingSW) window.__waitingSW.postMessage({type:'SKIP_WAITING'}); else location.reload();
+});
+
+window.addEventListener('load', ()=>{
+  try{
+    const flag = sessionStorage.getItem('df_updating');
+    if (flag==='1'){ sessionStorage.removeItem('df_updating'); markVersionAsCurrent(); hideUpdateBanner(); return; }
+  }catch{}
+  if (navigator.serviceWorker && navigator.serviceWorker.controller){ markVersionAsCurrent(); hideUpdateBanner(); }
+  else { syncBannerWithVersion(); }
+});
+
+// ===== Service Worker registration (cache-bust Chrome) =====
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', async ()=>{
+    try{
+      const reg = await navigator.serviceWorker.register(
+        `service-worker.js?v=${normalizeVersion(APP_VERSION)}`,
+        { updateViaCache: 'none' }
+      );
+
+      reg.update();
+      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') reg.update(); });
+
+      if (reg.waiting){ window.__waitingSW = reg.waiting; if (needsUpdate()) showUpdateBanner(); }
+
+      reg.addEventListener('updatefound', ()=>{
+        const sw = reg.installing; if(!sw) return;
+        sw.addEventListener('statechange', ()=>{
+          if (sw.state==='installed' && navigator.serviceWorker.controller){
+            window.__waitingSW = reg.waiting || sw;
+            if (needsUpdate()) showUpdateBanner();
+          }
+        });
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+        window.__waitingSW = null;
+        markVersionAsCurrent(); hideUpdateBanner();
+        setTimeout(()=>location.reload(), 200);
+      });
+    }catch(e){ console.error('SW registration failed', e); }
+  });
+}
