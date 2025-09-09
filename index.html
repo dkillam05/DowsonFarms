@@ -39,5 +39,560 @@
 
   <!-- App JS (versioned for cache-busting) -->
   <script src="app.js?v=10505"></script>
+  <script>
+/* =========================================================
+   Dowson Farms — Patch v10.13.1
+   Drop this before </body> in index.html
+   Purpose:
+   - Version footer override to v10.13.1
+   - Harden Team & Partners / Grain routes
+   - Implement all 5 calculators (MVP)
+   - Extra phone formatter binding safety
+   ========================================================= */
+
+(function DF_PATCH_10131(){
+  'use strict';
+
+  // Wait for DOM + your main app to be ready
+  function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+
+  // ---------- Safe helpers (do not clash with your app.js) ----------
+  function $(sel,root=document){ return root.querySelector(sel); }
+  function htmlEscape(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function toNum(v){ const n=Number(v); return isFinite(n)?n:0; }
+  function fmt(n){ try{ return Number(n).toLocaleString(); }catch{ return String(n); } }
+
+  // ---------- 1) Version footer override ----------
+  function overrideFooterVersion(){
+    try{
+      const el = document.getElementById('version');
+      if (el) el.textContent = 'v10.13.1';
+    }catch{}
+  }
+
+  // ---------- 2) Extra safety for phone formatter ----------
+  function bindPhoneAutoFormatSafe(){
+    try{
+      if (typeof window.bindPhoneAutoFormat === 'function') {
+        window.bindPhoneAutoFormat(document);
+      }
+    }catch{}
+  }
+
+  // Call again on each route change as an extra safety net
+  window.addEventListener('hashchange', bindPhoneAutoFormatSafe);
+
+  // ---------- 3) Route hardening for Team/Grain ----------
+  function ensureTeamGrainRoutes(){
+    const L = (window.LABELS||{});
+    // Ensure LABELS have titles (if main script loaded before patch)
+    L['#/team']                 = L['#/team']||'Team & Partners';
+    L['#/team/employees']       = L['#/team/employees']||'Employees';
+    L['#/team/subcontractors']  = L['#/team/subcontractors']||'Subcontractors';
+    L['#/team/vendors']         = L['#/team/vendors']||'Vendors';
+    L['#/team/dir']             = L['#/team/dir']||'Directory';
+
+    L['#/grain']                = L['#/grain']||'Grain Tracking';
+    L['#/grain/bag']            = L['#/grain/bag']||'Grain Bag';
+    L['#/grain/bins']           = L['#/grain/bins']||'Grain Bins';
+    L['#/grain/contracts']      = L['#/grain/contracts']||'Grain Contracts';
+    L['#/grain/tickets']        = L['#/grain/tickets']||'Grain Ticket OCR';
+
+    window.LABELS = L;
+
+    // If router lands on a known Team/Grain child but view fn is missing,
+    // push the user to the correct hub (no 404s).
+    const h = location.hash||'';
+    if (/^#\/team(\/|$)/.test(h)){
+      if (h==='#/team/employees' && typeof window.viewTeamEmployees!=='function') location.hash='#/team';
+      if (h==='#/team/subcontractors' && typeof window.viewTeamSubcontractors!=='function') location.hash='#/team';
+      if (h==='#/team/vendors' && typeof window.viewTeamVendors!=='function') location.hash='#/team';
+      if (h.indexOf('#/team/dir')===0 && typeof window.viewTeamDirectory!=='function') location.hash='#/team';
+    }
+    if (/^#\/grain(\/|$)/.test(h)){
+      if (h==='#/grain/bag' && typeof window.viewGrainBag!=='function') location.hash='#/grain';
+      if (h==='#/grain/bins' && typeof window.viewGrainComing!=='function') location.hash='#/grain';
+      if (h==='#/grain/contracts' && typeof window.viewGrainComing!=='function') location.hash='#/grain';
+      if (h==='#/grain/tickets' && typeof window.viewGrainComing!=='function') location.hash='#/grain';
+    }
+  }
+  window.addEventListener('hashchange', ensureTeamGrainRoutes);
+
+  // =========================================================
+  // 4) CALCULATORS (MVP implementations)
+  // These override the stub functions your router already calls.
+  // =========================================================
+
+  // ---- 4.1 Fertilizer Calculator (Target lb/acre => product lb/acre + gal/acre) ----
+  window.viewCalcFertilizer = function(){
+    const app = document.getElementById('app');
+    const KEY='df_calc_fert';
+    const saved = JSON.parse(localStorage.getItem(KEY)||'{}');
+    const acres = saved.acres||'';
+    const target = saved.target||'';
+    const analysis = saved.analysis||'';
+    const density = saved.density||'11.06'; // default ~UAN32
+    const nutrient = saved.nutrient||'N';
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>🧮 Fertilizer Calculator</h1>
+
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <label><span class="small muted">Target Nutrient</span>
+            <select id="f-nutrient">
+              <option ${nutrient==='N'?'selected':''}>N</option>
+              <option ${nutrient==='P₂O₅'?'selected':''}>P₂O₅</option>
+              <option ${nutrient==='K₂O'?'selected':''}>K₂O</option>
+            </select>
+          </label>
+          <label><span class="small muted">Target lb/acre *</span>
+            <input id="f-target" type="number" min="0" step="any" value="${htmlEscape(target)}">
+          </label>
+        </div>
+
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <label><span class="small muted">Product Analysis (%) *</span>
+            <input id="f-analysis" type="number" min="1" max="100" step="any" value="${htmlEscape(analysis)}" placeholder="e.g., 32">
+          </label>
+          <label><span class="small muted">Density (lb/gal)</span>
+            <select id="f-density">
+              <option value="11.06" ${density==='11.06'?'selected':''}>UAN 32 (11.06)</option>
+              <option value="10.67" ${density==='10.67'?'selected':''}>UAN 28 (10.67)</option>
+              <option value="8.34"  ${density==='8.34'?'selected':''}>Water (8.34)</option>
+              <option value="${htmlEscape(density)}" ${!['11.06','10.67','8.34'].includes(String(density))?'selected':''}>Custom (${htmlEscape(density)})</option>
+            </select>
+          </label>
+          <label><span class="small muted">Acres *</span>
+            <input id="f-acres" type="number" min="0" step="any" value="${htmlEscape(acres)}">
+          </label>
+        </div>
+
+        <button id="f-calc" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back to Calculator</a>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+
+        <div id="f-out" class="section"></div>
+      </section>
+    `;
+
+    $('#f-calc').addEventListener('click', ()=>{
+      const nutrient = $('#f-nutrient').value;
+      const target = toNum($('#f-target').value);
+      const analysis = toNum($('#f-analysis').value);
+      const density = toNum($('#f-density').value);
+      const acres = toNum($('#f-acres').value);
+
+      localStorage.setItem(KEY, JSON.stringify({nutrient, target, analysis, density, acres}));
+
+      if (analysis<=0 || analysis>100 || target<=0 || acres<=0){
+        $('#f-out').innerHTML = `<p class="muted">Please enter valid numbers (analysis 1–100, positive target & acres).</p>`;
+        return;
+      }
+
+      const frac = analysis/100;
+      const lbPerAcre = target/frac;
+      const galPerAcre = lbPerAcre / (density||1);
+      const totalLb = lbPerAcre * acres;
+      const totalGal = galPerAcre * acres;
+
+      $('#f-out').innerHTML = `
+        <h2>Results</h2>
+        <ul>
+          <li><strong>Product lb/acre:</strong> ${fmt(lbPerAcre)}</li>
+          <li><strong>Product gal/acre:</strong> ${fmt(galPerAcre)}</li>
+          <li><strong>Total product (lb):</strong> ${fmt(totalLb)}</li>
+          <li><strong>Total product (gal):</strong> ${fmt(totalGal)}</li>
+        </ul>
+        <p class="small muted">Note: density affects gal/acre; analysis drives required lb/acre.</p>
+      `;
+    });
+  };
+
+  // ---- 4.2 Bin Volume Calculator (cylindrical, optional cone) ----
+  window.viewCalcBin = function(){
+    const app = document.getElementById('app');
+    const KEY='df_calc_bin';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>🏗️ Bin Volume Calculator</h1>
+
+        <div class="field" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <label><span class="small muted">Diameter (ft) *</span><input id="b-diam" type="number" step="any" value="${htmlEscape(s.diam||'')}" ></label>
+          <label><span class="small muted">Grain Depth (ft) *</span><input id="b-depth" type="number" step="any" value="${htmlEscape(s.depth||'')}" ></label>
+          <label><span class="small muted">Roof Type</span>
+            <select id="b-roof">
+              <option ${!s.roof||s.roof==='flat'?'selected':''} value="flat">Flat/Simplified</option>
+              <option ${s.roof==='cone'?'selected':''} value="cone">Cone (add rise)</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="b-cone" class="field" style="display:${s.roof==='cone'?'block':'none'};">
+          <label><span class="small muted">Cone Rise (ft)</span><input id="b-rise" type="number" step="any" value="${htmlEscape(s.rise||'')}" ></label>
+        </div>
+
+        <div class="field" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <label><span class="small muted">Crop</span>
+            <select id="b-crop">
+              <option ${!s.crop||s.crop==='Corn'?'selected':''}>Corn</option>
+              <option ${s.crop==='Soybeans'?'selected':''}>Soybeans</option>
+              <option ${s.crop==='Custom'?'selected':''}>Custom</option>
+            </select>
+          </label>
+          <label><span class="small muted">lb / bu</span><input id="b-lbbu" type="number" step="any" value="${htmlEscape(s.lbbu||'56')}" ></label>
+          <label><span class="small muted">Bushel ft³</span><input id="b-buft3" type="number" step="any" value="${htmlEscape(s.buft3||'1.244')}" ></label>
+        </div>
+
+        <button id="b-calc" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back to Calculator</a>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+
+        <div id="b-out" class="section"></div>
+      </section>
+    `;
+
+    $('#b-crop').addEventListener('change', ()=>{
+      if ($('#b-crop').value==='Corn'){ $('#b-lbbu').value='56'; }
+      else if ($('#b-crop').value==='Soybeans'){ $('#b-lbbu').value='60'; }
+    });
+    $('#b-roof').addEventListener('change', ()=>{
+      $('#b-cone').style.display = ($('#b-roof').value==='cone')?'block':'none';
+    });
+
+    $('#b-calc').addEventListener('click', ()=>{
+      const diam = toNum($('#b-diam').value);
+      const depth= toNum($('#b-depth').value);
+      const roof = $('#b-roof').value;
+      const rise = toNum($('#b-rise')?$('#b-rise').value:0);
+      const lbbu = toNum($('#b-lbbu').value||56);
+      const buft3= toNum($('#b-buft3').value||1.244);
+
+      localStorage.setItem(KEY, JSON.stringify({
+        diam, depth, roof, rise, crop:$('#b-crop').value, lbbu, buft3
+      }));
+
+      if (diam<=0 || depth<=0 || buft3<=0 || lbbu<=0){
+        $('#b-out').innerHTML = `<p class="muted">Please enter valid positive numbers.</p>`;
+        return;
+      }
+
+      const r = diam/2;
+      const volCyl = Math.PI * r * r * depth; // ft^3
+      const volCone = (roof==='cone' && rise>0) ? (Math.PI * r * r * rise)/3 : 0;
+      const vol = volCyl + volCone; // ft^3
+      const bushels = vol / buft3;
+      const weight = bushels * lbbu;
+
+      $('#b-out').innerHTML = `
+        <h2>Results</h2>
+        <ul>
+          <li><strong>Volume (ft³):</strong> ${fmt(vol)}</li>
+          <li><strong>Bushels:</strong> ${fmt(bushels)}</li>
+          <li><strong>Estimated Weight (lb):</strong> ${fmt(weight)}</li>
+        </ul>
+        <p class="small muted">Assumes perfect fill; adjust for actual void/packing as needed.</p>
+      `;
+    });
+  };
+
+  // ---- 4.3 Area Calculator ----
+  window.viewCalcArea = function(){
+    const app = document.getElementById('app');
+    const KEY='df_calc_area';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+    const shape = s.shape||'Rectangle';
+    const unit = s.unit||'ft';
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>📐 Area Calculator</h1>
+
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <label><span class="small muted">Shape</span>
+            <select id="a-shape">
+              <option ${shape==='Rectangle'?'selected':''}>Rectangle</option>
+              <option ${shape==='Circle'?'selected':''}>Circle</option>
+              <option ${shape==='Triangle'?'selected':''}>Triangle</option>
+            </select>
+          </label>
+          <label><span class="small muted">Units</span>
+            <select id="a-unit">
+              <option ${unit==='ft'?'selected':''} value="ft">Feet</option>
+              <option ${unit==='m'?'selected':''} value="m">Meters</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="a-rect" class="field" style="display:${shape==='Rectangle'?'grid':'none'};grid-template-columns:1fr 1fr;gap:8px;">
+          <label><span class="small muted">Length *</span><input id="a-len" type="number" step="any" value="${htmlEscape(s.len||'')}"></label>
+          <label><span class="small muted">Width *</span><input id="a-wid" type="number" step="any" value="${htmlEscape(s.wid||'')}"></label>
+        </div>
+
+        <div id="a-circ" class="field" style="display:${shape==='Circle'?'grid':'none'};grid-template-columns:1fr 1fr;gap:8px;">
+          <label><span class="small muted">Diameter *</span><input id="a-dia" type="number" step="any" value="${htmlEscape(s.dia||'')}"></label>
+          <div></div>
+        </div>
+
+        <div id="a-tri" class="field" style="display:${shape==='Triangle'?'grid':'none'};grid-template-columns:1fr 1fr;gap:8px;">
+          <label><span class="small muted">Base *</span><input id="a-base" type="number" step="any" value="${htmlEscape(s.base||'')}"></label>
+          <label><span class="small muted">Height *</span><input id="a-height" type="number" step="any" value="${htmlEscape(s.height||'')}"></label>
+        </div>
+
+        <button id="a-calc" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back to Calculator</a>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+
+        <div id="a-out" class="section"></div>
+      </section>
+    `;
+
+    function showShape(){
+      $('#a-rect').style.display = ($('#a-shape').value==='Rectangle')?'grid':'none';
+      $('#a-circ').style.display = ($('#a-shape').value==='Circle')?'grid':'none';
+      $('#a-tri').style.display  = ($('#a-shape').value==='Triangle')?'grid':'none';
+    }
+    $('#a-shape').addEventListener('change', showShape);
+
+    $('#a-calc').addEventListener('click', ()=>{
+      const shape = $('#a-shape').value;
+      const unit = $('#a-unit').value;
+
+      let area = 0; // unit^2
+      if (shape==='Rectangle'){
+        const L=toNum($('#a-len').value), W=toNum($('#a-wid').value);
+        if (L<=0||W<=0) return $('#a-out').innerHTML='<p class="muted">Enter valid length & width.</p>';
+        area = L*W;
+      } else if (shape==='Circle'){
+        const D=toNum($('#a-dia').value);
+        if (D<=0) return $('#a-out').innerHTML='<p class="muted">Enter valid diameter.</p>';
+        const r=D/2; area = Math.PI*r*r;
+      } else if (shape==='Triangle'){
+        const B=toNum($('#a-base').value), H=toNum($('#a-height').value);
+        if (B<=0||H<=0) return $('#a-out').innerHTML='<p class="muted">Enter valid base & height.</p>';
+        area = 0.5*B*H;
+      }
+
+      localStorage.setItem(KEY, JSON.stringify({
+        shape, unit,
+        len:$('#a-len')?$('#a-len').value:undefined,
+        wid:$('#a-wid')?$('#a-wid').value:undefined,
+        dia:$('#a-dia')?$('#a-dia').value:undefined,
+        base:$('#a-base')?$('#a-base').value:undefined,
+        height:$('#a-height')?$('#a-height').value:undefined
+      }));
+
+      // Convert to acres
+      let areaAcres=0, areaLabel='';
+      if (unit==='ft'){ areaAcres = area/43560; areaLabel='ft²'; }
+      else { areaAcres = area/4046.8564224; areaLabel='m²'; }
+
+      $('#a-out').innerHTML = `
+        <h2>Results</h2>
+        <ul>
+          <li><strong>Area (${areaLabel}):</strong> ${fmt(area)}</li>
+          <li><strong>Area (acres):</strong> ${fmt(areaAcres)}</li>
+        </ul>
+      `;
+    });
+
+    showShape();
+  };
+
+  // ---- 4.4 Combine Yield Calculator (weight-based, true shrink to base) ----
+  window.viewCalcCombine = function(){
+    const app = document.getElementById('app');
+    const KEY='df_calc_combine';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>🌽 Combine Yield Calculator</h1>
+
+        <div class="field" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+          <label><span class="small muted">Crop</span>
+            <select id="c-crop">
+              <option ${!s.crop||s.crop==='Corn'?'selected':''}>Corn</option>
+              <option ${s.crop==='Soybeans'?'selected':''}>Soybeans</option>
+            </select>
+          </label>
+          <label><span class="small muted">Wet Weight (lb) *</span><input id="c-wet" type="number" step="any" value="${htmlEscape(s.wet||'')}"></label>
+          <label><span class="small muted">Moisture % *</span><input id="c-moist" type="number" step="any" value="${htmlEscape(s.moist||'')}"></label>
+          <label><span class="small muted">Acres *</span><input id="c-acres" type="number" step="any" value="${htmlEscape(s.acres||'')}"></label>
+        </div>
+
+        <div class="field" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <label><span class="small muted">Dry Basis %</span><input id="c-base" type="number" step="any" value="${htmlEscape(s.base||'')}" placeholder="Corn 15.5 / Soy 13"></label>
+          <label><span class="small muted">lb / bu (test wt)</span><input id="c-lbbu" type="number" step="any" value="${htmlEscape(s.lbbu||'')}" placeholder="Corn 56 / Soy 60"></label>
+          <div class="small muted" style="align-self:end">Leave blank to auto-fill by crop.</div>
+        </div>
+
+        <button id="c-calc" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back to Calculator</a>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+
+        <div id="c-out" class="section"></div>
+      </section>
+    `;
+
+    $('#c-calc').addEventListener('click', ()=>{
+      const crop = $('#c-crop').value;
+      const wet  = toNum($('#c-wet').value);
+      const moist= toNum($('#c-moist').value);
+      const acres= toNum($('#c-acres').value);
+      let base = toNum($('#c-base').value);
+      let lbbu = toNum($('#c-lbbu').value);
+
+      if (!base) base = (crop==='Corn')?15.5:13;
+      if (!lbbu) lbbu = (crop==='Corn')?56:60;
+
+      localStorage.setItem(KEY, JSON.stringify({crop, wet, moist, acres, base, lbbu}));
+
+      if (wet<=0 || acres<=0 || moist<=0 || moist>=100 || base<=0 || base>=100 || lbbu<=0){
+        $('#c-out').innerHTML = `<p class="muted">Please enter valid values (weights & acres > 0, moisture/base 0–100).</p>`;
+        return;
+      }
+
+      // True shrink to base:
+      // Dry matter fraction = (100 - M)/100; Base dry fraction = (100 - base)/100
+      // Standard (base) weight = wet * ((100 - M)/(100 - base))
+      const stdWeight = wet * ((100 - moist) / (100 - base));
+      const bushels   = stdWeight / lbbu;
+      const yieldBuA  = bushels / acres;
+
+      $('#c-out').innerHTML = `
+        <h2>Results</h2>
+        <ul>
+          <li><strong>Standard (dry @ ${base}% ) weight (lb):</strong> ${fmt(stdWeight)}</li>
+          <li><strong>Dry bushels:</strong> ${fmt(bushels)}</li>
+          <li><strong>Yield (bu/acre):</strong> ${fmt(yieldBuA)}</li>
+        </ul>
+        <p class="small muted">Weight-based method with true shrink to base. Head-width/speed method can be added later.</p>
+      `;
+    });
+  };
+
+  // ---- 4.5 Chemical Mix Sheet (per tank amounts) ----
+  window.viewCalcChem = function(){
+    const app = document.getElementById('app');
+    const KEY='df_calc_chem';
+    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
+
+    const prods = s.prods || Array.from({length:6}).map(()=>({rate:'',unit:'oz'}));
+    function prodRow(i,p){
+      return `
+        <div class="field" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;">
+          <input id="ch-name-${i}" type="text" placeholder="Product ${i+1} name" value="${htmlEscape(p.name||'')}">
+          <input id="ch-rate-${i}" type="number" step="any" placeholder="Rate/acre" value="${htmlEscape(p.rate||'')}">
+          <select id="ch-unit-${i}">
+            <option ${p.unit==='oz'?'selected':''} value="oz">oz</option>
+            <option ${p.unit==='pt'?'selected':''} value="pt">pt</option>
+            <option ${p.unit==='qt'?'selected':''} value="qt">qt</option>
+            <option ${p.unit==='gal'?'selected':''} value="gal">gal</option>
+          </select>
+        </div>
+      `;
+    }
+
+    app.innerHTML = `
+      <section class="section">
+        <h1>🧪 Chemical Mix Sheet</h1>
+
+        <div class="field" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+          <label><span class="small muted">Tank Size (gal) *</span><input id="ch-tank" type="number" step="any" value="${htmlEscape(s.tank||'')}"></label>
+          <label><span class="small muted">Carrier GPA *</span><input id="ch-gpa" type="number" step="any" value="${htmlEscape(s.gpa||'')}"></label>
+          <label><span class="small muted">Job Acres (optional)</span><input id="ch-job" type="number" step="any" value="${htmlEscape(s.job||'')}"></label>
+          <div class="small muted" style="align-self:end">Acres/tank = Tank ÷ GPA</div>
+        </div>
+
+        <h3>Products (rate per acre)</h3>
+        ${prods.map((p,i)=>prodRow(i,p)).join('')}
+
+        <button id="ch-calc" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back to Calculator</a>
+        <a class="btn" href="#/home">Back to Dashboard</a>
+
+        <div id="ch-out" class="section"></div>
+      </section>
+    `;
+
+    function unitToGal(u,amount){
+      const a = toNum(amount);
+      if (!a) return 0;
+      if (u==='gal') return a;
+      if (u==='qt')  return a/4;
+      if (u==='pt')  return a/8;
+      if (u==='oz')  return a/128;
+      return 0;
+    }
+
+    $('#ch-calc').addEventListener('click', ()=>{
+      const tank = toNum($('#ch-tank').value);
+      const gpa  = toNum($('#ch-gpa').value);
+      const job  = toNum($('#ch-job').value);
+
+      const prods = [];
+      for (let i=0;i<6;i++){
+        prods.push({
+          name: $('#ch-name-'+i).value,
+          rate: $('#ch-rate-'+i).value,
+          unit: $('#ch-unit-'+i).value
+        });
+      }
+      localStorage.setItem(KEY, JSON.stringify({tank,gpa,job,prods}));
+
+      if (tank<=0 || gpa<=0){
+        $('#ch-out').innerHTML = `<p class="muted">Enter valid Tank Size and Carrier GPA.</p>`;
+        return;
+      }
+
+      const acresPerTank = tank / gpa;
+
+      const lines = [];
+      let totalVolPerTank = 0;
+      prods.forEach((p)=>{
+        const rate = toNum(p.rate);
+        if (!rate) return;
+        const perAcreGal = unitToGal(p.unit, rate);
+        const perTankGal = perAcreGal * acresPerTank;
+        totalVolPerTank += perTankGal;
+        lines.push(`<li>${htmlEscape(p.name||'(Unnamed)')}: <strong>${fmt(perTankGal)}</strong> gal / tank <span class="small muted">(${rate} ${p.unit}/ac)</span></li>`);
+      });
+
+      let tanksNeeded = '';
+      if (job>0){
+        const t = Math.ceil(job / acresPerTank);
+        tanksNeeded = `<li><strong>Tanks needed for ${fmt(job)} ac:</strong> ${fmt(t)}</li>`;
+      }
+
+      $('#ch-out').innerHTML = `
+        <h2>Per Tank Mix</h2>
+        <ul>
+          <li><strong>Acres per tank:</strong> ${fmt(acresPerTank)}</li>
+          <li><strong>Carrier per tank (gal):</strong> ${fmt(tank)}</li>
+          ${lines.join('') || '<li class="muted">No products entered.</li>'}
+          <li><strong>Total product volume in mix (gal):</strong> ${fmt(totalVolPerTank)}</li>
+          ${tanksNeeded}
+        </ul>
+        <p class="small muted">Check physical compatibility and label requirements. This is a convenience calculator only.</p>
+      `;
+    });
+  };
+
+  // =========================================================
+  // INIT
+  // =========================================================
+  ready(function(){
+    overrideFooterVersion();
+    ensureTeamGrainRoutes();
+    bindPhoneAutoFormatSafe(); // once at load
+    // If user lands directly on a calc hash, call router (already done by your app)—
+    // our overrides will be used automatically.
+  });
+
+})();
+</script>
 </body>
 </html>
