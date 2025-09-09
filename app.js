@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.14.7';
+const APP_VERSION = 'v10.15.1';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -3476,3 +3476,143 @@ window.viewTeamDirectory = function(){
   })();
 
 })(); // end DF PATCH v10.14.7
+
+/* =================== v10.15.1 focused UI patch (safe, minimal) =================== */
+(function () {
+  const PATCH_ID = 'v10.15.1-ui-fixes';
+  if (window.__APP_PATCHES__ && window.__APP_PATCHES__[PATCH_ID]) return;
+  window.__APP_PATCHES__ = window.__APP_PATCHES__ || {};
+  window.__APP_PATCHES__[PATCH_ID] = Date.now();
+
+  const log = (...a) => console.log(`[${PATCH_ID}]`, ...a);
+
+  // tiny helpers
+  const qs  = (s, r = document) => r.querySelector(s);
+  const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const txt = (el) => (el ? (el.textContent || '').trim() : '');
+
+  // Run only when the page actually matches the intended view (by heading text)
+  function onPage(titleRegex, work) {
+    try {
+      const h = qsa('h1,h2').find(h => titleRegex.test(txt(h)));
+      if (h) work(document, h);
+    } catch (e) { console.error(`[${PATCH_ID}]`, e); }
+  }
+
+  // ---- (1) Employees: convert Role/Title text input into permissions dropdown
+  function patchEmployees() {
+    onPage(/^\s*employees\s*$/i, (root) => {
+      const roleInput = qsa('input[placeholder],input[name],input[type="text"]', root)
+        .find(i => /(role|title)/i.test(i.placeholder || i.name || '') && !i.dataset.v10151Role);
+
+      if (!roleInput) return;
+
+      const select = document.createElement('select');
+      select.dataset.v10151Role = '1';
+      select.name = roleInput.name || 'role';
+      select.className = roleInput.className || '';
+      // Don’t copy id to avoid collisions with existing JS
+      [
+        ['', '— Choose role —'],
+        ['viewer',  'Viewer (read-only)'],
+        ['worker',  'Worker'],
+        ['manager', 'Manager'],
+        ['admin',   'Admin'],
+      ].forEach(([v, label]) => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = label;
+        select.appendChild(opt);
+      });
+
+      // best-effort mapping from existing free text
+      const cur = (roleInput.value || '').toLowerCase();
+      if (cur.includes('admin'))   select.value = 'admin';
+      else if (cur.includes('manager')) select.value = 'manager';
+      else if (cur.includes('worker'))  select.value = 'worker';
+      else if (cur.includes('view'))    select.value = 'viewer';
+
+      roleInput.replaceWith(select);
+      log('Employees: role field converted to <select>.');
+    });
+  }
+
+  // ---- (2) Feedback forms: restrict Category options per page
+  function patchFeedback() {
+    // New Feature Request: remove any "Bug / Error" category
+    onPage(/new feature request/i, (root) => {
+      const cat = findCategorySelect(root);
+      if (!cat || cat.dataset.v10151Cat) return;
+      removeOptionByText(cat, /bug\s*\/?\s*error/i);
+      cat.dataset.v10151Cat = '1';
+      log('Feedback (feature): removed "Bug/Error" option.');
+    });
+
+    // Report Error / Bug Report: remove any "New Feature" category
+    onPage(/(report error|bug report)/i, (root) => {
+      const cat = findCategorySelect(root);
+      if (!cat || cat.dataset.v10151Cat) return;
+      removeOptionByText(cat, /new feature/i);
+      cat.dataset.v10151Cat = '1';
+      log('Feedback (error): removed "New Feature" option.');
+    });
+
+    function findCategorySelect(root) {
+      // Prefer a select that is near a label that reads "Category"
+      let sel = null;
+      qsa('label', root).forEach(lab => {
+        if (/^\s*category\s*:?\s*$/i.test(txt(lab))) {
+          const c = lab.closest('.field,.form-group,div');
+          const s = c ? c.querySelector('select') : null;
+          if (s) sel = s;
+        }
+      });
+      // Fallback to third select if screenshots match that structure
+      return sel || qsa('select', root)[2] || null;
+    }
+
+    function removeOptionByText(select, pattern) {
+      qsa('option', select).forEach(o => {
+        if (pattern.test(txt(o))) o.remove();
+      });
+    }
+  }
+
+  // ---- (3) Crop Production: remove legacy overlapping chip row
+  function patchCropProduction() {
+    onPage(/^\s*crop production\s*$/i, (root) => {
+      // Look for a compact row that mentions "Crop Year" and an "Add" button but has NO <select>
+      const suspects = qsa('div,section,fieldset,form', root).filter(el => {
+        const t = (el.textContent || '').replace(/\s+/g, ' ');
+        const hasLabel = /crop year/i.test(t);
+        const hasAdd   = /add/i.test(t) && el.querySelector('button, [role="button"]');
+        const hasSelect = !!el.querySelector('select');
+        // Avoid big tile containers (cards grid)
+        const looksLikeGrid = el.querySelector('.card,.tile,[role="button"] img');
+        return hasLabel && hasAdd && !hasSelect && !looksLikeGrid;
+      });
+
+      suspects.forEach(el => el.remove());
+      if (suspects.length) log(`Crop Production: removed ${suspects.length} legacy chip container(s).`);
+    });
+  }
+
+  // run now and on lightweight route changes
+  function applyAll() {
+    patchEmployees();
+    patchFeedback();
+    patchCropProduction();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyAll, { once: true });
+  } else {
+    applyAll();
+  }
+
+  // Re-apply on SPA navigations without heavy observers
+  ['popstate', 'hashchange'].forEach(evt => window.addEventListener(evt, applyAll));
+  // Also after any in-app link click (deferred) to catch pushState routers
+  document.addEventListener('click', () => setTimeout(applyAll, 0), true);
+
+  log('v10.15.1 patch loaded.');
+})();
