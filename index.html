@@ -132,6 +132,23 @@
     <span id="version"></span>
   </footer>
 
+  <!-- One-time reset for service worker + caches -->
+  <script>
+  if ('serviceWorker' in navigator && location.hash === '#reset-sw') {
+    Promise.all([
+      navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister()))),
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+    ]).then(() => {
+      location.replace(location.href.replace('#reset-sw', ''));
+    });
+  }
+  </script>
+
+  <!-- Your existing app.js load -->
+  <script defer src="app.js?v=10.14.7"></script>
+</body>
+</html>
+
   <!-- Load the app (keep this; bump version query when you release) -->
   <script defer src="app.js?v=10.14.7"></script>
 </body>
