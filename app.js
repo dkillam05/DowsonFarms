@@ -3476,3 +3476,171 @@ window.viewTeamDirectory = function(){
   })();
 
 })(); // end DF PATCH v10.14.7
+/* =================== v10.15.0 UI hotfix (drop at end of app.js) =================== */
+(function () {
+  const PATCH_ID = 'v10.15.0-ui-hotfix';
+  if (window.__APP_PATCHES__ && window.__APP_PATCHES__[PATCH_ID]) return;
+  window.__APP_PATCHES__ = window.__APP_PATCHES__ || {};
+  window.__APP_PATCHES__[PATCH_ID] = Date.now();
+
+  const log = (...a) => console.log(`[${PATCH_ID}]`, ...a);
+
+  // ---- small helpers --------------------------------------------------------
+  const qs = (s, r = document) => r.querySelector(s);
+  const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const text = (el) => (el ? (el.textContent || '').trim() : '');
+
+  function waitFor(cond, { tries = 60, interval = 250 } = {}) {
+    return new Promise((res) => {
+      const t = setInterval(() => {
+        if (--tries <= 0) { clearInterval(t); return res(false); }
+        try { if (cond()) { clearInterval(t); return res(true); } } catch {}
+      }, interval);
+    });
+  }
+
+  function injectStyle(css, id) {
+    if (id && qs(`#${id}`)) return;
+    const s = document.createElement('style');
+    if (id) s.id = id;
+    s.textContent = css;
+    document.head.appendChild(s);
+  }
+
+  function bumpFooterVersion(v = '10.15.0') {
+    // Gently replace a trailing "vX.Y.Z" in the footer if present
+    const footer = qsa('footer, .footer, [data-footer], [role="contentinfo"]').find(Boolean);
+    if (!footer) return;
+    const m = footer.textContent.match(/v\d+\.\d+\.\d+\b/);
+    if (!m) return;
+    footer.textContent = footer.textContent.replace(m[0], `v${v}`);
+  }
+
+  // ---- (1) Employees: Role dropdown with permissions ------------------------
+  function patchEmployeesRoleDropdown(root = document) {
+    // Heuristics: page header "Employees" and a field with placeholder "Role / Title"
+    const header = qsa('h1,h2', root).find(h => /employees/i.test(text(h)));
+    if (!header) return;
+    // Find text input that looks like the Role/Title box
+    const roleInput = qsa('input[placeholder], input[name], input[type="text"]', root)
+      .find(i => /role|title/i.test(i.placeholder || i.name || '') && !i.dataset.patchedRole);
+    if (!roleInput) return;
+
+    // Build select (keep name/id/classes for the form to keep working)
+    const select = document.createElement('select');
+    select.dataset.patchedRole = '1';
+    if (roleInput.name) select.name = roleInput.name;
+    if (roleInput.id) select.id = roleInput.id;
+    select.className = roleInput.className;
+
+    // Permission choices (tweak labels as you like)
+    const ROLES = [
+      { v: '', label: '— Choose role —' },
+      { v: 'viewer',  label: 'Viewer (read-only)' },
+      { v: 'worker',  label: 'Worker' },
+      { v: 'manager', label: 'Manager' },
+      { v: 'admin',   label: 'Admin' },
+    ];
+    ROLES.forEach(({ v, label }) => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = label;
+      select.appendChild(opt);
+    });
+
+    // Try to map existing free-text value to a choice
+    const cur = (roleInput.value || '').toLowerCase();
+    const match = ROLES.find(r => r.v && (cur.includes(r.v) || cur.includes(r.label.split(' ')[0].toLowerCase())));
+    if (match) select.value = match.v;
+
+    // Swap in place
+    roleInput.replaceWith(select);
+    log('Employees role field converted to <select>.');
+  }
+
+  // ---- (2) Feedback: tighten Category options by page -----------------------
+  function patchFeedbackCategories(root = document) {
+    const header = qsa('h1,h2', root).find(h => /(feature request|report error|bug report)/i.test(text(h)));
+    if (!header) return;
+
+    const isFeature = /feature request/i.test(text(header));
+    const isError   = /(report error|bug report)/i.test(text(header));
+
+    // Find the "Category" select: look for label text "Category" then nearest <select>
+    let categorySelect = null;
+    qsa('label, .field, .form-group, div').forEach(node => {
+      if (/^\s*category\s*:?\s*$/i.test(text(node))) {
+        const sel = node.closest('.field, .form-group, div')?.querySelector('select');
+        if (sel) categorySelect = sel;
+      }
+    });
+    // Fallback: pick the third select if it matches screenshots
+    if (!categorySelect) categorySelect = qsa('select', root)[2];
+
+    if (!categorySelect || categorySelect.dataset.patchedCategory) return;
+
+    const removeByText = (needle) => {
+      qsa('option', categorySelect).forEach(opt => {
+        if (new RegExp(`^\\s*${needle}\\s*$`, 'i').test(opt.textContent)) opt.remove();
+      });
+    };
+
+    if (isFeature) removeByText('Bug /? ?Error');
+    if (isError)   removeByText('New Feature');
+
+    categorySelect.dataset.patchedCategory = '1';
+    log('Feedback Category options filtered.', { isFeature, isError });
+  }
+
+  // ---- (3) Crop Production: remove legacy overlapping year chips ------------
+  function patchCropProductionYears(root = document) {
+    const header = qsa('h1,h2', root).find(h => /crop production/i.test(text(h)));
+    if (!header) return;
+
+    // Find any "Crop Year" blocks that do NOT contain a <select> (legacy chips),
+    // and that include years and an "Add" button, then remove them.
+    const candidates = qsa('section, fieldset, form, div', root)
+      .filter(el => /crop year/i.test(el.textContent || ''))
+      .filter(el => !el.querySelector('select'))
+      .filter(el => /20\d{2}/.test(el.textContent) && /add/i.test(el.textContent));
+
+    candidates.forEach(el => {
+      // Avoid killing the tile grid; only remove compact filter rows (heuristic: contains inputs/buttons, not big cards)
+      const hasCards = el.querySelector('[role="button"], .card, .tile, a[href] img');
+      if (!hasCards) el.remove();
+    });
+
+    // Small CSS nudge in case remnants remain
+    injectStyle(`
+      /* hide stray year-chip controls that may survive removal */
+      .year-chip, .chip, .pill { display: none !important; }
+    `, 'patch-10-15-0-cropyear');
+
+    log(`Removed ${candidates.length} legacy Crop Year chip containers.`);
+  }
+
+  // ---- router awareness (works for MPA or SPA) ------------------------------
+  function applyAll() {
+    try {
+      patchEmployeesRoleDropdown();
+      patchFeedbackCategories();
+      patchCropProductionYears();
+      bumpFooterVersion('10.15.0');
+    } catch (e) {
+      console.error(`[${PATCH_ID}]`, e);
+    }
+  }
+
+  // Run now, after DOM ready, and on mutations (SPA navs)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyAll, { once: true });
+  } else {
+    applyAll();
+  }
+
+  // Watch for page changes and re-apply idempotently
+  const mo = new MutationObserver(() => applyAll());
+  waitFor(() => document.body).then(() => mo.observe(document.body, { childList: true, subtree: true }));
+
+  log('Patch installed.');
+})();
+
