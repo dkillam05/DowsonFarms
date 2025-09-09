@@ -1,5 +1,5 @@
 // ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.14.3';
+const APP_VERSION = 'v10.14.4';
 
 // ===== Init theme asap (auto/light/dark) =====
 (function applySavedTheme() {
@@ -1493,4 +1493,38 @@ function __df_commas(n){ try { return Number(n).toLocaleString(); } catch { retu
     const el = document.getElementById('version');
     if (el) el.textContent = String(APP_VERSION); // e.g., 'v10.14.3'
   } catch {}
+})();
+/* =========================
+   PATCH v10.14.x — Auto theme background fix
+   - Ensures page bg is correct when data-theme="auto"
+   - Stops ivory flash on iOS Safari while scrolling
+   ========================= */
+(function injectAutoThemeBgFix(){
+  if (document.getElementById('df-auto-bg-fix')) return;
+  const css = document.createElement('style');
+  css.id = 'df-auto-bg-fix';
+  css.textContent = `
+    :root{
+      --page-bg-light:#f6f6e8;    /* your light ivory */
+      --page-bg-dark:#0f0f0f;     /* your dark page */
+      --page-bg: var(--page-bg-light);
+    }
+
+    /* explicit modes */
+    [data-theme="light"] { --page-bg: var(--page-bg-light); }
+    [data-theme="dark"]  { --page-bg: var(--page-bg-dark); }
+
+    /* AUTO follows system */
+    [data-theme="auto"]  { --page-bg: var(--page-bg-light); }
+    @media (prefers-color-scheme: dark){
+      [data-theme="auto"] { --page-bg: var(--page-bg-dark); }
+    }
+
+    /* Paint everything, including iOS overscroll areas */
+    html, body, #app, main {
+      background-color: var(--page-bg) !important;
+    }
+    body { min-height: 100vh; }
+  `;
+  document.head.appendChild(css);
 })();
