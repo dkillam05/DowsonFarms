@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <link rel="manifest" href="manifest.webmanifest" />
 
-  <!-- Styles (keep your existing file/version) -->
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css?v=10500" />
 </head>
 <body>
@@ -60,10 +60,6 @@
           <select id="fb-cat" data-df="feedback-category"></select>
         </div>
       </div>
-      <!--
-        Optional: override defaults by putting JSON on the main select:
-        <select data-df="feedback-main" data-options='{"main":["Bug","Idea"],"sub":{"Bug":["Crash"]},"category":["Low","High"]}'></select>
-      -->
     </section>
 
     <!-- Settings → Farms -->
@@ -103,7 +99,6 @@
           </div>
           <div>
             <label for="fieldFarmId">Farm</label>
-            <!-- Will be populated from Farms list -->
             <select id="fieldFarmId" name="fieldFarmId" required></select>
           </div>
         </div>
@@ -132,24 +127,22 @@
     <span id="version"></span>
   </footer>
 
-  <!-- One-time reset for service worker + caches -->
+  <!-- ===== Service Worker (NEW filename v10147) ===== -->
   <script>
-  if ('serviceWorker' in navigator && location.hash === '#reset-sw') {
-    Promise.all([
-      navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister()))),
-      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-    ]).then(() => {
-      location.replace(location.href.replace('#reset-sw', ''));
-    });
+  if ('serviceWorker' in navigator) {
+    // Unregister any old SWs, then register the new versioned file
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => Promise.all(rs.map(r => r.unregister())))
+      .then(() => navigator.serviceWorker.register('./service-worker-v10147.js', { scope: './' }))
+      .then(() => {
+        // If not yet controlled, reload once so the new SW takes over
+        if (!navigator.serviceWorker.controller) location.reload();
+      })
+      .catch(console.warn);
   }
   </script>
 
-  <!-- Your existing app.js load -->
-  <script defer src="app.js?v=10.14.7"></script>
-</body>
-</html>
-
-  <!-- Load the app (keep this; bump version query when you release) -->
+  <!-- App JS (keep version bump in the query) -->
   <script defer src="app.js?v=10.14.7"></script>
 </body>
 </html>
