@@ -4,8 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dowson Farms App</title>
+
+  <!-- PWA basics -->
   <meta name="theme-color" content="#1B5E20" />
   <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- Styles (keep your existing file/version) -->
   <link rel="stylesheet" href="styles.css?v=10500" />
 </head>
 <body>
@@ -15,8 +19,8 @@
       <img src="icons/logo.png" alt="Dowson Farms Logo" />
       <span class="logo-text">Dowson Farms</span>
     </div>
-    <span id="clock"></span>
-    <button id="logout" class="logout">Logout</button>
+    <span id="clock" aria-live="polite"></span>
+    <button id="logout" class="logout" type="button">Logout</button>
   </header>
 
   <!-- ===== Breadcrumbs ===== -->
@@ -25,11 +29,102 @@
   <!-- ===== Update Banner ===== -->
   <div id="update-banner" hidden>
     <span>New update available 🚀</span>
-    <button id="update-refresh" class="btn-primary">Refresh</button>
+    <button id="update-refresh" class="btn-primary" type="button">Refresh</button>
   </div>
 
   <!-- ===== Main App Area ===== -->
-  <main id="app" tabindex="-1" role="main"></main>
+  <main id="app" tabindex="-1" role="main">
+    <!-- ========= v10.14.7 Patch Hooks ========= -->
+
+    <!-- Crop Year selector -->
+    <section aria-labelledby="sec-cropyear" class="card">
+      <h2 id="sec-cropyear">Crop Year</h2>
+      <p class="muted">Select a crop year (persists automatically).</p>
+      <select data-df="cropYear"></select>
+    </section>
+
+    <!-- Feedback (Main / Sub / Category) -->
+    <section aria-labelledby="sec-feedback" class="card">
+      <h2 id="sec-feedback">Feedback</h2>
+      <div class="grid-3">
+        <div>
+          <label for="fb-main">Main</label>
+          <select id="fb-main" data-df="feedback-main"></select>
+        </div>
+        <div>
+          <label for="fb-sub">Sub</label>
+          <select id="fb-sub" data-df="feedback-sub"></select>
+        </div>
+        <div>
+          <label for="fb-cat">Category</label>
+          <select id="fb-cat" data-df="feedback-category"></select>
+        </div>
+      </div>
+      <!--
+        Optional: override defaults by putting JSON on the main select:
+        <select data-df="feedback-main" data-options='{"main":["Bug","Idea"],"sub":{"Bug":["Crash"]},"category":["Low","High"]}'></select>
+      -->
+    </section>
+
+    <!-- Settings → Farms -->
+    <section aria-labelledby="sec-farms" class="card">
+      <h2 id="sec-farms">Settings — Farms</h2>
+
+      <div data-df="farm-list" class="list"></div>
+
+      <form data-df="farm-form" class="form">
+        <input type="hidden" name="farmId" />
+        <div class="grid-2">
+          <div>
+            <label for="farmName">Farm name</label>
+            <input id="farmName" name="farmName" placeholder="Farm name" required />
+          </div>
+          <div>
+            <label for="farmLocation">Location (optional)</label>
+            <input id="farmLocation" name="farmLocation" placeholder="e.g., Pike County, IL" />
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Save Farm</button>
+      </form>
+    </section>
+
+    <!-- Settings → Fields -->
+    <section aria-labelledby="sec-fields" class="card">
+      <h2 id="sec-fields">Settings — Fields</h2>
+
+      <div data-df="field-list" class="list"></div>
+
+      <form data-df="field-form" class="form">
+        <input type="hidden" name="fieldId" />
+        <div class="grid-2">
+          <div>
+            <label for="fieldName">Field name</label>
+            <input id="fieldName" name="fieldName" placeholder="Field name" required />
+          </div>
+          <div>
+            <label for="fieldFarmId">Farm</label>
+            <!-- Will be populated from Farms list -->
+            <select id="fieldFarmId" name="fieldFarmId" required></select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="fieldAcres">Acres</label>
+            <input id="fieldAcres" name="fieldAcres" placeholder="e.g., 1250" data-format="number" inputmode="decimal" />
+          </div>
+          <div>
+            <label for="fieldCrop">Crop (optional)</label>
+            <input id="fieldCrop" name="fieldCrop" placeholder="e.g., Corn / Soybeans" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Save Field</button>
+      </form>
+    </section>
+
+    <!-- ========= /v10.14.7 Patch Hooks ========= -->
+  </main>
 
   <!-- ===== Footer ===== -->
   <footer class="app-footer">
@@ -37,7 +132,7 @@
     <span id="version"></span>
   </footer>
 
-  <!-- Load the app. Bump the query when you release -->
+  <!-- Load the app (keep this; bump version query when you release) -->
   <script defer src="app.js?v=10.14.7"></script>
 </body>
 </html>
