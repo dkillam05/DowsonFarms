@@ -186,3 +186,87 @@
   });
 
 })();
+/* =========================
+   v12.0.0 — Part 2: Home screen tiles + labels
+   Append directly below Part 1
+   ========================= */
+(function DF_PART2_HOME(){
+  'use strict';
+  if (window.__DF_PART2__) return;
+  window.__DF_PART2__ = true;
+
+  // Helpers pulled from Part 1 (safe if already defined)
+  const $  = (s, r=document)=>r.querySelector(s);
+  const esc = s => String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
+
+  // Ensure globals from Part 1 exist
+  window.DF = window.DF || {};
+  const DF = window.DF;
+
+  // ---- Breadcrumb labels (used by Part 1 renderer) ----
+  DF.LABELS = Object.assign(DF.LABELS || {}, {
+    '#/home':             'Home',
+    '#/crop':             'Crop Production',
+    '#/grain':            'Grain Tracking',
+    '#/equipment':        'Equipment',
+    '#/calc':             'Calculators',
+    '#/ai':               'Reports',
+    '#/team':             'Team / Partners',
+    '#/feedback':         'Feedback',
+    '#/settings':         'Setups / Settings'
+  });
+
+  // ---- Tile component (minimal, consistent with earlier UI) ----
+  function tile(emoji, label, href){
+    return `
+      <a class="tile" href="${esc(href)}" aria-label="${esc(label)}">
+        <span class="emoji" aria-hidden="true">${emoji}</span>
+        <span class="label">${esc(label)}</span>
+      </a>`;
+  }
+
+  // ---- Home View (exact order you specified) ----
+  window.viewHome = function(){
+    const app = $('#app'); if (!app) return;
+    app.innerHTML = `
+      <section class="section">
+        <h1>Home</h1>
+        <div class="grid">
+          ${tile('🌱','Crop Production','#/crop')}
+          ${tile('🌾','Grain Tracking','#/grain')}
+          ${tile('🚜','Equipment','#/equipment')}
+          ${tile('🧮','Calculators','#/calc')}
+          ${tile('📈','Reports','#/ai')}
+          ${tile('👥','Team / Partners','#/team')}
+          ${tile('📝','Feedback','#/feedback')}
+          ${tile('⚙️','Setups / Settings','#/settings')}
+        </div>
+      </section>
+    `;
+  };
+
+  // ---- No-op placeholder views (so router won’t 404 while we build parts) ----
+  // These will be replaced in later parts with your 10.15.1 functionality.
+  function comingSoon(title, backHref='#/home'){
+    const app = $('#app'); if (!app) return;
+    app.innerHTML = `
+      <section class="section">
+        <h1>${esc(title)}</h1>
+        <p class="muted">This screen is being wired back in cleanly from 10.15.1.</p>
+        <a class="btn" href="${esc(backHref)}">Back</a>
+      </section>`;
+  }
+
+  window.viewCropHub       = window.viewCropHub       || (()=>comingSoon('Crop Production','#/home'));
+  window.viewGrainHub      = window.viewGrainHub      || (()=>comingSoon('Grain Tracking','#/home'));
+  window.viewEquipmentHub  = window.viewEquipmentHub  || (()=>comingSoon('Equipment','#/home'));
+  window.viewCalcHub       = window.viewCalcHub       || (()=>comingSoon('Calculators','#/home'));
+  window.viewReportsHub    = window.viewReportsHub    || (()=>comingSoon('Reports','#/home'));
+  window.viewTeamHub       = window.viewTeamHub       || (()=>comingSoon('Team / Partners','#/home'));
+  window.viewFeedbackHub   = window.viewFeedbackHub   || (()=>comingSoon('Feedback','#/home'));
+  window.viewSettingsHome  = window.viewSettingsHome  || (()=>comingSoon('Setups / Settings','#/home'));
+
+  // ---- Hook into Part 1 router if present; otherwise Part 1 will call viewHome on init ----
+  // (No action needed here; Part 1 owns routing.)
+})();
+
