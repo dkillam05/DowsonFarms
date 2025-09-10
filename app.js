@@ -3812,3 +3812,148 @@ try{
   try{ console.log('[v11.0.7] DF base path =', DF_BASE || '(root)'); }catch(e){}
 })();
 </script>
+
+<!-- ⤵️ APPEND THIS WHOLE BLOCK AT THE VERY BOTTOM OF app.js -->
+<script>
+/* ============================================================
+   Dowson Farms — DIAG PATCH v11.0.10 (non-invasive)
+   - Shows first JS error in a small bar
+   - Forces footer version text to confirm JS executed
+   - Rewrites any Logout buttons/links to use #/login
+   - Ensures a safe hash route and nudges router if present
+   - Logs SW/caches status into the bar (for screenshot)
+   ============================================================ */
+(function DF_DIAG_11010(){
+  if (window.__DF_DIAG_11010__) return;
+  window.__DF_DIAG_11010__ = true;
+
+  const TARGET_VERSION = 'v11.0.7'; // what you expect to see in footer
+
+  // --- Tiny UI helper (yellow note bar at the bottom) ---
+  function note(msg){
+    try{
+      let bar = document.getElementById('df-diag-bar');
+      if (!bar){
+        bar = document.createElement('div');
+        bar.id = 'df-diag-bar';
+        bar.style.cssText =
+          'position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:680px;' +
+          'padding:6px 10px;background:#fff7cc;border-top:1px solid #e0d27a;' +
+          'font:12px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;' +
+          'color:#333;z-index:2147483647;text-align:center';
+        document.body.appendChild(bar);
+      }
+      bar.textContent = String(msg||'');
+    }catch(_){}
+  }
+
+  // --- Show first errors so we can diagnose quickly ---
+  let firstErrShown = false;
+  window.addEventListener('error', function(ev){
+    if (firstErrShown) return;
+    firstErrShown = true;
+    const m = ev?.error?.message || ev?.message || ev?.toString() || 'Unknown JS error';
+    note('JS error: ' + m);
+  });
+  window.addEventListener('unhandledrejection', function(ev){
+    if (firstErrShown) return;
+    firstErrShown = true;
+    const m = (ev?.reason && (ev.reason.message || ev.reason.toString())) || 'Unhandled promise rejection';
+    note(m);
+  });
+
+  // --- Footer version override (so we know this patch executed) ---
+  function forceVersion(){
+    try{
+      const v = document.getElementById('version');
+      if (v && v.textContent.trim() !== TARGET_VERSION){
+        v.textContent = TARGET_VERSION;
+      }
+    }catch(_){}
+  }
+
+  // --- Prevent /login.html 404: turn all Logout actions into #/login ---
+  function wireLogout(){
+    try{
+      const all = Array.from(document.querySelectorAll('a,button'));
+      all.forEach(el=>{
+        const txt = (el.textContent||'').trim().toLowerCase();
+        const href = (el.getAttribute('href')||'').toLowerCase();
+        const looksLogout = /logout/.test(txt) || /logout/.test(href);
+        if (!looksLogout) return;
+
+        // Only rewire once:
+        if (el.__dfLogoutWired) return;
+        el.__dfLogoutWired = true;
+
+        el.addEventListener('click', (e)=>{
+          try{
+            e.preventDefault();
+            // clear quick auth flags if present (safe no-ops otherwise)
+            try{ localStorage.removeItem('df_user'); }catch{}
+            try{ sessionStorage.removeItem('df_user'); }catch{}
+            location.hash = '#/login';
+            // slight nudge in case router waits a tick
+            setTimeout(()=>{ if (typeof window.route==='function') window.route(); }, 0);
+          }catch(err){
+            note('Logout handler error: '+ (err?.message||err));
+          }
+        }, {capture:true});
+      });
+    }catch(err){
+      note('wireLogout error: ' + (err?.message||err));
+    }
+  }
+
+  // --- Ensure we have a hash route; default to #/home ---
+  function ensureHash(){
+    try{
+      if (!location.hash || location.hash === '#' || location.hash === '#/'){
+        location.replace('#/home');
+      }
+    }catch(_){}
+  }
+
+  // --- Try to (re)render if your router is present ---
+  function nudgeRouter(){
+    try{
+      ensureHash();
+      if (typeof window.renderBreadcrumb === 'function') window.renderBreadcrumb();
+      if (typeof window.route === 'function') window.route();
+    }catch(err){
+      note('Route error: ' + (err?.message||err));
+    }
+  }
+
+  // --- Light telemetry about SW/caches (helps confirm cache state) ---
+  (function swInfo(){
+    try{
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations()
+          .then(list => note('SW regs: '+list.length+' — v:'+TARGET_VERSION))
+          .catch(()=>note('SW check failed — v:'+TARGET_VERSION));
+      } else {
+        note('No SW API — v:'+TARGET_VERSION);
+      }
+      if ('caches' in window) {
+        caches.keys().then(keys => console.log('[DF] Cache keys:', keys));
+      }
+    }catch(_){}
+  })();
+
+  // --- Initial kicks & a few retries (covers late router init) ---
+  function kick(){
+    forceVersion();
+    wireLogout();
+    nudgeRouter();
+  }
+  kick();
+  setTimeout(kick, 100);
+  setTimeout(kick, 400);
+  setTimeout(kick, 1200);
+
+  // Re-run when page becomes visible or hash changes
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') kick(); });
+  window.addEventListener('hashchange', kick);
+})();
+</script>
