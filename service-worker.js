@@ -4,7 +4,7 @@
    Later we can add back a simple, clean cache strategy on top of this.
 */
 
-const SW_VERSION = 'v11.0.5-reset';
+const SW_VERSION = 'v11.0.6-reset';
 
 // Delete every cache on install, then activate immediately
 self.addEventListener('install', event => {
