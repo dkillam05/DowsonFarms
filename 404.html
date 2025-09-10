@@ -1,18 +1,20 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Dowson Farms</title>
-  <meta http-equiv="refresh" content="0; url=/index.html#/" />
-  <script>
-    // If meta refresh is blocked, do it manually and preserve hash.
-    (function () {
-      var hash = location.hash && location.hash !== '#' ? location.hash : '#/';
-      // Force to root index (GitHub Pages sometimes serves 404 on PWA launch)
-      location.replace('/index.html' + hash);
-    })();
-  </script>
-  <noscript>Redirecting…</noscript>
-</head>
-<body></body>
-</html>
+<meta charset="utf-8">
+<title>Redirecting…</title>
+<script>
+(function(){
+  // If someone lands on https://dkillam05.github.io/ (no repo path) or a wrong deep link,
+  // push them to /DowsonFarms/ while preserving the remainder.
+  var path = location.pathname, parts = path.split('/').filter(Boolean);
+  var REPO = 'DowsonFarms';
+  if (!parts.length || parts[0] !== REPO){
+    var rest = parts.join('/');
+    var dest = '/' + REPO + '/';
+    if (rest && !/index\.html$/i.test(rest)) dest += rest;
+    dest += location.search || '';
+    dest += location.hash || '';
+    location.replace(dest);
+  }
+})();
+</script>
+<p>Redirecting…</p>
