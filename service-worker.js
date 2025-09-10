@@ -1,70 +1,28 @@
-/* Dowson Farms SW v11.0.0 — simple & safe */
+/* Dowson Farms — service-worker.js (v11.0.3 RESET)
+   Purpose: delete ALL old caches and stop intercepting requests so the app
+   always loads the freshest index.html/app.js from GitHub Pages.
+   Later we can add back a simple, clean cache strategy on top of this.
+*/
 
-const CACHE_VERSION = 'df-v11.0.3';
-const SHELL_URLS = [
-  '/', '/index.html',
-  '/styles.css?v=11.0.0',
-  '/app.js?v=11.0.0',
-  '/icons/logo.png',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/apple-touch-icon.png',
-  '/manifest.webmanifest'
-];
+const SW_VERSION = 'v11.0.3-reset';
 
-self.addEventListener('install', (event) => {
+// Delete every cache on install, then activate immediately
+self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_VERSION);
-    try {
-      await cache.addAll(SHELL_URLS);
-    } catch (e) { /* ignore offline install errors */ }
-    self.skipWaiting();
+    const names = await caches.keys();
+    await Promise.all(names.map(n => caches.delete(n)));
+  })());
+  self.skipWaiting();
+});
+
+// Claim control and also re-delete caches on activate (belt + suspenders)
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.map(n => caches.delete(n)));
+    try { await self.clients.claim(); } catch {}
   })());
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k === CACHE_VERSION ? null : caches.delete(k))));
-    self.clients.claim();
-  })());
-});
-
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
-
-  // Only handle same-origin GET
-  if (req.method !== 'GET' || url.origin !== location.origin) return;
-
-  // HTML: network-first (so router + latest shell always wins)
-  if (req.destination === 'document' || req.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const net = await fetch(req);
-        const cache = await caches.open(CACHE_VERSION);
-        cache.put(req, net.clone());
-        return net;
-      } catch (e) {
-        const cache = await caches.open(CACHE_VERSION);
-        const cached = await cache.match('/index.html');
-        return cached || new Response('<!doctype html><title>Offline</title>', { headers: { 'Content-Type': 'text/html' } });
-      }
-    })());
-    return;
-  }
-
-  // Assets: stale-while-revalidate
-  if (['script','style','image','font'].includes(req.destination)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_VERSION);
-      const cached = await cache.match(req);
-      const fetchAndUpdate = fetch(req).then(res => {
-        if (res && res.status === 200) cache.put(req, res.clone());
-        return res;
-      }).catch(() => null);
-      return cached || (await fetchAndUpdate) || new Response('', { status: 504 });
-    })());
-    return;
-  }
-});
+// No fetch handler = no interception = always network-controlled.
+// (This is deliberate for the reset.)
