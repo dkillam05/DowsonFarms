@@ -3318,3 +3318,217 @@ try{
   try{ console.log('[DF PATCH v11.0.3] applied. basePath:', basePath); }catch{}
 })();
 </script>
+
+<!-- PATCH v11.0.4 — Mobile Diagnostics (non-invasive; safe to remove later) -->
+<script>
+(function DF_DIAG_1104(){
+  if (window.__DF_DIAG_1104__) return; window.__DF_DIAG_1104__ = true;
+
+  const PATCH_ID = 'v11.0.4-mobile-diagnostics';
+
+  // Small helpers (don’t collide with app)
+  const qs = (s,r=document)=>r.querySelector(s);
+  const qsa=(s,r=document)=>Array.from(r.querySelectorAll(s));
+  const html = s => String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  const commas = n => { try{ return Number(n).toLocaleString(); }catch{ return String(n); } };
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+  async function getSWInfo(){
+    const info = {
+      controller: null,
+      registrations: [],
+      caches: [],
+      appVersion: (typeof APP_VERSION!=='undefined'?APP_VERSION:'(no APP_VERSION)'),
+      normalized: (typeof normalizeVersion==='function'?normalizeVersion(APP_VERSION):'(n/a)'),
+      stored: (function(){ try { return localStorage.getItem('df_app_version')||'(none)'; }catch{ return '(error)'; } })(),
+      swSupported: 'serviceWorker' in navigator
+    };
+    try{
+      if ('serviceWorker' in navigator){
+        info.controller = navigator.serviceWorker.controller ? {
+          scriptURL: navigator.serviceWorker.controller.scriptURL || '(unknown)',
+          state: navigator.serviceWorker.controller.state || '(unknown)'
+        } : null;
+
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg){
+          info.registrations.push(describeReg(reg));
+        } else if (navigator.serviceWorker.getRegistrations) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          info.registrations = regs.map(describeReg);
+        }
+      }
+    }catch(e){ info.error = String(e); }
+
+    try{
+      if (window.caches && caches.keys){
+        info.caches = await caches.keys();
+      }
+    }catch(e){ info.cachesError = String(e); }
+
+    return info;
+
+    function describeReg(r){
+      const installing = r.installing ? {state:r.installing.state} : null;
+      const waiting    = r.waiting    ? {state:r.waiting.state}    : null;
+      const active     = r.active     ? {state:r.active.state}     : null;
+      return {
+        scope: r.scope,
+        sw: (r.active && r.active.scriptURL) || (r.waiting && r.waiting.scriptURL) || (r.installing && r.installing.scriptURL) || '(no scriptURL)',
+        installing, waiting, active
+      };
+    }
+  }
+
+  async function unregisterAll(){
+    if (!('serviceWorker' in navigator)) return {ok:false, msg:'No SW support'};
+    try{
+      const regs = await (navigator.serviceWorker.getRegistrations ? navigator.serviceWorker.getRegistrations() : []);
+      let count = 0;
+      for (const r of regs){ try{ await r.unregister(); count++; }catch{} }
+      return {ok:true, msg:`Unregistered ${count} service worker(s).`};
+    }catch(e){ return {ok:false, msg:String(e)}; }
+  }
+
+  async function clearAllCaches(){
+    if (!window.caches || !caches.keys) return {ok:false, msg:'No CacheStorage support'};
+    try{
+      const keys = await caches.keys();
+      let del = 0;
+      for (const k of keys){ try{ await caches.delete(k); del++; }catch{} }
+      return {ok:true, msg:`Deleted ${del} cache(s).`};
+    }catch(e){ return {ok:false, msg:String(e)}; }
+  }
+
+  function markVersionAsCurrentSafe(){
+    try{
+      const v = (typeof normalizeVersion==='function') ? normalizeVersion(typeof APP_VERSION!=='undefined'?APP_VERSION:'') : '';
+      if (v) localStorage.setItem('df_app_version', v);
+      return {ok:true, msg:`Marked ${v||'(empty)'} as current.`};
+    }catch(e){ return {ok:false, msg:String(e)}; }
+  }
+
+  // ---------- Floating panel ----------
+  function ensurePanel(){
+    if (qs('#df-diag-panel')) return qs('#df-diag-panel');
+    const css = document.createElement('style');
+    css.textContent = `
+      #df-diag-panel{
+        position:fixed; inset:auto 10px 10px auto; z-index:99999;
+        background:rgba(0,0,0,.85); color:#fff; font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        border-radius:10px; border:1px solid rgba(255,255,255,.2);
+        width:min(92vw, 520px); max-height:70vh; overflow:auto;
+        box-shadow:0 6px 20px rgba(0,0,0,.35); padding:10px;
+      }
+      #df-diag-panel .row{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0; }
+      #df-diag-panel .kv{ display:grid; grid-template-columns:140px 1fr; gap:6px; }
+      #df-diag-panel code{ background:rgba(255,255,255,.1); padding:2px 6px; border-radius:6px; }
+      #df-diag-panel button{ color:#000; background:#ffd54f; border:0; border-radius:8px; padding:6px 10px; }
+      #df-diag-panel h3{ margin:6px 0 2px; font-size:16px; }
+      #df-diag-close{ position:absolute; top:6px; right:8px; background:#ef5350; color:#fff; }
+      .df-muted{ opacity:.8; font-size:12px; }
+    `;
+    document.head.appendChild(css);
+
+    const el = document.createElement('div');
+    el.id = 'df-diag-panel';
+    el.innerHTML = `
+      <button id="df-diag-close">✕</button>
+      <h3>🔧 Diagnostics (${PATCH_ID})</h3>
+      <div id="df-diag-body" class="df-muted">Loading…</div>
+    `;
+    document.body.appendChild(el);
+    qs('#df-diag-close', el).addEventListener('click', ()=>el.remove());
+    return el;
+  }
+
+  async function renderPanel(){
+    const root = ensurePanel();
+    const body = qs('#df-diag-body', root);
+    const info = await getSWInfo();
+    const reg = info.registrations[0];
+
+    body.innerHTML = `
+      <div class="kv">
+        <div>APP_VERSION</div><div><code>${html(info.appVersion)}</code></div>
+        <div>Normalized</div><div><code>${html(info.normalized)}</code></div>
+        <div>Stored</div><div><code>${html(info.stored)}</code></div>
+        <div>SW supported</div><div>${info.swSupported ? 'Yes' : 'No'}</div>
+      </div>
+
+      <h3>Service Worker</h3>
+      ${info.controller ? `
+        <div class="kv">
+          <div>Controller</div><div><code>${html(info.controller.scriptURL||'(unknown)')}</code></div>
+          <div>State</div><div>${html(info.controller.state||'(unknown)')}</div>
+        </div>` : `<div class="df-muted">No active controller.</div>`}
+
+      <div class="kv" style="margin-top:6px;">
+        <div>Registration</div><div>${reg ? `<code>${html(reg.sw)}</code><br><span class="df-muted">scope: ${html(reg.scope||'')}</span>` : '(none)'}</div>
+      </div>
+
+      <h3>Caches</h3>
+      <div>${info.caches && info.caches.length ? info.caches.map(c=>`<code>${html(c)}</code>`).join(' ') : '(none)'}</div>
+
+      <div class="row" style="margin-top:8px;">
+        <button id="df-btn-unreg">Unregister SW</button>
+        <button id="df-btn-clear">Clear Caches</button>
+        <button id="df-btn-mark">Mark Version Current</button>
+        <button id="df-btn-reload">Reload</button>
+      </div>
+      <div id="df-diag-msg" class="df-muted" style="margin-top:6px;"></div>
+    `;
+
+    qs('#df-btn-unreg', root)?.addEventListener('click', async ()=>{
+      qs('#df-diag-msg').textContent = 'Unregistering…';
+      const res = await unregisterAll();
+      qs('#df-diag-msg').textContent = res.msg + ' Now reload.';
+    });
+    qs('#df-btn-clear', root)?.addEventListener('click', async ()=>{
+      qs('#df-diag-msg').textContent = 'Clearing caches…';
+      const res = await clearAllCaches();
+      qs('#df-diag-msg').textContent = res.msg;
+    });
+    qs('#df-btn-mark', root)?.addEventListener('click', ()=>{
+      const res = markVersionAsCurrentSafe();
+      qs('#df-diag-msg').textContent = res.msg;
+    });
+    qs('#df-btn-reload', root)?.addEventListener('click', ()=>location.reload());
+  }
+
+  // Expose & open via footer taps
+  window.DFdiag = { open: renderPanel };
+
+  // 1) Hash route: #/debug
+  function installDebugRoute(){
+    if (!window.__DF_DIAG_ROUTE__){
+      window.__DF_DIAG_ROUTE__ = true;
+      window.addEventListener('hashchange', ()=>{
+        if (location.hash === '#/debug'){ renderPanel(); }
+      });
+      if (location.hash === '#/debug'){ renderPanel(); }
+    }
+  }
+
+  // 2) Footer multi-tap to open
+  function installFooterTap(){
+    const ver = document.getElementById('version');
+    if (!ver || ver.__dfDiagTap) return;
+    ver.__dfDiagTap = true;
+    let taps = 0, t;
+    ver.addEventListener('click', ()=>{
+      clearTimeout(t);
+      taps++;
+      t = setTimeout(()=>{ taps=0; }, 800);
+      if (taps >= 5){ taps = 0; renderPanel(); }
+    });
+  }
+
+  function init(){ installDebugRoute(); installFooterTap(); }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init, {once:true});
+  } else {
+    init();
+  }
+})();
+</script>
