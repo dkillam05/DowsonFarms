@@ -270,3 +270,46 @@
   // (No action needed here; Part 1 owns routing.)
 })();
 
+/* =========================
+   v12.0.0 — Part 3: Update Banner
+   Append directly below Part 2
+   ========================= */
+(function DF_PART3_UPDATE_BANNER(){
+  'use strict';
+  if (window.__DF_PART3__) return;
+  window.__DF_PART3__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+
+  // Create banner DOM once
+  function ensureBanner(){
+    if ($('#update-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'update-banner';
+    banner.style.cssText = `
+      position:fixed; bottom:0; left:0; right:0;
+      background:#1B5E20; color:#fff; text-align:center;
+      padding:10px; font-size:0.9em;
+      display:none; z-index:2000;
+    `;
+    banner.innerHTML = `
+      <span>🔄 New update available</span>
+      <button id="update-refresh" style="margin-left:12px;padding:4px 10px;">Refresh</button>
+    `;
+    document.body.appendChild(banner);
+    $('#update-refresh').addEventListener('click', ()=>{
+      // Hard reload bypassing cache
+      location.reload(true);
+    });
+  }
+
+  // Show banner when SW posts "NEW_VERSION"
+  window.addEventListener('DF_NEW_VERSION', ()=>{
+    ensureBanner();
+    const b = $('#update-banner');
+    if (b) b.style.display = 'block';
+  });
+
+  // For manual testing from console:
+  // window.dispatchEvent(new Event('DF_NEW_VERSION'));
+})();
