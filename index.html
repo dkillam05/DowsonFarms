@@ -1,76 +1,80 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="auto">
 <head>
   <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  />
-  <meta name="theme-color" content="#1B5E20" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Dowson Farms" />
-  <meta name="description" content="Dowson Farms PWA" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#1b5e20" />
 
   <title>Dowson Farms</title>
 
-  <!-- Icons / PWA -->
-  <link rel="icon" type="image/png" href="icons/favicon.png" />
+  <!-- PWA / Icons -->
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- Fonts -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="styles.css?v=11.0.0" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Early bootstrap: set theme + ensure hash BEFORE app.js runs -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('df_theme') || 'auto';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+      try {
+        var h = String(location.hash || '').trim();
+        if (!h || h === '#') {
+          // Use replace so we don't add to history; do it ASAP
+          location.replace('#/home');
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
-  <!-- ===== Fixed Header ===== -->
-  <header class="app-header" role="banner" aria-label="Dowson Farms Header">
-    <div class="logo" aria-label="Logo">
-      <img src="icons/logo.png" alt="Dowson Farms" />
-      <div class="logo-text">Dowson Farms</div>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand">
+      <img src="icons/logo.png" alt="Dowson Farms" class="logo" />
+      <span class="brand-name">Dowson Farms</span>
     </div>
-
-    <div id="today" class="small" aria-live="polite" style="margin-left:12px;"></div>
-    <div id="clock" class="small" aria-live="polite"></div>
-
-    <button id="logout" class="logout" type="button" title="Sign out">Logout</button>
+    <a id="logout" class="btn" href="logout">Logout</a>
   </header>
 
-  <!-- ===== Breadcrumbs ===== -->
-  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs">
-    <!-- Filled by app.js -->
-  </nav>
-
-  <!-- ===== Update Banner (SW) ===== -->
-  <div id="update-banner" hidden role="alert">
-    A new version is ready.
-    <button id="update-refresh" class="btn" type="button" style="margin-left:8px;">Refresh</button>
+  <!-- Update banner (hidden by default; shown by app.js if needed) -->
+  <div id="update-banner" class="update-banner" hidden>
+    <span>A new version is available.</span>
+    <button id="update-refresh" class="btn-primary" type="button">Refresh</button>
   </div>
 
-  <!-- ===== Main App Mount ===== -->
-  <main id="app" tabindex="-1">
-    <!-- Views are rendered here by app.js -->
-    <noscript>
-      <p class="muted">This app requires JavaScript to run.</p>
-    </noscript>
-  </main>
+  <!-- Breadcrumbs -->
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
 
-  <!-- ===== Footer ===== -->
-  <footer class="app-footer" role="contentinfo">
-    <div>© Dowson Farms</div>
-    <div id="version" aria-label="App Version">v11.0.0</div>
+  <!-- Main app mount -->
+  <main id="app" role="main" tabindex="-1"></main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="left">© Dowson Farms</div>
+    <div class="center" id="version">v11.0.0</div>
+    <div class="right">
+      <span id="today"></span>
+      <span aria-hidden="true"> • </span>
+      <span id="clock"></span>
+    </div>
   </footer>
 
-  <!-- ===== App Script(s) =====
-       For v11 we’ll split into multiple parts; for now, this keeps the current app working.
-       When we deliver app.part-*.js, we’ll replace with several <script defer> tags in order.
-  -->
-  <script src="app.js?v=11.0.1" defer></script>
+  <noscript>
+    <div style="padding:1rem; text-align:center; color:#b71c1c;">
+      JavaScript is required to run this app.
+    </div>
+  </noscript>
+
+  <!-- App -->
+  <script src="app.js" defer></script>
 </body>
 </html>
