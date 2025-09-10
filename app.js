@@ -4074,3 +4074,156 @@ try{
   window.addEventListener('hashchange', kick);
 })();
 </script>
+
+<!-- ⤵️ APPEND EXACTLY AT THE BOTTOM OF app.js -->
+<script>
+/* =======================================================
+   Dowson Farms — MINI PATCH v11.0.12 (non-invasive)
+   Goals:
+   - Ensure #app exists (create if missing)
+   - Keep SPA navigation (no /login.html 404)
+   - Nudge router repeatedly until something renders
+   - Quick mobile debug overlay (tap footer 5x)
+   ======================================================= */
+(function DF_MINI_11012(){
+  if (window.__DF_MINI_11012__) return;
+  window.__DF_MINI_11012__ = true;
+
+  // ---------- helpers ----------
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+  const sleep = ms=>new Promise(r=>setTimeout(r,ms));
+
+  // Ensure an #app mount exists for the SPA
+  (function ensureAppMount(){
+    let app = $('#app');
+    if (!app){
+      const main = $('main') || document.body;
+      app = document.createElement('main');
+      app.id = 'app';
+      main.appendChild(app);
+      console.log('[DF] Created missing #app container.');
+    }
+  })();
+
+  // Keep any navigations inside SPA (blocks /login.html 404)
+  function toSpaLogin(url){
+    try{
+      const u = new URL(url, location.href);
+      if (/\/login\.html$/i.test(u.pathname)) return '#/login';
+    }catch(_){}
+    return null;
+  }
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    const repl = toSpaLogin(a.getAttribute('href')||'');
+    if (repl){ e.preventDefault(); location.hash = repl; nudge(); }
+  }, true);
+
+  // Also rewire any element that looks like Logout (late-added too)
+  function wireLogout(root=document){
+    $$('.logout, [data-logout], a, button', root).forEach(el=>{
+      if (el.__dfLogoutWired) return;
+      const txt  = (el.textContent||'').toLowerCase();
+      const href = (el.getAttribute('href')||'').toLowerCase();
+      if (!/logout/.test(txt) && !/logout/.test(href)) return;
+      el.__dfLogoutWired = true;
+      el.addEventListener('click', (e)=>{
+        e.preventDefault();
+        try{ localStorage.removeItem('df_user'); }catch(_){}
+        try{ sessionStorage.removeItem('df_user'); }catch(_){}
+        location.hash = '#/login';
+        nudge();
+      }, true);
+    });
+  }
+  const mo = new MutationObserver(muts=>{
+    muts.forEach(m=>m.addedNodes && m.addedNodes.forEach(n=>{
+      if (n.nodeType===1) wireLogout(n);
+    }));
+  });
+  mo.observe(document.documentElement, {childList:true, subtree:true});
+
+  // ---------- router nudge ----------
+  function ensureHash(){
+    if (!location.hash || location.hash === '#' || location.hash === '#/')
+      location.replace('#/home');
+  }
+  function tryCall(fn){ try{ return typeof fn==='function' ? fn() : undefined; }catch(_){}
+
+  async function nudge(){
+    ensureHash();
+    tryCall(window.renderBreadcrumb);
+    tryCall(window.route);
+  }
+
+  (async function kick(){
+    wireLogout();
+    // several nudges spaced out — covers late initializers
+    await sleep(0);   nudge();
+    await sleep(80);  nudge();
+    await sleep(250); nudge();
+    await sleep(800); nudge();
+    await sleep(1600);nudge();
+
+    // If still blank, drop a minimal fallback so you see *something*
+    const app = $('#app');
+    if (app && !String(app.innerHTML).trim()){
+      app.innerHTML = `
+        <section class="section">
+          <h2>Routing fallback</h2>
+          <p class="muted">Your main router hasn't rendered yet, so this is a safe placeholder.</p>
+          <p><a class="btn" href="#/home">Go Home</a>
+             <a class="btn" href="#/login">Go Login</a></p>
+        </section>`;
+      console.warn('[DF] Router did not render in time — inserted fallback content.');
+    }
+  })();
+
+  window.addEventListener('hashchange', nudge);
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') nudge(); });
+
+  // ---------- tiny debug overlay (tap footer 5x) ----------
+  (function debugOverlay(){
+    const footer = document.body;
+    let taps = 0, last = 0;
+    function tap(){
+      const now = Date.now();
+      if (now - last > 1200) taps = 0; // reset if slow
+      last = now; taps++;
+      if (taps >= 5){ taps = 0; show(); }
+    }
+    footer.addEventListener('click', tap);
+
+    function show(){
+      const app = $('#app');
+      const hasRoute = typeof window.route === 'function';
+      const hasCrumb = typeof window.renderBreadcrumb === 'function';
+      const htmlLen = app ? (app.innerHTML||'').length : 0;
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;inset:10px;z-index:99999;background:#111;color:#0f0;padding:12px;border:1px solid #0f0;border-radius:8px;font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;';
+      box.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>DF Debug</strong>
+          <button id="dfdbg-close" style="background:#222;color:#fff;border:1px solid #555;border-radius:6px;padding:4px 8px;">Close</button>
+        </div>
+        <pre style="white-space:pre-wrap;margin-top:8px;">
+hash:        ${location.hash || '(empty)'}
+route():     ${hasRoute}
+breadcrumb():${hasCrumb}
+#app exists: ${!!app}
+#app html:   ${htmlLen} chars
+        </pre>
+        <div style="margin-top:8px;">
+          <button id="dfdbg-home"  style="margin-right:6px;">Go #/home</button>
+          <button id="dfdbg-login">Go #/login</button>
+        </div>`;
+      document.body.appendChild(box);
+      $('#dfdbg-close', box).onclick = ()=>box.remove();
+      $('#dfdbg-home', box).onclick  = ()=>{ location.hash='#/home'; nudge(); };
+      $('#dfdbg-login', box).onclick = ()=>{ location.hash='#/login'; nudge(); };
+    }
+  })();
+})();
+</script>
