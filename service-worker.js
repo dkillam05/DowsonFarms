@@ -1,6 +1,6 @@
 /* Dowson Farms SW v11.0.0 — simple & safe */
 
-const CACHE_VERSION = 'df-v11.0.1';
+const CACHE_VERSION = 'df-v11.0.2';
 const SHELL_URLS = [
   '/', '/index.html',
   '/styles.css?v=11.0.0',
