@@ -99,5 +99,63 @@
   <!-- Your existing SPA bundle -->
   <script src="app.js"></script>
   <!-- Your existing service worker registration (if you have one inside app.js, keep that) -->
+  
+  <script>
+/* Dowson Farms — bootstrap kicker v11.0.9 (index-only, no app.js changes)
+   Purpose: ensure we land on #/home and nudge the SPA router to render.
+*/
+(function(){
+  const MAX_TRIES = 8;
+  const DELAYS = [0, 60, 180, 400, 800, 1500, 2500, 4000];
+
+  function ensureHash(){
+    try{
+      if (!location.hash || location.hash === '#/' || location.hash === '#') {
+        location.replace('#/home');
+      }
+    }catch(e){}
+  }
+
+  function nudge(){
+    try{
+      ensureHash();
+      if (typeof window.renderBreadcrumb === 'function') window.renderBreadcrumb();
+      if (typeof window.route === 'function') window.route();
+    }catch(e){
+      showBootNote('Boot error: ' + (e && e.message ? e.message : e));
+    }
+  }
+
+  function showBootNote(msg){
+    try{
+      let bar = document.getElementById('df-boot-note');
+      if (!bar){
+        bar = document.createElement('div');
+        bar.id = 'df-boot-note';
+        bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:680px;padding:6px 10px;font-size:12px;color:#333;background:#fff7d6;border-top:1px solid #e2cf82;box-shadow:0 -2px 10px rgba(0,0,0,.06);z-index:99999;text-align:center';
+        document.body.appendChild(bar);
+      }
+      bar.textContent = String(msg||'');
+    }catch(_){}
+  }
+
+  function kickSequence(){
+    for (let i=0;i<Math.min(MAX_TRIES,DELAYS.length);i++){
+      setTimeout(nudge, DELAYS[i]);
+    }
+    // Also retry when the tab becomes visible again
+    document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') nudge(); });
+    // And when hash changes
+    window.addEventListener('hashchange', nudge);
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', kickSequence, {once:true});
+  } else {
+    kickSequence();
+  }
+})();
+</script>
+  
 </body>
 </html>
