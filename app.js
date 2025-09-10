@@ -1,4 +1,3 @@
-<script>
 /* Dowson Farms — v11.1.1 (stable baseline + home tiles)
    - Ensures header/app/footer exist
    - Paints version in footer
