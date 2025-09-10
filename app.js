@@ -248,3 +248,101 @@ function viewHome(){
   `;
 }
 </script>
+<!-- app.js v11.0.0 — PART 2/10 (Router + Home view + footer version + logout wire) -->
+<script>
+(function APP_V1100_P2(){
+  'use strict';
+
+  // ====== 1) Small helpers (shared) ======
+  const $  = (sel, root=document)=>root.querySelector(sel);
+  const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+  const noop = ()=>{};
+
+  // Expose a single global for later parts
+  window.DF = window.DF || {};
+  const NS = window.DF;
+
+  // Keep version together (shows in footer below)
+  NS.VERSION = 'v11.0.0';
+
+  // ====== 2) DOM anchors we created in Part 1 ======
+  const appEl     = document.getElementById('app')     || document.body;
+  const headerEl  = document.getElementById('header')  || document.body;
+  const footerEl  = document.getElementById('footer')  || document.body;
+
+  // ====== 3) Header behavior: wire Logout button (to login.html) ======
+  function wireHeader(){
+    const btn = headerEl.querySelector('#logout-btn');
+    if (!btn) return;
+    // Idempotent: clear any previous listeners by cloning
+    const clone = btn.cloneNode(true);
+    btn.replaceWith(clone);
+    clone.addEventListener('click', (e)=>{
+      e.preventDefault();
+      try {
+        // Clear any light auth we may add later
+        localStorage.removeItem('df_user');
+        // Navigate to the static login page (works on GitHub Pages)
+        location.href = 'login.html';
+      } catch {
+        location.href = 'login.html';
+      }
+    });
+  }
+
+  // ====== 4) Footer version label ======
+  function paintFooterVersion(){
+    const v = footerEl.querySelector('#version');
+    if (v) v.textContent = NS.VERSION;
+  }
+
+  // ====== 5) Minimal client-side router ======
+  const routes = {};
+  function addRoute(hash, viewFn){ routes[hash] = viewFn; }
+
+  function ensureHash(){
+    if (!location.hash || location.hash === '#/' || location.hash === '#') {
+      // default landing
+      location.replace('#/home');
+    }
+  }
+
+  function route(){
+    ensureHash();
+    const key = location.hash.replace(/^\#/, '');
+    const fn  = routes[key] || routes['#/home'] || noop;
+    // clear and render
+    appEl.innerHTML = '';
+    fn(appEl);
+    // update header/footer each navigation
+    wireHeader();
+    paintFooterVersion();
+  }
+
+  // ====== 6) Home view (simple placeholder, looks like your current header/footer) ======
+  function viewHome(root){
+    root.innerHTML = `
+      <section class="section">
+        <h1>Home</h1>
+        <p class="muted">Welcome to Dowson Farms.</p>
+      </section>
+    `;
+  }
+  addRoute('#/home', viewHome);
+
+  // ====== 7) Kick on load + SPA navigations ======
+  function kick(){
+    route();
+  }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', kick, {once:true});
+  } else {
+    kick();
+  }
+  window.addEventListener('hashchange', route);
+
+  // Also repaint footer/version if anything forces a full redraw
+  document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) paintFooterVersion(); });
+
+})();
+</script>
