@@ -222,3 +222,33 @@ input[type="number"], select, textarea {
   .hidden-print { display: none !important; }
   body { background: #fff; color: #000; }
 }
+/* === v11.1.1 layout guards (safe additions) === */
+.container { max-width: 960px; margin: 0 auto; padding: 0 12px; }
+
+.site-head { position: sticky; top: 0; z-index: 10; }
+.site-head .bar { display:flex; align-items:center; gap:12px; padding:10px 0; }
+.site-head .logo { flex:0 0 auto; width:40px; height:40px; border-radius:50%; overflow:hidden; }
+.site-head .brand { flex:1 1 auto; display:flex; align-items:baseline; gap:10px; min-width:0; }
+.site-head .brand h1 {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin:0; font-size:1.6rem;
+}
+.site-head .brand .dot { flex:0 0 auto; }
+.site-head .logout { flex:0 0 auto; }
+
+.site-foot { position: sticky; bottom: 0; z-index: 5; }
+.site-foot .foot-inner {
+  display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 12px;
+  white-space: nowrap;
+}
+
+/* Home tiles */
+.tile-grid {
+  display:grid; grid-template-columns: repeat(auto-fill,minmax(160px,1fr));
+  gap:12px; margin-top:16px;
+}
+.tile {
+  display:block; padding:14px; border-radius:10px; border:1px solid var(--line); background: var(--panel);
+  text-decoration:none; color: inherit; box-shadow: 0 1px 0 rgba(0,0,0,.04);
+}
+.tile .t-title { font-weight:600; }
+.tile .t-sub { color: var(--muted); font-size:.9rem; margin-top:4px; }
