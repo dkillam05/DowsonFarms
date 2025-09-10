@@ -1,21 +1,46 @@
-// ===== Login.js =====
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('login-form');
-  const emailInput = document.getElementById('login-email');
-  const passInput = document.getElementById('login-pass');
-  if (!form) return;
+// ===== Dowson Farms — login.js (v11.0.0) =====
+(() => {
+  'use strict';
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = String(emailInput.value||'').trim();
-    const pass = String(passInput.value||'').trim();
-    if (!email || !pass) return alert('Please enter both email and password.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('Please enter a valid email address.');
+  // --- Constants ---
+  const KEY_AUTH = 'df_auth';
+  const KEY_USER = 'df_user';
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    try {
-      localStorage.setItem('df_auth','1');
-      localStorage.setItem('df_user', email);
-    } catch {}
-    location.replace('index.html?login=' + Date.now());
+  // --- Helpers ---
+  const qs  = (s, r = document) => r.querySelector(s);
+  const now = () => Date.now();
+  const safeSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+
+  // --- Init ---
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = qs('#login-form');
+    const emailInput = qs('#login-email');
+    const passInput  = qs('#login-pass');
+
+    if (!form || !emailInput || !passInput) return;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const email = String(emailInput.value || '').trim();
+      const pass  = String(passInput.value  || '').trim();
+
+      if (!email || !pass) {
+        alert('Please enter both email and password.');
+        return;
+      }
+      if (!EMAIL_RE.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+      }
+
+      // Persist lightweight auth token + who
+      safeSet(KEY_AUTH, '1');
+      safeSet(KEY_USER, email);
+
+      // Navigate to app shell (index.html) with a cache-busting param
+      location.replace(`index.html?login=${now()}`);
+    });
   });
-});
+})();
