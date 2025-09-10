@@ -1,18 +1,14 @@
 {
-  "name": "Dowson Farms PWA",
+  "name": "Dowson Farms",
   "short_name": "Dowson Farms",
-  "description": "Mobile-first farm management for Dowson Farms.",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/#/home",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#FFFFF0",
-  "theme_color": "#1B5E20",
+  "background_color": "#0f0f0f",
+  "theme_color": "#1b5e20",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ],
-  "categories": ["productivity", "business", "utilities"]
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" }
+  ]
 }
