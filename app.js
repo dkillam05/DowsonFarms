@@ -1,183 +1,116 @@
-/* Dowson Farms — v11.1.1 (stable baseline + home tiles)
-   - Ensures header/app/footer exist
-   - Paints version in footer
-   - Hash router (default #/home)
-   - Logout → login.html if present, else inline login
-   - Simple Home dashboard (Settings, Feedback) to prove routing
+/* Dowson Farms — v11.1.2 (SPA baseline)
+   - Ensures basic layout exists
+   - Fills footer version
+   - Simple hash router (#/home, #/login)
+   - Logout uses hash route (no network 404s)
+   - Normalizes any legacy links to login.html -> #/login
 */
-(function DF_MAIN(){
+(function DF_APP() {
   'use strict';
-  if (window.__DF_MAIN_1111__) return;
-  window.__DF_MAIN_1111__ = true;
+  if (window.__DF_APP_1112__) return; // idempotent guard
+  window.__DF_APP_1112__ = true;
 
   // ---------- Config ----------
-  const VERSION = 'v11.1.1';
+  const VERSION = 'v11.1.2';
   const APP_NAME = 'Dowson Farms';
-  const PATHS = { logo: 'icons/logo.png', loginPage: 'login.html' };
 
-  // ---------- Helpers ----------
-  const $  = (s, r=document)=>r.querySelector(s);
-  const esc = s => String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
-  const joinBase = p => (window.__dfJoinBase ? window.__dfJoinBase(p) : p.replace(/^\//,''));
-  function el(tag, attrs={}, html=''){
-    const x = document.createElement(tag);
-    Object.entries(attrs).forEach(([k,v])=>{
-      if (v==null) return;
-      if (k==='class') x.className = v;
-      else if (k==='text') x.textContent = v;
-      else x.setAttribute(k, v);
-    });
-    if (html) x.innerHTML = html;
-    return x;
-  }
+  // ---------- Mini helpers ----------
+  const $  = (s, r=document) => r.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
 
-  // ---------- Scaffolding (header/app/footer) ----------
-  function ensureShell(){
-    let head = $('#header');
-    if (!head){
-      head = el('header', {id:'header', class:'site-head'});
-      head.innerHTML = `
-        <div class="container bar">
-          <a class="logo" href="#/home" aria-label="${esc(APP_NAME)}">
-            <img src="${esc(PATHS.logo)}" alt="" width="40" height="40" loading="lazy">
-          </a>
-          <div class="brand">
-            <h1>${esc(APP_NAME)}</h1>
-            <span class="dot" aria-hidden="true">•</span>
-          </div>
-          <div class="logout">
-            <button id="btnLogout" class="btn">Logout</button>
-          </div>
-        </div>`;
-      document.body.prepend(head);
-    }
-    if (!$('#app')){
-      const main = el('main', {id:'app', class:'container', role:'main'});
-      document.body.insertBefore(main, $('#footer')||null);
-    }
-    if (!$('#footer')){
-      const foot = el('footer', {id:'footer', class:'site-foot'});
-      foot.innerHTML = `
-        <div class="container foot-inner">
-          <span>© Dowson Farms</span>
-          <span aria-hidden="true">•</span>
-          <span id="version">v0.0.0</span>
-        </div>`;
-      document.body.appendChild(foot);
-    }
-  }
-
-  // ---------- Version paint ----------
-  function paintVersion(){ const v = $('#version'); if (v) v.textContent = VERSION; }
-
-  // ---------- Logout wiring ----------
-  function wireLogout(){
-    const btn = $('#btnLogout'); if (!btn) return;
-    if (btn.dataset.wired) return;
-    btn.dataset.wired = '1';
-    btn.addEventListener('click', async ()=>{
-      try { localStorage.removeItem('df_user'); } catch {}
-      const href = joinBase(PATHS.loginPage);
-      try {
-        if (window.fetch){
-          const r = await fetch(href, { method:'HEAD', cache:'no-store' });
-          if (r.ok) { location.href = href; return; }
-        }
-      } catch {}
-      location.hash = '#/login';
-    });
+  function setVersion() {
+    const vEl = $('#version');
+    if (vEl) vEl.textContent = VERSION;
   }
 
   // ---------- Views ----------
-  function viewHome(){
-    const app = $('#app'); if (!app) return;
-    app.innerHTML = `
+  function viewHome() {
+    $('#app').innerHTML = `
       <section class="section">
-        <h2>Welcome to Dowson Farms</h2>
-        <p>Version: ${esc(VERSION)}</p>
+        <h1>Welcome to ${esc(APP_NAME)}</h1>
+        <p class="muted">Version: ${esc(VERSION)}</p>
 
-        <div class="tile-grid">
+        <div class="grid" style="margin-top:16px;">
           <a class="tile" href="#/settings">
-            <div class="t-title">Settings</div>
-            <div class="t-sub">Farms & Fields (coming back step-by-step)</div>
+            <div class="tile-title">Settings</div>
+            <div class="tile-desc">Farms &amp; Fields (coming back step-by-step)</div>
           </a>
+
           <a class="tile" href="#/feedback">
-            <div class="t-title">Feedback</div>
-            <div class="t-sub">Report an issue or suggest a feature</div>
+            <div class="tile-title">Feedback</div>
+            <div class="tile-desc">Report an issue or suggest a feature</div>
           </a>
         </div>
-      </section>`;
+      </section>
+    `;
   }
 
-  function viewLoginInline(){
-    const app = $('#app'); if (!app) return;
-    app.innerHTML = `
+  function viewLogin() {
+    $('#app').innerHTML = `
       <section class="section">
-        <h2>Login</h2>
-        <form id="loginForm" class="stack" style="max-width:520px;">
-          <input type="email" placeholder="Email" required>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <input type="password" placeholder="Password" required style="flex:1;">
-            <button class="btn-primary" type="submit">Log In</button>
-          </div>
+        <h1>Login</h1>
+        <form id="loginForm" class="form-row">
+          <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" />
+          <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password" />
+          <button class="btn-primary" type="submit">Log In</button>
         </form>
-      </section>`;
-    $('#loginForm')?.addEventListener('submit', (e)=>{
+      </section>
+    `;
+
+    $('#loginForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
-      try { localStorage.setItem('df_user', 'demo@user'); } catch {}
+      // fake “login”
+      try { localStorage.setItem('df_user', ($('#loginEmail').value || '').trim()); } catch {}
       location.hash = '#/home';
     });
   }
 
-  function viewSettingsStub(){
-    const app = $('#app'); if (!app) return;
-    app.innerHTML = `
-      <section class="section">
-        <h2>Settings</h2>
-        <p class="muted">This is a placeholder. Next steps will restore Farms and Fields here.</p>
-        <p><a class="btn" href="#/home">Back to Home</a></p>
-      </section>`;
-  }
-
-  function viewFeedbackStub(){
-    const app = $('#app'); if (!app) return;
-    app.innerHTML = `
-      <section class="section">
-        <h2>Feedback</h2>
-        <p class="muted">This is a placeholder. We’ll bring back Main/Sub/Category next.</p>
-        <p><a class="btn" href="#/home">Back to Home</a></p>
-      </section>`;
-  }
-
   // ---------- Router ----------
-  function route(){
-    const h = (location.hash||'').replace(/^#/, '');
-    if (!h || h==='/') { location.replace('#/home'); return; }
-    const path = h.split('?')[0];
+  const ROUTES = {
+    '#/home':   viewHome,
+    '#/login':  viewLogin,
+  };
 
-    switch (path) {
-      case '/home':     viewHome(); break;
-      case '/login':    viewLoginInline(); break;
-      case '/settings': viewSettingsStub(); break;
-      case '/feedback': viewFeedbackStub(); break;
-      default:          viewHome(); break;
-    }
-    wireLogout();
-    paintVersion();
-    window.scrollTo(0,0);
+  function route() {
+    const h = location.hash || '#/home';
+    (ROUTES[h] || ROUTES['#/home'])();
   }
+
+  // ---------- Header wiring ----------
+  function wireHeader() {
+    const btn = $('#logoutBtn');
+    if (btn) {
+      btn.setAttribute('href', '#/login');
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        try { localStorage.removeItem('df_user'); } catch {}
+        location.hash = '#/login';
+      });
+    }
+  }
+
+  // ---------- Legacy link normalizer ----------
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href$="login.html"]');
+    if (!a) return;
+    e.preventDefault();
+    location.hash = '#/login';
+  }, true);
 
   // ---------- Boot ----------
-  function boot(){
-    ensureShell();
-    paintVersion();
+  function start() {
+    setVersion();
+    wireHeader();
     route();
   }
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once:true });
+    document.addEventListener('DOMContentLoaded', start, { once: true });
   } else {
-    boot();
+    start();
   }
+
   window.addEventListener('hashchange', route);
+
 })();
