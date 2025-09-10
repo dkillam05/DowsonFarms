@@ -6,7 +6,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#1b5e20" />
-
   <title>Dowson Farms</title>
 
   <!-- PWA / Icons -->
@@ -14,9 +13,6 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="styles.css" />
 
   <!-- Early bootstrap: set theme + ensure hash BEFORE app.js runs -->
   <script>
@@ -27,13 +23,29 @@
       } catch (e) {}
       try {
         var h = String(location.hash || '').trim();
-        if (!h || h === '#') {
-          // Use replace so we don't add to history; do it ASAP
-          location.replace('#/home');
-        }
+        if (!h || h === '#') location.replace('#/home');
       } catch (e) {}
     })();
   </script>
+
+  <!-- Critical CSS: keeps header sane even if stylesheet is late/missing -->
+  <style>
+    :root{ --page-bg-light:#f6f6e8; --page-bg-dark:#0f0f0f; }
+    html,body{margin:0;height:100%;background:#0f0f0f;}
+    [data-theme="light"] html,[data-theme="light"] body{background:var(--page-bg-light);}
+    header.app-header{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:10px 12px;background:#1b5e20;color:#fff;
+    }
+    header .brand{display:flex;align-items:center;gap:10px;}
+    header .brand .logo{width:44px;height:44px;object-fit:contain;border-radius:4px;}
+    header .brand .brand-name{font-size:22px;font-weight:600;}
+    main#app{min-height:50vh;}
+    .btn{display:inline-block;padding:.5rem .9rem;border-radius:10px;background:#eee;color:#111;text-decoration:none;}
+  </style>
+
+  <!-- Main stylesheet (cache-busted) -->
+  <link rel="stylesheet" href="styles.css?v=11.0.0" />
 </head>
 <body>
   <!-- Header -->
@@ -45,7 +57,7 @@
     <a id="logout" class="btn" href="logout">Logout</a>
   </header>
 
-  <!-- Update banner (hidden by default; shown by app.js if needed) -->
+  <!-- Update banner -->
   <div id="update-banner" class="update-banner" hidden>
     <span>A new version is available.</span>
     <button id="update-refresh" class="btn-primary" type="button">Refresh</button>
@@ -54,7 +66,7 @@
   <!-- Breadcrumbs -->
   <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
 
-  <!-- Main app mount -->
+  <!-- App root -->
   <main id="app" role="main" tabindex="-1"></main>
 
   <!-- Footer -->
@@ -74,7 +86,24 @@
     </div>
   </noscript>
 
-  <!-- App -->
-  <script src="app.js" defer></script>
+  <!-- One-time SW cleanup + load app -->
+  <script>
+    (function(){
+      // If an older SW is controlling the page, ask it to unregister once.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs){
+          regs.forEach(function(reg){
+            // only if scope is this site root; then re-register via app.js later
+            if (reg.scope && location.origin.startsWith(reg.scope.replace(/\/$/,''))) {
+              try { reg.unregister(); } catch(e){}
+            }
+          });
+        });
+      }
+    })();
+  </script>
+
+  <!-- App (cache-busted) -->
+  <script src="app.js?v=11.0.0" defer></script>
 </body>
 </html>
