@@ -20,7 +20,7 @@
    ========================================================================== */
 
 /* ===== Version (footer shows vMAJOR.MINOR) ===== */
-const APP_VERSION = 'v11.0.5';
+const APP_VERSION = 'v11.0.6';
 
 /* ===== Init theme asap (auto/light/dark) ===== */
 (function applySavedTheme() {
@@ -3632,5 +3632,103 @@ try{
 
   }catch(e){
     console.error('DF_PATCH_1105', e);
+  }
+})();
+
+/* ======================================================================
+   v11.0.6 — Project Pages base-path guard (DowsonFarms)
+   - Normalizes redirects to login.html for GitHub Project Pages (/DowsonFarms/)
+   - Ensures Logout never hits the user-root 404 page
+   - Append-only; core code untouched
+   ====================================================================== */
+(function DF_BASEPATH_PATCH_1106(){
+  try{
+    if (window.__DF_BASEPATH_PATCH_1106__) return;
+    window.__DF_BASEPATH_PATCH_1106__ = true;
+
+    // Compute base path once ("/DowsonFarms/" on project pages; "/" on user root)
+    var pathParts = (location.pathname || '/').split('/').filter(Boolean);
+    var repo = pathParts.length ? pathParts[0] : '';
+    var BASE = repo ? ('/' + repo + '/') : '/';
+
+    // Expose for late code (if needed elsewhere)
+    window.__DF_BASE_PATH__ = BASE;
+
+    // Join base + relative path safely
+    function dfTo(rel){
+      rel = String(rel||'').replace(/^\/+/, '');
+      return BASE + rel;
+    }
+
+    // --- 1) Rewrite existing bare links to login.html ---
+    function rewriteLoginLinks(root){
+      (root || document).querySelectorAll('a[href="login.html"], a[href="/login.html"]').forEach(function(a){
+        a.setAttribute('href', dfTo('login.html'));
+      });
+    }
+    rewriteLoginLinks(document);
+
+    // --- 2) Observe SPA updates and fix future links as they appear ---
+    var mo = new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        if (m.type === 'childList'){
+          m.addedNodes && m.addedNodes.forEach(function(n){
+            if (n.nodeType === 1) rewriteLoginLinks(n);
+          });
+        } else if (m.type === 'attributes' && m.attributeName === 'href' && m.target.matches('a')){
+          rewriteLoginLinks(m.target.parentNode || document);
+        }
+      });
+    });
+    try{ mo.observe(document.documentElement, {childList:true, subtree:true, attributes:true, attributeFilter:['href']}); }catch(_e){}
+
+    // --- 3) Logout handler: clear auth + redirect correctly ---
+    function handleLogout(evt){
+      try{
+        if (evt) evt.preventDefault();
+        try{ localStorage.removeItem('df_user'); }catch(_){}
+        try{ localStorage.removeItem('df_token'); }catch(_){}
+        try{ sessionStorage.clear(); }catch(_){}
+        location.replace(dfTo('login.html'));
+      }catch(e){
+        location.href = dfTo('login.html');
+      }
+    }
+
+    // Heuristics to find logout buttons
+    function isLogoutButton(el){
+      if (!el || el.nodeType!==1) return false;
+      if (el.id && /logout/i.test(el.id)) return true;
+      if (el.getAttribute && /logout/i.test(String(el.getAttribute('data-action')||''))) return true;
+      if (el.matches && el.matches('[data-logout], [data-action="logout"], a[href*="logout"], button')){
+        var t = (el.textContent||'').trim();
+        if (/^logout$/i.test(t)) return true;
+      }
+      return false;
+    }
+
+    document.addEventListener('click', function(e){
+      var el = e.target;
+      for (var i=0; i<4 && el; i++, el = el.parentElement){
+        if (isLogoutButton(el)) return handleLogout(e);
+      }
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (a){
+        var href = a.getAttribute('href')||'';
+        if (/^\/?login\.html$/i.test(href)){
+          e.preventDefault();
+          location.assign(dfTo('login.html'));
+        }
+      }
+    }, true);
+
+    // Optional programmatic API
+    if (typeof window.dfSafeLogout !== 'function'){
+      window.dfSafeLogout = handleLogout;
+    }
+
+    try{ console.log('[DF 11.0.6] Base path =', BASE); }catch(_){}
+  }catch(e){
+    try{ console.error('DF_BASEPATH_PATCH_1106 error', e); }catch(_){}
   }
 })();
