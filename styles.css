@@ -1,217 +1,224 @@
-/* =========================================================
-   Dowson Farms — styles.css
-   Version: 11.0.0
-   Global styles, theming, and components
-   ========================================================= */
-
-/* ---------- Root Variables ---------- */
-:root {
-  --green: #1B5E20;
-  --ivory: #FFFFF0;
-  --dark: #0f0f0f;
-  --shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  --border: rgba(0, 0, 0, 0.15);
-
-  --text-light: #333;
-  --text-dark: #f6f6f6;
-
-  --btn-radius: 8px;
-  --tile-radius: 12px;
-
-  --seg-active: var(--green);
-}
-
-/* ---------- Theme Modes ---------- */
-[data-theme="light"] {
-  --page-bg: var(--ivory);
-  --text-color: var(--text-light);
-}
-[data-theme="dark"] {
-  --page-bg: var(--dark);
-  --text-color: var(--text-dark);
-}
-[data-theme="auto"] {
-  --page-bg: var(--ivory);
-  --text-color: var(--text-light);
-}
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] {
-    --page-bg: var(--dark);
-    --text-color: var(--text-dark);
-  }
-}
-
-/* ---------- Base ---------- */
+/* ===== CSS Reset (minimal) ===== */
 * { box-sizing: border-box; }
-
-html, body {
+html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; }
+body {
   margin: 0;
-  padding: 0;
-  font-family: 'Montserrat', sans-serif;
-  background: var(--page-bg);
-  color: var(--text-color);
-  min-height: 100vh;
+  font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color: #111;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-bg, #f6f6e8);
+}
+img { max-width: 100%; height: auto; display: block; }
+button, input, select, textarea { font: inherit; }
+
+/* ===== Theme basics ===== */
+:root{
+  --ink: #111;
+  --muted: #666;
+  --border: rgba(0,0,0,.12);
+  --card: #fff;
+  --primary: #1b5e20; /* green */
+  --tile-bg: #fff;
+}
+[data-theme="dark"] :root, [data-theme="dark"]{
+  --ink: #eaeaea;
+  --muted: #a5a5a5;
+  --border: rgba(255,255,255,.14);
+  --card: #151515;
+  --tile-bg: #121212;
+}
+body { color: var(--ink); }
+
+/* ===== Containers ===== */
+.container {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 14px;
 }
 
-/* Links */
-a { color: var(--green); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-/* ---------- Header ---------- */
-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  background: var(--green);
-  color: #fff;
+/* ===== Header ===== */
+.site-head {
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+}
+.head-inner {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  box-shadow: var(--shadow);
-  z-index: 1000;
+  gap: 12px;
+  padding: 10px 0;
 }
-header .logo {
-  display: flex;
-  align-items: center;
+.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; }
+.logo { width: 36px; height: 36px; object-fit: contain; }
+.title { font-weight: 700; font-size: 18px; letter-spacing: .2px; }
+
+.head-right { display: inline-flex; align-items: center; gap: 10px; }
+.today-wrap { color: var(--muted); font-size: 13px; display: inline-flex; gap: 6px; }
+
+/* Breadcrumbs */
+.breadcrumbs {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  padding: 8px 0;
+}
+.breadcrumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.breadcrumbs a:hover { text-decoration: underline; }
+
+/* ===== Update banner ===== */
+.update-banner { background: #fff3cd; border-bottom: 1px solid #f0d98a; }
+.update-banner .container {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 10px 0;
+}
+[data-theme="dark"] .update-banner { background:#3a2d00; border-bottom: 1px solid #6f5a00; color:#ffeaa7; }
+
+/* ===== Main app area (flex grow) ===== */
+.app {
+  flex: 1 0 auto;
+  padding: 16px 0 24px;
+  min-height: 0;
+}
+
+/* ===== Footer (sticky) ===== */
+.site-foot {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border);
+  background: transparent;
+}
+.foot-inner {
+  padding: 16px 0;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  color: var(--muted);
   font-weight: 600;
 }
-header .logo img {
-  height: 36px;
-  margin-right: 8px;
-}
-header .logo-text { font-size: 1.2em; }
-header #clock, header #date {
-  font-size: 0.9em;
-}
 
-/* ---------- Footer ---------- */
-footer {
-  text-align: center;
-  padding: 12px;
-  font-size: 0.85em;
-  color: #777;
-}
-
-/* ---------- Layout ---------- */
-main {
-  padding: 80px 16px 40px; /* leave space for fixed header */
-  max-width: 1000px;
-  margin: auto;
-}
-.section { margin: 20px 0; }
+/* ===== Tiles ===== */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 10px;
+}
+@media (max-width: 760px){
+  .grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 480px){
+  .grid { grid-template-columns: 1fr; }
 }
 
-/* ---------- Tiles ---------- */
 .tile {
-  background: #fff;
-  border: 2px solid var(--green);
-  border-radius: var(--tile-radius);
-  padding: 20px 12px;
-  text-align: center;
-  font-weight: 600;
-  color: var(--green);
-  box-shadow: var(--shadow);
-  transition: transform 0.15s ease;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 12px;
+  color: var(--ink);
+  background: var(--tile-bg);
 }
-.tile:hover { transform: translateY(-2px); }
-.tile .emoji { font-size: 1.8em; display: block; margin-bottom: 6px; }
-.tile .label { font-size: 1em; }
+.tile .emoji { font-size: 26px; line-height: 1; }
+.tile .label { font-weight: 600; }
 
-/* ---------- Buttons ---------- */
-button, .btn {
-  border: none;
-  cursor: pointer;
-  border-radius: var(--btn-radius);
-  padding: 8px 14px;
-  font-size: 1em;
-}
-.btn-primary {
-  background: var(--green);
-  color: #fff;
-}
-.btn-primary:hover { opacity: 0.9; }
+/* ===== Buttons ===== */
 .btn {
-  background: #eee;
-  color: #000;
-}
-.btn.small { font-size: 0.85em; padding: 4px 10px; }
-.btn-compact { padding: 4px 8px; font-size: 0.85rem; }
-
-/* ---------- Forms ---------- */
-.field { margin: 10px 0; }
-input, select, textarea {
-  width: 100%;
-  padding: 8px;
+  appearance: none;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 1em;
-}
-textarea { resize: vertical; }
-
-/* ---------- Tables ---------- */
-.report-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-}
-.report-table th, .report-table td {
-  border: 1px solid var(--border);
-  padding: 8px;
-  text-align: left;
-}
-.report-table th {
-  background: var(--green);
-  color: #fff;
-}
-
-/* ---------- Chips ---------- */
-.chip {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--green);
-  color: #fff;
-  font-size: 0.85em;
-}
-.chip-toggle {
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.btn:hover { filter: brightness(0.98); }
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: transparent;
+}
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+/* ===== Forms ===== */
+.field { margin: 10px 0; }
+.field > label { display:block; font-weight:600; margin-bottom:6px; }
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"],
+input[type="number"], select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+}
+.small { font-size: 13px; }
+.muted { color: var(--muted); }
+
+/* ===== Chips & lists used in settings and reports ===== */
+.chip {
+  display: inline-block;
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 6px 10px;
-  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: transparent;
 }
-.chip-toggle input { accent-color: var(--green); }
+.chip-archived { background: #f9e1e1; border-color: #e7bcbc; color: #8c2e2e; }
+[data-theme="dark"] .chip-archived { background: #3a1212; border-color: #5c2b2b; color: #ffbdbd; }
 
-/* ---------- Result Cards ---------- */
+.crop-list { list-style: none; padding: 0; margin: 0; }
+.crop-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--card);
+  padding: 8px 10px; margin: 6px 0;
+}
+.crop-row.is-archived { opacity: .75; }
+.crop-info { min-width: 0; }
+.crop-actions { display: inline-flex; gap: 6px; align-items: center; }
+.crop-actions.small { font-size: 13px; color: var(--muted); }
+
+/* ===== Report page shell (used by pre-made reports) ===== */
+.report-page { background: transparent; }
+.report-head, .report-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 0;
+}
+.report-logo { width: 40px; height: 40px; object-fit: contain; }
+.report-table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.report-table th, .report-table td { border-bottom: 1px solid var(--border); padding: 8px; vertical-align: top; }
+.report-table thead th { background: rgba(0,0,0,.04); }
+[data-theme="dark"] .report-table thead th { background: rgba(255,255,255,.06); }
+.report-table.compact th, .report-table.compact td { padding: 6px 8px; }
+
 .result-card {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
   margin-top: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255,255,255,.05);
 }
 [data-theme="light"] .result-card { background: #fff; }
 
-/* ---------- Report Pages ---------- */
-.report-page {
-  background: #fff;
-  color: #000;
-  padding: 20px;
+/* ===== Print hints for reports ===== */
+@media print {
+  .hidden-print { display: none !important; }
+  body { background: #fff; color: #000; }
 }
-.report-head, .report-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.report-logo { height: 40px; margin-right: 8px; }
-.report-table th { background: var(--green); }
-
-/* ---------- Utilities ---------- */
-.muted { color: #777; font-style: italic; }
-.hidden { display: none; }
