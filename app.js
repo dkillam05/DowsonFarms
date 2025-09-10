@@ -1,174 +1,188 @@
-/* Dowson Farms — v12.0.0 clean baseline
-   - Single-source VERSION below (SW gets it via ?v=VERSION)
-   - Tiny router (#/home, #/login)
-   - Header/footer hidden on login
-   - Logout only on authenticated screens
-   - Update banner when a new SW version is available
-*/
-(function DF_APP(){
+/* =========================================================
+   Dowson Farms — App.js (Part 1/12)
+   Version: v12.0.0
+   Purpose: Core bootstrap only (no features yet)
+   - Single source of truth for version (window.APP_VERSION)
+   - Ensure #header, #app, #footer exist
+   - Footer version painting
+   - Minimal router scaffold (renders a simple Home placeholder)
+   - Tiny utilities exported on window.DF for later parts
+   ========================================================= */
+
+(function DF_BOOTSTRAP_V12(){
   'use strict';
-  if (window.__DF_APP_1200__) return; window.__DF_APP_1200__ = true;
 
-  // ------- Single source of truth for version -------
-  const VERSION = 'v12.0.0';
-  // Make it visible to any diagnostics
-  window.__DF_VERSION__ = VERSION;
+  // Guard against double-loads
+  if (window.__DF_BOOTSTRAP_V12__) return;
+  window.__DF_BOOTSTRAP_V12__ = true;
 
-  // ------- DOM helpers -------
-  const $  = (s,r=document)=>r.querySelector(s);
-  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+  // ---------- Version (single source of truth) ----------
+  const APP_VERSION = 'v12.0.0';
+  // Expose for other files (Service Worker / index can read from this script at runtime)
+  window.APP_VERSION = APP_VERSION;
 
-  // ------- Initial paint -------
-  $('#version') && ($('#version').textContent = VERSION);
+  // ---------- DOM helpers ----------
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  // ------- Auth/session (temporary localStorage mock) -------
-  const SKEY = 'df.auth.email';
-  const isAuthed = ()=> !!localStorage.getItem(SKEY);
-  const login = (email)=>{ localStorage.setItem(SKEY, (email||'').trim()); };
-  const logout = ()=>{ localStorage.removeItem(SKEY); };
+  // ---------- Formatting helpers ----------
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
 
-  // ------- Views -------
-  function viewHome(root){
-    root.innerHTML = `
-      <section class="container">
-        <h1>Welcome to Dowson Farms</h1>
-        <p>Version: ${VERSION}</p>
-        <div class="grid" style="margin-top:14px;">
-          <article class="card">
-            <h3>Settings</h3>
-            <p>Farms & Fields (coming back step-by-step)</p>
-          </article>
-          <article class="card">
-            <h3>Feedback</h3>
-            <p>Report an issue or suggest a feature</p>
-          </article>
-        </div>
-      </section>
-    `;
-  }
+  const fmtCommas = (n, {decimals=null} = {}) => {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return String(n);
+    const d = decimals==null
+      ? (Math.abs(v)%1===0 ? 0 : (Math.abs(v)>=100 ? 1 : 2))
+      : Math.max(0, Math.min(6, decimals));
+    try { return v.toLocaleString(undefined, {minimumFractionDigits:d, maximumFractionDigits:d}); }
+    catch { return String(v); }
+  };
 
-  function viewLogin(root){
-    root.innerHTML = `
-      <section class="container">
-        <h1>Login</h1>
-        <form id="login-form" class="grid" style="grid-template-columns:1fr auto; align-items:center;">
-          <input id="login-email" type="email" placeholder="Email" autocomplete="email" />
-          <div style="display:flex; gap:10px; grid-column:1/-1;">
-            <input id="login-pass" type="password" placeholder="Password" autocomplete="current-password" style="flex:1;" />
-            <button class="btn" type="submit" style="background:#154d23;color:#fff;">Log In</button>
+  const prettyDate = (d) => {
+    try{
+      const dt = (d instanceof Date) ? d : new Date(d);
+      return dt.toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'});
+    }catch{ return String(d); }
+  };
+
+  const formatClock12 = (d=new Date())=>{
+    try{
+      let h=d.getHours(), m=String(d.getMinutes()).padStart(2,'0');
+      const ampm = h>=12?'PM':'AM'; h=h%12||12;
+      return `${h}:${m} ${ampm}`;
+    }catch{ return ''; }
+  };
+
+  // ---------- Minimal DOM scaffolding (header/app/footer) ----------
+  function ensureShell(){
+    // Header
+    let header = $('#header');
+    if (!header){
+      header = document.createElement('header');
+      header.id = 'header';
+      header.className = 'site-head';
+      header.innerHTML = `
+        <div class="container head-inner">
+          <div class="brand">
+            <img src="icons/logo.png" alt="Dowson Farms" class="logo" onerror="this.style.display='none'">
+            <span class="brand-name">Dowson Farms</span>
           </div>
-        </form>
+        </div>`;
+      document.body.prepend(header);
+    }
+
+    // Main app mount
+    let app = $('#app');
+    if (!app){
+      app = document.createElement('main');
+      app.id = 'app';
+      app.setAttribute('role','main');
+      document.body.appendChild(app);
+    }
+
+    // Footer
+    let footer = $('#footer');
+    if (!footer){
+      footer = document.createElement('footer');
+      footer.id = 'footer';
+      footer.className = 'site-foot';
+      footer.innerHTML = `
+        <div class="container foot-inner">
+          <span>© Dowson Farms</span>
+          <span aria-hidden="true">•</span>
+          <span id="version">${esc(APP_VERSION)}</span>
+        </div>`;
+      document.body.appendChild(footer);
+    } else {
+      // Try to ensure we have #version inside footer
+      if (!$('#version', footer)){
+        const span = document.createElement('span');
+        span.id = 'version';
+        span.textContent = APP_VERSION;
+        // place near the end with a dot divider if missing
+        const dot = document.createElement('span');
+        dot.setAttribute('aria-hidden','true');
+        dot.textContent = '•';
+        const inner = $('.foot-inner', footer) || footer;
+        inner.appendChild(dot);
+        inner.appendChild(span);
+      }
+    }
+  }
+
+  // ---------- Footer version painting ----------
+  function paintVersion(){
+    const vEl = $('#version');
+    if (vEl) vEl.textContent = APP_VERSION;
+  }
+
+  // ---------- Minimal Home view (placeholder) ----------
+  function viewHome(){
+    const app = $('#app');
+    if (!app) return;
+    app.innerHTML = `
+      <section class="section">
+        <h1>Home</h1>
+        <p class="muted">Core loaded ✅ — v12.0.0</p>
+        <p class="muted">We’ll add your dashboard tiles in Part 2.</p>
       </section>
     `;
-    $('#login-form')?.addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const email = ($('#login-email')?.value||'').trim();
-      // (placeholder auth)
-      if (!email){ alert('Enter your email to continue.'); return; }
-      login(email);
-      location.hash = '#/home';
-    });
   }
 
-  // ------- Chrome (header/footer) toggle -------
-  function setChromeVisible(visible){
-    $('#site-header')?.classList.toggle('hide', !visible);
-    $('#site-footer')?.classList.toggle('hide', !visible);
+  // ---------- Router scaffold (hash-based) ----------
+  function ensureHomeHash(){
+    if (!location.hash || location.hash === '#') location.replace('#/home');
   }
 
-  // ------- Router -------
   function route(){
-    const hash = location.hash || '#/home';
-    const app = $('#app'); if (!app) return;
+    try{
+      ensureHomeHash();
+      const hash = location.hash || '#/home';
 
-    if (hash.startsWith('#/login')){
-      setChromeVisible(false);
-      viewLogin(app);
-      return;
+      if (hash === '#/home') {
+        viewHome();
+      } else {
+        // For now, anything else goes to Home until later parts define screens
+        viewHome();
+      }
+    }catch(err){
+      console.error('Route error:', err);
+      const app = $('#app');
+      if (app){
+        app.innerHTML = `
+          <section class="section">
+            <h1>Something went wrong</h1>
+            <p class="muted">Core failed to render. Try reloading.</p>
+          </section>
+        `;
+      }
     }
-
-    // any other route requires auth
-    if (!isAuthed()){
-      location.replace('#/login');
-      setChromeVisible(false);
-      viewLogin(app);
-      return;
-    }
-
-    // authenticated screen
-    setChromeVisible(true);
-    viewHome(app);
   }
 
-  window.addEventListener('hashchange', route);
-  document.addEventListener('DOMContentLoaded', route);
-  if (document.readyState !== 'loading') route();
+  // ---------- Bootstrap ----------
+  function start(){
+    ensureShell();       // make sure header/app/footer exist
+    paintVersion();      // write version to footer
+    ensureHomeHash();    // set default hash
+    route();             // initial route
+  }
 
-  // Logout button (only meaningful on authed screens)
-  $('#logout-btn')?.addEventListener('click', ()=>{
-    logout();
-    location.hash = '#/login';
+  // Wire route listeners
+  window.addEventListener('hashchange', route);
+
+  // Start on DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once:true });
+  } else {
+    start();
+  }
+
+  // ---------- Export a tiny namespace for later parts ----------
+  window.DF = Object.freeze({
+    VERSION: APP_VERSION,
+    $, $$, esc, fmtCommas, prettyDate, formatClock12
   });
 
-  // ==========================================================
-  // Service Worker: single-source version + update banner
-  // ==========================================================
-  (function registerSW(){
-    if (!('serviceWorker' in navigator)) return;
-
-    const SW_URL = `service-worker.js?v=${encodeURIComponent(VERSION)}`;
-    navigator.serviceWorker.register(SW_URL).then(reg=>{
-      // If there is a waiting worker at load time → show banner
-      if (reg.waiting) showUpdateBanner(reg);
-
-      // When a new worker is found
-      reg.addEventListener('updatefound', ()=>{
-        const sw = reg.installing;
-        if (!sw) return;
-        sw.addEventListener('statechange', ()=>{
-          // 'installed' with an existing controller => an update is ready
-          if (sw.state === 'installed' && navigator.serviceWorker.controller){
-            showUpdateBanner(reg);
-          }
-        });
-      });
-
-      // If the active worker tells us it has taken control, we can optionally toast
-      navigator.serviceWorker.addEventListener('message', (evt)=>{
-        if (evt.data && evt.data.type === 'SW_ACTIVE'){
-          // could log or toast evt.data.version if desired
-        }
-      });
-    }).catch(()=>{ /* ignore */ });
-
-    function showUpdateBanner(reg){
-      if (document.getElementById('update-banner')) return;
-
-      const bar = document.createElement('div');
-      bar.id = 'update-banner';
-      bar.className = 'update-banner';
-      bar.innerHTML = `
-        <div class="msg">New update is available.</div>
-        <div class="actions">
-          <button class="btn" id="upd-dismiss" type="button">Later</button>
-          <button class="btn btn-primary" id="upd-reload" type="button">Refresh</button>
-        </div>
-      `;
-      document.body.appendChild(bar);
-
-      $('#upd-dismiss').addEventListener('click', ()=> bar.remove());
-      $('#upd-reload').addEventListener('click', ()=>{
-        // Ask SW to activate immediately, then reload the page
-        if (reg.waiting) {
-          reg.waiting.postMessage({type:'SKIP_WAITING'});
-          // after controllerchange, reload
-          navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-            location.reload();
-          }, {once:true});
-        } else {
-          location.reload();
-        }
-      });
-    }
-  })();
 })();
