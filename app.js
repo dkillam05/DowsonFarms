@@ -20,7 +20,7 @@
    ========================================================================== */
 
 /* ===== Version (footer shows vMAJOR.MINOR) ===== */
-const APP_VERSION = 'v11.0.6';
+const APP_VERSION = 'v11.0.7';
 
 /* ===== Init theme asap (auto/light/dark) ===== */
 (function applySavedTheme() {
@@ -3732,3 +3732,83 @@ try{
     try{ console.error('DF_BASEPATH_PATCH_1106 error', e); }catch(_){}
   }
 })();
+
+<!-- PATCH v11.0.7 — GitHub Pages base-path normalizer (append-only) -->
+<script>
+(function DF_PATCH_11007_BASEPATH(){
+  if (window.__DF_PATCH_11007__) return;
+  window.__DF_PATCH_11007__ = true;
+
+  // Detect base path: for https://user.github.io/RepoName/ => "/RepoName"
+  // If the site is served from username root (no repo path), this becomes "".
+  var pathParts = location.pathname.split('/').filter(Boolean);
+  var DF_BASE = pathParts.length ? ('/' + pathParts[0]) : '';
+  // Safety: never double slash
+  function joinBase(p){ return (DF_BASE + '/' + p.replace(/^\/+/,'')).replace(/\/{2,}/g,'/'); }
+
+  // Normalize one anchor element (only for non-hash, same-origin, root-relative paths)
+  function normalizeAnchor(a){
+    try{
+      if (!a || !a.getAttribute) return;
+      var href = a.getAttribute('href');
+      if (!href) return;
+
+      // Ignore external links and in-page hash routes
+      if (/^https?:\/\//i.test(href)) return;
+      if (href.startsWith('#')) return;
+
+      // If href already starts with DF_BASE, leave it
+      if (DF_BASE && href.startsWith(DF_BASE + '/')) return;
+
+      // If href is root-relative (starts with "/"), prepend DF_BASE
+      if (href.startsWith('/')){
+        a.setAttribute('href', joinBase(href));
+        return;
+      }
+
+      // If href is a plain file name (e.g., "login.html"), we want it under DF_BASE as well.
+      // (Hash links like "#/home" were returned earlier, so this is safe.)
+      if (!href.includes(':') && !href.startsWith('./') && !href.startsWith('../')){
+        a.setAttribute('href', joinBase('/' + href));
+        return;
+      }
+    }catch(e){}
+  }
+
+  function normalizeAll(){
+    try{
+      document.querySelectorAll('a[href]').forEach(normalizeAnchor);
+    }catch(e){}
+  }
+
+  // Run now and after small delays (to catch SPA renders)
+  function kick(){
+    normalizeAll();
+    setTimeout(normalizeAll, 0);
+    setTimeout(normalizeAll, 250);
+    setTimeout(normalizeAll, 1000);
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', kick, {once:true});
+  } else {
+    kick();
+  }
+
+  // Re-run after any click (common SPA pattern) & on hash changes
+  document.addEventListener('click', function(){ setTimeout(normalizeAll, 0); }, true);
+  window.addEventListener('hashchange', function(){ setTimeout(normalizeAll, 0); });
+
+  // Also patch a global helper you can use elsewhere if needed
+  window.__dfJoinBase = joinBase;
+
+  // Optional: fix a known Logout button if it exists now
+  try{
+    var logoutBtn = document.querySelector('a.btn[href="/login.html"], a[href="/login.html"]');
+    if (logoutBtn) logoutBtn.setAttribute('href', joinBase('/login.html'));
+  }catch(e){}
+
+  // Debug (comment out if you like)
+  try{ console.log('[v11.0.7] DF base path =', DF_BASE || '(root)'); }catch(e){}
+})();
+</script>
