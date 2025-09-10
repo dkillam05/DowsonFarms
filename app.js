@@ -3086,42 +3086,115 @@ try{
   }
 })();
 
-<!-- APPEND THIS EXACTLY AT THE END OF app.js -->
+<!-- ⬇️ Paste this entire block at the very end of app.js -->
 <script>
-/* Dowson Farms — Boot Guard Patch v11.0.2 (append-only)
-   Purpose: ensure hash + route() always run after SW/visibility quirks on iOS/GitHub Pages.
-   Safe: no overrides of your functions; best-effort retries then exits. */
-(function DF_BOOT_GUARD_11002(){
-  if (window.__DF_BOOT_GUARD_11002__) return;
-  window.__DF_BOOT_GUARD_11002__ = true;
+/* =========================================================
+   Dowson Farms — APPEND-ONLY PATCH v11.0.2
+   Safe boot + Logout path fix + Footer version sync
+   (No edits to existing functions; fully self-guarded)
+   ========================================================= */
+(function DF_PATCH_11002(){
+  if (window.__DF_PATCH_11002__) return;   // prevent double-run
+  window.__DF_PATCH_11002__ = true;
 
+  // --- tiny helpers ---
+  const on = (t, fn, o)=> window.addEventListener(t, fn, o||false);
+  const $  = (s, r=document)=> r.querySelector(s);
+  const txt= (x)=> (x==null?'':String(x));
+
+  // --- 1) Safe boot: guarantee a hash + one router pass
   function ensureHash(){
-    try {
+    try{
       if (!location.hash || location.hash === '#') {
-        // Default to your home route
         location.replace('#/home');
       }
-    } catch {}
+    }catch{}
   }
-
   function kick(){
-    try {
+    try{
       ensureHash();
       if (typeof window.renderBreadcrumb === 'function') window.renderBreadcrumb();
       if (typeof window.route === 'function') window.route();
-    } catch {}
+    }catch{}
+  }
+  // Run now + a few safe retries (covers SW activation/rehydration)
+  kick();
+  setTimeout(kick,   0);
+  setTimeout(kick, 250);
+  setTimeout(kick,1000);
+
+  // Also re-run when page becomes visible or the hash changes
+  on('visibilitychange', ()=>{ if (document.visibilityState==='visible') kick(); });
+  on('hashchange', ()=> kick());
+
+  // --- 2) Logout path fix (handles project pages vs user root) ---
+  // We don’t modify your existing doLogout; we add a robust listener
+  // that routes to the correct login.html location for the current site.
+  function siteBaseHref(){
+    // If a <base> exists, use it; else compute from current location.
+    const base = document.querySelector('base')?.getAttribute('href');
+    if (base) return base.replace(/\/+$/,'') + '/';
+    // If running at https://user.github.io/repo/, keep /repo/ prefix
+    const parts = location.pathname.split('/').filter(Boolean);
+    if (parts.length>=1){
+      // If the first segment looks like a repo (project pages), keep it
+      return '/' + parts[0] + '/';
+    }
+    return '/';
+  }
+  function gotoLogin(){
+    try{
+      const base = siteBaseHref();
+      const url  = base + 'login.html?bye=' + Date.now();
+      // Use replace so Back doesn’t return to an authed page
+      location.replace(url);
+    }catch{
+      // Ultra-safe fallback: clear auth and go to home
+      try{ localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); }catch{}
+      location.hash = '#/home';
+    }
+  }
+  // Intercept any element that triggers logout (robust selectors)
+  document.addEventListener('click', (e)=>{
+    const el = e.target.closest?.('#logout, [data-action="logout"], a[href="logout"]');
+    if (!el) return;
+    e.preventDefault();
+    // mirror your cleanup, then navigate with the fixed path logic
+    try{ localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); }catch{}
+    gotoLogin();
+  }, true);
+
+  // --- 3) Footer version sync (keeps the label current) ---
+  function syncFooterVersion(){
+    try{
+      const el = document.getElementById('version');
+      const v  = (typeof window.APP_VERSION!=='undefined') ? String(window.APP_VERSION) : (txt(el?.textContent)||'').trim();
+      if (el && v) el.textContent = v;
+    }catch{}
+  }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', syncFooterVersion, {once:true});
+  } else {
+    syncFooterVersion();
   }
 
-  // A few safe retries to cover SW activation / iOS page lifecycle
-  setTimeout(kick, 0);
-  setTimeout(kick, 250);
-  setTimeout(kick, 1000);
-  setTimeout(kick, 3000);
+  // --- 4) Background paint reassurance (prevents ivory/black flashes) ---
+  (function bgPaintGuard(){
+    if (document.getElementById('df-paint-guard-11002')) return;
+    const s = document.createElement('style');
+    s.id = 'df-paint-guard-11002';
+    s.textContent = `
+      :root{ --page-bg-light:#f6f6e8; --page-bg-dark:#0f0f0f; }
+      [data-theme="auto"]{ --page-bg: var(--page-bg-light); }
+      @media (prefers-color-scheme: dark){
+        [data-theme="auto"]{ --page-bg: var(--page-bg-dark); }
+      }
+      [data-theme="light"]{ --page-bg: var(--page-bg-light); }
+      [data-theme="dark"] { --page-bg: var(--page-bg-dark); }
+      html, body, #app { background: var(--page-bg) !important; min-height: 100%; }
+    `;
+    document.head.appendChild(s);
+  })();
 
-  // Also rerun when page becomes visible or bfcache restores it
-  document.addEventListener('visibilitychange', function(){
-    if (document.visibilityState === 'visible') kick();
-  });
-  window.addEventListener('pageshow', kick);
 })();
 </script>
