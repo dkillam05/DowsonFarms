@@ -3085,3 +3085,43 @@ try{
     start();
   }
 })();
+
+<!-- APPEND THIS EXACTLY AT THE END OF app.js -->
+<script>
+/* Dowson Farms — Boot Guard Patch v11.0.2 (append-only)
+   Purpose: ensure hash + route() always run after SW/visibility quirks on iOS/GitHub Pages.
+   Safe: no overrides of your functions; best-effort retries then exits. */
+(function DF_BOOT_GUARD_11002(){
+  if (window.__DF_BOOT_GUARD_11002__) return;
+  window.__DF_BOOT_GUARD_11002__ = true;
+
+  function ensureHash(){
+    try {
+      if (!location.hash || location.hash === '#') {
+        // Default to your home route
+        location.replace('#/home');
+      }
+    } catch {}
+  }
+
+  function kick(){
+    try {
+      ensureHash();
+      if (typeof window.renderBreadcrumb === 'function') window.renderBreadcrumb();
+      if (typeof window.route === 'function') window.route();
+    } catch {}
+  }
+
+  // A few safe retries to cover SW activation / iOS page lifecycle
+  setTimeout(kick, 0);
+  setTimeout(kick, 250);
+  setTimeout(kick, 1000);
+  setTimeout(kick, 3000);
+
+  // Also rerun when page becomes visible or bfcache restores it
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible') kick();
+  });
+  window.addEventListener('pageshow', kick);
+})();
+</script>
