@@ -20,7 +20,7 @@
    ========================================================================== */
 
 /* ===== Version (footer shows vMAJOR.MINOR) ===== */
-const APP_VERSION = 'v11.0.2';
+const APP_VERSION = 'v11.0.3';
 
 /* ===== Init theme asap (auto/light/dark) ===== */
 (function applySavedTheme() {
@@ -3196,5 +3196,125 @@ try{
     document.head.appendChild(s);
   })();
 
+})();
+</script>
+
+<!-- PATCH v11.0.3 — paste at the very bottom of app.js -->
+<script>
+/* =========================================================
+   Dowson Farms — PATCH v11.0.3 (append-only)
+   Scope:
+   1) Logout 404 fix (GH Pages project path safe)
+   2) Background “ivory flash” fix (auto/light/dark + iOS overscroll)
+   3) Footer version text sync with APP_VERSION
+   4) First-load router kick (covers SW/first visit)
+   Safe to paste multiple times (guarded)
+   ========================================================= */
+(function DF_PATCH_11003(){
+  'use strict';
+  if (window.__DF_PATCH_11003_APPLIED__) return;
+  window.__DF_PATCH_11003_APPLIED__ = true;
+
+  // -------- small utils --------
+  const $  = (s,r=document)=>r.querySelector(s);
+  const nowQs = ()=> 'bye=' + Date.now();
+  const basePath = (() => {
+    // e.g. "/", "/DowsonFarms/", "/DowsonFarms/sub/" -> keep folder, drop file if present
+    try { return location.pathname.replace(/\/[^/]*$/, '/'); } catch { return '/'; }
+  })();
+
+  // =========================================================
+  // 1) Logout 404 fix (project pages safe)
+  //    - Force login URL under current basePath to avoid 404 on GH Pages.
+  //    - Keep localStorage clearing, then assign.
+  // =========================================================
+  (function patchLogout(){
+    const loginURL = basePath + 'login.html?' + nowQs();
+    function safeLogout(){
+      try { localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); } catch {}
+      location.assign(loginURL);
+    }
+    // Override global if present, else expose new
+    window.doLogout = safeLogout;
+
+    // Make sure any existing “Logout” controls route through our function
+    document.addEventListener('click', (e)=>{
+      const el = e.target && (e.target.closest?.('#logout,[data-action="logout"],a[href="logout"]'));
+      if (!el) return;
+      e.preventDefault();
+      safeLogout();
+    }, true);
+  })();
+
+  // =========================================================
+  // 2) Background “ivory flash” fix
+  //    - Works for data-theme="auto" with prefers-color-scheme
+  //    - Paints html/body/#app so iOS overscroll matches
+  // =========================================================
+  (function injectThemeBgFix(){
+    if (document.getElementById('df-bgfix-11003')) return;
+    const s = document.createElement('style');
+    s.id = 'df-bgfix-11003';
+    s.textContent = `
+      :root{
+        --page-bg-light:#f6f6e8;
+        --page-bg-dark:#0f0f0f;
+        --page-bg:var(--page-bg-light);
+      }
+      [data-theme="light"]{ --page-bg:var(--page-bg-light); }
+      [data-theme="dark"] { --page-bg:var(--page-bg-dark); }
+      [data-theme="auto"] { --page-bg:var(--page-bg-light); }
+      @media (prefers-color-scheme: dark){
+        [data-theme="auto"]{ --page-bg:var(--page-bg-dark); }
+      }
+      html,body,#app{ background-color:var(--page-bg)!important; min-height:100%; }
+    `;
+    document.head.appendChild(s);
+  })();
+
+  // =========================================================
+  // 3) Footer version sync
+  //    - If #version exists, show APP_VERSION (e.g., "v11.0.3")
+  // =========================================================
+  (function syncFooterVersion(){
+    try{
+      const v = (typeof APP_VERSION!=='undefined' && APP_VERSION) ? String(APP_VERSION) : '';
+      const el = document.getElementById('version');
+      if (el && v) el.textContent = v;
+    }catch{}
+  })();
+
+  // =========================================================
+  // 4) First-load router kick
+  //    - Ensures "#/home" exists and runs route() a few times to
+  //      cover initial SW activation & first-visit timing.
+  // =========================================================
+  (function routerKick(){
+    function ensureHash(){
+      try{
+        if (!location.hash || location.hash==='#' || location.hash==='#/' ) {
+          location.replace('#/home');
+        }
+      }catch{}
+    }
+    function kick(){
+      try{
+        ensureHash();
+        if (typeof window.renderBreadcrumb==='function') window.renderBreadcrumb();
+        if (typeof window.route==='function') window.route();
+      }catch{}
+    }
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', kick);
+    } else {
+      kick();
+    }
+    // A few gentle retries (covers SW/controllerchange)
+    [0, 200, 800, 2500].forEach(ms => setTimeout(kick, ms));
+    document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') kick(); });
+  })();
+
+  // (optional) log once
+  try{ console.log('[DF PATCH v11.0.3] applied. basePath:', basePath); }catch{}
 })();
 </script>
