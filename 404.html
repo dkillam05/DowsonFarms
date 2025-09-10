@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Dowson Farms</title>
+  <meta http-equiv="refresh" content="0; url=/index.html#/" />
+  <script>
+    // If meta refresh is blocked, do it manually and preserve hash.
+    (function () {
+      var hash = location.hash && location.hash !== '#' ? location.hash : '#/';
+      // Force to root index (GitHub Pages sometimes serves 404 on PWA launch)
+      location.replace('/index.html' + hash);
+    })();
+  </script>
+  <noscript>Redirecting…</noscript>
+</head>
+<body></body>
+</html>
