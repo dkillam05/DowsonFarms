@@ -1,148 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="auto">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Dowson Farms App</title>
-
-  <!-- PWA basics -->
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
   <meta name="theme-color" content="#1B5E20" />
-  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Dowson Farms" />
+  <meta name="description" content="Dowson Farms PWA" />
+
+  <title>Dowson Farms</title>
+
+  <!-- Icons / PWA -->
+  <link rel="icon" type="image/png" href="icons/favicon.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="styles.css?v=10500" />
+  <link rel="stylesheet" href="styles.css?v=11.0.0" />
 </head>
 <body>
-  <!-- ===== Header ===== -->
-  <header class="app-header">
-    <div class="logo">
-      <img src="icons/logo.png" alt="Dowson Farms Logo" />
-      <span class="logo-text">Dowson Farms</span>
+  <!-- ===== Fixed Header ===== -->
+  <header class="app-header" role="banner" aria-label="Dowson Farms Header">
+    <div class="logo" aria-label="Logo">
+      <img src="icons/logo.png" alt="Dowson Farms" />
+      <div class="logo-text">Dowson Farms</div>
     </div>
-    <span id="clock" aria-live="polite"></span>
-    <button id="logout" class="logout" type="button">Logout</button>
+
+    <div id="today" class="small" aria-live="polite" style="margin-left:12px;"></div>
+    <div id="clock" class="small" aria-live="polite"></div>
+
+    <button id="logout" class="logout" type="button" title="Sign out">Logout</button>
   </header>
 
   <!-- ===== Breadcrumbs ===== -->
-  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs">
+    <!-- Filled by app.js -->
+  </nav>
 
-  <!-- ===== Update Banner ===== -->
-  <div id="update-banner" hidden>
-    <span>New update available 🚀</span>
-    <button id="update-refresh" class="btn-primary" type="button">Refresh</button>
+  <!-- ===== Update Banner (SW) ===== -->
+  <div id="update-banner" hidden role="alert">
+    A new version is ready.
+    <button id="update-refresh" class="btn" type="button" style="margin-left:8px;">Refresh</button>
   </div>
 
-  <!-- ===== Main App Area ===== -->
-  <main id="app" tabindex="-1" role="main">
-    <!-- ========= v10.14.7 Patch Hooks ========= -->
-
-    <!-- Crop Year selector -->
-    <section aria-labelledby="sec-cropyear" class="card">
-      <h2 id="sec-cropyear">Crop Year</h2>
-      <p class="muted">Select a crop year (persists automatically).</p>
-      <select data-df="cropYear"></select>
-    </section>
-
-    <!-- Feedback (Main / Sub / Category) -->
-    <section aria-labelledby="sec-feedback" class="card">
-      <h2 id="sec-feedback">Feedback</h2>
-      <div class="grid-3">
-        <div>
-          <label for="fb-main">Main</label>
-          <select id="fb-main" data-df="feedback-main"></select>
-        </div>
-        <div>
-          <label for="fb-sub">Sub</label>
-          <select id="fb-sub" data-df="feedback-sub"></select>
-        </div>
-        <div>
-          <label for="fb-cat">Category</label>
-          <select id="fb-cat" data-df="feedback-category"></select>
-        </div>
-      </div>
-    </section>
-
-    <!-- Settings → Farms -->
-    <section aria-labelledby="sec-farms" class="card">
-      <h2 id="sec-farms">Settings — Farms</h2>
-
-      <div data-df="farm-list" class="list"></div>
-
-      <form data-df="farm-form" class="form">
-        <input type="hidden" name="farmId" />
-        <div class="grid-2">
-          <div>
-            <label for="farmName">Farm name</label>
-            <input id="farmName" name="farmName" placeholder="Farm name" required />
-          </div>
-          <div>
-            <label for="farmLocation">Location (optional)</label>
-            <input id="farmLocation" name="farmLocation" placeholder="e.g., Pike County, IL" />
-          </div>
-        </div>
-        <button type="submit" class="btn-primary">Save Farm</button>
-      </form>
-    </section>
-
-    <!-- Settings → Fields -->
-    <section aria-labelledby="sec-fields" class="card">
-      <h2 id="sec-fields">Settings — Fields</h2>
-
-      <div data-df="field-list" class="list"></div>
-
-      <form data-df="field-form" class="form">
-        <input type="hidden" name="fieldId" />
-        <div class="grid-2">
-          <div>
-            <label for="fieldName">Field name</label>
-            <input id="fieldName" name="fieldName" placeholder="Field name" required />
-          </div>
-          <div>
-            <label for="fieldFarmId">Farm</label>
-            <select id="fieldFarmId" name="fieldFarmId" required></select>
-          </div>
-        </div>
-
-        <div class="grid-2">
-          <div>
-            <label for="fieldAcres">Acres</label>
-            <input id="fieldAcres" name="fieldAcres" placeholder="e.g., 1250" data-format="number" inputmode="decimal" />
-          </div>
-          <div>
-            <label for="fieldCrop">Crop (optional)</label>
-            <input id="fieldCrop" name="fieldCrop" placeholder="e.g., Corn / Soybeans" />
-          </div>
-        </div>
-
-        <button type="submit" class="btn-primary">Save Field</button>
-      </form>
-    </section>
-
-    <!-- ========= /v10.14.7 Patch Hooks ========= -->
+  <!-- ===== Main App Mount ===== -->
+  <main id="app" tabindex="-1">
+    <!-- Views are rendered here by app.js -->
+    <noscript>
+      <p class="muted">This app requires JavaScript to run.</p>
+    </noscript>
   </main>
 
   <!-- ===== Footer ===== -->
-  <footer class="app-footer">
-    <span id="today"></span>
-    <span id="version"></span>
+  <footer class="app-footer" role="contentinfo">
+    <div>© Dowson Farms</div>
+    <div id="version" aria-label="App Version">v11.0.0</div>
   </footer>
 
-  <!-- ===== Service Worker (NEW filename v10147) ===== -->
-  <script>
-  if ('serviceWorker' in navigator) {
-    // Unregister any old SWs, then register the new versioned file
-    navigator.serviceWorker.getRegistrations()
-      .then(rs => Promise.all(rs.map(r => r.unregister())))
-      .then(() => navigator.serviceWorker.register('./service-worker-v10147.js', { scope: './' }))
-      .then(() => {
-        // If not yet controlled, reload once so the new SW takes over
-        if (!navigator.serviceWorker.controller) location.reload();
-      })
-      .catch(console.warn);
-  }
-  </script>
-
-  <!-- App JS (keep version bump in the query) -->
-  <script defer src="app.js?v=10.15.1"></script>
+  <!-- ===== App Script(s) =====
+       For v11 we’ll split into multiple parts; for now, this keeps the current app working.
+       When we deliver app.part-*.js, we’ll replace with several <script defer> tags in order.
+  -->
+  <script src="app.js?v=11.0.0" defer></script>
 </body>
 </html>
