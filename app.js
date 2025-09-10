@@ -1,7 +1,28 @@
-// ===== Version (footer shows vMAJOR.MINOR) =====
-const APP_VERSION = 'v10.15.1';
+/* ============================================================================
+   Dowson Farms — Web App (v11.0.0)
+   app.js — PART 1 of N  (Core boot, utilities, layout, nav chrome, Home/Crop)
+   ----------------------------------------------------------------------------
+   Contents in this part:
+     • Version + early theme apply
+     • Auth gate (localStorage stub)
+     • Small utilities (dates, ids, formatting)
+     • DOM refs + safe hash boot
+     • Phone input formatter (US)
+     • “Invite” mailto link builder
+     • Layout measurement → CSS vars
+     • Tile helper
+     • Route labels + Breadcrumbs renderer
+     • Home + Crop hub (lightweight)
+   Notes:
+     - Parts 2..N will add feature views (Grain, Calculators, Team, Settings…),
+       router, update banner, SW hooks, etc.
+     - Keep this file loaded BEFORE other app.js parts.
+   ========================================================================== */
 
-// ===== Init theme asap (auto/light/dark) =====
+/* ===== Version (footer shows vMAJOR.MINOR) ===== */
+const APP_VERSION = 'v11.0.0';
+
+/* ===== Init theme asap (auto/light/dark) ===== */
 (function applySavedTheme() {
   try {
     const t = localStorage.getItem('df_theme') || 'auto';
@@ -9,21 +30,33 @@ const APP_VERSION = 'v10.15.1';
   } catch {}
 })();
 
-// ===== Auth (invite-only placeholder) =====
-function isAuthed(){ try { return localStorage.getItem('df_auth') === '1'; } catch { return false; } }
-(function enforceAuth(){
+/* ===== Auth (invite-only placeholder) ===== */
+function isAuthed() {
+  try { return localStorage.getItem('df_auth') === '1'; } catch { return false; }
+}
+(function enforceAuth() {
   const here = (location.pathname.split('/').pop() || '').toLowerCase();
   if (!isAuthed() && here !== 'login.html') window.location.replace('login.html');
 })();
 
-// ===== Utilities =====
-function pad2(n){ return n<10?'0'+n:''+n; }
-function formatClock12(d){ let h=d.getHours(), m=d.getMinutes(), ap=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${pad2(m)} ${ap}`; }
+/* ===== Small Utilities ===== */
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function formatClock12(d){
+  let h = d.getHours(), m = d.getMinutes(), ap = h>=12 ? 'PM':'AM';
+  h = h%12 || 12; return `${h}:${pad2(m)} ${ap}`;
+}
 function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
-function prettyDate(d){ const dow=d.toLocaleString(undefined,{weekday:'long'}); const mo=d.toLocaleString(undefined,{month:'long'}); return `${dow} ${mo} ${ordinal(d.getDate())} ${d.getFullYear()}`; }
-function normalizeVersion(v){ const m=String(v||'').trim().replace(/^v/i,''); const p=m.split('.'); return (p[0]||'0')+'.'+(p[1]||'0'); }
+function prettyDate(d){
+  const dow=d.toLocaleString(undefined,{weekday:'long'});
+  const mo=d.toLocaleString(undefined,{month:'long'});
+  return `${dow} ${mo} ${ordinal(d.getDate())} ${d.getFullYear()}`;
+}
+function normalizeVersion(v){
+  const m=String(v||'').trim().replace(/^v/i,''); const p=m.split('.');
+  return (p[0]||'0')+'.'+(p[1]||'0');
+}
 function displayVersion(v){ return 'v'+normalizeVersion(v); }
-function scrollTopAll(){ try{ if (app?.scrollTo) app.scrollTo({top:0,left:0,behavior:'auto'}); window.scrollTo(0,0);}catch{} }
+function scrollTopAll(){ try{ if(app?.scrollTo) app.scrollTo({top:0,left:0,behavior:'auto'}); window.scrollTo(0,0);}catch{} }
 function fmtCommas(n){ try{ return Number(n).toLocaleString(); }catch{ return String(n); } }
 function uuid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function onlyDigits(s){ return String(s||'').replace(/\D+/g,''); }
@@ -34,16 +67,16 @@ function capTitle(s){ return String(s||'').trim().split(/\s+/).map(capWord).join
 function userEmail(){ try { return localStorage.getItem('df_user') || ''; } catch { return ''; } }
 function looksLikeEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
 
-// ===== DOM refs =====
-const app = document.getElementById('app');
-const crumbs = document.getElementById('breadcrumbs');
+/* ===== DOM refs ===== */
+const app       = document.getElementById('app');
+const crumbs    = document.getElementById('breadcrumbs');
 const versionEl = document.getElementById('version');
-const todayEl = document.getElementById('today');
-const clockEl = document.getElementById('clock');
-const bannerEl = document.getElementById('update-banner');
+const todayEl   = document.getElementById('today');
+const clockEl   = document.getElementById('clock');
+const bannerEl  = document.getElementById('update-banner');
 const bannerBtn = document.getElementById('update-refresh');
 
-// ===== Ensure we always have a hash (prevents blank page if none) =====
+/* ===== Ensure we always have a hash (prevents blank page if none) ===== */
 function ensureHomeHash() {
   if (!location.hash || location.hash === '#') {
     location.replace('#/home');
@@ -51,7 +84,7 @@ function ensureHomeHash() {
 }
 
 /* =========================================
-   PHONE INPUT — improved live formatting
+   PHONE INPUT — improved live formatting (US)
    ========================================= */
 function phoneDigitsOnly(val){ return String(val||'').replace(/\D/g,'').slice(0,10); }
 function formatPhoneUS(val){
@@ -94,7 +127,7 @@ function inviteMailtoHref(email, name){
   const body = encodeURIComponent(
 `Hi ${who},
 
-You've been invited to join the Dowson Farms app.
+You've been invited to join the Dowson Farms app (v11).
 
 1) Open the login page: ${loginUrl}
 2) Sign in with your email (${email})
@@ -105,7 +138,7 @@ You've been invited to join the Dowson Farms app.
   return `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
 }
 
-// ===== Layout measures → CSS vars =====
+/* ===== Layout measures → CSS vars ===== */
 function setCSSVar(name, px){ document.documentElement.style.setProperty(name, `${px}px`); }
 function measureBars(){
   const h = document.querySelector('.app-header');
@@ -120,7 +153,7 @@ function measureBars(){
 function refreshLayout(){ measureBars(); requestAnimationFrame(measureBars); }
 ['load','resize','orientationchange'].forEach(evt=>window.addEventListener(evt, refreshLayout));
 
-// ===== Tiles =====
+/* ===== Tiles ===== */
 function tile(emoji,label,href){
   return `<a class="tile" href="${href}" aria-label="${label}">
     <span class="emoji">${emoji}</span>
@@ -128,7 +161,7 @@ function tile(emoji,label,href){
   </a>`;
 }
 
-// ===== Labels for breadcrumbs =====
+/* ===== Labels for breadcrumbs ===== */
 const LABELS = {
   '#/home':'Home',
   // Crop Production
@@ -186,6 +219,8 @@ const LABELS = {
   '#/settings':'Settings',
   '#/settings/crops':'Crop Type',
   '#/settings/theme':'Theme',
+  '#/settings/farms':'Farms',
+  '#/settings/fields':'Fields',
 
   // Feedback
   '#/feedback':'Feedback',
@@ -193,7 +228,7 @@ const LABELS = {
   '#/feedback/feature':'New Feature Request',
 };
 
-// ===== Breadcrumbs =====
+/* ===== Breadcrumbs ===== */
 function renderBreadcrumb(){
   const hash = location.hash || '#/home';
   if (hash === '#/home' || hash === '') {
@@ -212,7 +247,7 @@ function renderBreadcrumb(){
   crumbs.innerHTML = trail.join(' &nbsp;&gt;&nbsp; ');
 }
 
-// ===== HOME =====
+/* ===== HOME ===== */
 function viewHome(){
   app.innerHTML = `
     <div class="grid">
@@ -228,8 +263,9 @@ function viewHome(){
     </div>
   `;
 }
+
 /* =========================
-   Crop Production
+   Crop Production (hub + placeholder)
    ========================= */
 function viewCropHub(){
   app.innerHTML = `
@@ -255,16 +291,40 @@ function viewCropComing(name){
   `;
 }
 
-/* =========================
-   Field Maintenance (FULL)
-   ========================= */
-const FM_KEY = 'df_field_maint';
-const JOB_TYPES_KEY = 'df_job_types';
+/* ===== Footer text + clock (wire basic footer fields early) ===== */
+if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
+if (todayEl) todayEl.textContent = prettyDate(new Date());
+function __tickClock(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
+__tickClock(); setInterval(__tickClock, 15000);
+
+/* ===== Expose a tiny safe shim that later parts can rely on ===== */
+window.__DF_CORE_READY__ = true;
+
+/* ============================================================================
+   app.js — PART 2 of N (v11.0.0)
+   Field Maintenance (FULL) — storage, defaults, image capture, UI
+   - Relies on Part 1 utilities (todayStr, fmtCommas, uuid, userEmail, etc.)
+   ========================================================================== */
+
+/* ---------- LocalStorage helpers (guarded) ---------- */
+if (typeof loadJSON !== 'function') {
+  function loadJSON(key, fallback = []) {
+    try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+    catch { return fallback; }
+  }
+}
+if (typeof saveJSON !== 'function') {
+  function saveJSON(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  }
+}
+
+/* ---------- Keys ---------- */
+const FM_KEY         = 'df_field_maint';
+const JOB_TYPES_KEY  = 'df_job_types';
 const FIELD_LIST_KEY = 'df_fields';
 
-function loadJSON(key, fallback = []) { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }
-function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-
+/* ---------- Defaults (seed once) ---------- */
 function defaultFields(){
   const existing = loadJSON(FIELD_LIST_KEY);
   if (existing.length) return existing;
@@ -280,6 +340,7 @@ function defaultJobs(){
   return seed;
 }
 
+/* ---------- Image helpers ---------- */
 async function filesToDataURLs(fileList){
   const files = Array.from(fileList||[]);
   const readers = files.map(f => new Promise(res=>{
@@ -290,6 +351,9 @@ async function filesToDataURLs(fileList){
   return Promise.all(readers);
 }
 
+/* =========================
+   Field Maintenance (FULL)
+   ========================= */
 function viewFieldMaintenance(){
   const user = (localStorage.getItem('df_user')||'').trim();
   const fields = defaultFields();
@@ -305,7 +369,7 @@ function viewFieldMaintenance(){
       <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">
         <div class="small muted">${r.dateSubmitted} • by ${r.submittedBy||'-'}${pics}</div>
         ${r.status==='Completed' ? `<div class="small muted">Completed ${r.completedDate||''} by ${r.completedBy||''}</div>`:''}
-        ${r.notes ? `<div class="small muted">Notes: ${r.notes}</div>`:''}
+        ${r.notes ? `<div class="small muted">Notes: ${r.notes.replace(/</g,'&lt;')}</div>`:''}
       </div>
     </li>`;
   }).join('');
@@ -448,140 +512,601 @@ function viewFieldMaintenance(){
     alert('Saved.');
     viewFieldMaintenance();
   });
+
+  // ensure phone auto-format in case inputs are added later
+  try { bindPhoneAutoFormat(app); } catch {}
 }
 
+/* ============================================================================
+   app.js — PART 3 of N (v11.0.0)
+   Calculators: Hub + Combine Yield + Fertilizer + Bin Volume + Area + Chem Mix
+   - Self-contained; relies on Part 1 utilities (fmtCommas, todayStr, etc.)
+   ========================================================================== */
+
+/* ---------- Tiny local helpers (safe) ---------- */
+function _num(v){ const n = Number(String(v||'').replace(/,/g,'')); return Number.isFinite(n) ? n : 0; }
+function _html(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[m])); }
+
 /* =========================
-   Calculators
+   Calculators — HUB
    ========================= */
 function viewCalcHub(){
   app.innerHTML = `
     <div class="grid">
-      ${tile('👨🏼‍🔬','Fertilizer','#/calc/fertilizer')}
-      ${tile('🛢️','Bin Volume','#/calc/bin')}
-      ${tile('📐','Area','#/calc/area')}
       ${tile('🌽🌱','Combine Yield','#/calc/combine')}
+      ${tile('🛢️','Bin Volume','#/calc/bin')}
+    </div>
+    <div class="grid" style="margin-top:12px;">
+      ${tile('👨🏼‍🔬','Fertilizer','#/calc/fertilizer')}
       ${tile('🧪','Chemical Mix','#/calc/chem')}
     </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
-}
-function viewCalcFertilizer(){ app.innerHTML = `<section class="section"><h1>👨🏼‍🔬 Fertilizer Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcBin(){ app.innerHTML = `<section class="section"><h1>🛢️ Bin Volume Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcArea(){ app.innerHTML = `<section class="section"><h1>📐 Area Calculator</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcCombine(){ app.innerHTML = `<section class="section"><h1>🌽🌱 Combine Yield Calculator</h1><p>🚧 Coming soon (corn/soy, true shrink, head width 30’/40’/45’).</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-function viewCalcChem(){ app.innerHTML = `<section class="section"><h1>🧪 Chemical Mix Sheet</h1><p>🚧 Coming soon.</p><a class="btn" href="#/calc">Back to Calculator</a></section>`; }
-
-/* =========================
-   Equipment
-   ========================= */
-function viewEquipmentHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('🛰️','StarFire / Technology','#/equipment/receivers')}
-      ${tile('🚜','Tractors','#/equipment/tractors')}
-      ${tile('🌾','Combines','#/equipment/combines')}
-      ${tile('💦','Sprayer / Fertilizer Spreader','#/equipment/sprayer')}
-      ${tile('🚧','Construction Equipment','#/equipment/construction')}
-      ${tile('🚚','Trucks','#/equipment/trucks')}
-      ${tile('🚛','Trailers','#/equipment/trailers')}
-      ${tile('⚙️','Farm Implements','#/equipment/implements')}
+    <div class="grid" style="grid-template-columns:1fr;max-width:380px;margin:12px auto 0;">
+      ${tile('📐','Area','#/calc/area')}
     </div>
     <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
 }
-function viewEquipmentComing(name){
-  app.innerHTML = `
-    <section class="section">
-      <h1>${name}</h1>
-      <p>🚧 Coming soon. (Will track Make, Model, Serial; assign barcode; quick repair logs)</p>
-      <a class="btn" href="#/equipment">Back to Equipment</a>
-    </section>
-  `;
-}
+
 /* =========================
-   Grain Tracking
+   Combine Yield Calculator
+   - Inputs: Crop, Wet Weight (lb), Moisture %, Length (ft), Header Width (ft)
+   - Auto: Dry Basis %, Test Wt (lb/bu) per crop
+   - Acres = Length × Header ÷ 43,560
+   - Outputs: Wet bu, Adjusted (dry) bu, bu/ac (true shrink & elevator model)
    ========================= */
-const GRAIN_BAG_KEY='df_grain_bags';
-function loadBags(){ try{ return JSON.parse(localStorage.getItem(GRAIN_BAG_KEY) || '[]'); }catch{ return []; } }
-function saveBags(list){ try{ localStorage.setItem(GRAIN_BAG_KEY, JSON.stringify(list)); }catch{} }
+function viewCalcCombine(){
+  const PRESETS = {
+    Corn:     { base: 15.5, lbbu: 56, emoji:'🌽' },
+    Soybeans: { base: 13.0, lbbu: 60, emoji:'🫘' }
+  };
+  const cropOpts = Object.keys(PRESETS).map(c=>`<option value="${c}">${c}</option>`).join('');
 
-function viewGrainHub(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('🧺','Grain Bag','#/grain/bag')}
-      ${tile('🛢️','Grain Bins','#/grain/bins')}
-      ${tile('📄','Grain Contracts','#/grain/contracts')}
-      ${tile('🧾','Ticket OCR','#/grain/tickets')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
-}
-function viewGrainBag(){
-  const user = (localStorage.getItem('df_user')||'').trim();
-  const today = new Date().toISOString().slice(0,10);
-  const rows=loadBags().map(b=>{
-    return `<li class="crop-row">
-      <div class="crop-info"><span class="chip">#${b.no}</span> <span class="chip">${b.date}</span></div>
-      <div class="crop-actions"><span class="small">${b.location}</span></div>
-      <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">
-        <div class="small muted">Crop: ${b.crop} • Est: ${b.bushels.toLocaleString()} bu • By: ${b.submittedBy||'-'}</div>
-        ${b.notes ? `<div class="small muted">Notes: ${b.notes}</div>`:''}
-      </div>
-    </li>`;
-  }).join('');
   app.innerHTML = `
     <section class="section">
-      <h1>🧺 Grain Bag</h1>
-      <div class="field"><label class="choice"><input id="gb-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
-      <div class="field"><label>Location <span class="small muted">(Required)</span></label>
-        <select id="gb-loc">
-          <option value="">— Choose —</option>
-          <option value="Divernon Elevator">Divernon Elevator</option>
-          <option value="Field (TBD)">Field (TBD)</option>
-        </select>
-      </div>
-      <div class="field"><label>Crop <span class="small muted">(Required)</span></label>
-        <select id="gb-crop">
-          <option value="">— Choose —</option>
-          <option value="Corn">Corn</option>
-          <option value="Soybeans">Soybeans</option>
-        </select>
-      </div>
-      <div class="field"><label class="choice"><input id="gb-bu" type="number" inputmode="numeric" min="1" placeholder="Estimated bushels (Required)"></label></div>
-      <div class="field"><label class="choice"><input id="gb-by" type="text" placeholder="Submitted by" value="${user}"></label></div>
-      <div class="field"><label class="choice"><textarea id="gb-notes" rows="3" placeholder="Notes (optional)"></textarea></label></div>
-      <button id="gb-save" class="btn-primary">Save</button>
+      <h1>🌽🌱 Combine Yield Calculator</h1>
 
-      <h2 style="margin-top:14px;">Recent</h2>
-      <ul class="crop-list">${rows || '<li class="muted">No grain bags recorded.</li>'}</ul>
+      <div class="calc-grid">
+        <label><span class="small muted">Crop</span>
+          <select id="cy-crop">${cropOpts}</select>
+        </label>
 
-      <div class="section">
-        <a class="btn" href="#/grain">Back to Grain Tracking</a> <a class="btn" href="#/home">Back to Dashboard</a>
+        <label><span class="small muted">Wet Weight (lb) *</span>
+          <input id="cy-wet" type="number" step="any" placeholder="e.g., 54,000">
+        </label>
+
+        <label><span class="small muted">Moisture % *</span>
+          <input id="cy-moist" type="number" step="any" placeholder="e.g., 18">
+        </label>
+
+        <label><span class="small muted">Length (ft) *</span>
+          <input id="cy-length" type="number" step="any" placeholder="Feet harvested">
+        </label>
+
+        <label><span class="small muted">Header Width *</span>
+          <select id="cy-width">
+            <option value="30">30’</option>
+            <option value="35">35’</option>
+            <option value="40" selected>40’</option>
+            <option value="45">45’</option>
+          </select>
+        </label>
+
+        <label><span class="small muted">Dry Basis % (auto)</span>
+          <input id="cy-base" type="number" step="any" placeholder="Corn 15.5 / Soy 13.0">
+        </label>
+
+        <label><span class="small muted">lb / bu (auto)</span>
+          <input id="cy-lbbu" type="number" step="any" placeholder="Corn 56 / Soy 60">
+        </label>
       </div>
+
+      <div class="small muted" style="margin-top:6px;">
+        Leave “Dry Basis %” and “lb/bu” blank to auto-fill by crop. Acres = Length × Header ÷ 43,560.
+      </div>
+
+      <div class="calc-actions">
+        <button id="cy-go" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back</a>
+        <a class="btn" href="#/home">Dashboard</a>
+      </div>
+
+      <div id="cy-out" class="result-card" style="display:none;"></div>
     </section>
   `;
-  document.getElementById('gb-save')?.addEventListener('click', ()=>{
-    const date = document.getElementById('gb-date').value;
-    const loc  = document.getElementById('gb-loc').value;
-    const crop = document.getElementById('gb-crop').value;
-    const buStr= String(document.getElementById('gb-bu').value||'').trim();
-    const by   = String(document.getElementById('gb-by').value||'').trim();
-    const notes= String(document.getElementById('gb-notes').value||'').trim();
-    const bu = parseInt(buStr,10);
 
-    if(!date||!loc||!crop||!bu||bu<=0){ alert('Date, Location, Crop, Estimated Bushels are required.'); return; }
+  const cropSel = document.getElementById('cy-crop');
+  const baseInp = document.getElementById('cy-base');
+  const lbbuInp = document.getElementById('cy-lbbu');
 
-    const list = loadBags();
-    const nextNo = (list[0]?.no || 0) + 1;
-    list.unshift({ no: nextNo, date, location: loc, crop, bushels: bu, submittedBy: by, notes });
-    saveBags(list);
-    alert('Saved.');
-    viewGrainBag();
+  function fillDefaults(){
+    const p = PRESETS[cropSel.value];
+    if (!baseInp.value) baseInp.value = p.base;
+    if (!lbbuInp.value) lbbuInp.value = p.lbbu;
+  }
+  cropSel.addEventListener('change', fillDefaults);
+  fillDefaults();
+
+  function elevatorShrinkPct(moist, base){
+    if (moist <= base) return 0;
+    const maxM = 29;   // clamp range
+    const maxS = 21;   // 21% at 29% moisture
+    if (moist >= maxM) return maxS;
+    const slope = maxS / (maxM - base);
+    return slope * (moist - base);
+  }
+
+  document.getElementById('cy-go').addEventListener('click', ()=>{
+    const crop   = cropSel.value;
+    const wetLb  = _num(document.getElementById('cy-wet').value);
+    const moist  = _num(document.getElementById('cy-moist').value);
+    const lenFt  = _num(document.getElementById('cy-length').value);
+    const headFt = _num(document.getElementById('cy-width').value);
+    const base   = _num(baseInp.value || PRESETS[crop].base);
+    const lbbu   = _num(lbbuInp.value || PRESETS[crop].lbbu);
+
+    if (!wetLb || !moist || !lenFt || !headFt){
+      alert('Enter Wet Weight, Moisture, Length and Header Width.');
+      return;
+    }
+
+    const acres = (lenFt * headFt) / 43560;
+    if (acres <= 0){ alert('Calculated acres <= 0. Check length/header width.'); return; }
+
+    const wetBu = wetLb / lbbu;
+
+    // True shrink
+    const dryFactor = (100 - moist) / (100 - base);
+    const trueBu = wetBu * dryFactor;
+    const trueYield = trueBu / acres;
+    const trueShrinkPct = (1 - dryFactor) * 100;
+
+    // Elevator shrink
+    const elevPct = elevatorShrinkPct(moist, base);
+    const elevBu = wetBu * (1 - elevPct/100);
+    const elevYield = elevBu / acres;
+
+    const out = document.getElementById('cy-out');
+    out.style.display = '';
+    out.innerHTML = `
+      <div><strong>Crop:</strong> ${PRESETS[crop].emoji} ${crop}</div>
+      <div class="calc-row">
+        <div><strong>Acres (calc):</strong> ${acres.toFixed(3)}</div>
+        <div><strong>Wet Bushels:</strong> ${fmtCommas(wetBu.toFixed(2))}</div>
+        <div><strong>Test Wt:</strong> ${lbbu} lb/bu</div>
+        <div><strong>Dry Basis:</strong> ${base}%</div>
+      </div>
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,.12);margin:10px 0;">
+      <div class="calc-row" style="gap:18px;flex-wrap:wrap;">
+        <div>
+          <h3 style="margin:0 0 6px;">True Shrink</h3>
+          <div><strong>Adj. Bushels:</strong> ${fmtCommas(trueBu.toFixed(2))}</div>
+          <div><strong>Yield:</strong> ${fmtCommas(trueYield.toFixed(1))} bu/ac</div>
+          <div class="small muted">Shrink ≈ ${trueShrinkPct.toFixed(1)}% (to ${base}%).</div>
+        </div>
+        <div>
+          <h3 style="margin:0 0 6px;">Elevator Shrink</h3>
+          <div><strong>Adj. Bushels:</strong> ${fmtCommas(elevBu.toFixed(2))}</div>
+          <div><strong>Yield:</strong> ${fmtCommas(elevYield.toFixed(1))} bu/ac</div>
+          <div class="small muted">Prorated elevator shrink ≈ ${elevPct.toFixed(1)}%.</div>
+        </div>
+      </div>
+    `;
+    window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
   });
 }
 
 /* =========================
-   Reports
+   Fertilizer Calculator
+   - Inputs: Nutrient (label), Target lb/ac, Analysis %, Density (lb/gal), Acres
+   - Outputs: Product lb/ac, gal/ac, totals
+   ========================= */
+function viewCalcFertilizer(){
+  const KEY='df_calc_fert';
+  const s = (function(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch{ return {}; } })();
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>👨🏼‍🔬 Fertilizer Calculator</h1>
+      <div class="calc-grid">
+        <label><span class="small muted">Nutrient</span>
+          <select id="f-nutrient">
+            <option ${s.nutrient==='N'?'selected':''}>N</option>
+            <option ${s.nutrient==='P₂O₅'?'selected':''}>P₂O₅</option>
+            <option ${s.nutrient==='K₂O'?'selected':''}>K₂O</option>
+          </select>
+        </label>
+        <label><span class="small muted">Target lb/acre *</span>
+          <input id="f-target" type="number" step="any" value="${_html(s.target||'')}">
+        </label>
+        <label><span class="small muted">Product Analysis % *</span>
+          <input id="f-analysis" type="number" step="any" value="${_html(s.analysis||'')}" placeholder="e.g., 32">
+        </label>
+        <label><span class="small muted">Density (lb/gal)</span>
+          <select id="f-density">
+            <option value="11.06" ${String(s.density||'11.06')==='11.06'?'selected':''}>UAN 32 (11.06)</option>
+            <option value="10.67" ${String(s.density)==='10.67'?'selected':''}>UAN 28 (10.67)</option>
+            <option value="8.34"  ${String(s.density)==='8.34'?'selected':''}>Water (8.34)</option>
+            <option value="${_html(s.density||'11.06')}" ${!['11.06','10.67','8.34'].includes(String(s.density))?'selected':''}>Custom (${_html(s.density||'11.06')})</option>
+          </select>
+        </label>
+        <label><span class="small muted">Acres *</span>
+          <input id="f-acres" type="number" step="any" value="${_html(s.acres||'')}">
+        </label>
+      </div>
+
+      <div class="calc-actions">
+        <button id="f-go" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back</a>
+        <a class="btn" href="#/home">Dashboard</a>
+      </div>
+
+      <div id="f-out" class="result-card" style="display:none;"></div>
+    </section>
+  `;
+
+  document.getElementById('f-go').addEventListener('click', ()=>{
+    const payload = {
+      nutrient: document.getElementById('f-nutrient').value,
+      target:   _num(document.getElementById('f-target').value),
+      analysis: _num(document.getElementById('f-analysis').value),
+      density:  _num(document.getElementById('f-density').value||'11.06'),
+      acres:    _num(document.getElementById('f-acres').value)
+    };
+    try{ localStorage.setItem(KEY, JSON.stringify(payload)); }catch{}
+
+    const {target,analysis,density,acres} = payload;
+    if (!target || !analysis || !acres || analysis<=0 || analysis>100){
+      alert('Enter valid Target, Analysis (1–100) and Acres.'); return;
+    }
+    const frac = analysis/100;
+    const lbA  = target/frac;
+    const galA = lbA/(density||1);
+
+    const out = document.getElementById('f-out');
+    out.style.display='';
+    out.innerHTML = `
+      <div><strong>Product lb/acre:</strong> ${fmtCommas(lbA.toFixed(2))}</div>
+      <div><strong>Product gal/acre:</strong> ${fmtCommas(galA.toFixed(2))}</div>
+      <div><strong>Total lbs:</strong> ${fmtCommas((lbA*acres).toFixed(0))}</div>
+      <div><strong>Total gal:</strong> ${fmtCommas((galA*acres).toFixed(1))}</div>
+      <div class="small muted" style="margin-top:6px;">Density affects gal/acre; analysis drives lb/acre.</div>
+    `;
+  });
+}
+
+/* =========================
+   Bin Volume Calculator
+   - Cylinder + optional cone (roof)
+   - Outputs: ft³, bu, weight (lb)
+   ========================= */
+function viewCalcBin(){
+  const KEY='df_calc_bin';
+  const s = (function(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch{ return {}; } })();
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>🛢️ Bin Volume Calculator</h1>
+
+      <div class="calc-grid">
+        <label><span class="small muted">Diameter (ft) *</span>
+          <input id="b-d" type="number" step="any" value="${_html(s.d||'')}">
+        </label>
+        <label><span class="small muted">Grain Depth (ft) *</span>
+          <input id="b-h" type="number" step="any" value="${_html(s.h||'')}">
+        </label>
+        <label><span class="small muted">Roof</span>
+          <select id="b-roof">
+            <option value="flat" ${(!s.roof||s.roof==='flat')?'selected':''}>Flat/Simplified</option>
+            <option value="cone" ${s.roof==='cone'?'selected':''}>Cone (add rise)</option>
+          </select>
+        </label>
+        <label id="b-rise-wrap" style="display:${s.roof==='cone'?'block':'none'};"><span class="small muted">Cone Rise (ft)</span>
+          <input id="b-rise" type="number" step="any" value="${_html(s.rise||'')}">
+        </label>
+        <label><span class="small muted">Crop</span>
+          <select id="b-crop">
+            <option ${(!s.crop||s.crop==='Corn')?'selected':''}>Corn</option>
+            <option ${s.crop==='Soybeans'?'selected':''}>Soybeans</option>
+            <option ${s.crop==='Custom'?'selected':''}>Custom</option>
+          </select>
+        </label>
+        <label><span class="small muted">lb / bu</span>
+          <input id="b-lbbu" type="number" step="any" value="${_html(s.lbbu||'56')}">
+        </label>
+        <label><span class="small muted">ft³ / bu</span>
+          <input id="b-buft3" type="number" step="any" value="${_html(s.buft3||'1.244')}">
+        </label>
+      </div>
+
+      <div class="calc-actions">
+        <button id="b-go" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back</a>
+        <a class="btn" href="#/home">Dashboard</a>
+      </div>
+
+      <div id="b-out" class="result-card" style="display:none;"></div>
+    </section>
+  `;
+
+  document.getElementById('b-roof').addEventListener('change', ()=>{
+    document.getElementById('b-rise-wrap').style.display =
+      (document.getElementById('b-roof').value==='cone') ? 'block' : 'none';
+  });
+  document.getElementById('b-crop').addEventListener('change', ()=>{
+    const v = document.getElementById('b-crop').value;
+    if (v==='Corn') document.getElementById('b-lbbu').value = '56';
+    else if (v==='Soybeans') document.getElementById('b-lbbu').value = '60';
+  });
+
+  document.getElementById('b-go').addEventListener('click', ()=>{
+    const d=_num(document.getElementById('b-d').value);
+    const h=_num(document.getElementById('b-h').value);
+    const roof=document.getElementById('b-roof').value;
+    const rise=_num(document.getElementById('b-rise')?.value||0);
+    const lbbu=_num(document.getElementById('b-lbbu').value||56);
+    const buft3=_num(document.getElementById('b-buft3').value||1.244);
+
+    try{ localStorage.setItem(KEY, JSON.stringify({
+      d,h,roof,rise,crop:document.getElementById('b-crop').value,lbbu,buft3
+    })); }catch{}
+
+    if(!d||!h||!lbbu||!buft3){ alert('Enter Diameter, Depth, lb/bu, ft³/bu.'); return; }
+    const r=d/2;
+    const volCyl = Math.PI*r*r*h;
+    const volCone = roof==='cone' && rise>0 ? (Math.PI*r*r*rise)/3 : 0;
+    const vol = volCyl + volCone;
+    const bu = vol / buft3;
+    const wt = bu * lbbu;
+
+    const out=document.getElementById('b-out'); out.style.display='';
+    out.innerHTML = `
+      <div><strong>Volume (ft³):</strong> ${fmtCommas(vol.toFixed(0))}</div>
+      <div><strong>Bushels:</strong> ${fmtCommas(bu.toFixed(0))}</div>
+      <div><strong>Estimated Weight (lb):</strong> ${fmtCommas(wt.toFixed(0))}</div>
+      <div class="small muted" style="margin-top:6px;">Assumes ideal fill; adjust for void/packing as needed.</div>
+    `;
+  });
+}
+
+/* =========================
+   Area Calculator
+   - Shapes: Rectangle, Circle, Triangle
+   - Units: ft or m; acres conversion
+   ========================= */
+function viewCalcArea(){
+  const KEY='df_calc_area';
+  const s = (function(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch{ return {}; } })();
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>📐 Area Calculator</h1>
+
+      <div class="calc-grid">
+        <label><span class="small muted">Shape</span>
+          <select id="a-shape">
+            <option ${s.shape==='Rectangle'?'selected':''}>Rectangle</option>
+            <option ${s.shape==='Circle'?'selected':''}>Circle</option>
+            <option ${s.shape==='Triangle'?'selected':''}>Triangle</option>
+          </select>
+        </label>
+        <label><span class="small muted">Units</span>
+          <select id="a-unit">
+            <option value="ft" ${s.unit!=='m'?'selected':''}>Feet</option>
+            <option value="m"  ${s.unit==='m'?'selected':''}>Meters</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="a-rect" class="calc-grid" style="display:${(!s.shape||s.shape==='Rectangle')?'grid':'none'};">
+        <label><span class="small muted">Length *</span><input id="a-len" type="number" step="any" value="${_html(s.len||'')}"></label>
+        <label><span class="small muted">Width *</span><input id="a-wid" type="number" step="any" value="${_html(s.wid||'')}"></label>
+      </div>
+
+      <div id="a-circ" class="calc-grid" style="display:${s.shape==='Circle'?'grid':'none'};">
+        <label><span class="small muted">Diameter *</span><input id="a-dia" type="number" step="any" value="${_html(s.dia||'')}"></label>
+        <div></div>
+      </div>
+
+      <div id="a-tri" class="calc-grid" style="display:${s.shape==='Triangle'?'grid':'none'};">
+        <label><span class="small muted">Base *</span><input id="a-base" type="number" step="any" value="${_html(s.base||'')}"></label>
+        <label><span class="small muted">Height *</span><input id="a-height" type="number" step="any" value="${_html(s.height||'')}"></label>
+      </div>
+
+      <div class="calc-actions">
+        <button id="a-go" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back</a>
+        <a class="btn" href="#/home">Dashboard</a>
+      </div>
+
+      <div id="a-out" class="result-card" style="display:none;"></div>
+    </section>
+  `;
+
+  function showShape(){
+    document.getElementById('a-rect').style.display = (document.getElementById('a-shape').value==='Rectangle')?'grid':'none';
+    document.getElementById('a-circ').style.display = (document.getElementById('a-shape').value==='Circle')?'grid':'none';
+    document.getElementById('a-tri').style.display  = (document.getElementById('a-shape').value==='Triangle')?'grid':'none';
+  }
+  document.getElementById('a-shape').addEventListener('change', showShape);
+  showShape();
+
+  document.getElementById('a-go').addEventListener('click', ()=>{
+    const shape=document.getElementById('a-shape').value;
+    const unit=document.getElementById('a-unit').value;
+    let A=0;
+
+    if (shape==='Rectangle'){
+      const L=_num(document.getElementById('a-len').value);
+      const W=_num(document.getElementById('a-wid').value);
+      if(!L||!W) return alert('Enter length & width.');
+      A=L*W;
+    } else if (shape==='Circle'){
+      const D=_num(document.getElementById('a-dia').value);
+      if(!D) return alert('Enter diameter.');
+      const r=D/2; A=Math.PI*r*r;
+    } else {
+      const B=_num(document.getElementById('a-base').value);
+      const H=_num(document.getElementById('a-height').value);
+      if(!B||!H) return alert('Enter base & height.');
+      A=0.5*B*H;
+    }
+
+    try{ localStorage.setItem(KEY, JSON.stringify({
+      shape, unit,
+      len:document.getElementById('a-len')?.value,
+      wid:document.getElementById('a-wid')?.value,
+      dia:document.getElementById('a-dia')?.value,
+      base:document.getElementById('a-base')?.value,
+      height:document.getElementById('a-height')?.value
+    })); }catch{}
+
+    const acres = unit==='ft' ? (A/43560) : (A/4046.8564224);
+    const out=document.getElementById('a-out'); out.style.display='';
+    out.innerHTML = `
+      <div><strong>Area (${unit==='ft'?'ft²':'m²'}):</strong> ${fmtCommas(A.toFixed(2))}</div>
+      <div><strong>Area (acres):</strong> ${fmtCommas(acres.toFixed(4))}</div>
+    `;
+  });
+}
+
+/* =========================
+   Chemical Mix Sheet
+   - Up to 6 products (name, rate, unit)
+   - Inputs: Tank Size (gal), Carrier GPA, optional Job Acres
+   - Output: per-tank gallons per product, tanks needed
+   ========================= */
+function viewCalcChem(){
+  const KEY='df_calc_chem';
+  const s = (function(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch{ return {}; } })();
+  const prods = s.prods || Array.from({length:6}).map(()=>({name:'',rate:'',unit:'oz'}));
+
+  function row(i,p){
+    return `
+      <div class="calc-grid">
+        <label><span class="small muted">Product ${i+1}</span>
+          <input id="ch-name-${i}" type="text" value="${_html(p.name||'')}" placeholder="Name">
+        </label>
+        <label><span class="small muted">Rate / acre</span>
+          <input id="ch-rate-${i}" type="number" step="any" value="${_html(p.rate||'')}">
+        </label>
+        <label><span class="small muted">Unit</span>
+          <select id="ch-unit-${i}">
+            <option ${p.unit==='oz'?'selected':''} value="oz">oz</option>
+            <option ${p.unit==='pt'?'selected':''} value="pt">pt</option>
+            <option ${p.unit==='qt'?'selected':''} value="qt">qt</option>
+            <option ${p.unit==='gal'?'selected':''} value="gal">gal</option>
+          </select>
+        </label>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>🧪 Chemical Mix Sheet</h1>
+
+      <div class="calc-grid">
+        <label><span class="small muted">Tank Size (gal) *</span>
+          <input id="ch-tank" type="number" step="any" value="${_html(s.tank||'')}">
+        </label>
+        <label><span class="small muted">Carrier GPA *</span>
+          <input id="ch-gpa" type="number" step="any" value="${_html(s.gpa||'')}">
+        </label>
+        <label><span class="small muted">Job Acres (optional)</span>
+          <input id="ch-job" type="number" step="any" value="${_html(s.job||'')}">
+        </label>
+      </div>
+
+      <h3 style="margin-top:10px;">Products (rate per acre)</h3>
+      ${prods.map((p,i)=>row(i,p)).join('')}
+
+      <div class="calc-actions">
+        <button id="ch-go" class="btn-primary">Calculate</button>
+        <a class="btn" href="#/calc">Back</a>
+        <a class="btn" href="#/home">Dashboard</a>
+      </div>
+
+      <div id="ch-out" class="result-card" style="display:none;"></div>
+    </section>
+  `;
+
+  function unitToGal(u,a){
+    const x=_num(a); if(!x) return 0;
+    if(u==='gal') return x;
+    if(u==='qt') return x/4;
+    if(u==='pt') return x/8;
+    if(u==='oz') return x/128;
+    return 0;
+  }
+
+  document.getElementById('ch-go').addEventListener('click', ()=>{
+    const tank=_num(document.getElementById('ch-tank').value);
+    const gpa=_num(document.getElementById('ch-gpa').value);
+    const job=_num(document.getElementById('ch-job').value);
+    const ps=[];
+    for(let i=0;i<6;i++){ ps.push({ name:document.getElementById('ch-name-'+i).value, rate:document.getElementById('ch-rate-'+i).value, unit:document.getElementById('ch-unit-'+i).value }); }
+
+    try{ localStorage.setItem(KEY, JSON.stringify({tank,gpa,job,prods:ps})); }catch{}
+    if(!tank||!gpa){ alert('Enter Tank Size and Carrier GPA.'); return; }
+
+    const acPerTank = tank/gpa;
+    let total=0;
+    const lines = ps.filter(p=>_num(p.rate)>0).map(p=>{
+      const perAcreGal = unitToGal(p.unit, p.rate);
+      const perTankGal = perAcreGal * acPerTank;
+      total += perTankGal;
+      return `<li>${_html(p.name||'(Unnamed)')}: <strong>${fmtCommas(perTankGal.toFixed(3))}</strong> gal / tank <span class="small muted">(${p.rate} ${p.unit}/ac)</span></li>`;
+    });
+
+    const out=document.getElementById('ch-out'); out.style.display='';
+    const tanks = job>0 ? `<li><strong>Tanks needed for ${fmtCommas(job)} ac:</strong> ${fmtCommas(Math.ceil(job/acPerTank))}</li>` : '';
+    out.innerHTML = `
+      <div><strong>Acres per tank:</strong> ${fmtCommas(acPerTank.toFixed(2))}</div>
+      <div><strong>Carrier per tank (gal):</strong> ${fmtCommas(tank)}</div>
+      <ul style="margin:8px 0 0 18px;">${lines.join('') || '<li class="muted">No products entered.</li>'}</ul>
+      <div style="margin-top:6px;"><strong>Total product volume in mix (gal):</strong> ${fmtCommas(total.toFixed(3))}</div>
+      ${tanks}
+      <div class="small muted" style="margin-top:6px;">Confirm compatibility and label requirements.</div>
+    `;
+  });
+}
+
+/* ============================================================================
+   app.js — PART 4 of N (v11.0.0)
+   Reports + Feedback
+   - Reports Hub
+   - Pre-made Reports: Feedback Summary, Grain Bag Report
+   - Feedback Hub + Forms (Error / Feature)
+   - Safe, idempotent helpers (load/save) for feedback
+   - Relies on Part 1 utilities (fmtCommas, prettyDate, displayVersion, tile, etc.)
+   ========================================================================== */
+
+/* ---------- Local-safe helpers ---------- */
+(function initReportsFeedbackHelpers(){
+  if (window.__APP_P4_HELPERS__) return;
+  window.__APP_P4_HELPERS__ = true;
+
+  // Feedback storage
+  window.loadFeedback = function loadFeedback(){
+    try { return JSON.parse(localStorage.getItem('df_feedback') || '[]'); }
+    catch { return []; }
+  };
+  window.saveFeedback = function saveFeedback(entry){
+    try {
+      const key='df_feedback';
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      list.push(entry);
+      localStorage.setItem(key, JSON.stringify(list));
+    } catch {}
+  };
+
+  // Bags accessor (defined in Grain part); provide a safe fallback
+  if (typeof window.loadBags !== 'function'){
+    window.loadBags = function(){ try{ return JSON.parse(localStorage.getItem('df_grain_bags')||'[]'); }catch{ return []; } };
+  }
+})();
+
+/* =========================
+   Reports — Hub
    ========================= */
 function viewReportsHub(){
   app.innerHTML = `
@@ -598,12 +1123,9 @@ function viewReportsHub(){
   `;
 }
 
-// feedback storage (already used by your forms)
-function loadFeedback(){
-  try { return JSON.parse(localStorage.getItem('df_feedback') || '[]'); }
-  catch { return []; }
-}
-
+/* =========================
+   Reports — Pre-made Hub
+   ========================= */
 function viewReportsPremade(){
   app.innerHTML = `
     <div class="grid">
@@ -613,21 +1135,28 @@ function viewReportsPremade(){
     <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
   `;
 }
+
+/* =========================
+   Report — Feedback Summary
+   ========================= */
 function viewReportsPremadeFeedback(){
   const items = loadFeedback().sort((a,b)=> (a.ts||0)-(b.ts||0));
+
   const rows = items.map((it,i)=>{
     const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
     const kind = it.type==='feature' ? 'Feature' : 'Error';
-    const subj = (it.subject||'').replace(/</g,'&lt;');
-    const dets = (it.details||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
-    const by   = (it.by||'').replace(/</g,'&lt;');
+    const esc  = (s)=>String(s||'').replace(/</g,'&lt;');
+    const dets = esc((it.details||'')).replace(/\n/g,'<br>');
     return `<tr>
       <td>${i+1}</td>
       <td>${when}</td>
       <td>${kind}</td>
-      <td>${subj}</td>
+      <td>${esc(it.main||'')}</td>
+      <td>${esc(it.sub||'')}</td>
+      <td>${esc(it.category||'')}</td>
+      <td>${esc(it.subject||'')}</td>
       <td>${dets}</td>
-      <td>${by}</td>
+      <td>${esc(it.by||'')}</td>
     </tr>`;
   }).join('');
 
@@ -651,7 +1180,11 @@ function viewReportsPremadeFeedback(){
         ${items.length ? `
         <table class="report-table">
           <thead>
-            <tr><th>#</th><th>When</th><th>Type</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
+            <tr>
+              <th>#</th><th>When</th><th>Type</th>
+              <th>Main</th><th>Sub</th><th>Category</th>
+              <th>Subject</th><th>Details</th><th>Submitted By</th>
+            </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>` : `<p class="muted">No feedback saved yet.</p>`}
@@ -671,7 +1204,10 @@ function viewReportsPremadeFeedback(){
   document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
 }
 
-// Group by Location; show subtotals and grand total
+/* =========================
+   Report — Grain Bag Report
+   Grouped by Location with subtotals + grand total
+   ========================= */
 function viewReportsPremadeGrainBags(){
   const bags = loadBags();
   const byLoc = {};
@@ -682,14 +1218,16 @@ function viewReportsPremadeGrainBags(){
   }
 
   let grandTotal = 0;
+
   const sections = Object.keys(byLoc).sort().map(loc=>{
     const rows = byLoc[loc].map(b=>{
-      grandTotal += Number(b.bushels||0);
+      const bu = Number(b.bushels||0);
+      grandTotal += bu;
       return `<tr>
         <td>${b.date||''}</td>
         <td>${b.crop||''}</td>
-        <td class="num">${fmtCommas(b.bushels||0)}</td>
-        <td>${(b.notes||'').replace(/</g,'&lt;')}</td>
+        <td class="num">${fmtCommas(bu)}</td>
+        <td>${String(b.notes||'').replace(/</g,'&lt;')}</td>
       </tr>`;
     }).join('');
 
@@ -745,104 +1283,8 @@ function viewReportsPremadeGrainBags(){
 }
 
 /* =========================
-   Settings
+   Feedback — Hub + Forms
    ========================= */
-function viewSettingsHome(){
-  app.innerHTML = `
-    <div class="grid">
-      ${tile('🌱','Crop Type','#/settings/crops')}
-      ${tile('🌓','Theme','#/settings/theme')}
-    </div>
-    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-  `;
-}
-const CROPS_KEY='df_crops';
-function migrateCropsShape(arr){ if(!Array.isArray(arr))return[]; if(arr.length && typeof arr[0]==='string') return arr.map(n=>({name:n,archived:false})); return arr.map(o=>({name:String(o.name||'').trim(),archived:!!o.archived})); }
-function loadCrops(){
-  try{
-    const raw=localStorage.getItem(CROPS_KEY);
-    if(!raw) return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
-    const arr=JSON.parse(raw); const norm=migrateCropsShape(arr);
-    return norm.length?norm:[{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
-  }catch{ return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}]; }
-}
-function saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
-function isCropInUse(name){ return false; }
-
-function viewSettingsCrops(){
-  const crops=loadCrops();
-  const items=crops.map((o,i)=>{
-    const status=o.archived? '<span class="chip chip-archived" title="Archived">Archived</span>':'';
-    const actions=o.archived
-      ? `<button class="btn" data-unarchive="${i}">Unarchive</button> <button class="btn" data-delete="${i}">Delete</button>`
-      : `<button class="btn" data-archive="${i}">Archive</button> <button class="btn" data-delete="${i}">Delete</button>`;
-    return `<li class="crop-row ${(o.archived?'is-archived':'')}"><div class="crop-info"><span class="chip">${o.name}</span> ${status}</div><div class="crop-actions">${actions}</div></li>`;
-  }).join('');
-  app.innerHTML = `
-    <section class="section">
-      <h1>Crop Type</h1>
-      <p class="muted">Archive crops that are in use to preserve history. Delete only if unused.</p>
-      <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
-      <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
-        <input id="new-crop" type="text" placeholder="e.g., Wheat">
-        <button id="add-crop" class="btn-primary">➕ Add</button>
-      </div>
-      <a class="btn" href="#/settings">Back to Settings</a>
-    </section>
-  `;
-  const addBtn=document.getElementById('add-crop');
-  const input=document.getElementById('new-crop');
-  const listEl=app.querySelector('.crop-list');
-  addBtn?.addEventListener('click', ()=>{
-    const name=String(input.value||'').trim(); if(!name) return;
-    const cs=loadCrops();
-    if (cs.some(c=>c.name.toLowerCase()===name.toLowerCase())){ input.value=''; return; }
-    cs.push({name,archived:false}); saveCrops(cs); viewSettingsCrops();
-  });
-  input?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addBtn?.click(); } });
-  listEl?.addEventListener('click', e=>{
-    const btn=e.target.closest?.('button'); if(!btn) return;
-    const cs=loadCrops();
-    if(btn.hasAttribute('data-archive')){ const i=+btn.getAttribute('data-archive'); if(cs[i]){ cs[i].archived=true; saveCrops(cs); viewSettingsCrops(); } }
-    else if(btn.hasAttribute('data-unarchive')){ const j=+btn.getAttribute('data-unarchive'); if(cs[j]){ cs[j].archived=false; saveCrops(cs); viewSettingsCrops(); } }
-    else if(btn.hasAttribute('data-delete')){ const k=+btn.getAttribute('data-delete'); if(!cs[k]) return; const nm=cs[k].name;
-      if(isCropInUse(nm)){ alert(`“${nm}” is used in your data. Archive instead.`); return; }
-      if(!confirm(`Delete “${nm}”? This cannot be undone.`)) return;
-      cs.splice(k,1); saveCrops(cs); viewSettingsCrops();
-    }
-  });
-}
-function viewSettingsTheme(){
-  const key='df_theme';
-  const current = (localStorage.getItem(key) || 'auto');
-  app.innerHTML = `
-    <section class="section">
-      <h1>Theme</h1>
-      <div class="field">
-        <label style="font-weight:600;margin-bottom:6px;">Appearance</label>
-        <div class="theme-list">
-          <label class="theme-item"><input type="radio" name="theme" value="auto" ${current==='auto'?'checked':''}> <span>Auto (follow device)</span></label>
-          <label class="theme-item"><input type="radio" name="theme" value="light" ${current==='light'?'checked':''}> <span>Light</span></label>
-          <label class="theme-item"><input type="radio" name="theme" value="dark" ${current==='dark'?'checked':''}> <span>Dark</span></label>
-        </div>
-      </div>
-      <div class="section"><a class="btn" href="#/settings">Back to Settings</a></div>
-    </section>
-  `;
-  app.querySelectorAll('input[name="theme"]').forEach(r=>{
-    r.addEventListener('change', ()=>{
-      localStorage.setItem(key, r.value);
-      document.documentElement.setAttribute('data-theme', r.value);
-    });
-  });
-}
-
-/* =========================
-   Feedback (working forms)
-   ========================= */
-function saveFeedback(entry){
-  try{ const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]'); list.push(entry); localStorage.setItem(key, JSON.stringify(list)); }catch{}
-}
 function viewFeedbackHub(){
   app.innerHTML = `
     <div class="grid">
@@ -852,718 +1294,202 @@ function viewFeedbackHub(){
     <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
 }
+
 function viewFeedbackErrors(){
   const today = new Date().toISOString().slice(0,10);
   const user = (localStorage.getItem('df_user')||'').trim();
+
+  // Options for cascaded selects (kept simple; can be extended later)
+  const MAIN_TO_SUB = {
+    'Crop Production': ['Planting','Spraying','Aerial Spray','Harvest','Field Maintenance','Scouting','Trials'],
+    'Calculator': ['Fertilizer','Bin Volume','Area','Combine Yield','Chemical Mix'],
+    'Equipment': ['StarFire / Technology','Tractors','Combines','Sprayer / Fertilizer Spreader','Construction Equipment','Trucks','Trailers','Farm Implements'],
+    'Grain Tracking': ['Grain Bag','Grain Bins','Grain Contracts','Grain Ticket OCR'],
+    'Team & Partners': ['Employees','Subcontractors','Vendors','Directory'],
+    'Reports': ['Pre-made Reports','Feedback Summary','Grain Bag Report','AI Reports','Yield Report'],
+    'Settings': ['Crop Type','Theme','Farms','Fields'],
+    'Feedback': ['Report Errors','New Feature Request']
+  };
+  const CATEGORIES = ['Bug / Error','UI / Design','Performance'];
+
+  function mainOpts(){ return Object.keys(MAIN_TO_SUB).map(m=>`<option>${m}</option>`).join(''); }
+  function catOpts(){ return CATEGORIES.map(c=>`<option>${c}</option>`).join(''); }
+
   app.innerHTML = `
     <section class="section">
       <h1>🛠️ Report Errors</h1>
+
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <label><span class="small muted">Main Menu *</span>
+          <select id="fb-main"><option value="">— Choose —</option>${mainOpts()}</select>
+        </label>
+        <label><span class="small muted">Sub Menu *</span>
+          <select id="fb-sub"><option value="">— Choose —</option></select>
+        </label>
+        <label><span class="small muted">Category *</span>
+          <select id="fb-cat"><option value="">— Choose —</option>${catOpts()}</select>
+        </label>
+      </div>
+
       <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
       <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
       <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
       <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${user}"></div>
-      <button id="err-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+
+      <button id="err-submit" class="btn-primary">Submit</button>
+      <a class="btn" href="#/feedback">Back to Feedback</a>
     </section>
   `;
+
+  const mainSel = document.getElementById('fb-main');
+  const subSel  = document.getElementById('fb-sub');
+  mainSel.addEventListener('change', ()=>{
+    const subs = MAIN_TO_SUB[mainSel.value] || [];
+    subSel.innerHTML = `<option value="">— Choose —</option>` + subs.map(s=>`<option>${s}</option>`).join('');
+  });
+
   document.getElementById('err-submit')?.addEventListener('click', ()=>{
     const date=String(document.getElementById('err-date').value||'').trim();
     const subject=String(document.getElementById('err-subj').value||'').trim();
     const details=String(document.getElementById('err-desc').value||'').trim();
     const by=String(document.getElementById('err-by').value||'').trim();
-    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
-    saveFeedback({type:'error', date, subject, details, by, ts:Date.now()});
-    alert('Thanks! Your error report was saved.'); location.hash='#/feedback';
+    const main=String(mainSel.value||'').trim();
+    const sub =String(subSel.value||'').trim();
+    const cat =String(document.getElementById('fb-cat').value||'').trim();
+
+    if(!date||!subject||!details||!main||!sub||!cat){
+      alert('Please fill the required fields.'); return;
+    }
+    saveFeedback({type:'error', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
+    alert('Thanks! Your error report was saved.');
+    location.hash='#/feedback';
   });
 }
+
 function viewFeedbackFeature(){
   const today = new Date().toISOString().slice(0,10);
   const user = (localStorage.getItem('df_user')||'').trim();
+
+  const MAIN_TO_SUB = {
+    'Crop Production': ['Planting','Spraying','Aerial Spray','Harvest','Field Maintenance','Scouting','Trials'],
+    'Calculator': ['Fertilizer','Bin Volume','Area','Combine Yield','Chemical Mix'],
+    'Equipment': ['StarFire / Technology','Tractors','Combines','Sprayer / Fertilizer Spreader','Construction Equipment','Trucks','Trailers','Farm Implements'],
+    'Grain Tracking': ['Grain Bag','Grain Bins','Grain Contracts','Grain Ticket OCR'],
+    'Team & Partners': ['Employees','Subcontractors','Vendors','Directory'],
+    'Reports': ['Pre-made Reports','Feedback Summary','Grain Bag Report','AI Reports','Yield Report'],
+    'Settings': ['Crop Type','Theme','Farms','Fields'],
+    'Feedback': ['Report Errors','New Feature Request']
+  };
+  const CATEGORIES = ['New Feature','UI / Design'];
+
+  function mainOpts(){ return Object.keys(MAIN_TO_SUB).map(m=>`<option>${m}</option>`).join(''); }
+  function catOpts(){ return CATEGORIES.map(c=>`<option>${c}</option>`).join(''); }
+
   app.innerHTML = `
     <section class="section">
       <h1>💡 New Feature Request</h1>
+
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <label><span class="small muted">Main Menu *</span>
+          <select id="fb-main"><option value="">— Choose —</option>${mainOpts()}</select>
+        </label>
+        <label><span class="small muted">Sub Menu *</span>
+          <select id="fb-sub"><option value="">— Choose —</option></select>
+        </label>
+        <label><span class="small muted">Category *</span>
+          <select id="fb-cat"><option value="">— Choose —</option>${catOpts()}</select>
+        </label>
+      </div>
+
       <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
       <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
       <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
       <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${user}"></div>
-      <button id="feat-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+
+      <button id="feat-submit" class="btn-primary">Submit</button>
+      <a class="btn" href="#/feedback">Back to Feedback</a>
     </section>
   `;
+
+  const mainSel = document.getElementById('fb-main');
+  const subSel  = document.getElementById('fb-sub');
+  mainSel.addEventListener('change', ()=>{
+    const subs = MAIN_TO_SUB[mainSel.value] || [];
+    subSel.innerHTML = `<option value="">— Choose —</option>` + subs.map(s=>`<option>${s}</option>`).join('');
+  });
+
   document.getElementById('feat-submit')?.addEventListener('click', ()=>{
     const date=String(document.getElementById('feat-date').value||'').trim();
     const subject=String(document.getElementById('feat-subj').value||'').trim();
     const details=String(document.getElementById('feat-desc').value||'').trim();
     const by=String(document.getElementById('feat-by').value||'').trim();
-    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
-    saveFeedback({type:'feature', date, subject, details, by, ts:Date.now()});
-    alert('Thanks! Your feature request was saved.'); location.hash='#/feedback';
+    const main=String(mainSel.value||'').trim();
+    const sub =String(subSel.value||'').trim();
+    const cat =String(document.getElementById('fb-cat').value||'').trim();
+
+    if(!date||!subject||!details||!main||!sub||!cat){
+      alert('Please fill the required fields.'); return;
+    }
+    saveFeedback({type:'feature', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
+    alert('Thanks! Your feature request was saved.');
+    location.hash='#/feedback';
   });
 }
-/* =========================
-   Generic Section Fallback
-   ========================= */
-function viewSection(title, backHref = '#/home', backLabel = 'Back to Dashboard'){
-  app.innerHTML = `
-    <section class="section">
-      <h1>${title}</h1>
-      <p>🚧 Coming soon.</p>
-      <a class="btn" href="${backHref}">${backLabel}</a>
-    </section>
-  `;
-}
 
-/* =========================
-   Router (guarded)
-   ========================= */
-function route(){
-  try {
-    ensureHomeHash();
-    const hash = location.hash || '#/home';
-    renderBreadcrumb();
+/* ============================================================================
+   app.js — PART 5 of N (v11.0.0)
+   Team & Partners
+   - Team Hub
+   - Employees (CRUD; clean phone digits; email validation)
+   - Subcontractors (CRUD)
+   - Vendors (CRUD)
+   - Directory (roll-up view)
+   Notes:
+     • Relies on Part 1 utilities: tile, fmtCommas, capTitle, bindPhoneAutoFormat,
+       and DOM refs (app).
+     • Uses localStorage keys:
+         - df_team_employees
+         - df_team_subcontractors
+         - df_team_vendors
+   ========================================================================== */
 
-    if (hash==='#/home'||hash==='') viewHome();
+/* ---------- Local helpers (safe, idempotent) ---------- */
+(function initTeamHelpers(){
+  if (window.__APP_P5_HELPERS__) return;
+  window.__APP_P5_HELPERS__ = true;
 
-    // Crop
-    else if (hash==='#/crop') viewCropHub();
-    else if (hash==='#/crop/planting') viewCropComing('Planting');
-    else if (hash==='#/crop/spraying') viewCropComing('Spraying');
-    else if (hash==='#/crop/aerial') viewCropComing('Aerial Spray');
-    else if (hash==='#/crop/harvest') viewCropComing('Harvest');
-    else if (hash==='#/crop/maintenance') viewFieldMaintenance();
-    else if (hash==='#/crop/scouting') viewCropComing('Scouting');
-    else if (hash==='#/crop/trials') viewCropComing('Trials');
-
-    // Calculators
-    else if (hash==='#/calc') viewCalcHub();
-    else if (hash==='#/calc/fertilizer') viewCalcFertilizer();
-    else if (hash==='#/calc/bin') viewCalcBin();
-    else if (hash==='#/calc/area') viewCalcArea();
-    else if (hash==='#/calc/combine') viewCalcCombine();
-    else if (hash==='#/calc/chem') viewCalcChem();
-
-    // Equipment
-    else if (hash==='#/equipment') viewEquipmentHub();
-    else if (hash.startsWith('#/equipment/')) viewEquipmentComing(LABELS[hash]||'Equipment');
-
-    // Grain
-    else if (hash==='#/grain') viewGrainHub();
-    else if (hash==='#/grain/bag') viewGrainBag();
-    else if (hash==='#/grain/bins') viewGrainComing('Grain Bins');
-    else if (hash==='#/grain/contracts') viewGrainComing('Grain Contracts');
-    else if (hash==='#/grain/tickets') viewGrainComing('Grain Ticket OCR');
-
-    // Team & Partners (your existing screens elsewhere in your file)
-    else if (hash === '#/team') { viewTeamHub(); }
-    else if (hash === '#/team/employees') { viewTeamEmployees(); }
-    else if (hash === '#/team/subcontractors') { viewTeamSubcontractors(); }
-    else if (hash === '#/team/vendors') { viewTeamVendors(); }
-    else if (hash.indexOf('#/team/dir') === 0) { viewTeamDirectory(); }
-
-    // Reports
-    else if (hash==='#/ai') viewReportsHub();
-    else if (hash==='#/ai/premade') viewReportsPremade();
-    else if (hash==='#/ai/premade/feedback') viewReportsPremadeFeedback();
-    else if (hash==='#/ai/premade/grain-bags') viewReportsPremadeGrainBags();
-    else if (hash==='#/ai/ai') viewReportsAI();
-    else if (hash==='#/ai/yield') viewReportsYield();
-
-    // Settings
-    else if (hash==='#/settings') viewSettingsHome();
-    else if (hash==='#/settings/crops') viewSettingsCrops();
-    else if (hash==='#/settings/theme') viewSettingsTheme();
-
-    // Feedback
-    else if (hash==='#/feedback') viewFeedbackHub();
-    else if (hash==='#/feedback/errors') viewFeedbackErrors();
-    else if (hash==='#/feedback/feature') viewFeedbackFeature();
-
-    else viewSection('Not Found','#/home');
-
-  } catch (err) {
-    console.error('Route error:', err);
-    app.innerHTML = `
-      <section class="section">
-        <h1>Something went wrong</h1>
-        <p class="muted">The view failed to render. We’ve defaulted you back to the dashboard.</p>
-        <a class="btn" href="#/home">Back to Dashboard</a>
-      </section>
-    `;
-  } finally {
-    scrollTopAll();
-    refreshLayout();
-    bindPhoneAutoFormat(app);
-  }
-}
-window.addEventListener('hashchange', route);
-window.addEventListener('load', () => { ensureHomeHash(); route(); });
-
-// ===== Footer text + clock =====
-if (versionEl) versionEl.textContent = displayVersion(APP_VERSION);
-if (todayEl) todayEl.textContent = prettyDate(new Date());
-function tick(){ if (clockEl) clockEl.textContent = formatClock12(new Date()); }
-tick(); setInterval(tick, 15000);
-
-// ===== Robust Logout =====
-function doLogout(){
-  try{ localStorage.removeItem('df_auth'); localStorage.removeItem('df_user'); }catch{}
-  location.assign('login.html?bye='+Date.now());
-}
-document.getElementById('logout')?.addEventListener('click', (e)=>{ e.preventDefault(); doLogout(); });
-document.addEventListener('click', (e)=>{
-  const el = e.target.closest('#logout,[data-action="logout"],a[href="logout"]');
-  if (!el) return; e.preventDefault(); doLogout();
-});
-
-// ===== Update banner logic =====
-function showUpdateBanner(){ if (bannerEl){ bannerEl.hidden=false; refreshLayout(); } }
-function hideUpdateBanner(){ if (bannerEl){ bannerEl.hidden=true; refreshLayout(); } }
-function markVersionAsCurrent(){ try{ localStorage.setItem('df_app_version', normalizeVersion(APP_VERSION)); }catch{} }
-function storedVersion(){ try{ return localStorage.getItem('df_app_version')||''; }catch{ return ''; } }
-function needsUpdate(){ const saved=storedVersion(), cur=normalizeVersion(APP_VERSION); return saved && saved!==cur; }
-function syncBannerWithVersion(){ if (needsUpdate()) showUpdateBanner(); else { hideUpdateBanner(); markVersionAsCurrent(); } }
-
-bannerBtn?.addEventListener('click', ()=>{
-  try{ sessionStorage.setItem('df_updating','1'); }catch{}
-  bannerBtn.disabled = true;
-  bannerBtn.textContent = 'Updating…';
-  hideUpdateBanner();
-  if (window.__waitingSW) window.__waitingSW.postMessage({type:'SKIP_WAITING'}); else location.reload();
-});
-
-window.addEventListener('load', ()=>{
-  try{
-    const flag = sessionStorage.getItem('df_updating');
-    if (flag==='1'){ sessionStorage.removeItem('df_updating'); markVersionAsCurrent(); hideUpdateBanner(); return; }
-  }catch{}
-  if (navigator.serviceWorker && navigator.serviceWorker.controller){ markVersionAsCurrent(); hideUpdateBanner(); }
-  else { syncBannerWithVersion(); }
-});
-
-// ===== Service Worker registration (cache-bust Chrome) =====
-if ('serviceWorker' in navigator){
-  window.addEventListener('load', async ()=>{
-    try{
-      const reg = await navigator.serviceWorker.register(
-        `service-worker.js?v=${normalizeVersion(APP_VERSION)}`,
-        { updateViaCache: 'none' }
-      );
-
-      reg.update();
-      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') reg.update(); });
-
-      if (reg.waiting){ window.__waitingSW = reg.waiting; if (needsUpdate()) showUpdateBanner(); }
-
-      reg.addEventListener('updatefound', ()=>{
-        const sw = reg.installing; if(!sw) return;
-        sw.addEventListener('statechange', ()=>{
-          if (sw.state==='installed' && navigator.serviceWorker.controller){
-            window.__waitingSW = reg.waiting || sw;
-            if (needsUpdate()) showUpdateBanner();
-          }
-        });
-      });
-
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-        window.__waitingSW = null;
-        markVersionAsCurrent(); hideUpdateBanner();
-        setTimeout(()=>location.reload(), 200);
-      });
-    }catch(e){ console.error('SW registration failed', e); }
-  });
-}
-/* =========================
-   PATCH v10.13.2 — UI polish + dark theme bg fix + Combine calc (length + header)
-   Append this at the very end of app.js.
-   ========================= */
-
-// --- 1) Dark-theme background “ivory flash” fix ---
-(function injectPageBgFix(){
-  if (document.getElementById('df-patch-10132-css')) return;
-  const css = document.createElement('style');
-  css.id = 'df-patch-10132-css';
-  css.textContent = `
-    :root { --page-bg: #f6f6e8; }                 /* light */
-    [data-theme="dark"] { --page-bg: #0f0f0f; }   /* dark */
-    html, body, #app { background-color: var(--page-bg) !important; }
-    /* calculator grid alignment */
-    .calc-grid {
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-    @media (max-width: 540px){
-      .calc-grid { grid-template-columns: 1fr 1fr; } /* stays two-up on phones */
-    }
-    .calc-row { display:flex; gap:10px; flex-wrap:wrap; }
-    .calc-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
-    .result-card {
-      border:1px solid rgba(0,0,0,.12);
-      border-radius:10px;
-      padding:10px;
-      margin-top:10px;
-      background:rgba(255,255,255,.05);
-    }
-    [data-theme="light"] .result-card { background:#fff; }
-  `;
-  document.head.appendChild(css);
-})();
-
-// small helpers (safe re-declare pattern)
-function __df_digits(s){ return String(s||'').replace(/\D+/g,''); }
-function __df_number(x){ const n = Number(String(x).replace(/,/g,'')); return Number.isFinite(n)?n:0; }
-function __df_commas(n){ try { return Number(n).toLocaleString(); } catch { return String(n); } }
-
-// --- 2) Override Combine Yield Calculator with Length + Header Width ---
-(function patchCombineCalculator(){
-  if (window.__dfPatched_Combine) return; // avoid double patch
-  window.__dfPatched_Combine = true;
-
-  // keep your dry-basis & test weight defaults
-  const CROP_PRESETS = {
-    'Corn':     { dryBasis: 15.5, testWt: 56, emoji: '🌽' },
-    'Soybeans': { dryBasis: 13.0, testWt: 60, emoji: '🫘' }
+  window.df_load = function df_load(key, fb = []) {
+    try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fb)); }
+    catch { return fb; }
   };
-
-  // Override function from core
-  window.viewCalcCombine = function(){
-    const cropOpts = Object.keys(CROP_PRESETS).map(c=>`<option value="${c}">${c}</option>`).join('');
-    const todayEmoji = '🌽🌱'; // keeps your breadcrumb emoji feel
-
-    app.innerHTML = `
-      <section class="section">
-        <h1>${todayEmoji} Combine Yield Calculator</h1>
-
-        <div class="calc-grid">
-          <div class="field">
-            <label>Crop</label>
-            <select id="cy-crop">${cropOpts}</select>
-          </div>
-
-          <div class="field">
-            <label>Wet Weight (lb) *</label>
-            <input id="cy-wet" type="number" inputmode="decimal" placeholder="e.g., 54,000">
-          </div>
-
-          <div class="field">
-            <label>Moisture % *</label>
-            <input id="cy-moist" type="number" inputmode="decimal" placeholder="e.g., 18">
-          </div>
-
-          <div class="field">
-            <label>Length (ft) *</label>
-            <input id="cy-length" type="number" inputmode="decimal" placeholder="Feet harvested">
-          </div>
-
-          <div class="field">
-            <label>Header Width *</label>
-            <select id="cy-width">
-              <option value="30">30’</option>
-              <option value="35">35’</option>
-              <option value="40" selected>40’</option>
-              <option value="45">45’</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>Dry Basis %</label>
-            <input id="cy-dry" type="number" inputmode="decimal" placeholder="Auto by crop">
-          </div>
-
-          <div class="field">
-            <label>lb / bu (test wt)</label>
-            <input id="cy-test" type="number" inputmode="decimal" placeholder="Auto by crop">
-          </div>
-        </div>
-
-        <div class="small muted" style="margin-top:6px;">
-          Leave “Dry Basis %” and “lb/bu” blank to auto-fill by crop. Acres will be calculated from Length × Header Width.
-        </div>
-
-        <div class="calc-actions">
-          <button id="cy-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back to Calculator</a>
-          <a class="btn" href="#/home">Back to Dashboard</a>
-        </div>
-
-        <div id="cy-out" class="result-card" style="display:none;"></div>
-      </section>
-    `;
-
-    // auto-fill presets on crop change
-    const cropSel = document.getElementById('cy-crop');
-    const dryInp  = document.getElementById('cy-dry');
-    const testInp = document.getElementById('cy-test');
-    function applyPreset(){
-      const p = CROP_PRESETS[cropSel.value];
-      if (!dryInp.value)  dryInp.value  = p.dryBasis;
-      if (!testInp.value) testInp.value = p.testWt;
-    }
-    cropSel.addEventListener('change', applyPreset);
-    applyPreset();
-
-    document.getElementById('cy-go')?.addEventListener('click', ()=>{
-      const crop   = cropSel.value;
-      const wetLb  = __df_number(document.getElementById('cy-wet').value);
-      const moist  = __df_number(document.getElementById('cy-moist').value);
-      const lenFt  = __df_number(document.getElementById('cy-length').value);
-      const headFt = __df_number(document.getElementById('cy-width').value);
-      const dryPct = __df_number(dryInp.value || CROP_PRESETS[crop].dryBasis);
-      const testWt = __df_number(testInp.value || CROP_PRESETS[crop].testWt);
-
-      if (!wetLb || !moist || !lenFt || !headFt){
-        alert('Please fill Wet Weight, Moisture, Length and Header Width.');
-        return;
-      }
-
-      // Acres from length × header width
-      const acres = (lenFt * headFt) / 43560; // 43,560 sq ft per acre
-      if (acres <= 0){ alert('Calculated acres is zero or negative. Check length/header width.'); return; }
-
-      // Wet bushels from test weight
-      const wetBu = wetLb / testWt;
-
-      // Convert to dry (true shrink): factor = (100 - actual) / (100 - dryBasis)
-      const dryFactor = (100 - moist) / (100 - dryPct);
-      const adjBu = wetBu * dryFactor;
-
-      // Yield (bu/ac)
-      const yieldBuAc = adjBu / acres;
-
-      // Simple shrink % shown for clarity
-      const shrinkPct = (1 - dryFactor) * 100;
-
-      const out = document.getElementById('cy-out');
-      out.style.display = '';
-      out.innerHTML = `
-        <div><strong>Crop:</strong> ${CROP_PRESETS[crop].emoji} ${crop}</div>
-        <div class="calc-row">
-          <div><strong>Acres (calc):</strong> ${acres.toFixed(3)}</div>
-          <div><strong>Wet Bushels:</strong> ${__df_commas(wetBu.toFixed(2))}</div>
-        </div>
-        <div class="calc-row">
-          <div><strong>Dry Basis %:</strong> ${dryPct}%</div>
-          <div><strong>Test Wt:</strong> ${testWt} lb/bu</div>
-        </div>
-        <div class="calc-row">
-          <div><strong>Adjusted (dry) Bu:</strong> ${__df_commas(adjBu.toFixed(2))}</div>
-          <div><strong>Yield:</strong> ${__df_commas(yieldBuAc.toFixed(1))} bu/ac</div>
-        </div>
-        <div class="small muted">Shrink applied ≈ ${shrinkPct.toFixed(1)}% from ${moist}% to ${dryPct}%.</div>
-      `;
-      window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
-    });
+  window.df_save = function df_save(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
   };
-})();
-/* =========================
-   PATCH v10.14.1 — startup + shim + bg
-   ========================= */
-
-// 1) Guarantee background never shows ivory in dark mode
-(function dfBgFix(){
-  if (document.getElementById('df-bgfix-10141')) return;
-  const s = document.createElement('style');
-  s.id = 'df-bgfix-10141';
-  s.textContent = `
-    :root{ --page-bg:#f6f6e8; } 
-    [data-theme="dark"]{ --page-bg:#0f0f0f; }
-    html,body,#app{ background:var(--page-bg)!important; min-height:100%; }
-  `;
-  document.head.appendChild(s);
-})();
-
-// 2) Safety shims so the router never explodes if a view is missing
-(function dfViewShims(){
-  const noop = (title)=>()=>{ 
-    app.innerHTML = `<section class="section"><h1>${title||'Coming Soon'}</h1><p class="muted">Screen not wired yet.</p><a class="btn" href="#/home">Back to Dashboard</a></section>`;
+  window.df_uid = function df_uid(){
+    try { return crypto.getRandomValues(new Uint32Array(2))[0].toString(36)+Date.now().toString(36); }
+    catch { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
   };
-  window.viewTeamHub            = window.viewTeamHub            || noop('Team & Partners');
-  window.viewTeamEmployees      = window.viewTeamEmployees      || noop('Employees');
-  window.viewTeamSubcontractors = window.viewTeamSubcontractors || noop('Subcontractors');
-  window.viewTeamVendors        = window.viewTeamVendors        || noop('Vendors');
-  window.viewTeamDirectory      = window.viewTeamDirectory      || noop('Directory');
-  window.viewReportsAI          = window.viewReportsAI          || noop('AI Reports');
-  window.viewReportsYield       = window.viewReportsYield       || noop('Yield Report');
-  window.viewGrainComing        = window.viewGrainComing        || noop('Grain — Coming Soon');
-})();
-
-// 3) Make sure a hash exists and kick the router once DOM is ready
-(function dfBootstrap(){
-  function start(){
-    try{
-      if (!location.hash || location.hash==='#') location.replace('#/home');
-      // force one route pass after hash set
-      if (typeof route==='function') route();
-      // ensure footer version shows current constant
-      if (window.versionEl && typeof displayVersion==='function'){
-        versionEl.textContent = displayVersion(typeof APP_VERSION!=='undefined'?APP_VERSION:'v10.14.1');
-      }
-    }catch(e){ console.error('bootstrap', e); }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start);
-  } else {
-    start();
-  }
-})();
-/* =========================
-   PATCH v10.13.2 — UI polish + dark theme bg fix + Combine calc (length + header)
-   Append this at the very end of app.js.
-   ========================= */
-
-// --- 1) Dark-theme background “ivory flash” fix ---
-(function injectPageBgFix(){
-  if (document.getElementById('df-patch-10132-css')) return;
-  const css = document.createElement('style');
-  css.id = 'df-patch-10132-css';
-  css.textContent = `
-    :root { --page-bg: #f6f6e8; }                 /* light */
-    [data-theme="dark"] { --page-bg: #0f0f0f; }   /* dark */
-    html, body, #app { background-color: var(--page-bg) !important; }
-    /* calculator grid alignment */
-    .calc-grid {
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-    @media (max-width: 540px){
-      .calc-grid { grid-template-columns: 1fr 1fr; } /* stays two-up on phones */
-    }
-    .calc-row { display:flex; gap:10px; flex-wrap:wrap; }
-    .calc-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
-    .result-card {
-      border:1px solid rgba(0,0,0,.12);
-      border-radius:10px;
-      padding:10px;
-      margin-top:10px;
-      background:rgba(255,255,255,.05);
-    }
-    [data-theme="light"] .result-card { background:#fff; }
-  `;
-  document.head.appendChild(css);
-})();
-
-// small helpers (safe re-declare pattern)
-function __df_digits(s){ return String(s||'').replace(/\D+/g,''); }
-function __df_number(x){ const n = Number(String(x).replace(/,/g,'')); return Number.isFinite(n)?n:0; }
-function __df_commas(n){ try { return Number(n).toLocaleString(); } catch { return String(n); } }
-
-// --- 2) Override Combine Yield Calculator with Length + Header Width ---
-(function patchCombineCalculator(){
-  if (window.__dfPatched_Combine) return; // avoid double patch
-  window.__dfPatched_Combine = true;
-
-  // keep your dry-basis & test weight defaults
-  const CROP_PRESETS = {
-    'Corn':     { dryBasis: 15.5, testWt: 56, emoji: '🌽' },
-    'Soybeans': { dryBasis: 13.0, testWt: 60, emoji: '🫘' }
+  window.df_onlyDigits = function df_onlyDigits(s){ return String(s||'').replace(/\D+/g,''); };
+  window.df_fmtPhone = function df_fmtPhone(d){
+    d = df_onlyDigits(d).slice(0,10);
+    if (!d) return '';
+    if (d.length <= 3) return `(${d}`;
+    if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`;
+    return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
   };
-
-  // Override function from core
-  window.viewCalcCombine = function(){
-    const cropOpts = Object.keys(CROP_PRESETS).map(c=>`<option value="${c}">${c}</option>`).join('');
-    const todayEmoji = '🌽🌱'; // keeps your breadcrumb emoji feel
-
-    app.innerHTML = `
-      <section class="section">
-        <h1>${todayEmoji} Combine Yield Calculator</h1>
-
-        <div class="calc-grid">
-          <div class="field">
-            <label>Crop</label>
-            <select id="cy-crop">${cropOpts}</select>
-          </div>
-
-          <div class="field">
-            <label>Wet Weight (lb) *</label>
-            <input id="cy-wet" type="number" inputmode="decimal" placeholder="e.g., 54,000">
-          </div>
-
-          <div class="field">
-            <label>Moisture % *</label>
-            <input id="cy-moist" type="number" inputmode="decimal" placeholder="e.g., 18">
-          </div>
-
-          <div class="field">
-            <label>Length (ft) *</label>
-            <input id="cy-length" type="number" inputmode="decimal" placeholder="Feet harvested">
-          </div>
-
-          <div class="field">
-            <label>Header Width *</label>
-            <select id="cy-width">
-              <option value="30">30’</option>
-              <option value="35">35’</option>
-              <option value="40" selected>40’</option>
-              <option value="45">45’</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>Dry Basis %</label>
-            <input id="cy-dry" type="number" inputmode="decimal" placeholder="Auto by crop">
-          </div>
-
-          <div class="field">
-            <label>lb / bu (test wt)</label>
-            <input id="cy-test" type="number" inputmode="decimal" placeholder="Auto by crop">
-          </div>
-        </div>
-
-        <div class="small muted" style="margin-top:6px;">
-          Leave “Dry Basis %” and “lb/bu” blank to auto-fill by crop. Acres will be calculated from Length × Header Width.
-        </div>
-
-        <div class="calc-actions">
-          <button id="cy-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back to Calculator</a>
-          <a class="btn" href="#/home">Back to Dashboard</a>
-        </div>
-
-        <div id="cy-out" class="result-card" style="display:none;"></div>
-      </section>
-    `;
-
-    // auto-fill presets on crop change
-    const cropSel = document.getElementById('cy-crop');
-    const dryInp  = document.getElementById('cy-dry');
-    const testInp = document.getElementById('cy-test');
-    function applyPreset(){
-      const p = CROP_PRESETS[cropSel.value];
-      if (!dryInp.value)  dryInp.value  = p.dryBasis;
-      if (!testInp.value) testInp.value = p.testWt;
-    }
-    cropSel.addEventListener('change', applyPreset);
-    applyPreset();
-
-    document.getElementById('cy-go')?.addEventListener('click', ()=>{
-      const crop   = cropSel.value;
-      const wetLb  = __df_number(document.getElementById('cy-wet').value);
-      const moist  = __df_number(document.getElementById('cy-moist').value);
-      const lenFt  = __df_number(document.getElementById('cy-length').value);
-      const headFt = __df_number(document.getElementById('cy-width').value);
-      const dryPct = __df_number(dryInp.value || CROP_PRESETS[crop].dryBasis);
-      const testWt = __df_number(testInp.value || CROP_PRESETS[crop].testWt);
-
-      if (!wetLb || !moist || !lenFt || !headFt){
-        alert('Please fill Wet Weight, Moisture, Length and Header Width.');
-        return;
-      }
-
-      // Acres from length × header width
-      const acres = (lenFt * headFt) / 43560; // 43,560 sq ft per acre
-      if (acres <= 0){ alert('Calculated acres is zero or negative. Check length/header width.'); return; }
-
-      // Wet bushels from test weight
-      const wetBu = wetLb / testWt;
-
-      // Convert to dry (true shrink): factor = (100 - actual) / (100 - dryBasis)
-      const dryFactor = (100 - moist) / (100 - dryPct);
-      const adjBu = wetBu * dryFactor;
-
-      // Yield (bu/ac)
-      const yieldBuAc = adjBu / acres;
-
-      // Simple shrink % shown for clarity
-      const shrinkPct = (1 - dryFactor) * 100;
-
-      const out = document.getElementById('cy-out');
-      out.style.display = '';
-      out.innerHTML = `
-        <div><strong>Crop:</strong> ${CROP_PRESETS[crop].emoji} ${crop}</div>
-        <div class="calc-row">
-          <div><strong>Acres (calc):</strong> ${acres.toFixed(3)}</div>
-          <div><strong>Wet Bushels:</strong> ${__df_commas(wetBu.toFixed(2))}</div>
-        </div>
-        <div class="calc-row">
-          <div><strong>Dry Basis %:</strong> ${dryPct}%</div>
-          <div><strong>Test Wt:</strong> ${testWt} lb/bu</div>
-        </div>
-        <div class="calc-row">
-          <div><strong>Adjusted (dry) Bu:</strong> ${__df_commas(adjBu.toFixed(2))}</div>
-          <div><strong>Yield:</strong> ${__df_commas(yieldBuAc.toFixed(1))} bu/ac</div>
-        </div>
-        <div class="small muted">Shrink applied ≈ ${shrinkPct.toFixed(1)}% from ${moist}% to ${dryPct}%.</div>
-      `;
-      window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
-    });
-  };
+  window.df_emailOk = function df_emailOk(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); };
+  window.df_html = function df_html(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m])); };
 })();
-/* === Patch: show full version in footer === */
-(function showFullVersionInFooter(){
-  try {
-    const el = document.getElementById('version');
-    if (el) el.textContent = String(APP_VERSION); // e.g., 'v10.14.3'
-  } catch {}
-})();
-/* =========================
-   PATCH v10.14.x — Auto theme background fix
-   - Ensures page bg is correct when data-theme="auto"
-   - Stops ivory flash on iOS Safari while scrolling
-   ========================= */
-(function injectAutoThemeBgFix(){
-  if (document.getElementById('df-auto-bg-fix')) return;
-  const css = document.createElement('style');
-  css.id = 'df-auto-bg-fix';
-  css.textContent = `
-    :root{
-      --page-bg-light:#f6f6e8;    /* your light ivory */
-      --page-bg-dark:#0f0f0f;     /* your dark page */
-      --page-bg: var(--page-bg-light);
-    }
 
-    /* explicit modes */
-    [data-theme="light"] { --page-bg: var(--page-bg-light); }
-    [data-theme="dark"]  { --page-bg: var(--page-bg-dark); }
-
-    /* AUTO follows system */
-    [data-theme="auto"]  { --page-bg: var(--page-bg-light); }
-    @media (prefers-color-scheme: dark){
-      [data-theme="auto"] { --page-bg: var(--page-bg-dark); }
-    }
-
-    /* Paint everything, including iOS overscroll areas */
-    html, body, #app, main {
-      background-color: var(--page-bg) !important;
-    }
-    body { min-height: 100vh; }
-  `;
-  document.head.appendChild(css);
-})();
-/* =========================
-   PATCH v10.14.5 — Team & Partners (restore + forms)
-   - Employees, Subcontractors, Vendors, Directory
-   - Clean phone storage (digits); pretty display; email validation
-   - LocalStorage keys:
-       df_team_employees, df_team_subs, df_team_vendors
-   ========================= */
-
-// ------- Small shared helpers (safe to re-declare) -------
-function df_load(key, fb = []){ try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fb)); } catch { return fb; } }
-function df_save(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-function df_uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
-function df_onlyDigits(s){ return String(s||'').replace(/\D+/g,''); }
-function df_fmtPhone(d){
-  d = df_onlyDigits(d).slice(0,10);
-  if (!d) return '';
-  if (d.length <= 3) return `(${d}`;
-  if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`;
-  return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
-}
-function df_html(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m])); }
-function df_emailOk(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
-function df_chip(txt){ return `<span class="chip">${df_html(txt)}</span>`; }
-
-// Bind our phone auto-formatter in case the core didn’t yet
-function df_bindPhones(root=document){ 
-  try { if (typeof bindPhoneAutoFormat==='function') bindPhoneAutoFormat(root); } catch {}
-}
-
-// ------- Storage keys -------
+/* ---------- Storage keys ---------- */
 const EMP_KEY = 'df_team_employees';
-const SUB_KEY = 'df_team_subs';
+const SUB_KEY = 'df_team_subcontractors';
 const VEN_KEY = 'df_team_vendors';
 
-// ------- 0) Hub -------
-window.viewTeamHub = function(){
+/* =========================
+   Team — Hub
+   ========================= */
+function viewTeamHub(){
   app.innerHTML = `
     <div class="grid">
       ${tile('👷','Employees','#/team/employees')}
@@ -1573,10 +1499,12 @@ window.viewTeamHub = function(){
     </div>
     <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
-};
+}
 
-// ------- 1) Employees -------
-window.viewTeamEmployees = function(){
+/* =========================
+   Team — Employees
+   ========================= */
+function viewTeamEmployees(){
   const list = df_load(EMP_KEY);
   const rows = list.map(p=>`
     <tr data-id="${p.id}">
@@ -1620,7 +1548,8 @@ window.viewTeamEmployees = function(){
     </section>
   `;
 
-  df_bindPhones(app);
+  // phone auto-format (from Part 1)
+  try { bindPhoneAutoFormat(app); } catch {}
 
   let editId = null;
 
@@ -1641,7 +1570,7 @@ window.viewTeamEmployees = function(){
     document.getElementById('e-phone').value = df_fmtPhone(p?.phone||'');
     document.getElementById('e-email').value = p?.email || '';
     document.getElementById('e-notes').value = p?.notes || '';
-    df_bindPhones(app);
+    try { bindPhoneAutoFormat(app); } catch {}
   }
   function clearForm(){ loadForm({}); }
 
@@ -1669,10 +1598,12 @@ window.viewTeamEmployees = function(){
       viewTeamEmployees();
     }
   });
-};
+}
 
-// ------- 2) Subcontractors -------
-window.viewTeamSubcontractors = function(){
+/* =========================
+   Team — Subcontractors
+   ========================= */
+function viewTeamSubcontractors(){
   const list = df_load(SUB_KEY);
   const rows = list.map(p=>`
     <tr data-id="${p.id}">
@@ -1716,7 +1647,7 @@ window.viewTeamSubcontractors = function(){
     </section>
   `;
 
-  df_bindPhones(app);
+  try { bindPhoneAutoFormat(app); } catch {}
   let editId = null;
 
   function readForm(){
@@ -1736,7 +1667,7 @@ window.viewTeamSubcontractors = function(){
     document.getElementById('s-phone').value   = df_fmtPhone(p?.phone||'');
     document.getElementById('s-email').value   = p?.email||'';
     document.getElementById('s-services').value= p?.services||'';
-    df_bindPhones(app);
+    try { bindPhoneAutoFormat(app); } catch {}
   }
   function clearForm(){ loadForm({}); }
 
@@ -1764,10 +1695,12 @@ window.viewTeamSubcontractors = function(){
       viewTeamSubcontractors();
     }
   });
-};
+}
 
-// ------- 3) Vendors -------
-window.viewTeamVendors = function(){
+/* =========================
+   Team — Vendors
+   ========================= */
+function viewTeamVendors(){
   const list = df_load(VEN_KEY);
   const rows = list.map(v=>`
     <tr data-id="${v.id}">
@@ -1811,7 +1744,7 @@ window.viewTeamVendors = function(){
     </section>
   `;
 
-  df_bindPhones(app);
+  try { bindPhoneAutoFormat(app); } catch {}
   let editId = null;
 
   function readForm(){
@@ -1831,7 +1764,7 @@ window.viewTeamVendors = function(){
     document.getElementById('v-phone').value   = df_fmtPhone(p?.phone||'');
     document.getElementById('v-email').value   = p?.email||'';
     document.getElementById('v-notes').value   = p?.notes||'';
-    df_bindPhones(app);
+    try { bindPhoneAutoFormat(app); } catch {}
   }
   function clearForm(){ loadForm({}); }
 
@@ -1859,14 +1792,16 @@ window.viewTeamVendors = function(){
       viewTeamVendors();
     }
   });
-};
+}
 
-// ------- 4) Directory (roll-up) -------
-window.viewTeamDirectory = function(){
+/* =========================
+   Team — Directory (roll-up)
+   ========================= */
+function viewTeamDirectory(){
   const emps = df_load(EMP_KEY).map(x=>({ type:'Employee', name:x.name, org:x.role||'', phone:x.phone, email:x.email }));
   const subs = df_load(SUB_KEY).map(x=>({ type:'Sub',      name:x.company, org:x.contact||'', phone:x.phone, email:x.email }));
   const vens = df_load(VEN_KEY).map(x=>({ type:'Vendor',   name:x.company, org:x.account||'', phone:x.phone, email:x.email }));
-  const all = [...emps,...subs,...vens].sort((a,b)=>a.name.localeCompare(b.name));
+  const all = [...emps,...subs,...vens].sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
 
   const rows = all.map((r,i)=>`
     <tr>
@@ -1891,1728 +1826,1225 @@ window.viewTeamDirectory = function(){
       <div class="section"><a class="btn" href="#/team">Back to Team & Partners</a></div>
     </section>
   `;
-};
-/* =========================================================
-   Dowson Farms — PATCH v10.14.6
-   Paste at the very bottom of app.js
-   Covers:
-   - Footer version override to v10.14.6
-   - Calculator hub order
-   - All 5 calculators working (incl. Elevator Shrink compare)
-   - Crop Year selector on Crop hub (multi-year, per-user, +Add next year only)
-   - UI polish (result cards, number formatting, small “Add job type” button)
-   - Theme Settings: segmented 3-way switch (Auto/Light/Dark)
-   ========================================================= */
-
-(function DF_PATCH_10146(){
-  'use strict';
-
-  // ---------- Small helpers ----------
-  const $ = (sel, root=document)=>root.querySelector(sel);
-  const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
-  const num = v => { const n = Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; };
-  const commas = v => { try{ return Number(v).toLocaleString(); }catch{ return String(v); } };
-  const html = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-
-  // ---------- Footer version override (keeps incremental patching) ----------
-  try{ const vEl = document.getElementById('version'); if (vEl) vEl.textContent = 'v10.14.6'; }catch{}
-
-  // ---------- Minimal CSS for UI polish ----------
-  (function injectCSS(){
-    if (document.getElementById('df-patch-10146-css')) return;
-    const s = document.createElement('style');
-    s.id = 'df-patch-10146-css';
-    s.textContent = `
-      /* result cards & grids */
-      .result-card{
-        border:1px solid rgba(0,0,0,.12);
-        border-radius:10px;
-        padding:12px;
-        margin-top:12px;
-        background:rgba(255,255,255,.05);
-      }
-      [data-theme="light"] .result-card{ background:#fff; }
-      .calc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-      @media (max-width:560px){ .calc-grid{ grid-template-columns:1fr 1fr; } }
-
-      /* compact button */
-      .btn-compact{ padding:4px 8px; font-size:.85rem; line-height:1.2; }
-
-      /* segmented control for theme */
-      .seg{
-        display:inline-flex; border:1px solid var(--border,rgba(0,0,0,.2));
-        border-radius:10px; overflow:hidden;
-      }
-      .seg button{
-        appearance:none; background:transparent; border:0; padding:8px 14px; cursor:pointer;
-      }
-      .seg button.active{
-        background:var(--seg-active,#1b5e20); color:#fff;
-      }
-
-      /* crop year chips */
-      .year-bar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 14px; }
-      .chip-toggle{
-        display:inline-flex; align-items:center; gap:6px;
-        border:1px solid rgba(0,0,0,.2); border-radius:999px; padding:6px 10px;
-        cursor:pointer; user-select:none;
-      }
-      .chip-toggle input{ accent-color:#1b5e20; }
-      .year-add{ margin-left:4px; }
-    `;
-    document.head.appendChild(s);
-  })();
-
-  // ---------- Field Maintenance: shrink the “Add” button ----------
-  (function smallAddJobBtn(){
-    const obs = new MutationObserver(()=>{
-      const btn = document.getElementById('fm-add-job');
-      if (btn && !btn.classList.contains('btn-compact')) btn.classList.add('btn-compact');
-    });
-    obs.observe(document.getElementById('app')||document.body, {childList:true, subtree:true});
-  })();
-
-  // =========================================================
-  // 1) Calculator Hub — reorder tiles as requested
-  // Row 1: Combine (L) + Bin (R)
-  // Row 2: Fertilizer (L) + Chemical (R)
-  // Row 3: Area (centered)
-  // =========================================================
-  window.viewCalcHub = function(){
-    const row = (a,b)=>`<div class="grid">${a}${b}</div>`;
-    const solo = a => `<div class="grid" style="grid-template-columns:1fr;max-width:380px;margin-inline:auto;">${a}</div>`;
-    const t = (emoji,label,href)=>`<a class="tile" href="${href}"><span class="emoji">${emoji}</span><span class="label">${label}</span></a>`;
-    app.innerHTML = `
-      ${row(t('🌽🌱','Combine Yield','#/calc/combine'), t('🛢️','Bin Volume','#/calc/bin'))}
-      ${row(t('👨🏼‍🔬','Fertilizer','#/calc/fertilizer'), t('🧪','Chemical Mix','#/calc/chem'))}
-      ${solo(t('📐','Area','#/calc/area'))}
-      <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-    `;
-  };
-
-  // =========================================================
-  // 2) Combine Yield Calculator — Length + Header + True vs Elevator Shrink
-  // =========================================================
-  (function overrideCombine(){
-    const PRESETS = {
-      Corn:     { base: 15.5, lbbu:56, emoji:'🌽' },
-      Soybeans: { base: 13.0, lbbu:60, emoji:'🫘' }
-    };
-
-    // Elevator shrink model:
-    //  - 0% at/below base moisture
-    //  - Linear up to 21% shrink at 29% moisture (per your earlier guidance)
-    //  - Above 29%: clamp at 21% (or expand later if your schedule dictates)
-    function elevatorShrinkPct(moist, base){
-      if (moist <= base) return 0;
-      const maxM = 29;
-      const maxS = 21;
-      if (moist >= maxM) return maxS;
-      const slope = maxS / (maxM - base);
-      return slope * (moist - base);
-    }
-
-    window.viewCalcCombine = function(){
-      const crops = Object.keys(PRESETS).map(c=>`<option value="${c}">${c}</option>`).join('');
-      app.innerHTML = `
-        <section class="section">
-          <h1>🌽🌱 Combine Yield Calculator</h1>
-
-          <div class="calc-grid">
-            <label><span class="small muted">Crop</span>
-              <select id="cy-crop">${crops}</select>
-            </label>
-            <label><span class="small muted">Wet Weight (lb) *</span><input id="cy-wet" type="number" step="any" placeholder="e.g. 54,000"></label>
-            <label><span class="small muted">Moisture % *</span><input id="cy-moist" type="number" step="any" placeholder="e.g. 18"></label>
-            <label><span class="small muted">Length (ft) *</span><input id="cy-length" type="number" step="any" placeholder="Feet harvested"></label>
-            <label><span class="small muted">Header Width *</span>
-              <select id="cy-width">
-                <option value="30">30’</option>
-                <option value="35">35’</option>
-                <option value="40" selected>40’</option>
-                <option value="45">45’</option>
-              </select>
-            </label>
-            <label><span class="small muted">Dry Basis % (auto)</span><input id="cy-base" type="number" step="any" placeholder="e.g. 15.5"></label>
-            <label><span class="small muted">lb / bu (auto)</span><input id="cy-lbbu" type="number" step="any" placeholder="Corn 56 / Soy 60"></label>
-          </div>
-
-          <div class="small muted" style="margin-top:6px;">
-            Leave “Dry Basis %” and “lb/bu” blank to auto-fill by crop. Acres = Length × Header ÷ 43,560.
-          </div>
-
-          <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
-            <button id="cy-go" class="btn-primary">Calculate</button>
-            <a class="btn" href="#/calc">Back</a>
-            <a class="btn" href="#/home">Dashboard</a>
-          </div>
-
-          <div id="cy-out" class="result-card" style="display:none;"></div>
-        </section>
-      `;
-
-      const cropSel = $('#cy-crop'), baseInp = $('#cy-base'), lbbuInp = $('#cy-lbbu');
-      function fillDefaults(){ const p = PRESETS[cropSel.value]; if(!baseInp.value) baseInp.value=p.base; if(!lbbuInp.value) lbbuInp.value=p.lbbu; }
-      cropSel.addEventListener('change', fillDefaults); fillDefaults();
-
-      $('#cy-go').addEventListener('click', ()=>{
-        const crop   = cropSel.value;
-        const wetLb  = num($('#cy-wet').value);
-        const moist  = num($('#cy-moist').value);
-        const lenFt  = num($('#cy-length').value);
-        const headFt = num($('#cy-width').value);
-        const base   = num(baseInp.value || PRESETS[crop].base);
-        const lbbu   = num(lbbuInp.value || PRESETS[crop].lbbu);
-
-        if (!wetLb || !moist || !lenFt || !headFt){ alert('Enter Wet Weight, Moisture, Length and Header Width.'); return; }
-
-        const acres = (lenFt * headFt) / 43560;
-        if (acres <= 0){ alert('Calculated acres <= 0. Check length/header width.'); return; }
-
-        const wetBu = wetLb / lbbu;
-
-        // True shrink factor:
-        const dryFactor = (100 - moist) / (100 - base);
-        const trueBu = wetBu * dryFactor;
-        const trueYield = trueBu / acres;
-        const trueShrinkPct = (1 - dryFactor) * 100;
-
-        // Elevator shrink (percentage off wet bushels), then bu/ac
-        const elevShrink = elevatorShrinkPct(moist, base);
-        const elevBu = wetBu * (1 - (elevShrink/100));
-        const elevYield = elevBu / acres;
-
-        const out = $('#cy-out'); out.style.display='';
-        out.innerHTML = `
-          <div><strong>Crop:</strong> ${PRESETS[crop].emoji} ${crop}</div>
-          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;">
-            <div><strong>Acres (calc):</strong> ${acres.toFixed(3)}</div>
-            <div><strong>Wet Bushels:</strong> ${commas(wetBu.toFixed(2))}</div>
-            <div><strong>Test Wt:</strong> ${lbbu} lb/bu</div>
-            <div><strong>Dry Basis:</strong> ${base}%</div>
-          </div>
-
-          <hr style="border:none;border-top:1px solid rgba(0,0,0,.12);margin:10px 0;">
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-            <div>
-              <h3 style="margin:0 0 6px 0;">True Shrink</h3>
-              <div><strong>Adj. Bushels:</strong> ${commas(trueBu.toFixed(2))}</div>
-              <div><strong>Yield:</strong> ${commas(trueYield.toFixed(1))} bu/ac</div>
-              <div class="small muted">Shrink applied ≈ ${trueShrinkPct.toFixed(1)}% (to ${base}%).</div>
-            </div>
-            <div>
-              <h3 style="margin:0 0 6px 0;">Elevator Shrink</h3>
-              <div><strong>Adj. Bushels:</strong> ${commas(elevBu.toFixed(2))}</div>
-              <div><strong>Yield:</strong> ${commas(elevYield.toFixed(1))} bu/ac</div>
-              <div class="small muted">Prorated elevator shrink ≈ ${elevShrink.toFixed(1)}%.</div>
-            </div>
-          </div>
-        `;
-        window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
-      });
-    };
-  })();
-
-  // =========================================================
-  // 3) Fertilizer Calculator (target lb/ac → lb/ac & gal/ac + totals)
-  // =========================================================
-  window.viewCalcFertilizer = function(){
-    const KEY='df_calc_fert';
-    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
-    app.innerHTML = `
-      <section class="section">
-        <h1>👨🏼‍🔬 Fertilizer Calculator</h1>
-        <div class="calc-grid">
-          <label><span class="small muted">Nutrient</span>
-            <select id="f-nutrient">
-              <option ${s.nutrient==='N'?'selected':''}>N</option>
-              <option ${s.nutrient==='P₂O₅'?'selected':''}>P₂O₅</option>
-              <option ${s.nutrient==='K₂O'?'selected':''}>K₂O</option>
-            </select>
-          </label>
-          <label><span class="small muted">Target lb/acre *</span><input id="f-target" type="number" step="any" value="${html(s.target||'')}"></label>
-          <label><span class="small muted">Product Analysis % *</span><input id="f-analysis" type="number" step="any" value="${html(s.analysis||'')}" placeholder="e.g. 32"></label>
-          <label><span class="small muted">Density (lb/gal)</span>
-            <select id="f-density">
-              <option value="11.06" ${String(s.density||'11.06')==='11.06'?'selected':''}>UAN 32 (11.06)</option>
-              <option value="10.67" ${String(s.density)==='10.67'?'selected':''}>UAN 28 (10.67)</option>
-              <option value="8.34"  ${String(s.density)==='8.34'?'selected':''}>Water (8.34)</option>
-              <option value="${html(s.density||'11.06')}" ${!['11.06','10.67','8.34'].includes(String(s.density))?'selected':''}>Custom (${html(s.density||'11.06')})</option>
-            </select>
-          </label>
-          <label><span class="small muted">Acres *</span><input id="f-acres" type="number" step="any" value="${html(s.acres||'')}"></label>
-        </div>
-
-        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
-          <button id="f-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
-          <a class="btn" href="#/home">Dashboard</a>
-        </div>
-
-        <div id="f-out" class="result-card" style="display:none;"></div>
-      </section>
-    `;
-    $('#f-go').addEventListener('click', ()=>{
-      const payload = {
-        nutrient: $('#f-nutrient').value,
-        target:   num($('#f-target').value),
-        analysis: num($('#f-analysis').value),
-        density:  num($('#f-density').value||'11.06'),
-        acres:    num($('#f-acres').value)
-      };
-      localStorage.setItem(KEY, JSON.stringify(payload));
-      const {target,analysis,density,acres} = payload;
-      if (!target || !analysis || !acres || analysis<=0 || analysis>100){ alert('Enter valid target, analysis(1–100) and acres.'); return; }
-      const frac = analysis/100;
-      const lbA  = target/frac;
-      const galA = lbA/(density||1);
-      const out = $('#f-out'); out.style.display='';
-      out.innerHTML = `
-        <div><strong>Product lb/acre:</strong> ${commas(lbA.toFixed(2))}</div>
-        <div><strong>Product gal/acre:</strong> ${commas(galA.toFixed(2))}</div>
-        <div><strong>Total lbs:</strong> ${commas((lbA*acres).toFixed(0))}</div>
-        <div><strong>Total gal:</strong> ${commas((galA*acres).toFixed(1))}</div>
-        <div class="small muted" style="margin-top:6px;">Density affects gal/acre; analysis drives lb/acre.</div>
-      `;
-    });
-  };
-
-  // =========================================================
-  // 4) Bin Volume Calculator (cyl + optional cone)
-  // =========================================================
-  window.viewCalcBin = function(){
-    const KEY='df_calc_bin';
-    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
-    app.innerHTML = `
-      <section class="section">
-        <h1>🛢️ Bin Volume Calculator</h1>
-
-        <div class="calc-grid">
-          <label><span class="small muted">Diameter (ft) *</span><input id="b-d" type="number" step="any" value="${html(s.d||'')}"></label>
-          <label><span class="small muted">Grain Depth (ft) *</span><input id="b-h" type="number" step="any" value="${html(s.h||'')}"></label>
-          <label><span class="small muted">Roof</span>
-            <select id="b-roof">
-              <option value="flat" ${(!s.roof||s.roof==='flat')?'selected':''}>Flat/Simplified</option>
-              <option value="cone" ${s.roof==='cone'?'selected':''}>Cone (add rise)</option>
-            </select>
-          </label>
-          <label id="b-rise-wrap" style="display:${s.roof==='cone'?'block':'none'};"><span class="small muted">Cone Rise (ft)</span><input id="b-rise" type="number" step="any" value="${html(s.rise||'')}"></label>
-          <label><span class="small muted">Crop</span>
-            <select id="b-crop">
-              <option ${(!s.crop||s.crop==='Corn')?'selected':''}>Corn</option>
-              <option ${s.crop==='Soybeans'?'selected':''}>Soybeans</option>
-              <option ${s.crop==='Custom'?'selected':''}>Custom</option>
-            </select>
-          </label>
-          <label><span class="small muted">lb / bu</span><input id="b-lbbu" type="number" step="any" value="${html(s.lbbu||'56')}"></label>
-          <label><span class="small muted">ft³ / bu</span><input id="b-buft3" type="number" step="any" value="${html(s.buft3||'1.244')}"></label>
-        </div>
-
-        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
-          <button id="b-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
-          <a class="btn" href="#/home">Dashboard</a>
-        </div>
-
-        <div id="b-out" class="result-card" style="display:none;"></div>
-      </section>
-    `;
-    $('#b-roof').addEventListener('change', ()=>{ $('#b-rise-wrap').style.display = ($('#b-roof').value==='cone')?'block':'none'; });
-    $('#b-crop').addEventListener('change', ()=>{
-      if ($('#b-crop').value==='Corn') $('#b-lbbu').value='56';
-      else if ($('#b-crop').value==='Soybeans') $('#b-lbbu').value='60';
-    });
-    $('#b-go').addEventListener('click', ()=>{
-      const d=num($('#b-d').value), h=num($('#b-h').value), roof=$('#b-roof').value, rise=num($('#b-rise')?.value||0);
-      const lbbu=num($('#b-lbbu').value||56), buft3=num($('#b-buft3').value||1.244);
-      localStorage.setItem(KEY, JSON.stringify({d,h,roof,rise,crop:$('#b-crop').value,lbbu,buft3}));
-      if(!d||!h||!lbbu||!buft3){ alert('Enter diameter, depth, lb/bu, ft³/bu.'); return; }
-      const r=d/2;
-      const volCyl = Math.PI*r*r*h;
-      const volCone = roof==='cone' && rise>0 ? (Math.PI*r*r*rise)/3 : 0;
-      const vol = volCyl + volCone;
-      const bu = vol / buft3;
-      const wt = bu * lbbu;
-      const out=$('#b-out'); out.style.display='';
-      out.innerHTML = `
-        <div><strong>Volume (ft³):</strong> ${commas(vol.toFixed(0))}</div>
-        <div><strong>Bushels:</strong> ${commas(bu.toFixed(0))}</div>
-        <div><strong>Estimated Weight (lb):</strong> ${commas(wt.toFixed(0))}</div>
-        <div class="small muted" style="margin-top:6px;">Assumes ideal fill; adjust for void/packing as needed.</div>
-      `;
-    });
-  };
-
-  // =========================================================
-  // 5) Area Calculator (rect/circle/triangle; feet/meters; acres)
-  // =========================================================
-  window.viewCalcArea = function(){
-    const KEY='df_calc_area';
-    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
-    app.innerHTML = `
-      <section class="section">
-        <h1>📐 Area Calculator</h1>
-
-        <div class="calc-grid">
-          <label><span class="small muted">Shape</span>
-            <select id="a-shape">
-              <option ${s.shape==='Rectangle'?'selected':''}>Rectangle</option>
-              <option ${s.shape==='Circle'?'selected':''}>Circle</option>
-              <option ${s.shape==='Triangle'?'selected':''}>Triangle</option>
-            </select>
-          </label>
-          <label><span class="small muted">Units</span>
-            <select id="a-unit">
-              <option value="ft" ${s.unit!=='m'?'selected':''}>Feet</option>
-              <option value="m"  ${s.unit==='m'?'selected':''}>Meters</option>
-            </select>
-          </label>
-        </div>
-
-        <div id="a-rect" class="calc-grid" style="display:${(!s.shape||s.shape==='Rectangle')?'grid':'none'};">
-          <label><span class="small muted">Length *</span><input id="a-len" type="number" step="any" value="${html(s.len||'')}"></label>
-          <label><span class="small muted">Width *</span><input id="a-wid" type="number" step="any" value="${html(s.wid||'')}"></label>
-        </div>
-
-        <div id="a-circ" class="calc-grid" style="display:${s.shape==='Circle'?'grid':'none'};">
-          <label><span class="small muted">Diameter *</span><input id="a-dia" type="number" step="any" value="${html(s.dia||'')}"></label>
-          <div></div>
-        </div>
-
-        <div id="a-tri" class="calc-grid" style="display:${s.shape==='Triangle'?'grid':'none'};">
-          <label><span class="small muted">Base *</span><input id="a-base" type="number" step="any" value="${html(s.base||'')}"></label>
-          <label><span class="small muted">Height *</span><input id="a-height" type="number" step="any" value="${html(s.height||'')}"></label>
-        </div>
-
-        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
-          <button id="a-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
-          <a class="btn" href="#/home">Dashboard</a>
-        </div>
-
-        <div id="a-out" class="result-card" style="display:none;"></div>
-      </section>
-    `;
-    function showShape(){
-      $('#a-rect').style.display = ($('#a-shape').value==='Rectangle')?'grid':'none';
-      $('#a-circ').style.display = ($('#a-shape').value==='Circle')?'grid':'none';
-      $('#a-tri').style.display  = ($('#a-shape').value==='Triangle')?'grid':'none';
-    }
-    $('#a-shape').addEventListener('change', showShape); showShape();
-
-    $('#a-go').addEventListener('click', ()=>{
-      const shape=$('#a-shape').value, unit=$('#a-unit').value;
-      let A=0;
-      if (shape==='Rectangle'){
-        const L=num($('#a-len').value), W=num($('#a-wid').value); if(!L||!W) return alert('Enter length & width.');
-        A=L*W;
-      } else if (shape==='Circle'){
-        const D=num($('#a-dia').value); if(!D) return alert('Enter diameter.'); const r=D/2; A=Math.PI*r*r;
-      } else {
-        const B=num($('#a-base').value), H=num($('#a-height').value); if(!B||!H) return alert('Enter base & height.');
-        A=0.5*B*H;
-      }
-      localStorage.setItem('df_calc_area', JSON.stringify({
-        shape, unit,
-        len:$('#a-len')?.value, wid:$('#a-wid')?.value,
-        dia:$('#a-dia')?.value, base:$('#a-base')?.value, height:$('#a-height')?.value
-      }));
-      const acres = unit==='ft' ? (A/43560) : (A/4046.8564224);
-      const out=$('#a-out'); out.style.display='';
-      out.innerHTML = `
-        <div><strong>Area (${unit==='ft'?'ft²':'m²'}):</strong> ${commas(A.toFixed(2))}</div>
-        <div><strong>Area (acres):</strong> ${commas(acres.toFixed(4))}</div>
-      `;
-    });
-  };
-
-  // =========================================================
-  // 6) Chemical Mix Sheet (up to 6 products → per tank gallons)
-  // =========================================================
-  window.viewCalcChem = function(){
-    const KEY='df_calc_chem';
-    const s = JSON.parse(localStorage.getItem(KEY)||'{}');
-    const prods = s.prods || Array.from({length:6}).map(()=>({name:'',rate:'',unit:'oz'}));
-
-    function row(i,p){
-      return `
-        <div class="calc-grid">
-          <label><span class="small muted">Product ${i+1}</span><input id="ch-name-${i}" type="text" value="${html(p.name||'')}" placeholder="Name"></label>
-          <label><span class="small muted">Rate / acre</span><input id="ch-rate-${i}" type="number" step="any" value="${html(p.rate||'')}"></label>
-          <label><span class="small muted">Unit</span>
-            <select id="ch-unit-${i}">
-              <option ${p.unit==='oz'?'selected':''} value="oz">oz</option>
-              <option ${p.unit==='pt'?'selected':''} value="pt">pt</option>
-              <option ${p.unit==='qt'?'selected':''} value="qt">qt</option>
-              <option ${p.unit==='gal'?'selected':''} value="gal">gal</option>
-            </select>
-          </label>
-        </div>`;
-    }
-
-    app.innerHTML = `
-      <section class="section">
-        <h1>🧪 Chemical Mix Sheet</h1>
-
-        <div class="calc-grid">
-          <label><span class="small muted">Tank Size (gal) *</span><input id="ch-tank" type="number" step="any" value="${html(s.tank||'')}"></label>
-          <label><span class="small muted">Carrier GPA *</span><input id="ch-gpa" type="number" step="any" value="${html(s.gpa||'')}"></label>
-          <label><span class="small muted">Job Acres (optional)</span><input id="ch-job" type="number" step="any" value="${html(s.job||'')}"></label>
-        </div>
-
-        <h3 style="margin-top:10px;">Products (rate per acre)</h3>
-        ${prods.map((p,i)=>row(i,p)).join('')}
-
-        <div class="calc-actions" style="display:flex;gap:10px;margin-top:8px;">
-          <button id="ch-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
-          <a class="btn" href="#/home">Dashboard</a>
-        </div>
-
-        <div id="ch-out" class="result-card" style="display:none;"></div>
-      </section>
-    `;
-
-    function unitToGal(u,a){
-      const x=num(a); if(!x) return 0;
-      if(u==='gal') return x;
-      if(u==='qt') return x/4;
-      if(u==='pt') return x/8;
-      if(u==='oz') return x/128;
-      return 0;
-    }
-
-    $('#ch-go').addEventListener('click', ()=>{
-      const tank=num($('#ch-tank').value), gpa=num($('#ch-gpa').value), job=num($('#ch-job').value);
-      const ps=[];
-      for(let i=0;i<6;i++){ ps.push({ name:$('#ch-name-'+i).value, rate:$('#ch-rate-'+i).value, unit:$('#ch-unit-'+i).value }); }
-      localStorage.setItem(KEY, JSON.stringify({tank,gpa,job,prods:ps}));
-      if(!tank||!gpa){ alert('Enter Tank Size and Carrier GPA.'); return; }
-      const acPerTank = tank/gpa;
-      let total=0;
-      const lines = ps.filter(p=>num(p.rate)>0).map(p=>{
-        const perAcreGal = unitToGal(p.unit, p.rate);
-        const perTankGal = perAcreGal * acPerTank;
-        total += perTankGal;
-        return `<li>${html(p.name||'(Unnamed)')}: <strong>${commas(perTankGal.toFixed(3))}</strong> gal / tank <span class="small muted">(${p.rate} ${p.unit}/ac)</span></li>`;
-      });
-      const out=$('#ch-out'); out.style.display='';
-      const tanks = job>0 ? `<li><strong>Tanks needed for ${commas(job)} ac:</strong> ${commas(Math.ceil(job/acPerTank))}</li>` : '';
-      out.innerHTML = `
-        <div><strong>Acres per tank:</strong> ${commas(acPerTank.toFixed(2))}</div>
-        <div><strong>Carrier per tank (gal):</strong> ${commas(tank)}</div>
-        <ul style="margin:8px 0 0 18px;">${lines.join('') || '<li class="muted">No products entered.</li>'}</ul>
-        <div style="margin-top:6px;"><strong>Total product volume in mix (gal):</strong> ${commas(total.toFixed(3))}</div>
-        ${tanks}
-        <div class="small muted" style="margin-top:6px;">Confirm compatibility and label requirements.</div>
-      `;
-    });
-  };
-
-  // =========================================================
-  // 7) Crop Year selector (Crop hub): multi-select + “Add next year only”
-  //    - Per user last selection persists
-  // =========================================================
-  (function overrideCropHub(){
-    const YEARS_KEY = 'df_crop_years';
-    const SEL_KEY = email => `df_crop_year_sel:${email||'anon'}`;
-
-    function getYears(){
-      try{
-        const arr = JSON.parse(localStorage.getItem(YEARS_KEY)||'[]');
-        if (Array.isArray(arr) && arr.length) return arr.sort((a,b)=>a-b);
-      }catch{}
-      const start = 2024;
-      const cur = new Date().getFullYear();
-      const seed = [];
-      for (let y=start; y<=cur; y++) seed.push(y);
-      localStorage.setItem(YEARS_KEY, JSON.stringify(seed));
-      return seed;
-    }
-    function saveYears(arr){ try{ localStorage.setItem(YEARS_KEY, JSON.stringify(Array.from(new Set(arr)).sort((a,b)=>a-b))); }catch{} }
-    function getSel(user){ try{ const v=JSON.parse(localStorage.getItem(SEL_KEY(user))||'[]'); return Array.isArray(v)&&v.length?v:[]; }catch{ return []; } }
-    function saveSel(user, years){ try{ localStorage.setItem(SEL_KEY(user), JSON.stringify(Array.from(new Set(years)).sort((a,b)=>a-b))); }catch{} }
-
-    // Expose getter for other screens if needed later:
-    window.df_getSelectedCropYears = function(){
-      const user = (localStorage.getItem('df_user')||'').trim();
-      const sel = getSel(user);
-      return sel.length ? sel : [new Date().getFullYear()]; // default to this year if none chosen
-    };
-
-    window.viewCropHub = function(){
-      const user = (localStorage.getItem('df_user')||'').trim();
-      const years = getYears();
-      let selected = getSel(user);
-      if (!selected.length){
-        // default: last used if present, else current year
-        const cur = new Date().getFullYear();
-        selected = [cur];
-        saveSel(user, selected);
-      }
-
-      function chip(y){
-        const id = `year-${y}`;
-        const checked = selected.includes(y) ? 'checked' : '';
-        return `<label class="chip-toggle" for="${id}">
-          <input id="${id}" type="checkbox" ${checked} data-year="${y}"> ${y}
-        </label>`;
-      }
-
-      // Tiles (same as before)
-      const tiles = `
-        <div class="grid">
-          ${tile('🌱','Planting','#/crop/planting')}
-          ${tile('🧪','Spraying','#/crop/spraying')}
-          ${tile('🚁','Aerial Spray','#/crop/aerial')}
-          ${tile('🌾','Harvest','#/crop/harvest')}
-          ${tile('🧰','Field Maintenance','#/crop/maintenance')}
-          ${tile('🔎','Scouting','#/crop/scouting')}
-          ${tile('🧬','Trials','#/crop/trials')}
-        </div>
-        <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
-      `;
-
-      app.innerHTML = `
-        <section class="section">
-          <h1>Crop Production</h1>
-
-          <div class="year-bar" id="year-bar">
-            <span class="small muted">Crop Year:</span>
-            ${years.map(chip).join('')}
-            <button id="year-add" class="btn btn-compact year-add" title="Add next year">➕ Add</button>
-          </div>
-
-          ${tiles}
-        </section>
-      `;
-
-      // Wire selection changes
-      $('#year-bar').addEventListener('change', (e)=>{
-        if (e.target && e.target.matches('input[type="checkbox"][data-year]')){
-          const y = Number(e.target.getAttribute('data-year'));
-          if (e.target.checked){ if (!selected.includes(y)) selected.push(y); }
-          else { selected = selected.filter(v=>v!==y); }
-          if (!selected.length){
-            // Always keep at least one selected; revert toggle
-            selected = [y];
-            e.target.checked = true;
-          }
-          saveSel(user, selected);
-        }
-      });
-
-      // Add next year (only allow current max + 1, and not beyond (currentYear+1))
-      $('#year-add').addEventListener('click', ()=>{
-        const list = getYears();
-        const cur = new Date().getFullYear();
-        const allowedMax = cur + 1;
-        const next = (list[list.length-1]||cur) + 1;
-        if (next > allowedMax){ alert(`You can only add up to ${allowedMax}.`); return; }
-        list.push(next); saveYears(list);
-        // re-render quickly
-        viewCropHub();
-      });
-    };
-  })();
-
-  // =========================================================
-  // 8) Theme Settings — segmented buttons (Auto/Light/Dark)
-  // =========================================================
-  window.viewSettingsTheme = function(){
-    const KEY='df_theme';
-    const cur = (localStorage.getItem(KEY)||'auto');
-    function btn(label,val){ const active = cur===val?'active':''; return `<button type="button" class="${active}" data-val="${val}">${label}</button>`; }
-    app.innerHTML = `
-      <section class="section">
-        <h1>Theme</h1>
-        <div class="field">
-          <label style="font-weight:600;margin-bottom:6px;">Appearance</label>
-          <div class="seg" id="theme-seg">
-            ${btn('Auto','auto')}${btn('Light','light')}${btn('Dark','dark')}
-          </div>
-        </div>
-        <div class="section"><a class="btn" href="#/settings">Back to Settings</a></div>
-      </section>
-    `;
-    $('#theme-seg').addEventListener('click', (e)=>{
-      const b = e.target.closest('button[data-val]'); if(!b) return;
-      const v = b.getAttribute('data-val');
-      localStorage.setItem(KEY, v);
-      document.documentElement.setAttribute('data-theme', v);
-      $$('#theme-seg button').forEach(x=>x.classList.toggle('active', x===b));
-    });
-  };
-
-})(); // end PATCH v10.14.6
-/* ============================
-   Dowson Farms — Patch v10.14.7
-   Scope:
-     • Crop Year dropdown selector (persisted)
-     • Feedback dropdowns (Main/Sub/Category with simple dependency)
-     • Global number formatting with commas
-     • Settings → Farms management (CRUD + localStorage)
-     • Settings → Fields management (CRUD + localStorage)
-   Append at end of app.js
-   ============================ */
-(function DF_v10147_patch(){
-  const NS = (window.DF = window.DF || {});
-  const Patch = NS.v10147 = {};
-
-  /* ---------- Utilities ---------- */
-  const ls = {
-    get(key, fallback){
-      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
-    },
-    set(key, value){ try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
-  };
-
-  // Number formatting with commas (keeps decimals)
-  function formatNumberWithCommas(value){
-    if (value === null || value === undefined) return '';
-    const str = String(value).replace(/,/g, '').trim();
-    if (str === '' || isNaN(Number(str))) return value; // leave as-is if non-numeric
-    const [intPart, decPart] = str.split('.');
-    const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return decPart !== undefined ? `${withCommas}.${decPart}` : withCommas;
-  }
-  Patch.formatNumberWithCommas = formatNumberWithCommas;
-
-  /* Auto-format: any input/element with data-format="number"
-     - Formats on blur
-     - Cleans commas for value retrieval on change
-  */
-  document.addEventListener('blur', (e)=>{
-    const el = e.target;
-    if (el && el.matches('[data-format="number"]')){
-      const caret = el.selectionStart;
-      el.value = formatNumberWithCommas(el.value);
-      // Try to keep caret near end (best effort)
-      try { el.setSelectionRange(caret, caret); } catch {}
-    }
-  }, true);
-
-  // Provide a helper to read numeric values (without commas)
-  Patch.readNumeric = (el)=> {
-    if (!el) return null;
-    const raw = String(el.value || '').replace(/,/g,'').trim();
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : null;
-  };
-
-  /* ---------- Crop Year Selector ---------- */
-  function initCropYearSelects(){
-    const STORAGE_KEY = 'df.cropYear';
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const years = [];
-    const start = currentYear + 1;  // include next crop year
-    const end = currentYear - 10;   // 10 years back
-    for (let y = start; y >= end; y--) years.push(y);
-
-    const saved = ls.get(STORAGE_KEY, null);
-    document.querySelectorAll('select[data-df="cropYear"]').forEach(sel=>{
-      // If the select is empty, populate; otherwise leave user-defined options
-      if (!sel.options.length){
-        const ph = document.createElement('option');
-        ph.value = ''; ph.textContent = 'Select Crop Year';
-        sel.appendChild(ph);
-        years.forEach(y=>{
-          const o = document.createElement('option');
-          o.value = String(y);
-          o.textContent = String(y);
-          sel.appendChild(o);
-        });
-      }
-      // Set saved or default to currentYear
-      const toSet = saved || String(currentYear);
-      if ([...sel.options].some(o=>o.value===String(toSet))) sel.value = String(toSet);
-
-      sel.addEventListener('change', ()=>{
-        if (sel.value) ls.set(STORAGE_KEY, sel.value);
-      });
-    });
-  }
-
-  /* ---------- Feedback Dropdowns (Main/Sub/Category) ---------- */
-  // Defaults (override by putting JSON on data-options on the main select)
-  const DEFAULT_FEEDBACK = {
-    main: ['Bug', 'Idea', 'Data Fix', 'UX', 'Performance'],
-    sub: {
-      'Bug': ['Crash', 'Wrong calc', 'Bad link', 'Visual glitch'],
-      'Idea': ['New feature', 'Report layout', 'Workflow'],
-      'Data Fix': ['Field boundary', 'Acres', 'Crop type', 'Yield entry'],
-      'UX': ['Navigation', 'Buttons', 'Accessibility'],
-      'Performance': ['Slow load', 'Offline cache', 'Sync issues']
-    },
-    category: ['Low', 'Normal', 'High', 'Critical']
-  };
-
-  function initFeedbackDropdowns(){
-    const mainSel = document.querySelector('select[data-df="feedback-main"]');
-    const subSel  = document.querySelector('select[data-df="feedback-sub"]');
-    const catSel  = document.querySelector('select[data-df="feedback-category"]');
-
-    if (!mainSel && !subSel && !catSel) return; // nothing to do
-
-    // Load overrides if present on main select
-    let cfg = DEFAULT_FEEDBACK;
-    try {
-      if (mainSel && mainSel.dataset.options){
-        const parsed = JSON.parse(mainSel.dataset.options);
-        cfg = {
-          main: parsed.main || DEFAULT_FEEDBACK.main,
-          sub:  parsed.sub  || DEFAULT_FEEDBACK.sub,
-          category: parsed.category || DEFAULT_FEEDBACK.category
-        };
-      }
-    } catch {}
-
-    // Populate helper
-    const fill = (sel, arr, placeholder)=>{
-      if (!sel) return;
-      if (!sel.options.length){
-        const ph = document.createElement('option'); ph.value=''; ph.textContent=placeholder;
-        sel.appendChild(ph);
-      } else {
-        // keep existing if already filled
-        return;
-      }
-      (arr||[]).forEach(v=>{
-        const o = document.createElement('option');
-        o.value = v; o.textContent = v;
-        sel.appendChild(o);
-      });
-    };
-
-    fill(mainSel, cfg.main, 'Main…');
-    fill(catSel, cfg.category, 'Category…');
-
-    // Populate sub based on current main (or placeholder)
-    function repopulateSub(mainVal){
-      if (!subSel) return;
-      const selVal = subSel.value;
-      // Clear (except maybe keep first placeholder)
-      subSel.innerHTML = '';
-      const ph = document.createElement('option'); ph.value=''; ph.textContent='Sub…';
-      subSel.appendChild(ph);
-      const subs = (cfg.sub && cfg.sub[mainVal]) ? cfg.sub[mainVal] : [];
-      subs.forEach(s=>{
-        const o = document.createElement('option'); o.value = s; o.textContent = s;
-        subSel.appendChild(o);
-      });
-      // Try restore previous choice if still valid
-      if ([...subSel.options].some(o=>o.value===selVal)) subSel.value = selVal;
-    }
-
-    if (mainSel){
-      // initial
-      repopulateSub(mainSel.value || '');
-      // on change
-      mainSel.addEventListener('change', ()=>repopulateSub(mainSel.value||''));
-    }
-  }
-
-  /* ---------- Settings: Farms Management ---------- */
-  // Data shape: { id: string, name: string, location?: string }
-  const FARMS_KEY = 'df.farms';
-  function getFarms(){ return ls.get(FARMS_KEY, []); }
-  function saveFarms(list){ ls.set(FARMS_KEY, list); }
-  function uid(){ return Math.random().toString(36).slice(2,10); }
-
-  function renderFarms(){
-    const wrap = document.querySelector('[data-df="farm-list"]');
-    if (!wrap) return;
-    const farms = getFarms();
-    wrap.innerHTML = farms.length ? '' : '<div class="muted">No farms yet.</div>';
-    farms.forEach(f=>{
-      const row = document.createElement('div');
-      row.className = 'df-row df-farm';
-      row.dataset.id = f.id;
-      row.innerHTML = `
-        <div class="df-cell">
-          <strong>${f.name || '(unnamed)'}</strong>
-          ${f.location ? `<div class="df-sub">${f.location}</div>` : ''}
-        </div>
-        <div class="df-actions">
-          <button type="button" data-action="edit-farm">Edit</button>
-          <button type="button" data-action="delete-farm">Delete</button>
-        </div>
-      `;
-      wrap.appendChild(row);
-    });
-  }
-
-  function bindFarmForm(){
-    const form = document.querySelector('[data-df="farm-form"]');
-    if (!form) return;
-    const nameEl = form.querySelector('[name="farmName"]');
-    const locEl  = form.querySelector('[name="farmLocation"]');
-    const idEl   = form.querySelector('[name="farmId"]'); // hidden for edit
-
-    form.addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const name = (nameEl?.value||'').trim();
-      const location = (locEl?.value||'').trim();
-      if (!name){ alert('Farm name is required.'); return; }
-      const list = getFarms();
-      const existingId = (idEl?.value||'').trim();
-      if (existingId){
-        const idx = list.findIndex(f=>f.id===existingId);
-        if (idx>=0){ list[idx] = {...list[idx], name, location}; }
-      } else {
-        list.push({ id: uid(), name, location});
-      }
-      saveFarms(list);
-      form.reset();
-      if (idEl) idEl.value = '';
-      renderFarms();
-    });
-
-    document.addEventListener('click',(e)=>{
-      const btn = e.target.closest?.('button[data-action="edit-farm"], button[data-action="delete-farm"]');
-      if (!btn) return;
-      const row = btn.closest('.df-farm'); if (!row) return;
-      const id = row.dataset.id;
-      const list = getFarms();
-      const farm = list.find(f=>f.id===id);
-      if (btn.dataset.action === 'edit-farm'){
-        if (!farm) return;
-        if (nameEl) nameEl.value = farm.name||'';
-        if (locEl)  locEl.value  = farm.location||'';
-        if (idEl)   idEl.value   = farm.id;
-        nameEl?.focus();
-      } else if (btn.dataset.action === 'delete-farm'){
-        if (confirm('Delete this farm?')){
-          saveFarms(list.filter(f=>f.id!==id));
-          renderFarms();
-        }
-      }
-    });
-  }
-
-  /* ---------- Settings: Fields Management ---------- */
-  // Data shape: { id, farmId, name, acres:number|null, crop?:string }
-  const FIELDS_KEY = 'df.fields';
-  function getFields(){ return ls.get(FIELDS_KEY, []); }
-  function saveFields(list){ ls.set(FIELDS_KEY, list); }
-
-  function renderFields(){
-    const wrap = document.querySelector('[data-df="field-list"]');
-    if (!wrap) return;
-    const fields = getFields();
-    const farms  = getFarms();
-    const farmName = (id)=> (farms.find(f=>f.id===id)?.name)||'—';
-
-    wrap.innerHTML = fields.length ? '' : '<div class="muted">No fields yet.</div>';
-    fields.forEach(fd=>{
-      const acresTxt = (fd.acres!=null && !isNaN(fd.acres)) ? formatNumberWithCommas(fd.acres) : '—';
-      const row = document.createElement('div');
-      row.className = 'df-row df-field';
-      row.dataset.id = fd.id;
-      row.innerHTML = `
-        <div class="df-cell">
-          <strong>${fd.name || '(unnamed field)'}</strong>
-          <div class="df-sub">${farmName(fd.farmId)} • ${acresTxt} acres${fd.crop?` • ${fd.crop}`:''}</div>
-        </div>
-        <div class="df-actions">
-          <button type="button" data-action="edit-field">Edit</button>
-          <button type="button" data-action="delete-field">Delete</button>
-        </div>
-      `;
-      wrap.appendChild(row);
-    });
-  }
-
-  function bindFieldForm(){
-    const form = document.querySelector('[data-df="field-form"]');
-    if (!form) return;
-    const idEl   = form.querySelector('[name="fieldId"]'); // hidden for edit
-    const nameEl = form.querySelector('[name="fieldName"]');
-    const acresEl= form.querySelector('[name="fieldAcres"]');
-    const cropEl = form.querySelector('[name="fieldCrop"]');
-    const farmSel= form.querySelector('[name="fieldFarmId"]');
-
-    // Populate farm selector if present
-    if (farmSel && !farmSel.options.length){
-      const farms = getFarms();
-      const ph = document.createElement('option'); ph.value=''; ph.textContent='Select Farm';
-      farmSel.appendChild(ph);
-      farms.forEach(f=>{
-        const o = document.createElement('option'); o.value=f.id; o.textContent=f.name;
-        farmSel.appendChild(o);
-      });
-    }
-
-    form.addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const name  = (nameEl?.value||'').trim();
-      const farmId= (farmSel?.value||'').trim();
-      const acres = Patch.readNumeric(acresEl);
-      const crop  = (cropEl?.value||'').trim() || undefined;
-      if (!name){ alert('Field name is required.'); return; }
-      if (!farmId){ alert('Select a farm.'); return; }
-
-      const list = getFields();
-      const existingId = (idEl?.value||'').trim();
-      if (existingId){
-        const idx = list.findIndex(f=>f.id===existingId);
-        if (idx>=0){ list[idx] = {...list[idx], name, farmId, acres, crop}; }
-      } else {
-        list.push({ id: uid(), name, farmId, acres, crop });
-      }
-      saveFields(list);
-      form.reset();
-      if (idEl) idEl.value = '';
-      renderFields();
-    });
-
-    document.addEventListener('click',(e)=>{
-      const btn = e.target.closest?.('button[data-action="edit-field"], button[data-action="delete-field"]');
-      if (!btn) return;
-      const row = btn.closest('.df-field'); if (!row) return;
-      const id = row.dataset.id;
-      const list = getFields();
-      const field = list.find(f=>f.id===id);
-      if (btn.dataset.action === 'edit-field'){
-        if (!field) return;
-        if (idEl)    idEl.value    = field.id;
-        if (nameEl)  nameEl.value  = field.name||'';
-        if (acresEl) acresEl.value = field.acres!=null ? formatNumberWithCommas(field.acres) : '';
-        if (cropEl)  cropEl.value  = field.crop||'';
-        if (farmSel){
-          // Ensure farm list is present/updated
-          if (!farmSel.options.length){
-            const farms = getFarms();
-            const ph = document.createElement('option'); ph.value=''; ph.textContent='Select Farm';
-            farmSel.appendChild(ph);
-            farms.forEach(f=>{
-              const o = document.createElement('option'); o.value=f.id; o.textContent=f.name;
-              farmSel.appendChild(o);
-            });
-          }
-          farmSel.value = field.farmId || '';
-        }
-        nameEl?.focus();
-      } else if (btn.dataset.action === 'delete-field'){
-        if (confirm('Delete this field?')){
-          saveFields(list.filter(f=>f.id!==id));
-          renderFields();
-        }
-      }
-    });
-  }
-
-  /* ---------- Bootstrapping ---------- */
-  function init(){
-    initCropYearSelects();
-    initFeedbackDropdowns();
-    bindFarmForm();
-    bindFieldForm();
-    renderFarms();
-    renderFields();
-  }
-
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-  /* ---------- Minimal styles (optional, safe) ---------- */
-  const styleTag = document.createElement('style');
-  styleTag.setAttribute('data-df','v10.14.7');
-  styleTag.textContent = `
-    .df-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:1px solid #e3e3e3; border-radius:6px; background:#fff; margin:6px 0; }
-    .df-cell{ min-width:0; }
-    .df-sub{ color:#666; font-size:0.9em; margin-top:2px; }
-    .df-actions button{ margin-left:6px; }
-    .muted{ color:#777; font-style:italic; }
+}
+
+/* ============================================================================
+   app.js — PART 6 of N (v11.0.0)
+   Reports
+   - Reports Hub
+   - Pre-made Reports hub
+   - Feedback Summary (printable)
+   - Grain Bag Report (grouped, subtotals, grand total; printable)
+   - Placeholders: AI Reports, Yield Report
+   Notes:
+     • Relies on Part 1 utilities: tile, prettyDate, displayVersion, fmtCommas,
+       and DOM refs (app).
+     • Uses existing storage helpers if present; falls back safely.
+   ========================================================================== */
+
+/* ---------- Safe helpers (reuse if already defined) ---------- */
+const __r_html = (s)=>String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
+const __r_fmt  = (n)=> (typeof fmtCommas==='function' ? fmtCommas(n) : (Number(n).toLocaleString?.() ?? String(n)));
+const __r_todayPretty = ()=> (typeof prettyDate==='function' ? prettyDate(new Date()) : new Date().toDateString());
+const __r_ver = ()=> (typeof displayVersion==='function' ? displayVersion(typeof APP_VERSION!=='undefined'?APP_VERSION:'v11.0.0') : (typeof APP_VERSION!=='undefined'?APP_VERSION:'v11.0.0'));
+
+/* Feedback + Grain data access with gentle fallbacks */
+function __r_loadFeedback(){
+  try{
+    // Prefer an app-level utility if defined
+    if (typeof loadFeedback === 'function') return loadFeedback();
+    const raw = localStorage.getItem('df_feedback'); return raw ? JSON.parse(raw) : [];
+  }catch{ return []; }
+}
+function __r_loadBags(){
+  try{
+    if (typeof loadBags === 'function') return loadBags();
+    const raw = localStorage.getItem('df_grain_bags'); return raw ? JSON.parse(raw) : [];
+  }catch{ return []; }
+}
+
+/* =========================
+   Reports — Hub
+   ========================= */
+function viewReportsHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('📄','Pre-made Reports','#/ai/premade')}
+      ${tile('🤖','AI Reports','#/ai/ai')}
+      ${tile('📊','Yield Report','#/ai/yield')}
+    </div>
+    <section class="section" style="margin-top:12px;">
+      <h2>🔮 Future</h2>
+      <p class="muted">ChatGPT integration to generate & save custom reports is planned.</p>
+    </section>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
   `;
-  document.head.appendChild(styleTag);
+}
 
-})();
+/* =========================
+   Reports — Pre-made hub
+   ========================= */
+function viewReportsPremade(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
+      ${tile('🧺','Grain Bag Report','#/ai/premade/grain-bags')}
+    </div>
+    <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
+  `;
+}
 
-/* ===========================================================
-   DF PATCH v10.14.7 — Append to end of app.js (10.14.6 base)
-   Features:
-   - Crop Year dropdown (per-user default, 2024..next year, Add year…)
-   - Feedback: Main/Sub/Category dropdowns + Summary columns
-   - Global fmtCommas() output formatting upgrade
-   - Settings: Farms & Fields (A–Z, archive/delete rules & CRP/HEL)
-   Safe: No other files required. Idempotent guards included.
-   =========================================================== */
-(function DF_PATCH_10147(){
-  'use strict';
-  if (window.__DF_PATCH_10147_APPLIED__) return;
-  window.__DF_PATCH_10147_APPLIED__ = true;
+/* =========================
+   Reports — Feedback Summary
+   ========================= */
+function viewReportsPremadeFeedback(){
+  const items = __r_loadFeedback().slice().sort((a,b)=> (a.ts||0)-(b.ts||0));
 
-  // ---------- Small utilities (safe) ----------
-  const $ = (sel,root=document)=>root.querySelector(sel);
-  const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
-  const toNum = v => { const n=Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; };
-  const html = s => String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
-  const userEmailSafe = ()=>{ try { return (localStorage.getItem('df_user')||'').trim(); } catch { return ''; } };
-  function cryptoId(){ try{ return crypto.getRandomValues(new Uint32Array(2))[0].toString(36)+Date.now().toString(36); }catch{ return Math.random().toString(36).slice(2)+Date.now().toString(36); } }
+  const rows = items.map((it,i)=>{
+    const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
+    const kind = it.type==='feature' ? 'Feature' : 'Error';
+    const subj = __r_html(it.subject||'');
+    const dets = __r_html(String(it.details||'').replace(/\n/g,'\n')).replace(/\n/g,'<br>');
+    const by   = __r_html(it.by||'');
+    const main = __r_html(it.main||'');
+    const sub  = __r_html(it.sub||'');
+    const cat  = __r_html(it.category||'');
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${when}</td>
+      <td>${kind}</td>
+      <td>${main}</td>
+      <td>${sub}</td>
+      <td>${cat}</td>
+      <td>${subj}</td>
+      <td>${dets}</td>
+      <td>${by}</td>
+    </tr>`;
+  }).join('');
 
-  // ---------- Footer: show 10.14.7 so you can confirm patch loaded ----------
-  try{ const el = document.getElementById('version'); if (el) el.textContent = 'v10.14.7'; }catch{}
+  app.innerHTML = `
+    <section class="report-page">
+      <header class="report-head">
+        <div class="head-left">
+          <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+          <div class="org">
+            <div class="org-name">Dowson Farms</div>
+            <div class="org-sub">Pre-Made Report</div>
+          </div>
+        </div>
+        <div class="head-right">
+          <div class="r-title">Feedback Summary</div>
+          <div class="r-date">${__r_todayPretty()}</div>
+        </div>
+      </header>
 
-  // =========================================================
-  // 1) Global number formatting (output only)
-  //    Keeps API same: window.fmtCommas(n[, {decimals}])
-  // =========================================================
-  window.fmtCommas = function fmtCommasPatched(n, opts={}){
-    const {decimals=null} = opts;
-    const v = Number(n);
-    if (!Number.isFinite(v)) return String(n);
-    const d = decimals==null
-      ? (Math.abs(v)%1===0 ? 0 : (Math.abs(v)>=100 ? 1 : 2))
-      : Math.max(0, Math.min(6, decimals));
-    try { return v.toLocaleString(undefined, {minimumFractionDigits:d, maximumFractionDigits:d}); }
-    catch { return String(v); }
+      <div class="report-body watermark">
+        ${items.length ? `
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>#</th><th>When</th><th>Type</th><th>Main</th><th>Sub</th><th>Category</th>
+              <th>Subject</th><th>Details</th><th>Submitted By</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>` : `<p class="muted">No feedback saved yet.</p>`}
+      </div>
+
+      <footer class="report-foot">
+        <div>${__r_ver()}</div>
+        <div class="page-num">Page 1</div>
+      </footer>
+
+      <div class="report-actions hidden-print">
+        <button class="btn-primary" id="print-report">Print / Save PDF</button>
+        <a class="btn" href="#/ai/premade">Back</a>
+      </div>
+    </section>
+  `;
+
+  document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
+}
+
+/* =========================
+   Reports — Grain Bag Report
+   Group by Location; subtotals + grand total
+   ========================= */
+function viewReportsPremadeGrainBags(){
+  const bags = __r_loadBags();
+  const byLoc = {};
+  for (const b of bags) {
+    const loc = b.location || 'Unspecified';
+    (byLoc[loc] ||= []).push(b);
+  }
+
+  let grandTotal = 0;
+  const sections = Object.keys(byLoc).sort().map(loc=>{
+    const rows = byLoc[loc].map(b=>{
+      grandTotal += Number(b.bushels||0);
+      return `<tr>
+        <td>${__r_html(b.date||'')}</td>
+        <td>${__r_html(b.crop||'')}</td>
+        <td class="num">${__r_fmt(b.bushels||0)}</td>
+        <td>${__r_html(b.notes||'')}</td>
+      </tr>`;
+    }).join('');
+
+    const locTotal = byLoc[loc].reduce((s,x)=>s+Number(x.bushels||0),0);
+    return `
+      <h3 class="section-head">${__r_html(loc)}</h3>
+      <table class="report-table compact">
+        <thead><tr><th>Date</th><th>Crop</th><th class="num">Est. Bu</th><th>Notes</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="2" class="num">Subtotal</td><td class="num">${__r_fmt(locTotal)}</td><td></td></tr></tfoot>
+      </table>
+    `;
+  }).join('') || `<p class="muted">No grain bags recorded yet.</p>`;
+
+  app.innerHTML = `
+    <section class="report-page">
+      <header class="report-head">
+        <div class="head-left">
+          <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+          <div class="org">
+            <div class="org-name">Dowson Farms</div>
+            <div class="org-sub">Pre-Made Report</div>
+          </div>
+        </div>
+        <div class="head-right">
+          <div class="r-title">Grain Bag Report</div>
+          <div class="r-date">${__r_todayPretty()}</div>
+        </div>
+      </header>
+
+      <div class="report-body watermark">
+        ${sections}
+        ${bags.length ? `
+          <div class="grand-total">
+            <div><strong>Grand Total (Est. Bushels):</strong> ${__r_fmt(grandTotal)}</div>
+            <div class="muted small">Average moisture: (tracking to be added)</div>
+          </div>
+        `:''}
+      </div>
+
+      <footer class="report-foot">
+        <div>${__r_ver()}</div>
+        <div class="page-num">Page 1</div>
+      </footer>
+
+      <div class="report-actions hidden-print">
+        <button class="btn-primary" id="print-report">Print / Save PDF</button>
+        <a class="btn" href="#/ai/premade">Back</a>
+      </div>
+    </section>
+  `;
+
+  document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
+}
+
+/* =========================
+   Reports — Placeholders
+   ========================= */
+function viewReportsAI(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>🤖 AI Reports</h1>
+      <p class="muted">🚧 Coming soon.</p>
+      <a class="btn" href="#/ai">Back to Reports</a>
+    </section>
+  `;
+}
+function viewReportsYield(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>📊 Yield Report</h1>
+      <p class="muted">🚧 Coming soon.</p>
+      <a class="btn" href="#/ai">Back to Reports</a>
+    </section>
+  `;
+}
+
+/* ============================================================================
+   app.js — PART 7 of N (v11.0.0)
+   Settings + Feedback
+   - Settings Hub
+   - Crop Types (archive / unarchive / delete / add)
+   - Theme (Auto / Light / Dark)
+   - Feedback Hub
+   - Report Errors (save to localStorage)
+   - New Feature Request (save to localStorage)
+   Notes:
+     • Relies on Part 1 utilities: app, tile, fmtCommas, capTitle, displayVersion.
+     • Uses localStorage keys:
+         - df_crops            (array of {name, archived})
+         - df_feedback         (array of feedback entries)
+   ========================================================================== */
+
+/* ---------- Safe helpers (reuse if already defined) ---------- */
+const __s_html = (s)=>String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
+const __s_capTitle = (s)=> (typeof capTitle==='function' ? capTitle(s) : String(s||'').trim().split(/\s+/).map(w=>w? w[0].toUpperCase()+w.slice(1).toLowerCase() : '').join(' '));
+const __s_user = ()=>{ try { return (localStorage.getItem('df_user')||'').trim(); } catch { return ''; } };
+
+/* ============================================================================
+   SETTINGS
+   ========================================================================== */
+
+function viewSettingsHome(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🌱','Crop Type','#/settings/crops')}
+      ${tile('🌓','Theme','#/settings/theme')}
+      ${tile('🏠','Farms','#/settings/farms')}
+      ${tile('🗺️','Fields','#/settings/fields')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+/* --- Crops storage helpers --- */
+const CROPS_KEY = 'df_crops';
+function __s_migrateCropsShape(arr){
+  if (!Array.isArray(arr)) return [];
+  if (arr.length && typeof arr[0]==='string') return arr.map(n=>({name:n, archived:false}));
+  return arr.map(o=>({ name:String(o?.name||'').trim(), archived: !!o?.archived }));
+}
+function __s_loadCrops(){
+  try{
+    const raw = localStorage.getItem(CROPS_KEY);
+    if (!raw) return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+    const arr = __s_migrateCropsShape(JSON.parse(raw));
+    return arr.length ? arr : [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+  }catch{
+    return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+  }
+}
+function __s_saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
+function __s_isCropInUse(/*name*/){ return false; /* placeholder for future cross-checks */ }
+
+function viewSettingsCrops(){
+  const crops = __s_loadCrops();
+  const items = crops.map((o,i)=>{
+    const status = o.archived ? '<span class="chip chip-archived" title="Archived">Archived</span>' : '';
+    const actions = o.archived
+      ? `<button class="btn" data-unarchive="${i}">Unarchive</button> <button class="btn" data-delete="${i}">Delete</button>`
+      : `<button class="btn" data-archive="${i}">Archive</button> <button class="btn" data-delete="${i}">Delete</button>`;
+    return `<li class="crop-row ${(o.archived?'is-archived':'')}">
+      <div class="crop-info"><span class="chip">${__s_html(o.name)}</span> ${status}</div>
+      <div class="crop-actions">${actions}</div>
+    </li>`;
+  }).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>Crop Type</h1>
+      <p class="muted">Archive crops that are in use to preserve history. Delete only if unused.</p>
+      <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
+
+      <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+        <input id="new-crop" type="text" placeholder="e.g., Wheat">
+        <button id="add-crop" class="btn-primary">➕ Add</button>
+      </div>
+
+      <a class="btn" href="#/settings">Back to Settings</a>
+    </section>
+  `;
+
+  const addBtn = document.getElementById('add-crop');
+  const input  = document.getElementById('new-crop');
+  const listEl = app.querySelector('.crop-list');
+
+  addBtn?.addEventListener('click', ()=>{
+    const name = __s_capTitle(input.value||'');
+    if (!name) return;
+    const cs = __s_loadCrops();
+    if (cs.some(c=>c.name.toLowerCase()===name.toLowerCase())){ input.value=''; return; }
+    cs.push({name, archived:false});
+    __s_saveCrops(cs);
+    viewSettingsCrops();
+  });
+  input?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addBtn?.click(); } });
+
+  listEl?.addEventListener('click', e=>{
+    const btn = e.target.closest?.('button'); if (!btn) return;
+    const cs = __s_loadCrops();
+
+    if (btn.hasAttribute('data-archive')){
+      const i = +btn.getAttribute('data-archive');
+      if (cs[i]){ cs[i].archived = true; __s_saveCrops(cs); viewSettingsCrops(); }
+    }
+    else if (btn.hasAttribute('data-unarchive')){
+      const j = +btn.getAttribute('data-unarchive');
+      if (cs[j]){ cs[j].archived = false; __s_saveCrops(cs); viewSettingsCrops(); }
+    }
+    else if (btn.hasAttribute('data-delete')){
+      const k = +btn.getAttribute('data-delete');
+      if (!cs[k]) return;
+      const nm = cs[k].name;
+      if (__s_isCropInUse(nm)){ alert(`“${nm}” is used in your data. Archive instead.`); return; }
+      if (!confirm(`Delete “${nm}”? This cannot be undone.`)) return;
+      cs.splice(k,1);
+      __s_saveCrops(cs);
+      viewSettingsCrops();
+    }
+  });
+}
+
+function viewSettingsTheme(){
+  const KEY='df_theme';
+  const current = (localStorage.getItem(KEY) || 'auto');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>Theme</h1>
+      <div class="field">
+        <label style="font-weight:600;margin-bottom:6px;">Appearance</label>
+        <div class="theme-list">
+          <label class="theme-item"><input type="radio" name="theme" value="auto" ${current==='auto'?'checked':''}> <span>Auto (follow device)</span></label>
+          <label class="theme-item"><input type="radio" name="theme" value="light" ${current==='light'?'checked':''}> <span>Light</span></label>
+          <label class="theme-item"><input type="radio" name="theme" value="dark" ${current==='dark'?'checked':''}> <span>Dark</span></label>
+        </div>
+      </div>
+      <div class="section"><a class="btn" href="#/settings">Back to Settings</a></div>
+    </section>
+  `;
+
+  app.querySelectorAll('input[name="theme"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      localStorage.setItem(KEY, r.value);
+      document.documentElement.setAttribute('data-theme', r.value);
+    });
+  });
+}
+
+/* ============================================================================
+   FEEDBACK
+   ========================================================================== */
+
+function viewFeedbackHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🛠️','Report Errors','#/feedback/errors')}
+      ${tile('💡','New Feature Request','#/feedback/feature')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+function __s_saveFeedback(entry){
+  try{
+    const key='df_feedback';
+    const list = JSON.parse(localStorage.getItem(key)||'[]');
+    list.push(entry);
+    localStorage.setItem(key, JSON.stringify(list));
+  }catch{}
+}
+
+/* Report Errors */
+function viewFeedbackErrors(){
+  const today = new Date().toISOString().slice(0,10);
+  const user  = __s_user();
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>🛠️ Report Errors</h1>
+
+      <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+      <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
+      <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
+      <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${__s_html(user)}"></div>
+
+      <button id="err-submit" class="btn-primary">Submit</button>
+      <a class="btn" href="#/feedback">Back to Feedback</a>
+    </section>
+  `;
+
+  document.getElementById('err-submit')?.addEventListener('click', ()=>{
+    const date    = String(document.getElementById('err-date').value||'').trim();
+    const subject = String(document.getElementById('err-subj').value||'').trim();
+    const details = String(document.getElementById('err-desc').value||'').trim();
+    const by      = String(document.getElementById('err-by').value||'').trim();
+    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
+
+    __s_saveFeedback({ type:'error', date, subject, details, by, ts:Date.now() });
+    alert('Thanks! Your error report was saved.');
+    location.hash = '#/feedback';
+  });
+}
+
+/* New Feature Request */
+function viewFeedbackFeature(){
+  const today = new Date().toISOString().slice(0,10);
+  const user  = __s_user();
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>💡 New Feature Request</h1>
+
+      <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+      <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
+      <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
+      <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${__s_html(user)}"></div>
+
+      <button id="feat-submit" class="btn-primary">Submit</button>
+      <a class="btn" href="#/feedback">Back to Feedback</a>
+    </section>
+  `;
+
+  document.getElementById('feat-submit')?.addEventListener('click', ()=>{
+    const date    = String(document.getElementById('feat-date').value||'').trim();
+    const subject = String(document.getElementById('feat-subj').value||'').trim();
+    const details = String(document.getElementById('feat-desc').value||'').trim();
+    const by      = String(document.getElementById('feat-by').value||'').trim();
+    if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
+
+    __s_saveFeedback({ type:'feature', date, subject, details, by, ts:Date.now() });
+    alert('Thanks! Your feature request was saved.');
+    location.hash = '#/feedback';
+  });
+}
+
+/* ============================================================================
+   app.js — PART 8 of N (v11.0.0)
+   Reports
+   - Reports Hub
+   - Pre-made Reports hub
+   - Feedback Summary report (printable)
+   - Grain Bag report (group by location, subtotals, grand total; printable)
+   - AI Reports (placeholder)
+   - Yield Report (placeholder)
+   Notes:
+     • Relies on Part 1 utilities: app, tile, fmtCommas, prettyDate, displayVersion.
+     • Storage keys used:
+         - df_feedback      (array of feedback entries)
+         - df_grain_bags    (array of grain bag entries)  ← fallback loader included
+   ========================================================================== */
+
+/* ---------- Small safe helpers ---------- */
+const __r_html = (s)=>String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
+const __r_arr  = (x)=> Array.isArray(x) ? x : [];
+const __r_todayStr = ()=> new Date().toISOString().slice(0,10);
+
+/* Robust bags loader (uses existing global if present) */
+function __r_loadBags(){
+  if (typeof window.loadBags === 'function') return window.loadBags();
+  try { return JSON.parse(localStorage.getItem('df_grain_bags') || '[]'); } catch { return []; }
+}
+
+/* ---------- Reports Hub ---------- */
+function viewReportsHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('📄','Pre-made Reports','#/ai/premade')}
+      ${tile('🤖','AI Reports','#/ai/ai')}
+      ${tile('📊','Yield Report','#/ai/yield')}
+    </div>
+
+    <section class="section" style="margin-top:12px;">
+      <h2>🔮 Future</h2>
+      <p class="muted">ChatGPT integration to generate &amp; save custom reports is planned.</p>
+    </section>
+
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+/* ---------- Pre-made Reports Hub ---------- */
+function viewReportsPremade(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
+      ${tile('🧺','Grain Bag Report','#/ai/premade/grain-bags')}
+    </div>
+    <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
+  `;
+}
+
+/* ---------- Feedback Summary (printable) ---------- */
+function viewReportsPremadeFeedback(){
+  const items = (function(){
+    try { return __r_arr(JSON.parse(localStorage.getItem('df_feedback') || '[]')); }
+    catch { return []; }
+  })().sort((a,b)=> (a.ts||0)-(b.ts||0));
+
+  const rows = items.map((it,i)=>{
+    const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
+    const kind = it.type==='feature' ? 'Feature' : 'Error';
+    const subj = __r_html(it.subject||'');
+    const dets = __r_html((it.details||'')).replace(/\n/g,'<br>');
+    const by   = __r_html(it.by||'');
+    const main = __r_html(it.main||'');
+    const sub  = __r_html(it.sub||'');
+    const cat  = __r_html(it.category||'');
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${when}</td>
+      <td>${kind}</td>
+      <td>${main}</td>
+      <td>${sub}</td>
+      <td>${cat}</td>
+      <td>${subj}</td>
+      <td>${dets}</td>
+      <td>${by}</td>
+    </tr>`;
+  }).join('');
+
+  app.innerHTML = `
+    <section class="report-page">
+      <header class="report-head">
+        <div class="head-left">
+          <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+          <div class="org">
+            <div class="org-name">Dowson Farms</div>
+            <div class="org-sub">Pre-Made Report</div>
+          </div>
+        </div>
+        <div class="head-right">
+          <div class="r-title">Feedback Summary</div>
+          <div class="r-date">${prettyDate(new Date())}</div>
+        </div>
+      </header>
+
+      <div class="report-body watermark">
+        ${items.length ? `
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>#</th><th>When</th><th>Type</th>
+              <th>Main</th><th>Sub</th><th>Category</th>
+              <th>Subject</th><th>Details</th><th>Submitted By</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>` : `<p class="muted">No feedback saved yet.</p>`}
+      </div>
+
+      <footer class="report-foot">
+        <div>${displayVersion('v11.0.0')}</div>
+        <div class="page-num">Page 1</div>
+      </footer>
+
+      <div class="report-actions hidden-print">
+        <button class="btn-primary" id="print-report">Print / Save PDF</button>
+        <a class="btn" href="#/ai/premade">Back</a>
+      </div>
+    </section>
+  `;
+  document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
+}
+
+/* ---------- Grain Bag Report (grouped + totals, printable) ---------- */
+function viewReportsPremadeGrainBags(){
+  const bags = __r_loadBags();
+  const byLoc = {};
+  for (const b of bags) {
+    const loc = b.location || 'Unspecified';
+    (byLoc[loc] ||= []).push(b);
+  }
+
+  let grandTotal = 0;
+  const sections = Object.keys(byLoc).sort().map(loc=>{
+    const rows = byLoc[loc].map(b=>{
+      const bu = Number(b.bushels||0);
+      grandTotal += bu;
+      return `<tr>
+        <td>${__r_html(b.date||'')}</td>
+        <td>${__r_html(b.crop||'')}</td>
+        <td class="num">${fmtCommas(bu, {decimals:0})}</td>
+        <td>${__r_html(b.notes||'')}</td>
+      </tr>`;
+    }).join('');
+
+    const locTotal = byLoc[loc].reduce((s,x)=>s+Number(x.bushels||0),0);
+    return `
+      <h3 class="section-head">${__r_html(loc)}</h3>
+      <table class="report-table compact">
+        <thead><tr><th>Date</th><th>Crop</th><th class="num">Est. Bu</th><th>Notes</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="2" class="num">Subtotal</td><td class="num">${fmtCommas(locTotal,{decimals:0})}</td><td></td></tr></tfoot>
+      </table>
+    `;
+  }).join('') || `<p class="muted">No grain bags recorded yet.</p>`;
+
+  app.innerHTML = `
+    <section class="report-page">
+      <header class="report-head">
+        <div class="head-left">
+          <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+          <div class="org">
+            <div class="org-name">Dowson Farms</div>
+            <div class="org-sub">Pre-Made Report</div>
+          </div>
+        </div>
+        <div class="head-right">
+          <div class="r-title">Grain Bag Report</div>
+          <div class="r-date">${prettyDate(new Date())}</div>
+        </div>
+      </header>
+
+      <div class="report-body watermark">
+        ${sections}
+        ${bags.length ? `
+          <div class="grand-total">
+            <div><strong>Grand Total (Est. Bushels):</strong> ${fmtCommas(grandTotal,{decimals:0})}</div>
+            <div class="muted small">Average moisture: (tracking to be added)</div>
+          </div>
+        `:''}
+      </div>
+
+      <footer class="report-foot">
+        <div>${displayVersion('v11.0.0')}</div>
+        <div class="page-num">Page 1</div>
+      </footer>
+
+      <div class="report-actions hidden-print">
+        <button class="btn-primary" id="print-report">Print / Save PDF</button>
+        <a class="btn" href="#/ai/premade">Back</a>
+      </div>
+    </section>
+  `;
+  document.getElementById('print-report')?.addEventListener('click', ()=>window.print());
+}
+
+/* ---------- AI Reports (placeholder) ---------- */
+function viewReportsAI(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>🤖 AI Reports</h1>
+      <p class="muted">🚧 Coming soon.</p>
+      <a class="btn" href="#/ai">Back to Reports</a>
+    </section>
+  `;
+}
+
+/* ---------- Yield Report (placeholder) ---------- */
+function viewReportsYield(){
+  app.innerHTML = `
+    <section class="section">
+      <h1>📊 Yield Report</h1>
+      <p class="muted">🚧 Coming soon.</p>
+      <a class="btn" href="#/ai">Back to Reports</a>
+    </section>
+  `;
+}
+
+/* ============================================================================
+   app.js — PART 9 of N (v11.0.0)
+   Feedback
+   - Storage helpers
+   - Feedback Hub
+   - Shared dropdown header (Main/Sub/Category) with simple dependency
+   - Report Errors form
+   - New Feature Request form
+   Notes:
+     • Relies on Part 1 utilities: app, tile, prettyDate, displayVersion.
+     • Integrates with Reports (Part 8) which expects main/sub/category fields.
+     • Storage key: df_feedback
+   ========================================================================== */
+
+/* ---------- Storage helpers ---------- */
+function loadFeedback(){
+  try { return JSON.parse(localStorage.getItem('df_feedback') || '[]'); }
+  catch { return []; }
+}
+function saveFeedback(entry){
+  try{
+    const list = loadFeedback();
+    list.push(entry);
+    localStorage.setItem('df_feedback', JSON.stringify(list));
+  }catch{}
+}
+
+/* ---------- Feedback Hub ---------- */
+function viewFeedbackHub(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🛠️','Report Errors','#/feedback/errors')}
+      ${tile('💡','New Feature Request','#/feedback/feature')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+/* ---------- Shared dropdown header (Main/Sub/Category) ---------- */
+/* Uses app menu structure so users can target areas precisely */
+const FB_MAIN_TO_SUB = {
+  'Crop Production': ['Planting','Spraying','Aerial Spray','Harvest','Field Maintenance','Scouting','Trials'],
+  'Calculator': ['Fertilizer','Bin Volume','Area','Combine Yield','Chemical Mix'],
+  'Equipment': ['StarFire / Technology','Tractors','Combines','Sprayer / Fertilizer Spreader','Construction Equipment','Trucks','Trailers','Farm Implements'],
+  'Grain Tracking': ['Grain Bag','Grain Bins','Grain Contracts','Grain Ticket OCR'],
+  'Team & Partners': ['Employees','Subcontractors','Vendors','Directory'],
+  'Reports': ['Pre-made Reports','Feedback Summary','Grain Bag Report','AI Reports','Yield Report'],
+  'Settings': ['Crop Type','Theme','Farms','Fields'],
+  'Feedback': ['Report Errors','New Feature Request']
+};
+const FB_CATEGORIES = ['Bug / Error','New Feature','UI / Design'];
+
+function feedbackDropdownHeader(title){
+  return `
+    <section class="section">
+      <h1>${title}</h1>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <label><span class="small muted">Main Menu *</span>
+          <select id="fb-main">
+            <option value="">— Choose —</option>
+            ${Object.keys(FB_MAIN_TO_SUB).map(m=>`<option>${m}</option>`).join('')}
+          </select>
+        </label>
+        <label><span class="small muted">Sub Menu *</span>
+          <select id="fb-sub">
+            <option value="">— Choose —</option>
+          </select>
+        </label>
+        <label><span class="small muted">Category *</span>
+          <select id="fb-cat">
+            <option value="">— Choose —</option>
+            ${FB_CATEGORIES.map(c=>`<option>${c}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+  `;
+}
+function wireFeedbackCascade(){
+  const mainSel = document.getElementById('fb-main');
+  const subSel  = document.getElementById('fb-sub');
+  if (!mainSel || !subSel) return;
+  const fill = ()=>{
+    const subs = FB_MAIN_TO_SUB[mainSel.value] || [];
+    const keep = subSel.value;
+    subSel.innerHTML = `<option value="">— Choose —</option>` + subs.map(s=>`<option>${s}</option>`).join('');
+    if ([...subSel.options].some(o=>o.value===keep)) subSel.value = keep;
   };
+  mainSel.addEventListener('change', fill);
+  fill();
+}
 
-  // =========================================================
-  // 2) Crop Year dropdown on Crop hub (per-user)
-  //    Allowed years: 2024 .. currentYear+1
-  // =========================================================
-  (function cropYearDropdown(){
-    if (window.__DF_PATCH_10147_CROPYEAR__) return;
-    window.__DF_PATCH_10147_CROPYEAR__ = true;
+/* ---------- Report Errors form ---------- */
+function viewFeedbackErrors(){
+  const today = new Date().toISOString().slice(0,10);
+  const user  = (localStorage.getItem('df_user')||'').trim();
 
-    const NOW = new Date();
-    const CUR = NOW.getFullYear();
-    const MIN = 2024;
-    const MAX = CUR + 1;
-    const YEARS_KEY = 'df_crop_years';
-    const selKey = () => `df_crop_year_selected::${userEmailSafe()||'anon'}`;
+  app.innerHTML = feedbackDropdownHeader('🛠️ Report Errors') + `
+    <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+    <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
+    <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
+    <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${user}"></div>
+    <button id="err-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+  </section>
+  `;
 
-    function clampYear(y){
-      const n = Number(y);
-      if (!Number.isFinite(n)) return null;
-      if (n < MIN || n > MAX) return null;
-      return n|0;
+  wireFeedbackCascade();
+
+  document.getElementById('err-submit')?.addEventListener('click', ()=>{
+    const date   = String(document.getElementById('err-date').value||'').trim();
+    const subject= String(document.getElementById('err-subj').value||'').trim();
+    const details= String(document.getElementById('err-desc').value||'').trim();
+    const by     = String(document.getElementById('err-by').value||'').trim();
+    const main   = String(document.getElementById('fb-main').value||'').trim();
+    const sub    = String(document.getElementById('fb-sub').value||'').trim();
+    const cat    = String(document.getElementById('fb-cat').value||'').trim();
+
+    if (!date || !subject || !details || !main || !sub || !cat) {
+      alert('Please fill all required fields.'); return;
     }
-    function loadJSON(k, fb){ try{ const raw=localStorage.getItem(k); return raw?JSON.parse(raw):fb; }catch{ return fb; } }
-    function saveJSON(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
-    function seedYears(){
-      let arr = loadJSON(YEARS_KEY, null);
-      if (!Array.isArray(arr) || !arr.length){
-        arr = []; for (let y=MIN; y<=Math.min(CUR,MAX); y++) arr.push(y);
-        saveJSON(YEARS_KEY, arr);
+    saveFeedback({ type:'error', date, subject, details, by, main, sub, category:cat, ts:Date.now() });
+    alert('Thanks! Your error report was saved.');
+    location.hash = '#/feedback';
+  });
+}
+
+/* ---------- New Feature Request form ---------- */
+function viewFeedbackFeature(){
+  const today = new Date().toISOString().slice(0,10);
+  const user  = (localStorage.getItem('df_user')||'').trim();
+
+  app.innerHTML = feedbackDropdownHeader('💡 New Feature Request') + `
+    <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+    <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
+    <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
+    <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${user}"></div>
+    <button id="feat-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+  </section>
+  `;
+
+  wireFeedbackCascade();
+
+  // Optional guard: on this form, category “Bug / Error” is less relevant; keep behavior consistent
+  // (We show all options so it mirrors current UI and report columns.)
+
+  document.getElementById('feat-submit')?.addEventListener('click', ()=>{
+    const date   = String(document.getElementById('feat-date').value||'').trim();
+    const subject= String(document.getElementById('feat-subj').value||'').trim();
+    const details= String(document.getElementById('feat-desc').value||'').trim();
+    const by     = String(document.getElementById('feat-by').value||'').trim();
+    const main   = String(document.getElementById('fb-main').value||'').trim();
+    const sub    = String(document.getElementById('fb-sub').value||'').trim();
+    const cat    = String(document.getElementById('fb-cat').value||'').trim();
+
+    if (!date || !subject || !details || !main || !sub || !cat) {
+      alert('Please fill all required fields.'); return;
+    }
+    saveFeedback({ type:'feature', date, subject, details, by, main, sub, category:cat, ts:Date.now() });
+    alert('Thanks! Your feature request was saved.');
+    location.hash = '#/feedback';
+  });
+}
+
+/* ============================================================================
+   app.js — PART 10 of 10 (v11.0.0)
+   Settings + Theme + Crops + Farms & Fields (management screens)
+   - Settings Home (tiles)
+   - Crops CRUD (archive/delete guards)
+   - Theme (Auto / Light / Dark) with instant apply
+   - Farms & Fields CRUD (localStorage) + basic rules
+   Notes:
+     • Relies on Part 1 utilities (tile, fmtCommas, capTitle, migrate helpers).
+     • Uses LABELS map from Part 1 for breadcrumb text.
+     • Storage keys:
+         CROPS_KEY      = 'df_crops'
+         FARMS_KEY      = 'df_farms'
+         FIELDS_KEY     = 'df_fields2'
+   ========================================================================== */
+
+/* ---------- Settings Home ---------- */
+function viewSettingsHome(){
+  app.innerHTML = `
+    <div class="grid">
+      ${tile('🌱','Crop Type','#/settings/crops')}
+      ${tile('🌓','Theme','#/settings/theme')}
+      ${tile('🏠','Farms','#/settings/farms')}
+      ${tile('🗺️','Fields','#/settings/fields')}
+    </div>
+    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+  `;
+}
+
+/* ============================================================================
+   CROPS (archive-first model)
+   ========================================================================== */
+const CROPS_KEY = 'df_crops';
+
+function migrateCropsShape(arr){
+  if(!Array.isArray(arr)) return [];
+  if(arr.length && typeof arr[0] === 'string'){
+    return arr.map(n => ({ name:n, archived:false }));
+  }
+  return arr.map(o => ({ name:String(o.name||'').trim(), archived:!!o.archived }));
+}
+function loadCrops(){
+  try{
+    const raw = localStorage.getItem(CROPS_KEY);
+    if(!raw) return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+    const arr = JSON.parse(raw);
+    const norm = migrateCropsShape(arr);
+    return norm.length ? norm : [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+  }catch{
+    return [{name:'Corn',archived:false},{name:'Soybeans',archived:false}];
+  }
+}
+function saveCrops(list){ try{ localStorage.setItem(CROPS_KEY, JSON.stringify(list)); }catch{} }
+/* placeholder – wire to data usage checks when needed */
+function isCropInUse(name){ return false; }
+
+function viewSettingsCrops(){
+  const crops = loadCrops();
+  const items = crops.map((o,i)=>{
+    const status = o.archived ? '<span class="chip chip-archived" title="Archived">Archived</span>' : '';
+    const actions = o.archived
+      ? `<button class="btn" data-unarchive="${i}">Unarchive</button> <button class="btn" data-delete="${i}">Delete</button>`
+      : `<button class="btn" data-archive="${i}">Archive</button> <button class="btn" data-delete="${i}">Delete</button>`;
+    return `
+      <li class="crop-row ${o.archived?'is-archived':''}">
+        <div class="crop-info"><span class="chip">${o.name}</span> ${status}</div>
+        <div class="crop-actions">${actions}</div>
+      </li>`;
+  }).join('');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>Crop Type</h1>
+      <p class="muted">Archive crops that are in use to preserve history. Delete only if unused.</p>
+      <ul class="crop-list">${items || '<li class="muted">No crops yet.</li>'}</ul>
+      <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+        <input id="new-crop" type="text" placeholder="e.g., Wheat">
+        <button id="add-crop" class="btn-primary">➕ Add</button>
+      </div>
+      <a class="btn" href="#/settings">Back to Settings</a>
+    </section>
+  `;
+
+  const addBtn = document.getElementById('add-crop');
+  const input  = document.getElementById('new-crop');
+  const listEl = app.querySelector('.crop-list');
+
+  addBtn?.addEventListener('click', ()=>{
+    const name = String(input.value||'').trim();
+    if (!name) return;
+    const cs = loadCrops();
+    if (cs.some(c=>c.name.toLowerCase()===name.toLowerCase())){ input.value=''; return; }
+    cs.push({name:capTitle(name), archived:false});
+    saveCrops(cs); viewSettingsCrops();
+  });
+  input?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addBtn?.click(); } });
+
+  listEl?.addEventListener('click', e=>{
+    const btn = e.target.closest?.('button'); if(!btn) return;
+    const cs = loadCrops();
+    if(btn.hasAttribute('data-archive')){
+      const i=+btn.getAttribute('data-archive'); if(cs[i]){ cs[i].archived=true; saveCrops(cs); viewSettingsCrops(); }
+    } else if(btn.hasAttribute('data-unarchive')){
+      const j=+btn.getAttribute('data-unarchive'); if(cs[j]){ cs[j].archived=false; saveCrops(cs); viewSettingsCrops(); }
+    } else if(btn.hasAttribute('data-delete')){
+      const k=+btn.getAttribute('data-delete'); if(!cs[k]) return; const nm=cs[k].name;
+      if(isCropInUse(nm)){ alert(`“${nm}” is used in your data. Archive instead.`); return; }
+      if(!confirm(`Delete “${nm}”? This cannot be undone.`)) return;
+      cs.splice(k,1); saveCrops(cs); viewSettingsCrops();
+    }
+  });
+}
+
+/* ============================================================================
+   THEME (Auto / Light / Dark)
+   ========================================================================== */
+function viewSettingsTheme(){
+  const KEY='df_theme';
+  const current = (localStorage.getItem(KEY) || 'auto');
+
+  app.innerHTML = `
+    <section class="section">
+      <h1>Theme</h1>
+      <div class="field">
+        <label style="font-weight:600;margin-bottom:6px;">Appearance</label>
+        <div class="seg" id="theme-seg" style="display:inline-flex;border:1px solid rgba(0,0,0,.2);border-radius:10px;overflow:hidden;">
+          <button type="button" class="${current==='auto'?'active':''}"  data-val="auto">Auto</button>
+          <button type="button" class="${current==='light'?'active':''}" data-val="light">Light</button>
+          <button type="button" class="${current==='dark'?'active':''}"  data-val="dark">Dark</button>
+        </div>
+      </div>
+      <div class="section"><a class="btn" href="#/settings">Back to Settings</a></div>
+    </section>
+  `;
+
+  document.getElementById('theme-seg')?.addEventListener('click', (e)=>{
+    const b = e.target.closest('button[data-val]'); if(!b) return;
+    const v = b.getAttribute('data-val');
+    try{ localStorage.setItem(KEY, v); }catch{}
+    document.documentElement.setAttribute('data-theme', v);
+    Array.from(document.querySelectorAll('#theme-seg button')).forEach(x=>x.classList.toggle('active', x===b));
+  });
+}
+
+/* ============================================================================
+   FARMS & FIELDS (Settings)
+   ========================================================================== */
+const FARMS_KEY  = 'df_farms';
+const FIELDS_KEY = 'df_fields2';
+
+function loadJSON(k,fb=[]) { try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(fb)); } catch { return fb; } }
+function saveJSON(k,v)     { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function cryptoId(){
+  try{ return crypto.getRandomValues(new Uint32Array(2))[0].toString(36)+Date.now().toString(36); }
+  catch{ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+}
+
+/* ---------- Farms ---------- */
+function viewSettingsFarms(){
+  const appEl = app;
+  let farms = loadJSON(FARMS_KEY, []);
+  farms.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), undefined, {sensitivity:'base'}));
+
+  const rows = farms.map((f,i)=>{
+    const arch = f.archived ? '<span class="chip chip-archived">Archived</span>' : '';
+    const actions = f.archived
+      ? `<button class="btn" data-act="unarchive" data-i="${i}">Unarchive</button>
+         <button class="btn" data-act="delete" data-i="${i}">Delete</button>`
+      : `<button class="btn" data-act="edit" data-i="${i}">Edit</button>
+         <button class="btn" data-act="archive" data-i="${i}">Archive</button>
+         <button class="btn" data-act="delete" data-i="${i}">Delete</button>`;
+    return `<li class="crop-row ${f.archived?'is-archived':''}">
+      <div class="crop-info"><span class="chip">${(f.name||'')}</span> ${arch}</div>
+      <div class="crop-actions">${actions}</div>
+    </li>`;
+  }).join('');
+
+  appEl.innerHTML = `
+    <section class="section">
+      <h1>🏠 Farms</h1>
+      <p class="muted">Manage farm names. Can’t delete if fields still assigned.</p>
+      <ul class="crop-list">${rows || '<li class="muted">No farms yet.</li>'}</ul>
+      <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+        <input id="farm-name" type="text" placeholder="e.g., Home Farm">
+        <button id="farm-add" class="btn-primary">➕ Add</button>
+      </div>
+      <a class="btn" href="#/settings">Back to Settings</a>
+    </section>
+  `;
+
+  document.getElementById('farm-add')?.addEventListener('click', ()=>{
+    const name = String(document.getElementById('farm-name').value||'').trim();
+    if (!name) return;
+    if (farms.some(f=>String(f.name).toLowerCase()===name.toLowerCase())){ alert('That farm name already exists.'); return; }
+    farms.push({id: cryptoId(), name: capTitle(name), archived:false});
+    saveJSON(FARMS_KEY, farms); viewSettingsFarms();
+  });
+
+  appEl.querySelector('.crop-list')?.addEventListener('click', (e)=>{
+    const btn=e.target.closest('button'); if (!btn) return;
+    const i = Number(btn.getAttribute('data-i')); if (!farms[i]) return;
+    const act = btn.getAttribute('data-act');
+    if (act==='edit'){
+      const nn = prompt('Rename farm:', farms[i].name||''); if (!nn) return;
+      if (farms.some((f,ix)=>ix!==i && String(f.name).toLowerCase()===nn.toLowerCase())){ alert('Another farm already uses that name.'); return; }
+      farms[i].name = capTitle(nn.trim());
+    } else if (act==='archive'){ farms[i].archived = true; }
+    else if (act==='unarchive'){ farms[i].archived = false; }
+    else if (act==='delete'){
+      const used = loadJSON(FIELDS_KEY, []).some(fl=>fl.farmId === farms[i].id);
+      if (used){ alert('This farm has fields assigned. Archive instead, or move/delete fields first.'); return; }
+      if (!confirm(`Delete “${farms[i].name}”? This cannot be undone.`)) return;
+      farms.splice(i,1);
+    }
+    saveJSON(FARMS_KEY, farms); viewSettingsFarms();
+  });
+}
+
+/* ---------- Fields ---------- */
+function viewSettingsFields(){
+  const appEl = app;
+  const farms = loadJSON(FARMS_KEY, []).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), undefined, {sensitivity:'base'}));
+  let fields = loadJSON(FIELDS_KEY, []);
+
+  const farmOpts = farms.map(f=>`<option value="${f.id}">${(f.name||'')}</option>`).join('');
+  fields.sort((a,b)=>{
+    const fa = farms.find(f=>f.id===a.farmId)?.name||'';
+    const fb = farms.find(f=>f.id===b.farmId)?.name||'';
+    const n = fa.localeCompare(fb,undefined,{sensitivity:'base'});
+    return n || String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'});
+  });
+
+  const rows = fields.map((fl,i)=>{
+    const farmName = farms.find(f=>f.id===fl.farmId)?.name || '(Unknown)';
+    const arch = fl.archived ? '<span class="chip chip-archived">Archived</span>' : '';
+    const actions = fl.archived
+      ? `<button class="btn" data-act="unarchive" data-i="${i}">Unarchive</button>
+         <button class="btn" data-act="delete" data-i="${i}">Delete</button>`
+      : `<button class="btn" data-act="edit" data-i="${i}">Edit</button>
+         <button class="btn" data-act="archive" data-i="${i}">Archive</button>
+         <button class="btn" data-act="delete" data-i="${i}">Delete</button>`;
+    const badges = [];
+    if (fl.crp?.yes) badges.push(`CRP ${fl.crp.acres||0} ac`);
+    if (fl.hel?.yes) badges.push(`HEL ${fl.hel.acres||0} ac`);
+    return `<li class="crop-row ${fl.archived?'is-archived':''}">
+      <div class="crop-info"><span class="chip">${(fl.name||'')}</span> ${arch}</div>
+      <div class="crop-actions small">${(farmName||'')}</div>
+      <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">
+        <div class="small muted">Tillable: ${fmtCommas(fl.tillable||0)} ac${badges.length?` • ${badges.join(' • ')}`:''}</div>
+      </div>
+      <div class="crop-actions">${actions}</div>
+    </li>`;
+  }).join('');
+
+  appEl.innerHTML = `
+    <section class="section">
+      <h1>🗺️ Fields</h1>
+      <p class="muted">Each field belongs to a farm. Enter tillable acres, optional CRP and HEL details.</p>
+      <ul class="crop-list">${rows || '<li class="muted">No fields yet.</li>'}</ul>
+
+      <h3 style="margin-top:14px;">Add Field</h3>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <label><span class="small muted">Farm *</span><select id="fld-farm">${farmOpts}</select></label>
+        <label><span class="small muted">Field Name *</span><input id="fld-name" type="text" placeholder="e.g., North 80"></label>
+      </div>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <label><span class="small muted">Tillable Acres *</span><input id="fld-till" type="number" step="any" min="0.01" placeholder="e.g., 79.5"></label>
+        <label><span class="small muted">CRP?</span><select id="fld-crp-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select></label>
+        <label><span class="small muted">CRP Acres</span><input id="fld-crp-ac" type="number" step="any" min="0" placeholder="optional" disabled></label>
+      </div>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <label><span class="small muted">HEL?</span><select id="fld-hel-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select></label>
+        <label><span class="small muted">HEL Acres</span><input id="fld-hel-ac" type="number" step="any" min="0" placeholder="optional" disabled></label>
+      </div>
+      <button id="fld-add" class="btn-primary">➕ Add Field</button>
+      <a class="btn" href="#/settings">Back to Settings</a>
+    </section>
+  `;
+
+  const crpSel=document.getElementById('fld-crp-yes');
+  const crpAc =document.getElementById('fld-crp-ac');
+  const helSel=document.getElementById('fld-hel-yes');
+  const helAc =document.getElementById('fld-hel-ac');
+
+  crpSel.addEventListener('change', ()=>{ crpAc.disabled = crpSel.value!=='yes'; if (crpAc.disabled) crpAc.value=''; });
+  helSel.addEventListener('change', ()=>{ helAc.disabled = helSel.value!=='yes'; if (helAc.disabled) helAc.value=''; });
+
+  document.getElementById('fld-add')?.addEventListener('click', ()=>{
+    const farmId = document.getElementById('fld-farm').value;
+    const name   = String(document.getElementById('fld-name').value||'').trim();
+    const till   = Number(String(document.getElementById('fld-till').value||'').replace(/,/g,''));
+    const crpYes = crpSel.value==='yes';
+    const crpA   = Number(String(crpAc.value||'').replace(/,/g,''));
+    const helYes = helSel.value==='yes';
+    const helA   = Number(String(helAc.value||'').replace(/,/g,''));
+
+    if (!farmId || !name || !(till>0)){ alert('Farm, Field Name, and Tillable Acres are required.'); return; }
+    if (crpYes && !(crpA>0)){ alert('Enter CRP acres (or set CRP to No).'); return; }
+    if (helYes && !(helA>0)){ alert('Enter HEL acres (or set HEL to No).'); return; }
+    if (crpYes && crpA>till){ alert('CRP acres cannot exceed Tillable.'); return; }
+    if (helYes && helA>till){ alert('HEL acres cannot exceed Tillable.'); return; }
+
+    const list = loadJSON(FIELDS_KEY, []);
+    if (list.some(f=>f.farmId===farmId && String(f.name).toLowerCase()===name.toLowerCase())){
+      alert('A field with that name already exists in this farm.'); return;
+    }
+
+    list.push({
+      id: cryptoId(),
+      farmId, name: capTitle(name),
+      tillable: till,
+      crp: { yes: crpYes, acres: crpYes?crpA:0 },
+      hel: { yes: helYes, acres: helYes?helA:0 },
+      archived:false
+    });
+    saveJSON(FIELDS_KEY, list);
+    viewSettingsFields();
+  });
+
+  appEl.querySelector('.crop-list')?.addEventListener('click',(e)=>{
+    const btn=e.target.closest('button'); if (!btn) return;
+    const i = Number(btn.getAttribute('data-i'));
+    const act = btn.getAttribute('data-act');
+    const list = loadJSON(FIELDS_KEY, []);
+    if (!list[i]) return;
+
+    if (act==='edit'){
+      const nf = prompt('Rename field:', list[i].name||''); if (!nf) return;
+      const farmId = list[i].farmId;
+      if (list.some((f,ix)=>ix!==i && f.farmId===farmId && String(f.name).toLowerCase()===nf.toLowerCase())){
+        alert('Another field in this farm already uses that name.'); return;
       }
-      return arr;
+      list[i].name = capTitle(nf.trim());
+    } else if (act==='archive'){ list[i].archived = true; }
+    else if (act==='unarchive'){ list[i].archived = false; }
+    else if (act==='delete'){
+      if (!confirm(`Delete “${list[i].name}”? This cannot be undone.`)) return;
+      list.splice(i,1);
     }
-    function allYears(){
-      const arr = (loadJSON(YEARS_KEY, seedYears())||[])
-        .map(Number).filter(y=>clampYear(y)!==null);
-      return Array.from(new Set(arr)).sort((a,b)=>b-a);
-    }
-    function getSelected(){
-      const raw = localStorage.getItem(selKey());
-      const y = clampYear(raw);
-      if (y!==null) return y;
-      const ys = allYears();
-      return ys[0] || CUR;
-    }
-    function setSelected(y){
-      const yr = clampYear(y); if (yr===null) return false;
-      try{ localStorage.setItem(selKey(), String(yr)); }catch{}
-      return true;
-    }
-    function addYearFlow(){
-      const def = String(Math.min(MAX, CUR));
-      let input = prompt(`Add crop year (${MIN}–${MAX}):`, def);
-      if (input===null) return;
-      const y = clampYear(input);
-      if (y===null){ alert(`Year must be between ${MIN} and ${MAX}.`); return; }
-      const ys = allYears();
-      if (!ys.includes(y)){ ys.push(y); saveJSON(YEARS_KEY, Array.from(new Set(ys)).sort((a,b)=>b-a)); }
-      setSelected(y);
-      if (location.hash==='#/crop' && typeof window.viewCropHub==='function') window.viewCropHub();
-    }
+    saveJSON(FIELDS_KEY, list); viewSettingsFields();
+  });
+}
 
-    // Wrap/augment existing viewCropHub
-    const orig = window.viewCropHub;
-    if (typeof orig === 'function'){
-      window.viewCropHub = function(){
-        // render original content
-        orig.call(window);
-        // inject the selector row at the top
-        const yrs = allYears(), sel = getSelected();
-        const row = `
-          <section class="section" style="padding-bottom:0;">
-            <h1>Crop Production</h1>
-            <div class="field" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <label style="font-weight:600;">Crop Year:</label>
-              <select id="df-cy-year" style="min-width:140px;">
-                ${yrs.map(y=>`<option value="${y}" ${y===sel?'selected':''}>${y}</option>`).join('')}
-              </select>
-              <button id="df-cy-add" class="btn">➕ Add year…</button>
-              <span class="small muted">Allowed ${MIN}–${MAX}. Saved per user.</span>
-            </div>
-          </section>
-        `;
-        const appEl = document.getElementById('app'); if (!appEl) return;
-        appEl.innerHTML = row + appEl.innerHTML;
+/* ---------- Route hooks for direct deep links (safety) ---------- */
+window.addEventListener('hashchange', ()=>{
+  if (location.hash==='#/settings/farms')  viewSettingsFarms();
+  if (location.hash==='#/settings/fields') viewSettingsFields();
+});
+if (location.hash==='#/settings/farms')  viewSettingsFarms();
+if (location.hash==='#/settings/fields') viewSettingsFields();
 
-        $('#df-cy-year')?.addEventListener('change', e=>{
-          if (!setSelected(e.target.value)){
-            alert('Invalid year.'); e.target.value = getSelected();
-          }
-        });
-        $('#df-cy-add')?.addEventListener('click', addYearFlow);
-      };
-    }
-  })();
-
-  // =========================================================
-  // 3) Feedback: add Main/Sub/Category + report columns
-  // =========================================================
-  (function feedbackEnhancements(){
-    if (window.__DF_PATCH_10147_FEEDBACK__) return;
-    window.__DF_PATCH_10147_FEEDBACK__ = true;
-
-    const MAIN_TO_SUB = {
-      'Crop Production': ['Planting','Spraying','Aerial Spray','Harvest','Field Maintenance','Scouting','Trials'],
-      'Calculator': ['Fertilizer','Bin Volume','Area','Combine Yield','Chemical Mix'],
-      'Equipment': ['StarFire / Technology','Tractors','Combines','Sprayer / Fertilizer Spreader','Construction Equipment','Trucks','Trailers','Farm Implements'],
-      'Grain Tracking': ['Grain Bag','Grain Bins','Grain Contracts','Grain Ticket OCR'],
-      'Team & Partners': ['Employees','Subcontractors','Vendors','Directory'],
-      'Reports': ['Pre-made Reports','Feedback Summary','Grain Bag Report','AI Reports','Yield Report'],
-      'Settings': ['Crop Type','Theme','Farms','Fields'],
-      'Feedback': ['Report Errors','New Feature Request']
-    };
-    const CATEGORIES = ['Bug / Error','New Feature','UI / Design'];
-
-    function ddlHeader(title){
-      return `
-        <section class="section">
-          <h1>${title}</h1>
-          <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <label><span class="small muted">Main Menu *</span>
-              <select id="fb-main"><option value="">— Choose —</option>${Object.keys(MAIN_TO_SUB).map(m=>`<option>${m}</option>`).join('')}</select>
-            </label>
-            <label><span class="small muted">Sub Menu *</span>
-              <select id="fb-sub"><option value="">— Choose —</option></select>
-            </label>
-            <label><span class="small muted">Category *</span>
-              <select id="fb-cat"><option value="">— Choose —</option>${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
-            </label>
-          </div>
-      `;
-    }
-    function wireCascade(){
-      const mainSel = $('#fb-main'), subSel = $('#fb-sub');
-      if (!mainSel || !subSel) return;
-      const fill = ()=>{
-        const list = MAIN_TO_SUB[mainSel.value] || [];
-        subSel.innerHTML = `<option value="">— Choose —</option>` + list.map(s=>`<option>${s}</option>`).join('');
-      };
-      mainSel.addEventListener('change', fill);
-      fill();
-    }
-
-    // Override error form
-    const origErr = window.viewFeedbackErrors;
-    if (typeof origErr === 'function'){
-      window.viewFeedbackErrors = function(){
-        const today = new Date().toISOString().slice(0,10);
-        const user = (localStorage.getItem('df_user')||'').trim();
-        const app = document.getElementById('app');
-        app.innerHTML = ddlHeader('🛠️ Report Errors') + `
-          <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
-          <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
-          <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
-          <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${html(user)}"></div>
-          <button id="err-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
-        </section>`;
-        wireCascade();
-        $('#err-submit')?.addEventListener('click', ()=>{
-          const date=$('#err-date').value.trim();
-          const subject=$('#err-subj').value.trim();
-          const details=$('#err-desc').value.trim();
-          const by=$('#err-by').value.trim();
-          const main=$('#fb-main').value.trim();
-          const sub=$('#fb-sub').value.trim();
-          const cat=$('#fb-cat').value.trim();
-          if(!date||!subject||!details||!main||!sub||!cat){ alert('Please fill all required fields.'); return; }
-          try{
-            const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]');
-            list.push({type:'error', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
-            localStorage.setItem(key, JSON.stringify(list));
-          }catch{}
-          alert('Thanks! Your error report was saved.'); location.hash='#/feedback';
-        });
-      };
-    }
-
-    // Override feature form
-    const origFeat = window.viewFeedbackFeature;
-    if (typeof origFeat === 'function'){
-      window.viewFeedbackFeature = function(){
-        const today = new Date().toISOString().slice(0,10);
-        const user = (localStorage.getItem('df_user')||'').trim();
-        const app = document.getElementById('app');
-        app.innerHTML = ddlHeader('💡 New Feature Request') + `
-          <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
-          <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
-          <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
-          <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${html(user)}"></div>
-          <button id="feat-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
-        </section>`;
-        wireCascade();
-        $('#feat-submit')?.addEventListener('click', ()=>{
-          const date=$('#feat-date').value.trim();
-          const subject=$('#feat-subj').value.trim();
-          const details=$('#feat-desc').value.trim();
-          const by=$('#feat-by').value.trim();
-          const main=$('#fb-main').value.trim();
-          const sub=$('#fb-sub').value.trim();
-          const cat=$('#fb-cat').value.trim();
-          if(!date||!subject||!details||!main||!sub||!cat){ alert('Please fill all required fields.'); return; }
-          try{
-            const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]');
-            list.push({type:'feature', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
-            localStorage.setItem(key, JSON.stringify(list));
-          }catch{}
-          alert('Thanks! Your feature request was saved.'); location.hash='#/feedback';
-        });
-      };
-    }
-
-    // Patch Feedback Summary to include new columns
-    const origSummary = window.viewReportsPremadeFeedback;
-    if (typeof origSummary === 'function'){
-      window.viewReportsPremadeFeedback = function(){
-        const items = (function(){ try { return JSON.parse(localStorage.getItem('df_feedback')||'[]'); } catch { return []; } })()
-          .sort((a,b)=>(a.ts||0)-(b.ts||0));
-        const rows = items.map((it,i)=>{
-          const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
-          const kind = it.type==='feature' ? 'Feature' : 'Error';
-          const esc = s=>String(s||'').replace(/</g,'&lt;');
-          const det = esc((it.details||'').replace(/\n/g,'<br>'));
-          return `<tr>
-            <td>${i+1}</td>
-            <td>${when}</td>
-            <td>${kind}</td>
-            <td>${esc(it.main||'')}</td>
-            <td>${esc(it.sub||'')}</td>
-            <td>${esc(it.category||'')}</td>
-            <td>${esc(it.subject||'')}</td>
-            <td>${det}</td>
-            <td>${esc(it.by||'')}</td>
-          </tr>`;
-        }).join('');
-        const app = document.getElementById('app');
-        app.innerHTML = `
-          <section class="report-page">
-            <header class="report-head">
-              <div class="head-left">
-                <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
-                <div class="org"><div class="org-name">Dowson Farms</div><div class="org-sub">Pre-Made Report</div></div>
-              </div>
-              <div class="head-right"><div class="r-title">Feedback Summary</div><div class="r-date">${new Date().toLocaleDateString()}</div></div>
-            </header>
-            <div class="report-body watermark">
-              ${items.length ? `
-                <table class="report-table">
-                  <thead>
-                    <tr><th>#</th><th>When</th><th>Type</th><th>Main</th><th>Sub</th><th>Category</th><th>Subject</th><th>Details</th><th>Submitted By</th></tr>
-                  </thead>
-                  <tbody>${rows}</tbody>
-                </table>` : `<p class="muted">No feedback saved yet.</p>`}
-            </div>
-            <footer class="report-foot"><div>v10.14.7</div><div class="page-num">Page 1</div></footer>
-            <div class="report-actions hidden-print">
-              <button class="btn-primary" id="print-report">Print / Save PDF</button>
-              <a class="btn" href="#/ai/premade">Back</a>
-            </div>
-          </section>`;
-        $('#print-report')?.addEventListener('click', ()=>window.print());
-      };
-    }
-  })();
-
-  // =========================================================
-  // 4) Settings → Farms & Fields
-  //    - Adds two new screens + tiles on Settings home
-  // =========================================================
-  (function farmsFields(){
-    if (window.__DF_PATCH_10147_FARMSFIELDS__) return;
-    window.__DF_PATCH_10147_FARMSFIELDS__ = true;
-
-    // Breadcrumb labels
-    try{
-      window.LABELS['#/settings/farms'] = 'Farms';
-      window.LABELS['#/settings/fields'] = 'Fields';
-    }catch{}
-
-    const FARMS_KEY = 'df_farms';
-    const FIELDS_KEY = 'df_fields2'; // separate from any old placeholder
-
-    const loadJSON = (k,fb=[])=>{ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(fb)); }catch{ return fb; } };
-    const saveJSON = (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} };
-
-    function loadFarms(){ return loadJSON(FARMS_KEY, []); }
-    function saveFarms(a){ saveJSON(FARMS_KEY, a); }
-    function loadFields(){ return loadJSON(FIELDS_KEY, []); }
-    function saveFields(a){ saveJSON(FIELDS_KEY, a); }
-
-    // Patch Settings home to add tiles (without removing existing)
-    if (!window.__DF_PATCH_10147_SET_HOME__ && typeof window.viewSettingsHome === 'function'){
-      window.__DF_PATCH_10147_SET_HOME__ = true;
-      const orig = window.viewSettingsHome;
-      window.viewSettingsHome = function(){
-        orig.call(window);
-        const app = document.getElementById('app');
-        if (!/href="#\/settings\/farms"/.test(app.innerHTML)){
-          const inject = `
-            <div class="grid" style="margin-top:12px;">
-              <a class="tile" href="#/settings/farms" aria-label="Farms"><span class="emoji">🏠</span><span class="label">Farms</span></a>
-              <a class="tile" href="#/settings/fields" aria-label="Fields"><span class="emoji">🗺️</span><span class="label">Fields</span></a>
-            </div>`;
-          app.innerHTML = app.innerHTML.replace(
-            '</div>\n    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>',
-            `</div>${inject}\n    <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>`
-          );
-        }
-      };
-    }
-
-    // Farms screen
-    window.viewSettingsFarms = function(){
-      const app = document.getElementById('app');
-      let farms = loadFarms();
-      farms.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), undefined, {sensitivity:'base'}));
-
-      const rows = farms.map((f,i)=>{
-        const arch = f.archived ? '<span class="chip chip-archived">Archived</span>' : '';
-        const actions = f.archived
-          ? `<button class="btn" data-act="unarchive" data-i="${i}">Unarchive</button>
-             <button class="btn" data-act="delete" data-i="${i}">Delete</button>`
-          : `<button class="btn" data-act="edit" data-i="${i}">Edit</button>
-             <button class="btn" data-act="archive" data-i="${i}">Archive</button>
-             <button class="btn" data-act="delete" data-i="${i}">Delete</button>`;
-        return `<li class="crop-row ${f.archived?'is-archived':''}">
-          <div class="crop-info"><span class="chip">${html(f.name||'')}</span> ${arch}</div>
-          <div class="crop-actions">${actions}</div>
-        </li>`;
-      }).join('');
-
-      app.innerHTML = `
-        <section class="section">
-          <h1>🏠 Farms</h1>
-          <p class="muted">Manage farm names. Can’t delete if fields still assigned.</p>
-          <ul class="crop-list">${rows || '<li class="muted">No farms yet.</li>'}</ul>
-          <div class="field add-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;">
-            <input id="farm-name" type="text" placeholder="e.g., Home Farm">
-            <button id="farm-add" class="btn-primary">➕ Add</button>
-          </div>
-          <a class="btn" href="#/settings">Back to Settings</a>
-        </section>
-      `;
-
-      $('#farm-add')?.addEventListener('click', ()=>{
-        const name = String($('#farm-name').value||'').trim();
-        if (!name) return;
-        if (farms.some(f=>String(f.name).toLowerCase()===name.toLowerCase())){ alert('That farm name already exists.'); return; }
-        farms.push({id: cryptoId(), name, archived:false});
-        saveFarms(farms); window.viewSettingsFarms();
-      });
-
-      app.querySelector('.crop-list')?.addEventListener('click', (e)=>{
-        const btn=e.target.closest('button'); if (!btn) return;
-        const i = Number(btn.getAttribute('data-i')); if (!farms[i]) return;
-        const act = btn.getAttribute('data-act');
-
-        if (act==='edit'){
-          const nn = prompt('Rename farm:', farms[i].name||''); if (!nn) return;
-          if (farms.some((f,ix)=>ix!==i && String(f.name).toLowerCase()===nn.toLowerCase())){ alert('Another farm already uses that name.'); return; }
-          farms[i].name = nn.trim();
-        } else if (act==='archive'){ farms[i].archived=true; }
-        else if (act==='unarchive'){ farms[i].archived=false; }
-        else if (act==='delete'){
-          const used = loadFields().some(fl=>fl.farmId === farms[i].id);
-          if (used){ alert('This farm has fields assigned. Archive instead, or move/delete fields first.'); return; }
-          if (!confirm(`Delete “${farms[i].name}”? This cannot be undone.`)) return;
-          farms.splice(i,1);
-        }
-        saveFarms(farms); window.viewSettingsFarms();
-      });
-    };
-
-    // Fields screen
-    window.viewSettingsFields = function(){
-      const app = document.getElementById('app');
-      const farms = loadFarms().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''), undefined, {sensitivity:'base'}));
-      let fields = loadFields();
-
-      const farmOpts = farms.map(f=>`<option value="${f.id}">${html(f.name||'')}</option>`).join('');
-      fields.sort((a,b)=>{
-        const fa = farms.find(f=>f.id===a.farmId)?.name||'';
-        const fb = farms.find(f=>f.id===b.farmId)?.name||'';
-        const n = fa.localeCompare(fb,undefined,{sensitivity:'base'});
-        return n || String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'});
-      });
-
-      const rows = fields.map((fl,i)=>{
-        const farmName = farms.find(f=>f.id===fl.farmId)?.name || '(Unknown)';
-        const arch = fl.archived ? '<span class="chip chip-archived">Archived</span>' : '';
-        const actions = fl.archived
-          ? `<button class="btn" data-act="unarchive" data-i="${i}">Unarchive</button>
-             <button class="btn" data-act="delete" data-i="${i}">Delete</button>`
-          : `<button class="btn" data-act="edit" data-i="${i}">Edit</button>
-             <button class="btn" data-act="archive" data-i="${i}">Archive</button>
-             <button class="btn" data-act="delete" data-i="${i}">Delete</button>`;
-        const badges = [];
-        if (fl.crp?.yes) badges.push(`CRP ${fl.crp.acres||0} ac`);
-        if (fl.hel?.yes) badges.push(`HEL ${fl.hel.acres||0} ac`);
-        return `<li class="crop-row ${fl.archived?'is-archived':''}">
-          <div class="crop-info"><span class="chip">${html(fl.name||'')}</span> ${arch}</div>
-          <div class="crop-actions small">${html(farmName||'')}</div>
-          <div style="flex-basis:100%;padding-left:8px;margin-top:6px;">
-            <div class="small muted">Tillable: ${fmtCommas(fl.tillable||0)} ac${badges.length?` • ${badges.join(' • ')}`:''}</div>
-          </div>
-          <div class="crop-actions">${actions}</div>
-        </li>`;
-      }).join('');
-
-      app.innerHTML = `
-        <section class="section">
-          <h1>🗺️ Fields</h1>
-          <p class="muted">Each field belongs to a farm. Enter tillable acres, optional CRP and HEL details.</p>
-          <ul class="crop-list">${rows || '<li class="muted">No fields yet.</li>'}</ul>
-
-          <h3 style="margin-top:14px;">Add Field</h3>
-          <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <label><span class="small muted">Farm *</span><select id="fld-farm">${farmOpts}</select></label>
-            <label><span class="small muted">Field Name *</span><input id="fld-name" type="text" placeholder="e.g., North 80"></label>
-          </div>
-          <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <label><span class="small muted">Tillable Acres *</span><input id="fld-till" type="number" step="any" min="0.01" placeholder="e.g., 79.5"></label>
-            <label><span class="small muted">CRP?</span><select id="fld-crp-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select></label>
-            <label><span class="small muted">CRP Acres</span><input id="fld-crp-ac" type="number" step="any" min="0" placeholder="optional" disabled></label>
-          </div>
-          <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <label><span class="small muted">HEL?</span><select id="fld-hel-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select></label>
-            <label><span class="small muted">HEL Acres</span><input id="fld-hel-ac" type="number" step="any" min="0" placeholder="optional" disabled></label>
-          </div>
-          <button id="fld-add" class="btn-primary">➕ Add Field</button>
-          <a class="btn" href="#/settings">Back to Settings</a>
-        </section>
-      `;
-
-      const crpSel=$('#fld-crp-yes'), crpAc=$('#fld-crp-ac');
-      const helSel=$('#fld-hel-yes'), helAc=$('#fld-hel-ac');
-      crpSel.addEventListener('change', ()=>{ crpAc.disabled = crpSel.value!=='yes'; if (crpAc.disabled) crpAc.value=''; });
-      helSel.addEventListener('change', ()=>{ helAc.disabled = helSel.value!=='yes'; if (helAc.disabled) helAc.value=''; });
-
-      $('#fld-add')?.addEventListener('click', ()=>{
-        const farmId = $('#fld-farm').value;
-        const name = String($('#fld-name').value||'').trim();
-        const till = toNum($('#fld-till').value);
-        const crpYes = $('#fld-crp-yes').value==='yes';
-        const crpA = toNum($('#fld-crp-ac').value);
-        const helYes = $('#fld-hel-yes').value==='yes';
-        const helA = toNum($('#fld-hel-ac').value);
-
-        if (!farmId || !name || !(till>0)){ alert('Farm, Field Name, and Tillable Acres are required.'); return; }
-        if (crpYes && !(crpA>0)){ alert('Enter CRP acres (or set CRP to No).'); return; }
-        if (helYes && !(helA>0)){ alert('Enter HEL acres (or set HEL to No).'); return; }
-        if (crpYes && crpA>till){ alert('CRP acres cannot exceed Tillable.'); return; }
-        if (helYes && helA>till){ alert('HEL acres cannot exceed Tillable.'); return; }
-
-        const list = loadFields();
-        if (list.some(f=>f.farmId===farmId && String(f.name).toLowerCase()===name.toLowerCase())){
-          alert('A field with that name already exists in this farm.'); return;
-        }
-
-        list.push({
-          id: cryptoId(),
-          farmId, name,
-          tillable: till,
-          crp: { yes: crpYes, acres: crpYes?crpA:0 },
-          hel: { yes: helYes, acres: helYes?helA:0 },
-          archived:false
-        });
-        saveFields(list);
-        window.viewSettingsFields();
-      });
-
-      app.querySelector('.crop-list')?.addEventListener('click',(e)=>{
-        const btn=e.target.closest('button'); if (!btn) return;
-        const i = Number(btn.getAttribute('data-i'));
-        const act = btn.getAttribute('data-act');
-        const list = loadFields();
-        if (!list[i]) return;
-
-        if (act==='edit'){
-          const nf = prompt('Rename field:', list[i].name||''); if (!nf) return;
-          const farmId = list[i].farmId;
-          if (list.some((f,ix)=>ix!==i && f.farmId===farmId && String(f.name).toLowerCase()===nf.toLowerCase())){
-            alert('Another field in this farm already uses that name.'); return;
-          }
-          list[i].name = nf.trim();
-        } else if (act==='archive'){ list[i].archived = true; }
-        else if (act==='unarchive'){ list[i].archived = false; }
-        else if (act==='delete'){
-          if (!confirm(`Delete “${list[i].name}”? This cannot be undone.`)) return;
-          list.splice(i,1);
-        }
-        saveFields(list); window.viewSettingsFields();
-      });
-    };
-
-    // Minimal route support for direct hashes
-    window.addEventListener('hashchange', ()=>{
-      if (location.hash==='#/settings/farms' && typeof window.viewSettingsFarms==='function') window.viewSettingsFarms();
-      if (location.hash==='#/settings/fields' && typeof window.viewSettingsFields==='function') window.viewSettingsFields();
-    });
-    if (location.hash==='#/settings/farms') window.viewSettingsFarms();
-    if (location.hash==='#/settings/fields') window.viewSettingsFields();
-  })();
-
-})(); // end DF PATCH v10.14.7
-
-/* =================== v10.15.1 focused UI patch (safe, minimal) =================== */
-(function () {
-  const PATCH_ID = 'v10.15.1-ui-fixes';
-  if (window.__APP_PATCHES__ && window.__APP_PATCHES__[PATCH_ID]) return;
-  window.__APP_PATCHES__ = window.__APP_PATCHES__ || {};
-  window.__APP_PATCHES__[PATCH_ID] = Date.now();
-
-  const log = (...a) => console.log(`[${PATCH_ID}]`, ...a);
-
-  // tiny helpers
-  const qs  = (s, r = document) => r.querySelector(s);
-  const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
-  const txt = (el) => (el ? (el.textContent || '').trim() : '');
-
-  // Run only when the page actually matches the intended view (by heading text)
-  function onPage(titleRegex, work) {
-    try {
-      const h = qsa('h1,h2').find(h => titleRegex.test(txt(h)));
-      if (h) work(document, h);
-    } catch (e) { console.error(`[${PATCH_ID}]`, e); }
-  }
-
-  // ---- (1) Employees: convert Role/Title text input into permissions dropdown
-  function patchEmployees() {
-    onPage(/^\s*employees\s*$/i, (root) => {
-      const roleInput = qsa('input[placeholder],input[name],input[type="text"]', root)
-        .find(i => /(role|title)/i.test(i.placeholder || i.name || '') && !i.dataset.v10151Role);
-
-      if (!roleInput) return;
-
-      const select = document.createElement('select');
-      select.dataset.v10151Role = '1';
-      select.name = roleInput.name || 'role';
-      select.className = roleInput.className || '';
-      // Don’t copy id to avoid collisions with existing JS
-      [
-        ['', '— Choose role —'],
-        ['viewer',  'Viewer (read-only)'],
-        ['worker',  'Worker'],
-        ['manager', 'Manager'],
-        ['admin',   'Admin'],
-      ].forEach(([v, label]) => {
-        const opt = document.createElement('option');
-        opt.value = v; opt.textContent = label;
-        select.appendChild(opt);
-      });
-
-      // best-effort mapping from existing free text
-      const cur = (roleInput.value || '').toLowerCase();
-      if (cur.includes('admin'))   select.value = 'admin';
-      else if (cur.includes('manager')) select.value = 'manager';
-      else if (cur.includes('worker'))  select.value = 'worker';
-      else if (cur.includes('view'))    select.value = 'viewer';
-
-      roleInput.replaceWith(select);
-      log('Employees: role field converted to <select>.');
-    });
-  }
-
-  // ---- (2) Feedback forms: restrict Category options per page
-  function patchFeedback() {
-    // New Feature Request: remove any "Bug / Error" category
-    onPage(/new feature request/i, (root) => {
-      const cat = findCategorySelect(root);
-      if (!cat || cat.dataset.v10151Cat) return;
-      removeOptionByText(cat, /bug\s*\/?\s*error/i);
-      cat.dataset.v10151Cat = '1';
-      log('Feedback (feature): removed "Bug/Error" option.');
-    });
-
-    // Report Error / Bug Report: remove any "New Feature" category
-    onPage(/(report error|bug report)/i, (root) => {
-      const cat = findCategorySelect(root);
-      if (!cat || cat.dataset.v10151Cat) return;
-      removeOptionByText(cat, /new feature/i);
-      cat.dataset.v10151Cat = '1';
-      log('Feedback (error): removed "New Feature" option.');
-    });
-
-    function findCategorySelect(root) {
-      // Prefer a select that is near a label that reads "Category"
-      let sel = null;
-      qsa('label', root).forEach(lab => {
-        if (/^\s*category\s*:?\s*$/i.test(txt(lab))) {
-          const c = lab.closest('.field,.form-group,div');
-          const s = c ? c.querySelector('select') : null;
-          if (s) sel = s;
-        }
-      });
-      // Fallback to third select if screenshots match that structure
-      return sel || qsa('select', root)[2] || null;
-    }
-
-    function removeOptionByText(select, pattern) {
-      qsa('option', select).forEach(o => {
-        if (pattern.test(txt(o))) o.remove();
-      });
-    }
-  }
-
-  // ---- (3) Crop Production: remove legacy overlapping chip row
-  function patchCropProduction() {
-    onPage(/^\s*crop production\s*$/i, (root) => {
-      // Look for a compact row that mentions "Crop Year" and an "Add" button but has NO <select>
-      const suspects = qsa('div,section,fieldset,form', root).filter(el => {
-        const t = (el.textContent || '').replace(/\s+/g, ' ');
-        const hasLabel = /crop year/i.test(t);
-        const hasAdd   = /add/i.test(t) && el.querySelector('button, [role="button"]');
-        const hasSelect = !!el.querySelector('select');
-        // Avoid big tile containers (cards grid)
-        const looksLikeGrid = el.querySelector('.card,.tile,[role="button"] img');
-        return hasLabel && hasAdd && !hasSelect && !looksLikeGrid;
-      });
-
-      suspects.forEach(el => el.remove());
-      if (suspects.length) log(`Crop Production: removed ${suspects.length} legacy chip container(s).`);
-    });
-  }
-
-  // run now and on lightweight route changes
-  function applyAll() {
-    patchEmployees();
-    patchFeedback();
-    patchCropProduction();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applyAll, { once: true });
-  } else {
-    applyAll();
-  }
-
-  // Re-apply on SPA navigations without heavy observers
-  ['popstate', 'hashchange'].forEach(evt => window.addEventListener(evt, applyAll));
-  // Also after any in-app link click (deferred) to catch pushState routers
-  document.addEventListener('click', () => setTimeout(applyAll, 0), true);
-
-  log('v10.15.1 patch loaded.');
-})();
+/* ---------- LABELS (ensure breadcrumb names exist) ---------- */
+try{
+  LABELS['#/settings'] = LABELS['#/settings'] || 'Settings';
+  LABELS['#/settings/crops']  = 'Crop Type';
+  LABELS['#/settings/theme']  = 'Theme';
+  LABELS['#/settings/farms']  = 'Farms';
+  LABELS['#/settings/fields'] = 'Fields';
+}catch{}
