@@ -3048,3 +3048,40 @@ try{
   LABELS['#/settings/farms']  = 'Farms';
   LABELS['#/settings/fields'] = 'Fields';
 }catch{}
+
+/* =========================
+   PATCH v11.0.1 — Router bootstrap fix
+   ========================= */
+(function DF_PATCH_1101(){
+  if (window.__DF_PATCH_1101__) return;
+  window.__DF_PATCH_1101__ = true;
+
+  function start(){
+    try{
+      if (!location.hash || location.hash === '#') {
+        location.replace('#/home');
+      }
+      if (typeof route === 'function') {
+        route();
+      }
+      // If still empty, inject a fallback
+      const app = document.getElementById('app');
+      if (app && !app.innerHTML.trim()) {
+        app.innerHTML = `
+          <section class="section">
+            <h1>🏠 Home</h1>
+            <p class="muted">Dowson Farms dashboard loaded.</p>
+          </section>
+        `;
+      }
+    } catch(e){
+      console.error('Patch 11.0.1 bootstrap error', e);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
