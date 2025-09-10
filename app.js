@@ -20,7 +20,7 @@
    ========================================================================== */
 
 /* ===== Version (footer shows vMAJOR.MINOR) ===== */
-const APP_VERSION = 'v11.0.7';
+const APP_VERSION = 'v11.0.11';
 
 /* ===== Init theme asap (auto/light/dark) ===== */
 (function applySavedTheme() {
@@ -3953,6 +3953,123 @@ try{
   setTimeout(kick, 1200);
 
   // Re-run when page becomes visible or hash changes
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') kick(); });
+  window.addEventListener('hashchange', kick);
+})();
+</script>
+
+<!-- ⤵️ APPEND AT THE VERY END OF app.js -->
+<script>
+/* =======================================================
+   Dowson Farms — MINI PATCH v11.0.11 (non-invasive)
+   Purpose:
+   - Force SPA routing on load (renders Home)
+   - Convert any /login.html navigations to #/login (no 404)
+   - Rewire Logout buttons/links, including late-added ones
+   ======================================================= */
+(function DF_MINI_11011(){
+  if (window.__DF_MINI_11011__) return;
+  window.__DF_MINI_11011__ = true;
+
+  // --- Helpers ---
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+
+  function ensureHash(){
+    try{
+      if (!location.hash || location.hash === '#' || location.hash === '#/'){
+        location.replace('#/home');
+      }
+    }catch(_){}
+  }
+
+  function nudgeRouter(){
+    try{
+      ensureHash();
+      if (typeof window.renderBreadcrumb === 'function') window.renderBreadcrumb();
+      if (typeof window.route === 'function') window.route();
+    }catch(_){}
+  }
+
+  // --- Catch any attempt to go to /login.html and keep it in SPA ---
+  function rewriteToSpaLogin(url){
+    try{
+      if (!url) return null;
+      const u = new URL(url, location.href);
+      if (/\/login\.html$/i.test(u.pathname)) return '#/login';
+    }catch(_){}
+    return null;
+  }
+
+  // Intercept link clicks
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    const repl = rewriteToSpaLogin(a.getAttribute('href'));
+    if (repl){
+      e.preventDefault();
+      location.hash = repl;
+      setTimeout(nudgeRouter, 0);
+    }
+  }, true);
+
+  // Intercept programmatic assignments to location
+  (function hijackAssign(){
+    try{
+      const prox = new Proxy(window.location, {
+        set(t,prop,val){
+          if (prop === 'href'){
+            const repl = rewriteToSpaLogin(val);
+            if (repl){ location.hash = repl; setTimeout(nudgeRouter,0); return true; }
+          }
+          t[prop] = val; return true;
+        }
+      });
+      // Not all browsers let us replace window.location; best effort:
+      Object.defineProperty(window, 'location', { get(){ return prox; } });
+    }catch(_){}
+  })();
+
+  // --- Rewire any “Logout” controls, even if added later ---
+  function wireLogout(root=document){
+    $$('.logout, [data-logout], a, button', root).forEach(el=>{
+      const txt = (el.textContent||'').toLowerCase();
+      const href = (el.getAttribute('href')||'').toLowerCase();
+      const isLogout = /logout/.test(txt) || /logout/.test(href);
+      if (!isLogout || el.__dfLogoutWired) return;
+      el.__dfLogoutWired = true;
+      el.addEventListener('click', (e)=>{
+        e.preventDefault();
+        try{ localStorage.removeItem('df_user'); }catch{}
+        try{ sessionStorage.removeItem('df_user'); }catch{}
+        location.hash = '#/login';
+        setTimeout(nudgeRouter, 0);
+      }, true);
+    });
+  }
+
+  // Watch DOM for newly added logout buttons
+  const mo = new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      m.addedNodes && m.addedNodes.forEach(n=>{
+        if (n.nodeType===1) wireLogout(n);
+      });
+    });
+  });
+  mo.observe(document.documentElement, { childList:true, subtree:true });
+
+  // --- Kick now + a few retries (covers late init) ---
+  function kick(){
+    wireLogout();
+    nudgeRouter();
+  }
+  kick();
+  setTimeout(kick, 80);
+  setTimeout(kick, 250);
+  setTimeout(kick, 800);
+  setTimeout(kick, 1600);
+
+  // Also on visibility & hash changes
   document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') kick(); });
   window.addEventListener('hashchange', kick);
 })();
