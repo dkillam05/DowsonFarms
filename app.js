@@ -20,7 +20,7 @@
    ========================================================================== */
 
 /* ===== Version (footer shows vMAJOR.MINOR) ===== */
-const APP_VERSION = 'v11.0.1';
+const APP_VERSION = 'v11.0.2';
 
 /* ===== Init theme asap (auto/light/dark) ===== */
 (function applySavedTheme() {
