@@ -1,80 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Dowson Farms — Login</title>
-  <link rel="stylesheet" href="styles.css?v=11.0.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Login — Dowson Farms</title>
+  <meta name="theme-color" content="#1b5e20" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
   <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: var(--ivory);
-      margin: 0;
-    }
-    .login-wrapper {
-      width: 100%;
-      max-width: 360px;
-      padding: 20px;
-    }
-    .login-box {
-      background: #fff;
-      border: 2px solid var(--green);
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: var(--shadow);
-    }
-    .login-box h1 {
-      font-size: 1.5em;
-      margin: 0 0 12px;
-      text-align: center;
-      color: var(--green);
-    }
-    .login-box p {
-      font-size: 0.9em;
-      color: #555;
-      text-align: center;
-      margin: 0 0 16px;
-    }
-    .logo {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .logo img {
-      height: 64px;
-      margin-right: 10px;
-    }
-    .logo-text {
-      font-size: 1.2em;
-      font-weight: bold;
-      color: var(--green);
-    }
+    body{display:flex;min-height:100vh;align-items:center;justify-content:center;background:var(--page-bg,#f6f6e8);}
+    .card{background:#fff;padding:16px 14px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);width:min(92vw,380px);}
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .brand img{width:44px;height:44px;border-radius:50%;}
+    .brand .t{font-weight:700;font-size:1.1rem;}
+    .row{display:grid;gap:8px;margin-top:10px;}
+    input{padding:10px 12px;border:1px solid #cfcfcf;border-radius:8px;font-size:16px;}
+    .btn{display:inline-block;padding:10px 14px;border-radius:8px;border:0;background:#1b5e20;color:#fff;font-weight:600;}
+    .muted{opacity:.7;font-size:.9rem;}
   </style>
 </head>
 <body>
-  <div class="login-wrapper">
-    <div class="login-box">
-      <div class="logo">
-        <img src="icons/logo.png" alt="Dowson Farms Logo" />
-        <span class="logo-text">Dowson Farms</span>
-      </div>
-      <h1>Welcome</h1>
-      <p>Use your assigned credentials. 🔒 Never share your password.</p>
-      <form id="login-form">
-        <div class="field">
-          <input type="email" id="login-email" placeholder="Email" required />
-        </div>
-        <div class="field">
-          <input type="password" id="login-pass" placeholder="Password" required />
-        </div>
-        <button type="submit" class="btn-primary" style="width:100%;margin-top:12px">Log In</button>
-      </form>
+  <div class="card">
+    <div class="brand">
+      <img src="icons/logo.png" alt="DF" />
+      <div class="t">Dowson Farms</div>
+    </div>
+
+    <div class="row">
+      <input id="email" type="email" placeholder="Email" autocomplete="email" />
+      <input id="pw" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="go" class="btn">Login</button>
+      <div class="muted">Tip: this is a local-only demo login. No server is used.</div>
     </div>
   </div>
-  <script src="login.js?v=11.0.0"></script>
+
+  <script>
+  (function boot(){
+    const parts = location.pathname.split('/').filter(Boolean);
+    const DF_BASE = parts.length ? ('/' + parts[0]) : '';
+    const joinBase = p => (DF_BASE + '/' + String(p).replace(/^\/+/,'')).replace(/\/{2,}/g,'/');
+
+    function login(){
+      try{
+        const e = String(document.getElementById('email').value||'').trim();
+        localStorage.setItem('df_user', e);
+      }catch(e){}
+      location.href = joinBase('/index.html#\u002Fhome');
+    }
+
+    document.getElementById('go').addEventListener('click', login);
+    document.getElementById('pw').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); });
+  })();
+  </script>
 </body>
 </html>
