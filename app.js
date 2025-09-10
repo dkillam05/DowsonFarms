@@ -3,7 +3,7 @@
    - Paints version in footer
    - Hash router (default #/home)
    - Logout → login.html if present, else inline login
-   - NEW: Simple Home dashboard (Settings, Feedback) to prove routing
+   - Simple Home dashboard (Settings, Feedback) to prove routing
 */
 (function DF_MAIN(){
   'use strict';
@@ -77,16 +77,13 @@
     btn.dataset.wired = '1';
     btn.addEventListener('click', async ()=>{
       try { localStorage.removeItem('df_user'); } catch {}
-      // Prefer hosted login.html under current sub-path
       const href = joinBase(PATHS.loginPage);
-      // Cheap check: try HEAD request if fetch is available; otherwise just navigate
       try {
         if (window.fetch){
           const r = await fetch(href, { method:'HEAD', cache:'no-store' });
           if (r.ok) { location.href = href; return; }
         }
       } catch {}
-      // Fallback: inline login screen
       location.hash = '#/login';
     });
   }
@@ -184,4 +181,3 @@
   }
   window.addEventListener('hashchange', route);
 })();
-</script>
