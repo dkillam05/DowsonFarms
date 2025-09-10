@@ -3048,3 +3048,117 @@ try{
   LABELS['#/settings/farms']  = 'Farms';
   LABELS['#/settings/fields'] = 'Fields';
 }catch{}
+
+/* =======================================================
+   Dowson Farms — PATCH v11.0.1
+   Purpose: eliminate blank-first-load screen (Safari/Pages)
+   Type: append-only; does not modify existing functions
+   How: normalize hash, drive router with guarded retries,
+        and fall back to viewHome() if needed.
+   ======================================================= */
+(function DF_PATCH_1101_BOOT()){
+  if (window.__DF_PATCH_1101__) return;
+  window.__DF_PATCH_1101__ = Date.now();
+
+  // Show the new patch version in the footer (non-destructive)
+  try { const v = document.getElementById('version'); if (v) v.textContent = 'v11.0.1'; } catch {}
+
+  const $ = (s, r=document)=>r.querySelector(s);
+
+  // Normalize hash immediately (no history pollution)
+  function ensureHash(){
+    try{
+      const h = String(location.hash||'').trim();
+      if (!h || h === '#') {
+        location.replace('#/home');
+        return true;
+      }
+    }catch{}
+    return false;
+  }
+
+  // Safely call your router (if present)
+  function callRoute(){
+    try{
+      if (typeof window.route === 'function') {
+        window.route();
+        return true;
+      }
+    }catch(e){
+      console.error('[DF 11.0.1] route() error', e);
+    }
+    return false;
+  }
+
+  // Fallback renderer
+  function showHomeFallback(){
+    try{
+      if (typeof window.viewHome === 'function'){
+        window.viewHome();
+        if (typeof window.renderBreadcrumb === 'function') window.renderBreadcrumb();
+        return true;
+      }
+    }catch(e){ console.error('[DF 11.0.1] viewHome() fallback error', e); }
+    return false;
+  }
+
+  // Check if app has content (beyond an empty wrapper)
+  function appLooksEmpty(){
+    const app = $('#app');
+    if (!app) return true;
+    const html = (app.innerHTML||'').replace(/\s+/g,'').toLowerCase();
+    return html.length < 40; // conservative: mostly empty/blank
+  }
+
+  // Attempt sequence with gentle retries (covers slow SW/paint)
+  function driveStartup(){
+    // 1) Make sure there’s a usable hash
+    ensureHash();
+
+    // 2) First stab at routing
+    let ok = callRoute();
+    if (!ok && showHomeFallback()) ok = true;
+
+    // 3) If still blank, keep nudging a few times
+    let tries = 0;
+    const maxTries = 6;
+    const timer = setInterval(()=>{
+      tries++;
+
+      // Re-normalize hash if someone cleared it
+      ensureHash();
+
+      // Kick the router again
+      callRoute();
+
+      // Post-render light touches
+      try { if (typeof window.refreshLayout === 'function') refreshLayout(); } catch {}
+      try { if (typeof window.bindPhoneAutoFormat === 'function') bindPhoneAutoFormat($('#app')||document); } catch {}
+
+      // Exit conditions: content is visible or we’ve tried enough
+      if (!appLooksEmpty() || tries >= maxTries){
+        if (appLooksEmpty()) showHomeFallback(); // last resort
+        clearInterval(timer);
+      }
+    }, 150); // short bursts; total ~900ms
+  }
+
+  // Run ASAP after DOM is ready (and once more after load)
+  function start(){ try{ driveStartup(); }catch(e){ console.error('[DF 11.0.1] start', e); showHomeFallback(); } }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', start, { once:true });
+  } else {
+    start();
+  }
+  window.addEventListener('load', ()=>{ setTimeout(start, 0); }, { once:true });
+
+  // Extra safety: if hash changes early, re-drive once
+  window.addEventListener('hashchange', ()=>{
+    // only help during initial boot window (first ~2s)
+    if (Date.now() - window.__DF_PATCH_1101__ < 2000){
+      setTimeout(()=>{ try{ callRoute(); }catch{} }, 0);
+    }
+  });
+
+})();
