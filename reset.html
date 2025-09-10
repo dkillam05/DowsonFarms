@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Reset Dowson Farms App Cache</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    html,body{font-family:system-ui,-apple-system,Seg ui UI,Roboto,Arial,sans-serif;margin:0;padding:0;background:#fff;color:#111}
+    .wrap{max-width:640px;margin:18vh auto 0;padding:20px}
+    h1{font-size:22px;margin:0 0 10px}
+    p{line-height:1.45}
+    code{background:#f3f3f3;padding:0 6px;border-radius:4px}
+    .log{margin-top:16px;padding:12px;border:1px solid #ddd;border-radius:6px;max-height:40vh;overflow:auto;background:#fafafa;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;white-space:pre-wrap}
+    .ok{color:#0a7d0a}.err{color:#a10000}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Dowson Farms — Cache Reset</h1>
+    <p>This page will remove old Service Workers and cached files, then reload the app fresh.</p>
+    <p><strong>Steps:</strong> open this page once in Safari and once in Chrome. You should see “All done” then an automatic redirect.</p>
+    <div class="log" id="log">Working…</div>
+  </div>
+
+  <script>
+  (async function(){
+    const log = (m, cls='')=>{
+      const el = document.getElementById('log');
+      const line = document.createElement('div');
+      if (cls) line.className = cls;
+      line.textContent = m;
+      el.appendChild(line);
+    };
+
+    try{
+      // 1) Unregister ALL service workers for this origin
+      if ('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        if (regs.length === 0){
+          log('No service workers registered.');
+        } else {
+          for (const r of regs){
+            try{
+              await r.unregister();
+              log(`Unregistered: scope ${r.scope}`, 'ok');
+            }catch(e){
+              log(`Failed to unregister ${r.scope}: ${e}`, 'err');
+            }
+          }
+        }
+      } else {
+        log('Service workers not supported on this browser.', 'err');
+      }
+
+      // 2) Clear all caches
+      if (window.caches && caches.keys){
+        const names = await caches.keys();
+        if (names.length === 0){
+          log('No CacheStorage entries found.');
+        } else {
+          for (const n of names){
+            try{
+              const ok = await caches.delete(n);
+              log(`${ok?'Deleted':'Kept'} cache: ${n}`, ok?'ok':'err');
+            }catch(e){
+              log(`Error deleting cache ${n}: ${e}`, 'err');
+            }
+          }
+        }
+      }
+
+      // 3) Clear version flags (optional, harmless if missing)
+      try { localStorage.removeItem('df_app_version'); } catch {}
+      try { sessionStorage.removeItem('df_updating'); } catch {}
+
+      log('All done. Redirecting…','ok');
+      // 4) Redirect back with a cache-busting param
+      const base = location.origin + location.pathname.replace(/reset\.html$/,'');
+      setTimeout(()=>{
+        location.href = base + '?fresh=' + Date.now() + '#/home';
+      }, 700);
+    }catch(e){
+      log('Unexpected error: '+ e, 'err');
+    }
+  })();
+  </script>
+</body>
+</html>
