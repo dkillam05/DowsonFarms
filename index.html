@@ -1,109 +1,103 @@
 <!doctype html>
-<html lang="en" data-theme="auto">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="theme-color" content="#1b5e20" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Dowson Farms</title>
 
-  <!-- PWA / Icons -->
+  <!-- PWA basics -->
   <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#1b5e20" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- Early bootstrap: set theme + ensure hash BEFORE app.js runs -->
-  <script>
-    (function () {
-      try {
-        var t = localStorage.getItem('df_theme') || 'auto';
-        document.documentElement.setAttribute('data-theme', t);
-      } catch (e) {}
-      try {
-        var h = String(location.hash || '').trim();
-        if (!h || h === '#') location.replace('#/home');
-      } catch (e) {}
-    })();
-  </script>
-
-  <!-- Critical CSS: keeps header sane even if stylesheet is late/missing -->
-  <style>
-    :root{ --page-bg-light:#f6f6e8; --page-bg-dark:#0f0f0f; }
-    html,body{margin:0;height:100%;background:#0f0f0f;}
-    [data-theme="light"] html,[data-theme="light"] body{background:var(--page-bg-light);}
-    header.app-header{
-      display:flex;justify-content:space-between;align-items:center;
-      padding:10px 12px;background:#1b5e20;color:#fff;
-    }
-    header .brand{display:flex;align-items:center;gap:10px;}
-    header .brand .logo{width:44px;height:44px;object-fit:contain;border-radius:4px;}
-    header .brand .brand-name{font-size:22px;font-weight:600;}
-    main#app{min-height:50vh;}
-    .btn{display:inline-block;padding:.5rem .9rem;border-radius:10px;background:#eee;color:#111;text-decoration:none;}
-  </style>
-
-  <!-- Main stylesheet (cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=11.0.0" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <!-- Header -->
+<body data-theme="auto">
   <header class="app-header">
     <div class="brand">
-      <img src="icons/logo.png" alt="Dowson Farms" class="logo" />
-      <span class="brand-name">Dowson Farms</span>
+      <img alt="DF" src="icons/logo.png" class="brand-logo" />
+      <div class="brand-name">Dowson Farms</div>
     </div>
-    <a id="logout" class="btn" href="logout">Logout</a>
+    <!-- NOTE: href is normalized by the bootstrap script below -->
+    <a id="logout" class="btn" href="/login.html">Logout</a>
   </header>
 
-  <!-- Update banner -->
-  <div id="update-banner" class="update-banner" hidden>
-    <span>A new version is available.</span>
-    <button id="update-refresh" class="btn-primary" type="button">Refresh</button>
-  </div>
+  <main id="app" class="app-main">
+    <!-- Your SPA will render here -->
+  </main>
 
-  <!-- Breadcrumbs -->
-  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
-
-  <!-- App root -->
-  <main id="app" role="main" tabindex="-1"></main>
-
-  <!-- Footer -->
-  <footer class="app-footer">
-    <div class="left">© Dowson Farms</div>
-    <div class="center" id="version">v11.0.0</div>
-    <div class="right">
-      <span id="today"></span>
-      <span aria-hidden="true"> • </span>
-      <span id="clock"></span>
-    </div>
+  <footer class="app-foot">
+    <div>© Dowson Farms</div>
+    <div id="version">v11.0.8</div>
   </footer>
 
-  <noscript>
-    <div style="padding:1rem; text-align:center; color:#b71c1c;">
-      JavaScript is required to run this app.
-    </div>
-  </noscript>
-
-  <!-- One-time SW cleanup + load app -->
+  <!-- ──────────────────────────────────────────────────────────────
+       Bootstrap: base-path + version wiring (no app code touched)
+       ────────────────────────────────────────────────────────────── -->
   <script>
-    (function(){
-      // If an older SW is controlling the page, ask it to unregister once.
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs){
-          regs.forEach(function(reg){
-            // only if scope is this site root; then re-register via app.js later
-            if (reg.scope && location.origin.startsWith(reg.scope.replace(/\/$/,''))) {
-              try { reg.unregister(); } catch(e){}
-            }
-          });
-        });
-      }
+  (function bootstrap(){
+    // Update this when you intentionally bump versions
+    const DF_VERSION = '11.0.8';
+    (function setFooter(){
+      try { var v=document.getElementById('version'); if(v) v.textContent='v'+DF_VERSION; } catch(e){}
     })();
+
+    // Detect GitHub Pages repo base (e.g. /DowsonFarms). If served from root, this is ''.
+    const parts = location.pathname.split('/').filter(Boolean);
+    const DF_BASE = parts.length ? ('/' + parts[0]) : '';
+
+    function joinBase(p){ return (DF_BASE + '/' + String(p).replace(/^\/+/,'')).replace(/\/{2,}/g,'/'); }
+
+    // Normalize any anchor that points to a root path or plain file
+    function normalizeAll(){
+      document.querySelectorAll('a[href]').forEach(a=>{
+        const href = a.getAttribute('href')||'';
+        if (!href || /^https?:\/\//i.test(href) || href.startsWith('#')) return;
+
+        // Already includes base?
+        if (DF_BASE && href.startsWith(DF_BASE+'/')) return;
+
+        // Root-relative → prefix base
+        if (href.startsWith('/')) { a.setAttribute('href', joinBase(href)); return; }
+
+        // Bare file like "login.html" → prefix base
+        if (!href.startsWith('./') && !href.startsWith('../')) {
+          a.setAttribute('href', joinBase('/'+href));
+        }
+      });
+    }
+
+    // Ensure logout always targets repo path
+    function wireLogout(){
+      const btn=document.getElementById('logout');
+      if (btn) btn.setAttribute('href', joinBase('/login.html'));
+    }
+
+    // Kick now & after SPA route changes
+    function kick(){
+      wireLogout();
+      normalizeAll();
+      setTimeout(normalizeAll, 0);
+      setTimeout(normalizeAll, 250);
+      setTimeout(normalizeAll, 1000);
+    }
+
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', kick, {once:true});
+    } else { kick(); }
+
+    window.addEventListener('hashchange', ()=>setTimeout(normalizeAll,0), {passive:true});
+    document.addEventListener('click', ()=>setTimeout(normalizeAll,0), true);
+
+    // Expose helpers (optional)
+    window.__DF_VERSION__ = DF_VERSION;
+    window.__DF_BASE__ = DF_BASE;
+    window.__dfJoinBase = joinBase;
+  })();
   </script>
 
-  <!-- App (cache-busted) -->
-  <script src="app.js?v=11.0.7" defer></script>
+  <!-- Your existing SPA bundle -->
+  <script src="app.js"></script>
+  <!-- Your existing service worker registration (if you have one inside app.js, keep that) -->
 </body>
 </html>
