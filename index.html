@@ -2,39 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#154d23" />
   <title>Dowson Farms</title>
 
-  <!-- App icons / PWA bits (safe even if you don't use SW today) -->
+  <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="icon" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="icon" sizes="512x512" href="icons/icon-512.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
 
-  <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- ===== Header ===== -->
-  <header id="header" class="site-head">
+  <!-- Header -->
+  <header id="site-header" class="site-head">
     <div class="container head-inner">
-      <div class="brand">
-        <img class="brand-logo" src="icons/logo.png" alt="Dowson Farms logo" width="40" height="40" />
-        <span class="brand-name">Dowson Farms</span>
-      </div>
-
-      <nav class="head-nav">
-        <span class="dot" aria-hidden="true">•</span>
-        <!-- IMPORTANT: SPA route link (no full page load) -->
-        <a id="logoutBtn" href="#/login" class="btn">Logout</a>
-      </nav>
+      <a class="brand" href="#/home" aria-label="Dowson Farms">
+        <img class="brand-logo" alt="Dowson Farms" src="icons/logo.png" />
+        <span class="brand-text">Dowson Farms</span>
+      </a>
+      <span class="head-dot" aria-hidden="true">•</span>
+      <button id="logout-btn" class="btn" type="button">Logout</button>
     </div>
   </header>
 
-  <!-- ===== Main app root ===== -->
-  <main id="app" class="container" role="main"></main>
+  <!-- Main app outlet -->
+  <main id="app" class="app"></main>
 
-  <!-- ===== Footer (version filled by app.js) ===== -->
-  <footer id="footer" class="site-foot">
+  <!-- Footer -->
+  <footer id="site-footer" class="site-foot">
     <div class="container foot-inner">
       <span>© Dowson Farms</span>
       <span aria-hidden="true">•</span>
@@ -42,7 +37,7 @@
     </div>
   </footer>
 
-  <!-- App code -->
+  <!-- App bundle (single source of truth for VERSION) -->
   <script defer src="app.js"></script>
 </body>
 </html>
