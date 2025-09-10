@@ -20,7 +20,7 @@
    ========================================================================== */
 
 /* ===== Version (footer shows vMAJOR.MINOR) ===== */
-const APP_VERSION = 'v11.0.3';
+const APP_VERSION = 'v11.0.5';
 
 /* ===== Init theme asap (auto/light/dark) ===== */
 (function applySavedTheme() {
@@ -3532,3 +3532,105 @@ try{
   }
 })();
 </script>
+
+<!-- ⬇️ Paste this entire block at the very end of app.js -->
+/* =========================
+   PATCH v11.0.5 — SPA auth & footer version sync
+   - Prevent 404 by routing Logout/Login to #/login (hash route)
+   - Sync footer version text from APP_VERSION (if present)
+   - No other behavior changed
+   ========================= */
+(function DF_PATCH_1105(){
+  try{
+    // --- 1) Footer version sync (respects your manual bump) ---
+    // If you set:   window.APP_VERSION = 'v11.0.0'  (or 11.0.0)
+    // we render that into #version. If not present, we leave existing text.
+    (function syncFooterVersion(){
+      var el = document.getElementById('version');
+      if (!el) return;
+      // Accept v-prefixed or plain numeric
+      var v = (typeof window.APP_VERSION !== 'undefined') ? String(window.APP_VERSION) : null;
+      if (v){
+        if (!/^v/i.test(v)) v = 'v' + v; // normalize
+        el.textContent = v;
+      }
+    })();
+
+    // --- 2) SPA-safe Login/Logout navigation (prevents 404s) ---
+    // Any link/button that looks like login/logout should navigate to hash route.
+    function toLoginHash(evt){
+      try{
+        evt.preventDefault();
+      }catch(_){}
+      try{
+        // Clear any app-state you normally clear on logout:
+        // (kept minimal: remove a known login flag if you use one)
+        localStorage.removeItem('df_user'); // safe if key doesn't exist
+      }catch(_){}
+      location.hash = '#/login';
+      if (typeof window.route === 'function'){
+        // Let the router render on next tick
+        setTimeout(window.route, 0);
+      }
+      return false;
+    }
+
+    // Click delegation so we don’t rely on specific markup
+    document.addEventListener('click', function(e){
+      var a = e.target && (e.target.closest
+        ? e.target.closest('a,button')
+        : (function(n){ while(n && !(n.tagName==='A'||n.tagName==='BUTTON')) n=n.parentNode; return n; })(e.target)
+      );
+      if (!a) return;
+
+      var href = (a.getAttribute('href')||'').trim().toLowerCase();
+      var txt  = (a.textContent||'').trim().toLowerCase();
+
+      // Heuristics: catch "Logout" buttons and any /login.html navigation
+      var isLogout = /logout/.test(txt) || /\blogout\b/.test(a.id||'');
+      var goesToLoginFile = href.endsWith('/login.html') || href === 'login.html';
+
+      if (isLogout || goesToLoginFile){
+        toLoginHash(e);
+      }
+    }, true);
+
+    // Also prevent programmatic redirects to /login.html
+    (function hardenLocationReplace(){
+      var origReplace = location.replace.bind(location);
+      location.replace = function(url){
+        try{
+          var u = String(url||'').toLowerCase();
+          if (u.endsWith('/login.html') || u === 'login.html'){
+            location.hash = '#/login';
+            if (typeof window.route === 'function') setTimeout(window.route, 0);
+            return; // swallow
+          }
+        }catch(_){}
+        return origReplace(url);
+      };
+    })();
+
+    // --- 3) Ensure a hash route exists on first paint (just in case) ---
+    (function ensureHash(){
+      try{
+        if (!location.hash || location.hash === '#'){
+          // Keep your existing home default
+          location.replace('#/home');
+        }
+        // Kick the router once the DOM is ready
+        var start = function(){
+          if (typeof window.route === 'function') window.route();
+        };
+        if (document.readyState === 'loading'){
+          document.addEventListener('DOMContentLoaded', start, {once:true});
+        } else {
+          start();
+        }
+      }catch(_){}
+    })();
+
+  }catch(e){
+    console.error('DF_PATCH_1105', e);
+  }
+})();
