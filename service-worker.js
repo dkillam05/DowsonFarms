@@ -10,7 +10,7 @@
    ========================================================= */
 
 // Bump this on every release
-const CACHE_VERSION = 'df-v11.0.0';
+const CACHE_VERSION = 'df-v11.0.1';
 
 // App shell core (keep minimal)
 const CORE = [
