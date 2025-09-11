@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-fallback-version="v12.2.22">
+<html lang="en" data-fallback-version="v12.2.23">
 <head>
   <meta charset="utf-8">
   <meta name="viewport"
@@ -11,7 +11,7 @@
     :root{
       --bg:#f6f3e4; --panel:#ffffff; --fg:#1a1a1a; --muted:#6e6e6e;
       --brand:#0f4d1d; --bd:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
-      --radius:22px; --ctl-h:48px;
+      --radius:22px; --ctl-h:50px;
     }
     html,body{height:100%}
     body{
@@ -41,39 +41,37 @@
     .title h1{font-size:34px; margin:0 0 4px; letter-spacing:.3px;}
     .title p{margin:0; color:var(--muted); font-size:18px;}
 
-    .field{margin:14px 0;}
+    .field{margin:16px 0;}
     .label{display:block; font-weight:700; margin-bottom:6px;}
 
     .input{
       position:relative;
+      display:flex; align-items:center;
     }
     input[type="email"], input[type="password"], input[type="text"]{
       width:100%;
       font-size:16px; /* prevent iOS zoom */
       height:var(--ctl-h); line-height:calc(var(--ctl-h) - 2px);
-      padding:0 14px;
+      padding:0 46px 0 14px;  /* left padding 14, right padding for eye */
       border:1px solid var(--bd); border-radius:12px; background:#fff;
-      outline:none;
+      outline:none; box-sizing:border-box;
     }
-    /* make room for the eye icon */
-    .input.has-eye input{ padding-right:46px; }
 
     .pw-eye{
-      position:absolute; right:6px; top:50%; transform:translateY(-50%);
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
       display:grid; place-items:center;
-      width:36px; height:36px; border:0; background:transparent; padding:0; margin:0;
-      cursor:pointer; border-radius:8px;
+      width:28px; height:28px; border:0; background:transparent; padding:0; margin:0;
+      cursor:pointer;
     }
-    .pw-eye:active{ transform:translateY(-50%) scale(.98); }
     .pw-eye svg{ width:22px; height:22px; }
 
     .actions{
-      margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:12px;
       flex-wrap:wrap;
     }
     .link{color:var(--brand); font-weight:700; text-decoration:none}
     .btn{
-      background:var(--brand); color:#fff; border:0; border-radius:16px; padding:14px 22px;
+      background:var(--brand); color:#fff; border:0; border-radius:12px; padding:14px 22px;
       font-weight:800; min-width:120px; cursor:pointer;
     }
     .error{margin-top:8px; color:#b00020; font-weight:700; display:none;}
@@ -110,7 +108,7 @@
 
           <div class="field">
             <label class="label" for="password">Password</label>
-            <div class="input has-eye">
+            <div class="input">
               <input id="password" name="password" type="password" autocomplete="current-password"
                      placeholder="Password" required>
               <button class="pw-eye" type="button" id="togglePw" aria-label="Show password" aria-pressed="false">
@@ -155,7 +153,6 @@
       const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       const d = new Date();
       $('#dateText').textContent = `${months[d.getMonth()]} ${d.getDate()}${ord(d.getDate())} ${d.getFullYear()}`;
-
       const pickVersion = ()=>{
         if (window.DF && window.DF.VERSION) return window.DF.VERSION;
         try { const v = localStorage.getItem('df_version'); if (v) return v; } catch {}
@@ -212,11 +209,6 @@
           alert('No account found for that email.');
         }
       });
-
-      // Clean URL if someone arrives with a hash
-      if (location.hash && location.pathname.endsWith('/login.html')) {
-        history.replaceState(null, '', '/login.html');
-      }
     })();
   </script>
 </body>
