@@ -1,25 +1,34 @@
-// Dowson Farms Service Worker — v12.2.11
-const CACHE_NAME = 'dowsonfarms-v12.2.11';
+// Dowson Farms Service Worker — cache tied to sw.js?v=<APP.version>
+
+const VERSION = (() => {
+  try {
+    const u = new URL(self.registration?.scriptURL || self.location.href);
+    return new URLSearchParams(u.search).get('v') || 'v0';
+  } catch { return 'v0'; }
+})();
+
+const CACHE_NAME = `df-cache-${VERSION}`;
 const CORE_ASSETS = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/styles.css',
-  '/login.html',
-  '/icons/logo.png',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  // Keep paths relative to the site root. Add/remove as needed.
+  './',
+  './index.html',
+  './app.js',
+  './styles.css',
+  './login.html',
+  './icons/logo.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
-// Install: cache core assets
+// Install: precache core with the versioned cache name
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
   );
-  self.skipWaiting();
+  self.skipWaiting(); // activate immediately
 });
 
-// Activate: clear old caches
+// Activate: clear ANY older versioned caches
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -29,13 +38,15 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for html, cache-first for static
+// Strategy:
+// - HTML/doc requests → network-first (keeps login/index fresh)
+// - Static assets (js/css/png/etc) → cache-first
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  const url = new URL(req.url);
+  const accept = req.headers.get('accept') || '';
 
-  // Always try network first for HTML (so login.html & index.html stay fresh)
-  if (req.headers.get('accept')?.includes('text/html')) {
+  // HTML: try network first, fall back to cache
+  if (accept.includes('text/html')) {
     e.respondWith(
       fetch(req).then((res) => {
         const clone = res.clone();
@@ -46,7 +57,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Cache-first for everything else
+  // Non-HTML: cache-first
   e.respondWith(
     caches.match(req).then((cached) => cached || fetch(req))
   );
