@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.4';
+  const VERSION = 'v12.2.5';
 
   // App constants
   const APP = {
@@ -1358,4 +1358,507 @@
 
   window.DF = window.DF || {};
   window.DF.renderYieldReport = renderYieldReport;
+})();
+
+/* APP v12 — Part 25: Team & Partners Hub */
+(function DF_v12_P25_TeamHub(){
+  'use strict';
+  if (window.__DF_V12_P25__) return;
+  window.__DF_V12_P25__ = true;
+
+  // tiny helpers
+  const $  = (s, r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+
+  function ensureTeamTileStyles(){
+    if ($('#df-team-tiles-css')) return;
+    const css = document.createElement('style');
+    css.id = 'df-team-tiles-css';
+    css.textContent = `
+      .df-tiles{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:8px; }
+      @media (min-width:760px){ .df-tiles{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+      .df-tile{
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        text-decoration:none; border:1px solid rgba(0,0,0,.08); border-radius:14px;
+        padding:16px 12px; background:#fff; color:inherit;
+        box-shadow:0 1px 0 rgba(0,0,0,.04), 0 6px 14px rgba(0,0,0,.05);
+        transition:transform .06s ease, box-shadow .12s ease;
+      }
+      .df-tile:active{ transform:scale(.98); box-shadow:0 1px 0 rgba(0,0,0,.04), 0 3px 8px rgba(0,0,0,.04); }
+      .df-emoji{ font-size:28px; line-height:1; margin-bottom:6px; }
+      .df-label{ font-weight:700; text-align:center; letter-spacing:.2px; }
+      .muted{ color:#666; }
+    `;
+    document.head.appendChild(css);
+  }
+
+  function renderTeamHub(){
+    ensureTeamTileStyles();
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>👥 Team & Partners</h1>
+        <div class="df-tiles">
+          <a class="df-tile" href="#/team/employees"><div class="df-emoji">👷</div><div class="df-label">Employees</div></a>
+          <a class="df-tile" href="#/team/subcontractors"><div class="df-emoji">🧑‍🔧</div><div class="df-label">Subcontractors</div></a>
+          <a class="df-tile" href="#/team/vendors"><div class="df-emoji">🏪</div><div class="df-label">Vendors</div></a>
+          <a class="df-tile" href="#/team/dir"><div class="df-emoji">📇</div><div class="df-label">Directory</div></a>
+        </div>
+        <p class="muted" style="margin-top:12px;"><a href="#/home">← Back to Home</a></p>
+      </section>
+    `;
+  }
+
+  function route(){
+    const h = (location.hash||'').replace(/\/+$/,'');
+    if (h === '#/team'){ renderTeamHub(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); }
+  else { route(); }
+
+  // expose if needed
+  window.DF = window.DF || {};
+  window.DF.renderTeamHub = renderTeamHub;
+})();
+
+/* APP v12 — Part 26: Team shared helpers + styles */
+(function DF_v12_P26_TeamShared(){
+  'use strict';
+  if (window.__DF_V12_P26__) return;
+  window.__DF_V12_P26__ = true;
+
+  // localStorage helpers
+  function tLoad(key, fb=[]){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fb; }catch{ return fb; } }
+  function tSave(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} }
+  function tUID(){ try{ return crypto.getRandomValues(new Uint32Array(2))[0].toString(36)+Date.now().toString(36); }catch{ return Math.random().toString(36).slice(2)+Date.now().toString(36); } }
+  function onlyDigits(s){ return String(s||'').replace(/\D+/g,''); }
+  function fmtPhone(v){
+    const d = onlyDigits(v).slice(0,10);
+    if (!d) return '';
+    if (d.length<=3) return `(${d}`;
+    if (d.length<=6) return `(${d.slice(0,3)}) ${d.slice(3)}`;
+    return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  }
+  function emailOk(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e||'').trim()); }
+  function esc(s){ return String(s??'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // expose
+  window.DF = window.DF || {};
+  window.DF.Team = Object.assign(window.DF.Team || {}, {
+    tLoad, tSave, tUID, onlyDigits, fmtPhone, emailOk, esc,
+    KEYS: {
+      EMP: 'df_team_employees',
+      SUB: 'df_team_subs',
+      VEN: 'df_team_vendors'
+    }
+  });
+
+  // styles for forms/tables
+  if (!document.getElementById('df-team-shared-css')){
+    const css = document.createElement('style');
+    css.id = 'df-team-shared-css';
+    css.textContent = `
+      .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+      .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+      @media (max-width:560px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+      input, textarea, select{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.12); background:#fff; }
+      .btn{ background:#fff; border:1px solid rgba(0,0,0,.12); border-radius:10px; padding:6px 10px; }
+      .btn.small{ padding:4px 8px; font-size:.9em; }
+      .btn-primary{ background:#0f4d1d; color:#fff; border:0; border-radius:10px; padding:8px 12px; }
+
+      table.report-table{ width:100%; border-collapse:collapse; margin-top:8px; }
+      .report-table th, .report-table td{ border:1px solid rgba(0,0,0,.12); padding:8px; text-align:left; vertical-align:top; }
+      .report-table th{ background:#f3f3f3; }
+      .muted{ color:#666; }
+    `;
+    document.head.appendChild(css);
+  }
+})();
+
+/* APP v12 — Part 27: Team → Employees */
+(function DF_v12_P27_TeamEmployees(){
+  'use strict';
+  if (window.__DF_V12_P27__) return;
+  window.__DF_V12_P27__ = true;
+
+  const $  = (s, r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const T   = (window.DF && window.DF.Team) || {};
+
+  function renderEmployees(){
+    const list = T.tLoad(T.KEYS.EMP, []);
+    const rows = list.map(p=>`
+      <tr data-id="${p.id}">
+        <td>${T.esc(p.name)}</td>
+        <td>${T.esc(p.role||'')}</td>
+        <td>${T.esc(T.fmtPhone(p.phone||''))}</td>
+        <td>${T.esc(p.email||'')}</td>
+        <td>${T.esc(p.notes||'')}</td>
+        <td><button class="btn small" data-edit>Edit</button> <button class="btn small" data-del>Delete</button></td>
+      </tr>
+    `).join('');
+
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>👷 Employees</h1>
+
+        <div class="grid-2">
+          <input id="e-name" type="text" placeholder="Full name *">
+          <input id="e-role" type="text" placeholder="Role / Title">
+        </div>
+        <div class="grid-2">
+          <input id="e-phone" type="tel" placeholder="Phone (digits only)">
+          <input id="e-email" type="email" placeholder="Email">
+        </div>
+        <div class="field">
+          <textarea id="e-notes" rows="2" placeholder="Notes (optional)"></textarea>
+        </div>
+        <div class="field">
+          <button id="e-save" class="btn-primary">Save</button>
+          <button id="e-clear" class="btn">Clear</button>
+          <a class="btn" href="#/team">Back to Team & Partners</a>
+        </div>
+
+        <h2 style="margin-top:12px;">Team</h2>
+        ${rows ? `
+          <table class="report-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Email</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="e-tbody">${rows}</tbody>
+          </table>
+        ` : `<p class="muted">No employees yet.</p>`}
+      </section>
+    `;
+
+    let editId = null;
+
+    function readForm(){
+      const name  = $('#e-name').value.trim();
+      const role  = $('#e-role').value.trim();
+      const phone = T.onlyDigits($('#e-phone').value);
+      const email = $('#e-email').value.trim();
+      const notes = $('#e-notes').value.trim();
+      if (!name){ alert('Name is required.'); return null; }
+      if (email && !T.emailOk(email)){ alert('Email looks invalid.'); return null; }
+      return { id: editId || T.tUID(), name, role, phone, email, notes };
+    }
+    function loadForm(p){
+      editId = p?.id || null;
+      $('#e-name').value  = p?.name || '';
+      $('#e-role').value  = p?.role || '';
+      $('#e-phone').value = T.fmtPhone(p?.phone||'');
+      $('#e-email').value = p?.email || '';
+      $('#e-notes').value = p?.notes || '';
+    }
+    function clearForm(){ loadForm({}); }
+
+    $('#e-save').addEventListener('click', ()=>{
+      const rec = readForm(); if (!rec) return;
+      const arr = T.tLoad(T.KEYS.EMP, []);
+      const i = arr.findIndex(x=>x.id===rec.id);
+      if (i>=0) arr[i]=rec; else arr.unshift(rec);
+      T.tSave(T.KEYS.EMP, arr);
+      alert('Saved.');
+      renderEmployees();
+    });
+    $('#e-clear').addEventListener('click', clearForm);
+
+    $('#e-tbody')?.addEventListener('click', (e)=>{
+      const tr = e.target.closest('tr'); if (!tr) return;
+      const id = tr.getAttribute('data-id');
+      if (e.target.matches('[data-edit]')){
+        const p = T.tLoad(T.KEYS.EMP, []).find(x=>x.id===id);
+        if (p) loadForm(p);
+      } else if (e.target.matches('[data-del]')){
+        if (!confirm('Delete this employee?')) return;
+        const arr = T.tLoad(T.KEYS.EMP, []).filter(x=>x.id!==id);
+        T.tSave(T.KEYS.EMP, arr);
+        renderEmployees();
+      }
+    });
+  }
+
+  function route(){
+    const h = (location.hash||'').replace(/\/+$/,'');
+    if (h === '#/team/employees'){ renderEmployees(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); }
+  else { route(); }
+
+  window.DF = window.DF || {};
+  window.DF.renderTeamEmployees = renderEmployees;
+})();
+
+/* APP v12 — Part 28: Team → Subcontractors & Vendors */
+(function DF_v12_P28_TeamSubsVendors(){
+  'use strict';
+  if (window.__DF_V12_P28__) return;
+  window.__DF_V12_P28__ = true;
+
+  const $  = (s, r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const T   = (window.DF && window.DF.Team) || {};
+
+  // ---------- Subcontractors ----------
+  function renderSubs(){
+    const list = T.tLoad(T.KEYS.SUB, []);
+    const rows = list.map(p=>`
+      <tr data-id="${p.id}">
+        <td>${T.esc(p.company)}</td>
+        <td>${T.esc(p.contact||'')}</td>
+        <td>${T.esc(T.fmtPhone(p.phone||''))}</td>
+        <td>${T.esc(p.email||'')}</td>
+        <td>${T.esc(p.services||'')}</td>
+        <td><button class="btn small" data-edit>Edit</button> <button class="btn small" data-del>Delete</button></td>
+      </tr>
+    `).join('');
+
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>🧑‍🔧 Subcontractors</h1>
+
+        <div class="grid-2">
+          <input id="s-company" type="text" placeholder="Company *">
+          <input id="s-contact" type="text" placeholder="Primary contact">
+        </div>
+        <div class="grid-2">
+          <input id="s-phone" type="tel" placeholder="Phone">
+          <input id="s-email" type="email" placeholder="Email">
+        </div>
+        <div class="field">
+          <input id="s-services" type="text" placeholder="Services (e.g., tiling, trucking)">
+        </div>
+        <div class="field">
+          <button id="s-save" class="btn-primary">Save</button>
+          <button id="s-clear" class="btn">Clear</button>
+          <a class="btn" href="#/team">Back to Team & Partners</a>
+        </div>
+
+        <h2 style="margin-top:12px;">List</h2>
+        ${rows ? `
+          <table class="report-table">
+            <thead><tr><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th><th>Services</th><th></th></tr></thead>
+            <tbody id="s-tbody">${rows}</tbody>
+          </table>
+        ` : `<p class="muted">No subcontractors yet.</p>`}
+      </section>
+    `;
+
+    let editId = null;
+
+    function readForm(){
+      const company = $('#s-company').value.trim();
+      const contact = $('#s-contact').value.trim();
+      const phone   = T.onlyDigits($('#s-phone').value);
+      const email   = $('#s-email').value.trim();
+      const services= $('#s-services').value.trim();
+      if (!company){ alert('Company is required.'); return null; }
+      if (email && !T.emailOk(email)){ alert('Email looks invalid.'); return null; }
+      return { id: editId || T.tUID(), company, contact, phone, email, services };
+    }
+    function loadForm(p){
+      editId = p?.id || null;
+      $('#s-company').value = p?.company||'';
+      $('#s-contact').value = p?.contact||'';
+      $('#s-phone').value   = T.fmtPhone(p?.phone||'');
+      $('#s-email').value   = p?.email||'';
+      $('#s-services').value= p?.services||'';
+    }
+    function clearForm(){ loadForm({}); }
+
+    $('#s-save').addEventListener('click', ()=>{
+      const rec = readForm(); if (!rec) return;
+      const arr = T.tLoad(T.KEYS.SUB, []);
+      const i = arr.findIndex(x=>x.id===rec.id);
+      if (i>=0) arr[i]=rec; else arr.unshift(rec);
+      T.tSave(T.KEYS.SUB, arr);
+      alert('Saved.');
+      renderSubs();
+    });
+    $('#s-clear').addEventListener('click', clearForm);
+
+    $('#s-tbody')?.addEventListener('click', (e)=>{
+      const tr = e.target.closest('tr'); if (!tr) return;
+      const id = tr.getAttribute('data-id');
+      if (e.target.matches('[data-edit]')){
+        const p = T.tLoad(T.KEYS.SUB, []).find(x=>x.id===id);
+        if (p) loadForm(p);
+      } else if (e.target.matches('[data-del]')){
+        if (!confirm('Delete this subcontractor?')) return;
+        const arr = T.tLoad(T.KEYS.SUB, []).filter(x=>x.id!==id);
+        T.tSave(T.KEYS.SUB, arr);
+        renderSubs();
+      }
+    });
+  }
+
+  // ---------- Vendors ----------
+  function renderVendors(){
+    const list = T.tLoad(T.KEYS.VEN, []);
+    const rows = list.map(v=>`
+      <tr data-id="${v.id}">
+        <td>${T.esc(v.company)}</td>
+        <td>${T.esc(v.account||'')}</td>
+        <td>${T.esc(T.fmtPhone(v.phone||''))}</td>
+        <td>${T.esc(v.email||'')}</td>
+        <td>${T.esc(v.notes||'')}</td>
+        <td><button class="btn small" data-edit>Edit</button> <button class="btn small" data-del>Delete</button></td>
+      </tr>
+    `).join('');
+
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>🏪 Vendors</h1>
+
+        <div class="grid-2">
+          <input id="v-company" type="text" placeholder="Company *">
+          <input id="v-account" type="text" placeholder="Account #">
+        </div>
+        <div class="grid-2">
+          <input id="v-phone" type="tel" placeholder="Phone">
+          <input id="v-email" type="email" placeholder="Email">
+        </div>
+        <div class="field">
+          <textarea id="v-notes" rows="2" placeholder="Notes (optional)"></textarea>
+        </div>
+        <div class="field">
+          <button id="v-save" class="btn-primary">Save</button>
+          <button id="v-clear" class="btn">Clear</button>
+          <a class="btn" href="#/team">Back to Team & Partners</a>
+        </div>
+
+        <h2 style="margin-top:12px;">List</h2>
+        ${rows ? `
+          <table class="report-table">
+            <thead><tr><th>Company</th><th>Account #</th><th>Phone</th><th>Email</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="v-tbody">${rows}</tbody>
+          </table>
+        ` : `<p class="muted">No vendors yet.</p>`}
+      </section>
+    `;
+
+    let editId = null;
+
+    function readForm(){
+      const company = $('#v-company').value.trim();
+      const account = $('#v-account').value.trim();
+      const phone   = T.onlyDigits($('#v-phone').value);
+      const email   = $('#v-email').value.trim();
+      const notes   = $('#v-notes').value.trim();
+      if (!company){ alert('Company is required.'); return null; }
+      if (email && !T.emailOk(email)){ alert('Email looks invalid.'); return null; }
+      return { id: editId || T.tUID(), company, account, phone, email, notes };
+    }
+    function loadForm(p){
+      editId = p?.id || null;
+      $('#v-company').value = p?.company||'';
+      $('#v-account').value = p?.account||'';
+      $('#v-phone').value   = T.fmtPhone(p?.phone||'');
+      $('#v-email').value   = p?.email||'';
+      $('#v-notes').value   = p?.notes||'';
+    }
+    function clearForm(){ loadForm({}); }
+
+    $('#v-save').addEventListener('click', ()=>{
+      const rec = readForm(); if (!rec) return;
+      const arr = T.tLoad(T.KEYS.VEN, []);
+      const i = arr.findIndex(x=>x.id===rec.id);
+      if (i>=0) arr[i]=rec; else arr.unshift(rec);
+      T.tSave(T.KEYS.VEN, arr);
+      alert('Saved.');
+      renderVendors();
+    });
+    $('#v-clear').addEventListener('click', clearForm);
+
+    $('#v-tbody')?.addEventListener('click', (e)=>{
+      const tr = e.target.closest('tr'); if (!tr) return;
+      const id = tr.getAttribute('data-id');
+      if (e.target.matches('[data-edit]')){
+        const v = T.tLoad(T.KEYS.VEN, []).find(x=>x.id===id);
+        if (v) loadForm(v);
+      } else if (e.target.matches('[data-del]')){
+        if (!confirm('Delete this vendor?')) return;
+        const arr = T.tLoad(T.KEYS.VEN, []).filter(x=>x.id!==id);
+        T.tSave(T.KEYS.VEN, arr);
+        renderVendors();
+      }
+    });
+  }
+
+  function route(){
+    const h = (location.hash||'').replace(/\/+$/,'');
+    if (h === '#/team/subcontractors'){ renderSubs(); return true; }
+    if (h === '#/team/vendors'){ renderVendors(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); }
+  else { route(); }
+
+  // expose (optional)
+  window.DF = window.DF || {};
+  window.DF.renderTeamSubcontractors = renderSubs;
+  window.DF.renderTeamVendors = renderVendors;
+})();
+
+/* APP v12 — Part 29: Team → Directory (roll-up) */
+(function DF_v12_P29_TeamDirectory(){
+  'use strict';
+  if (window.__DF_V12_P29__) return;
+  window.__DF_V12_P29__ = true;
+
+  const $  = (s, r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const T   = (window.DF && window.DF.Team) || {};
+
+  function renderDirectory(){
+    const emps = T.tLoad(T.KEYS.EMP, []).map(x=>({ type:'Employee', name:x.name, org:x.role||'', phone:x.phone, email:x.email }));
+    const subs = T.tLoad(T.KEYS.SUB, []).map(x=>({ type:'Sub',      name:x.company, org:x.contact||'', phone:x.phone, email:x.email }));
+    const vens = T.tLoad(T.KEYS.VEN, []).map(x=>({ type:'Vendor',   name:x.company, org:x.account||'', phone:x.phone, email:x.email }));
+    const all = [...emps, ...subs, ...vens].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+
+    const rows = all.map((r,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${T.esc(r.type)}</td>
+        <td>${T.esc(r.name)}</td>
+        <td>${T.esc(r.org||'')}</td>
+        <td>${T.esc(T.fmtPhone(r.phone||''))}</td>
+        <td>${T.esc(r.email||'')}</td>
+      </tr>
+    `).join('');
+
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>📇 Directory</h1>
+        ${all.length ? `
+          <table class="report-table">
+            <thead><tr><th>#</th><th>Type</th><th>Name</th><th>Role/Acct</th><th>Phone</th><th>Email</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        ` : `<p class="muted">No contacts yet. Add employees, subcontractors, or vendors to populate this directory.</p>`}
+        <p class="muted" style="margin-top:12px;"><a href="#/team">← Back to Team & Partners</a></p>
+      </section>
+    `;
+  }
+
+  function route(){
+    const h = (location.hash||'').replace(/\/+$/,'');
+    if (h === '#/team/dir'){ renderDirectory(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); }
+  else { route(); }
+
+  window.DF = window.DF || {};
+  window.DF.renderTeamDirectory = renderDirectory;
 })();
