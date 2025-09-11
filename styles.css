@@ -139,3 +139,75 @@ body { display: flex; flex-direction: column; margin: 0; }
 
 /* Keep page background consistent */
 body{ background: var(--df-cream) !important; }
+
+/* ===== Dowson Farms — Chrome Compact (v12.6.x final) ===== */
+:root{
+  --df-green: #0f4d1d;      /* rich green */
+  --df-gold:  #f1d565;      /* elegant gold */
+  --df-bg:    #f6f3e4;      /* warm backdrop */
+}
+
+/* Page backdrop stays warm */
+body{ background: var(--df-bg) !important; }
+
+/* ---------- Header (small, green) ---------- */
+.site-head{
+  background: var(--df-green) !important;
+  color: var(--df-gold) !important;
+  border: 0 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.10);
+}
+.site-head .head-inner{
+  padding: 6px 10px !important;          /* tighter */
+  gap: 10px !important;
+}
+.brand-logo{
+  width: 28px !important; height: 28px !important;  /* smaller mark */
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.12);
+}
+.brand-title{
+  font-size: 18px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  color: var(--df-gold) !important;
+  letter-spacing: .2px;
+}
+.head-actions{ display:flex; align-items:center; gap:10px; }
+.head-actions .btn{
+  background: transparent !important;
+  color: var(--df-gold) !important;
+  border: 1px solid rgba(241,213,101,.35) !important; /* gold-ish border */
+  border-radius: 10px; padding: 4px 10px; font-weight: 600;
+}
+.head-actions .btn:hover{ background: rgba(255,255,255,.06) !important; }
+
+/* optional clock styling (if present via JS Part 46) */
+#df-clock{ color: var(--df-gold) !important; font-variant-numeric: tabular-nums; opacity:.95; }
+
+/* ---------- Footer (small, green) ---------- */
+.site-foot{
+  background: var(--df-green) !important;
+  color: var(--df-gold) !important;
+  border: 0 !important;
+  position: sticky; bottom: 0; z-index: 9;
+}
+.foot-inner{
+  padding: 8px 10px !important;           /* tighter */
+  gap: 10px !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  justify-content: center !important;
+}
+#df-date, #version{ color: var(--df-gold) !important; }
+.foot-inner .dot{ color: var(--df-gold) !important; opacity:.8; }
+
+/* ---------- Layout guard so footer never overlaps content ---------- */
+.app, #app{ padding-bottom: 64px !important; } /* space for sticky footer */
+
+/* ---------- Neutralize earlier ivory header/footer blocks ---------- */
+.site-head:not(.keep-ivory), .site-foot:not(.keep-ivory){
+  background: var(--df-green) !important;
+  color: var(--df-gold) !important;
+  border: 0 !important;
+}
