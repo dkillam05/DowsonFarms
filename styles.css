@@ -93,3 +93,49 @@ body { display: flex; flex-direction: column; margin: 0; }
 
 /* Ensure content never hides behind the sticky footer */
 .app, #app { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+
+
+/* ===== DF Chrome Overrides (v12.6.x) — header & footer size/color ===== */
+:root{
+  --df-green: #0f4d1d;
+  --df-cream: #f6f3e4;
+}
+
+/* Header: small, green, light text */
+.site-head{
+  background: var(--df-green) !important;
+  color: #fff !important;
+  border: 0 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.08);
+}
+.site-head .container{ padding: 8px 12px !important; }
+.brand-logo{ width: 32px !important; height: 32px !important; border-radius: 50%; }
+.brand-title{ font-size: 18px !important; font-weight: 700 !important; color:#fff !important; }
+.head-actions .btn{
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+/* App area: leave room so sticky footer never covers content */
+.app{ padding-bottom: 72px !important; }
+
+/* Footer: small, green, centered */
+.site-foot{
+  background: var(--df-green) !important;
+  color: #fff !important;
+  border: 0 !important;
+  position: sticky;
+  bottom: 0;
+  z-index: 9;
+}
+.foot-inner{
+  font-size: 14px !important;
+  padding: 10px 12px !important;
+  gap: 8px !important;
+}
+
+/* Keep page background consistent */
+body{ background: var(--df-cream) !important; }
