@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.5',
+    version: 'v12.6.6',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -3749,176 +3749,112 @@
 })();
 
 /* =========================================================
-   APP v12.x — Part 46: Green+Gold Header & Footer polish
-   - Header & footer: green (footer slightly darker), gold text
-   - Compact header with safe-area top padding (mobile friendly)
-   - Logout on the right, themed
-   - Live clock (header) & pretty date (footer)
-   - Hides header/footer on #/login
-   - Idempotent: safe to include once
+   APP v12.6.6 — Part 46: Header/Foot Polish
+   - Small green header + green footer
+   - Golden yellow text for branding/date/version
+   - Smaller logo, clock + logout aligned right
    ========================================================= */
-(function DF_V12_P46_HEADER_FOOTER(){
+(function DF_V12_P46_HEADERFOOT(){
   'use strict';
   if (window.__DF_V12_P46__) return; window.__DF_V12_P46__ = true;
 
-  // helpers
-  const $  = (s, r=document)=>r.querySelector(s);
-  const esc = s => String(s??'');
-  const VERSION = esc((window.DF && window.DF.VERSION) || '');
+  const $ = (s,r=document)=>r.querySelector(s);
 
-  // 1) Inject theme CSS
+  // Inject styles
   (function injectCSS(){
-    if ($('#df-p46-polish-css')) return;
+    if ($('#df-p46-css')) return;
     const css = document.createElement('style');
-    css.id = 'df-p46-polish-css';
+    css.id = 'df-p46-css';
     css.textContent = `
       :root{
-        --df-green:#144a25;        /* header green (rich) */
-        --df-green-dk:#103c1e;     /* footer green (slightly darker) */
-        --df-gold:#e2c65a;         /* elegant gold */
-        --df-gold-dk:#c7b04f;      /* pressed/hover tone */
-        --df-shadow:0 1px 0 rgba(0,0,0,.05);
+        --df-green:#154d2a;
+        --df-gold:#d8b63a;
+      }
+      .site-head{
+        background:var(--df-green)!important;
+        color:var(--df-gold)!important;
+        border-bottom:1px solid rgba(0,0,0,.2);
+      }
+      .head-inner{
+        display:flex; align-items:center; justify-content:space-between;
+        padding:4px 10px!important;
+      }
+      .brand{ display:flex; align-items:center; gap:8px; }
+      .brand-logo{ width:28px; height:28px; border-radius:50%; }
+      .brand-title{ font-weight:700; font-size:18px; color:var(--df-gold)!important; }
+
+      .head-actions{ display:flex; align-items:center; gap:10px; }
+      #df-clock{ font-size:14px; font-weight:600; color:var(--df-gold)!important; }
+      #logoutBtn{
+        background:transparent!important;
+        border:1px solid var(--df-gold)!important;
+        color:var(--df-gold)!important;
+        border-radius:6px; padding:4px 8px; font-size:13px;
       }
 
-      /* ——— Header ——— */
-      #header{
-        background:var(--df-green) !important;
-        color:var(--df-gold) !important;
-        border-bottom:1px solid rgba(0,0,0,.15) !important;
+      .site-foot{
+        background:var(--df-green)!important;
+        color:var(--df-gold)!important;
+        border-top:1px solid rgba(0,0,0,.2);
       }
-      #header .head-inner{
-        padding-top: max(6px, env(safe-area-inset-top));
-        padding-bottom: 6px;
+      .foot-inner{
+        display:flex; justify-content:center; gap:10px;
+        font-size:13px; font-weight:500;
       }
-      #header .brand{ gap:8px; }
-      #header .brand-logo{
-        width:26px; height:26px; border-radius:50%;
-        box-shadow:0 0 0 1px rgba(255,255,255,.08);
-      }
-      #header .brand-title{
-        color:var(--df-gold) !important;
-        font-weight:700; font-size:18px; letter-spacing:.2px;
-      }
-
-      /* Right side actions */
-      #header .head-actions{ display:flex; align-items:center; gap:10px; }
-      #header .head-actions .dot{ color:var(--df-gold); opacity:.8; }
-      #header .head-actions .btn{
-        background:transparent;
-        color:var(--df-gold);
-        border:1px solid rgba(226,198,90,.55);
-        border-radius:10px; padding:6px 10px; cursor:pointer;
-        box-shadow: var(--df-shadow);
-      }
-      #header .head-actions .btn:active{
-        color:var(--df-gold-dk);
-        border-color: rgba(226,198,90,.9);
-        transform: translateY(1px);
-      }
-
-      /* Header clock */
-      #df-clock{
-        font-variant-numeric: tabular-nums;
-        font-weight:600;
-        letter-spacing:.2px;
-        color:var(--df-gold);
-      }
-
-      /* ——— Footer ——— */
-      #footer{
-        background:var(--df-green-dk) !important;
-        color:var(--df-gold) !important;
-        border-top:1px solid rgba(0,0,0,.2) !important;
-      }
-      #footer .foot-inner{
-        gap:10px;
-      }
-      #footer a{ color:var(--df-gold); }
-      #df-date{ opacity:.95; }
-
-      /* ——— Layout min-height to account for compact bars ——— */
-      .app{ min-height:calc(100vh - 104px) !important; }
-      /* If your head/foot are even shorter later, adjust 104px accordingly. */
     `;
     document.head.appendChild(css);
   })();
 
-  // 2) Ensure clock (right side)
+  // Ensure clock exists
   function ensureClock(){
-    const head = $('#header'); if (!head) return;
-    const actions = head.querySelector('.head-actions'); if (!actions) return;
-
+    const actions = $('#header .head-actions'); if (!actions) return;
     if (!$('#df-clock')){
-      const sep = document.createElement('span');
-      sep.className = 'dot'; sep.setAttribute('aria-hidden','true'); sep.textContent = '•';
       const clock = document.createElement('span');
       clock.id = 'df-clock';
-      actions.appendChild(sep);
       actions.appendChild(clock);
     }
   }
 
-  // 3) Ensure pretty date in footer (before version if present)
-  function ensureDate(){
-    const foot = $('#footer'); if (!foot) return;
-    const inner = foot.querySelector('.foot-inner') || foot;
-    if ($('#df-date')) return;
-
-    const dot = document.createElement('span');
-    dot.className='dot'; dot.setAttribute('aria-hidden','true'); dot.textContent='•';
-    const dateSpan = document.createElement('span');
-    dateSpan.id='df-date';
-
-    const ver = $('#version');
-    if (ver && ver.parentElement === inner){
-      inner.insertBefore(dot, ver);
-      inner.insertBefore(dateSpan, ver);
-    } else {
-      inner.appendChild(dot);
-      inner.appendChild(dateSpan);
+  // Tick time
+  function tick(){
+    const c = $('#df-clock');
+    if (c){
+      const now = new Date();
+      c.textContent = now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+    }
+    const d = $('#df-date');
+    if (d){
+      const now = new Date();
+      const m = now.toLocaleString(undefined,{month:'long'});
+      const day = now.getDate();
+      const y = now.getFullYear();
+      d.textContent = `${m} ${day}, ${y}`;
     }
   }
 
-  // 4) Updaters (time + date)
-  function ordinal(n){
-    const s = ['th','st','nd','rd'], v = n%100;
-    return n + (s[(v-20)%10] || s[v] || s[0]);
-  }
-  function fmtDate(d){
-    const m = d.toLocaleString(undefined,{ month:'long' });
-    const day = ordinal(d.getDate());
-    const y = d.getFullYear();
-    return `${m} ${day}, ${y}`;
-  }
-  function fmtTime(d){
-    return d.toLocaleTimeString(undefined,{ hour:'numeric', minute:'2-digit' });
-  }
-  function tick(){
-    const now = new Date();
-    const c = $('#df-clock'); if (c) c.textContent = fmtTime(now);
-    const ds = $('#df-date'); if (ds) ds.textContent = fmtDate(now);
+  // Ensure footer date+version
+  function ensureFooter(){
+    const foot = $('#footer .foot-inner'); if (!foot) return;
+    if (!$('#df-date')){
+      const dot1 = document.createElement('span'); dot1.textContent='•';
+      const date = document.createElement('span'); date.id='df-date';
+      const ver = $('#version');
+      if (ver){
+        foot.insertBefore(dot1, ver);
+        foot.insertBefore(date, ver);
+      }
+    }
   }
 
-  // 5) Hide header/footer on login hash
-  function applyLoginChrome(){
-    const isLogin = (location.hash||'').replace(/\/+$/,'') === '#/login';
-    const head = $('#header'); const foot = $('#footer');
-    if (head) head.style.display = isLogin ? 'none' : '';
-    if (foot) foot.style.display = isLogin ? 'none' : '';
-  }
-
-  // 6) Boot
   function init(){
     ensureClock();
-    ensureDate();
+    ensureFooter();
     tick();
-    applyLoginChrome();
   }
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init, { once:true });
-  } else {
-    init();
-  }
-  setInterval(tick, 15000);
-  window.addEventListener('hashchange', applyLoginChrome, { passive:true });
+
+  if (document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', init,{once:true});
+  } else init();
+
+  setInterval(tick,15000);
 })();
