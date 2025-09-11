@@ -211,5 +211,16 @@
       });
     })();
   </script>
+  <script>
+  (function(){
+    try {
+      const el = document.getElementById('version');
+      if (!el) return;
+      const qp = new URLSearchParams(location.search);
+      const v = qp.get('v') || localStorage.getItem('DF_VERSION') || 'v0.0.0';
+      el.textContent = v;
+    } catch {}
+  })();
+</script>
 </body>
 </html>
