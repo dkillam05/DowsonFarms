@@ -663,3 +663,140 @@
 
   window.addEventListener('hashchange',()=>{ if(location.hash==='#/settings/fields') renderFields(); });
 })();
+
+/* =========================================================
+   APP v12.2.2 — Part 13: Calculators Hub
+   ========================================================= */
+(function DF_v1222_P13(){
+  'use strict';
+  if (window.__DF_V1222_P13__) return; window.__DF_V1222_P13__ = true;
+
+  const $  = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+
+  const SUBS = [
+    { href:'#/calc/fertilizer', icon:'🧮', label:'Fertilizer' },
+    { href:'#/calc/yield',      icon:'🌽', label:'Combine Yield' },
+    { href:'#/calc/bin',        icon:'🏚️', label:'Bin Volume' },
+    { href:'#/calc/area',       icon:'📐', label:'Area' },
+    { href:'#/calc/chem',       icon:'🧪', label:'Chemical Mix' },
+  ];
+
+  function renderCalcHub(){
+    app().innerHTML = `
+      <section class="section">
+        <h1>🧮 Calculators</h1>
+        <div class="df-subtiles">
+          ${SUBS.map(s=>`
+            <a class="df-subtile" href="${s.href}">
+              <span class="em">${s.icon}</span><span>${s.label}</span>
+            </a>`).join('')}
+        </div>
+        <p class="muted" style="margin-top:12px;"><a href="#/home">← Back to Home</a></p>
+      </section>`;
+  }
+
+  function route(){
+    if (location.hash==='#/calc'){ renderCalcHub(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route,{passive:true});
+})();
+
+/* =========================================================
+   APP v12.2.2 — Part 14: Combine Yield Calculator
+   ========================================================= */
+(function DF_v1222_P14(){
+  'use strict';
+  if (window.__DF_V1222_P14__) return; window.__DF_V1222_P14__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+
+  function renderYieldCalc(){
+    app().innerHTML = `
+      <section class="section">
+        <h1>🌽 Combine Yield Calculator</h1>
+        <div class="field"><input id="yc-weight" type="number" placeholder="Weight (lb)"></div>
+        <div class="field"><input id="yc-moist" type="number" placeholder="Moisture %"></div>
+        <div class="field"><input id="yc-length" type="number" placeholder="Length (ft)"></div>
+        <div class="field"><input id="yc-width" type="number" placeholder="Width (ft)"></div>
+        <button class="btn-primary" id="yc-go">Calculate</button>
+        <div id="yc-out" class="muted" style="margin-top:10px;"></div>
+        <p class="muted" style="margin-top:12px;"><a href="#/calc">← Back to Calculators</a></p>
+      </section>`;
+    $('#yc-go')?.addEventListener('click', ()=>{
+      const w=+$('#yc-weight').value,m=+$('#yc-moist').value,l=+$('#yc-length').value,d=+$('#yc-width').value;
+      if (!(w&&m&&l&&d)) return;
+      const area=(l*d)/43560, bu=w/56, adj=bu*(1-((m-15.5)*0.012));
+      $('#yc-out').textContent=`≈ ${ (adj/area).toFixed(1) } bu/ac (adj @15.5%)`;
+    });
+  }
+
+  function route(){ if(location.hash==='#/calc/yield'){ renderYieldCalc(); return true; } return false; }
+  window.addEventListener('hashchange', route,{passive:true});
+})();
+
+/* =========================================================
+   APP v12.2.2 — Part 15: Bin Volume Calculator
+   ========================================================= */
+(function DF_v1222_P15(){
+  'use strict';
+  if (window.__DF_V1222_P15__) return; window.__DF_V1222_P15__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+
+  function renderBinCalc(){
+    app().innerHTML = `
+      <section class="section">
+        <h1>🏚️ Bin Volume</h1>
+        <div class="field"><input id="bin-dia" type="number" placeholder="Diameter (ft)"></div>
+        <div class="field"><input id="bin-h" type="number" placeholder="Grain Height (ft)"></div>
+        <button class="btn-primary" id="bin-go">Calculate</button>
+        <div id="bin-out" class="muted" style="margin-top:10px;"></div>
+        <p class="muted" style="margin-top:12px;"><a href="#/calc">← Back to Calculators</a></p>
+      </section>`;
+    $('#bin-go')?.addEventListener('click', ()=>{
+      const d=+$('#bin-dia').value,h=+$('#bin-h').value;
+      if (!(d&&h)) return;
+      const bu=(0.785*d*d*h*0.8)/1.2445; // rough estimate formula
+      $('#bin-out').textContent=`≈ ${bu.toLocaleString()} bushels`;
+    });
+  }
+
+  function route(){ if(location.hash==='#/calc/bin'){ renderBinCalc(); return true; } return false; }
+  window.addEventListener('hashchange', route,{passive:true});
+})();
+
+/* =========================================================
+   APP v12.2.2 — Part 16: Area Calculator
+   ========================================================= */
+(function DF_v1222_P16(){
+  'use strict';
+  if (window.__DF_V1222_P16__) return; window.__DF_V1222_P16__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+
+  function renderAreaCalc(){
+    app().innerHTML = `
+      <section class="section">
+        <h1>📐 Area Calculator</h1>
+        <div class="field"><input id="ar-l" type="number" placeholder="Length (ft)"></div>
+        <div class="field"><input id="ar-w" type="number" placeholder="Width (ft)"></div>
+        <button class="btn-primary" id="ar-go">Calculate</button>
+        <div id="ar-out" class="muted" style="margin-top:10px;"></div>
+        <p class="muted" style="margin-top:12px;"><a href="#/calc">← Back to Calculators</a></p>
+      </section>`;
+    $('#ar-go')?.addEventListener('click', ()=>{
+      const l=+$('#ar-l').value,w=+$('#ar-w').value;
+      if (!(l&&w)) return;
+      const ac=(l*w)/43560;
+      $('#ar-out').textContent=`≈ ${ac.toFixed(2)} acres`;
+    });
+  }
+
+  function route(){ if(location.hash==='#/calc/area'){ renderAreaCalc(); return true; } return false; }
+  window.addEventListener('hashchange', route,{passive:true});
+})();
