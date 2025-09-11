@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.2';
+  const VERSION = 'v12.2.3';
 
   // App constants
   const APP = {
@@ -799,4 +799,219 @@
 
   function route(){ if(location.hash==='#/calc/area'){ renderAreaCalc(); return true; } return false; }
   window.addEventListener('hashchange', route,{passive:true});
+})();
+
+/* =========================================================
+   APP v12.2.2 — Part 17: Fertilizer Calculator
+   ========================================================= */
+(function DF_v1222_P17(){
+  'use strict';
+  if (window.__DF_V1222_P17__) return; window.__DF_V1222_P17__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const num = v => { const n = Number(String(v||'').replace(/,/g,'')); return Number.isFinite(n)?n:0; };
+  const fmt = v => { try{ return Number(v).toLocaleString(); }catch{ return String(v); } };
+
+  function renderFertilizer(){
+    app().innerHTML = `
+      <section class="section">
+        <h1>🧮 Fertilizer</h1>
+
+        <div class="df-subtiles" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Nutrient</label>
+            <select id="f-nutrient">
+              <option value="N">N</option>
+              <option value="P2O5">P₂O₅</option>
+              <option value="K2O">K₂O</option>
+            </select>
+          </div>
+
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Target lb/acre *</label>
+            <input id="f-target" type="number" inputmode="decimal" placeholder="e.g., 50">
+          </div>
+
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Product Analysis % *</label>
+            <input id="f-analysis" type="number" inputmode="decimal" placeholder="e.g., 32">
+          </div>
+
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Density (lb/gal)</label>
+            <select id="f-density">
+              <option value="11.06">UAN 32 (11.06)</option>
+              <option value="10.67">UAN 28 (10.67)</option>
+              <option value="8.34">Water (8.34)</option>
+              <option value="custom">Custom…</option>
+            </select>
+            <input id="f-density-custom" type="number" inputmode="decimal" placeholder="Enter custom" style="margin-top:6px;display:none;">
+          </div>
+
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Acres *</label>
+            <input id="f-acres" type="number" inputmode="decimal" placeholder="e.g., 120">
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:10px;">
+          <button class="btn-primary" id="f-go">Calculate</button>
+          <a class="btn" href="#/calc" style="margin-left:6px;">Back</a>
+        </div>
+
+        <div id="f-out" class="muted" style="margin-top:12px;"></div>
+      </section>
+    `;
+
+    const densSel = $('#f-density');
+    const densCus = $('#f-density-custom');
+    densSel.addEventListener('change', ()=>{
+      densCus.style.display = densSel.value==='custom' ? '' : 'none';
+      if (densSel.value!=='custom') densCus.value='';
+    });
+
+    $('#f-go')?.addEventListener('click', ()=>{
+      const target   = num($('#f-target').value);
+      const analysis = num($('#f-analysis').value);
+      const acres    = num($('#f-acres').value);
+      const density  = densSel.value==='custom' ? num(densCus.value) : num(densSel.value||'0');
+
+      if (!target || !analysis || !acres || analysis<=0 || analysis>100){
+        $('#f-out').textContent = 'Please enter valid Target, Analysis (1–100), and Acres.'; return;
+      }
+      const dens = density>0 ? density : 11.06; // default reasonable density
+      const frac = analysis/100;
+
+      const lbPerAc  = target/frac;          // product pounds per acre
+      const galPerAc = lbPerAc/dens;         // product gallons per acre
+      const totalLb  = lbPerAc*acres;
+      const totalGal = galPerAc*acres;
+
+      $('#f-out').innerHTML = `
+        <div><strong>Product lb/acre:</strong> ${fmt(lbPerAc.toFixed(2))}</div>
+        <div><strong>Product gal/acre:</strong> ${fmt(galPerAc.toFixed(2))}</div>
+        <div><strong>Total lbs:</strong> ${fmt(totalLb.toFixed(0))}</div>
+        <div><strong>Total gal:</strong> ${fmt(totalGal.toFixed(1))}</div>
+      `;
+    });
+  }
+
+  function route(){ if (location.hash==='#/calc/fertilizer'){ renderFertilizer(); return true; } return false; }
+  window.addEventListener('hashchange', route, {passive:true});
+})();
+
+/* =========================================================
+   APP v12.2.2 — Part 18: Chemical Mix Calculator
+   ========================================================= */
+(function DF_v1222_P18(){
+  'use strict';
+  if (window.__DF_V1222_P18__) return; window.__DF_V1222_P18__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const num = v => { const n = Number(String(v||'').replace(/,/g,'')); return Number.isFinite(n)?n:0; };
+  const fmt = v => { try{ return Number(v).toLocaleString(); }catch{ return String(v); } };
+
+  const UNITS = ['oz','pt','qt','gal'];
+
+  function row(i){
+    return `
+      <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+        <label class="small muted">Product ${i+1}</label>
+        <input id="ch-name-${i}" type="text" placeholder="Name">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <input id="ch-rate-${i}" type="number" inputmode="decimal" placeholder="Rate / ac">
+          <select id="ch-unit-${i}">${UNITS.map(u=>`<option value="${u}">${u}</option>`).join('')}</select>
+        </div>
+      </div>`;
+  }
+
+  function toGal(value, unit){
+    const v = num(value);
+    if (!v) return 0;
+    switch(String(unit)){
+      case 'gal': return v;
+      case 'qt':  return v/4;
+      case 'pt':  return v/8;
+      case 'oz':  return v/128;
+      default:    return 0;
+    }
+  }
+
+  function renderChem(){
+    app().innerHTML = `
+      <section class="section">
+        <h1>🧪 Chemical Mix</h1>
+
+        <div class="df-subtiles" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Tank Size (gal) *</label>
+            <input id="ch-tank" type="number" inputmode="decimal" placeholder="e.g., 1000">
+          </div>
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Carrier GPA *</label>
+            <input id="ch-gpa" type="number" inputmode="decimal" placeholder="e.g., 10">
+          </div>
+          <div class="df-subtile" style="flex-direction:column;align-items:stretch;">
+            <label class="small muted">Job Acres (optional)</label>
+            <input id="ch-job" type="number" inputmode="decimal" placeholder="e.g., 240">
+          </div>
+        </div>
+
+        <h3 class="muted" style="margin:10px 0 6px;">Products (rate per acre)</h3>
+        <div class="df-subtiles" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+          ${[0,1,2,3,4,5].map(row).join('')}
+        </div>
+
+        <div class="field" style="margin-top:10px;">
+          <button class="btn-primary" id="ch-go">Calculate</button>
+          <a class="btn" href="#/calc" style="margin-left:6px;">Back</a>
+        </div>
+
+        <div id="ch-out" class="muted" style="margin-top:12px;"></div>
+      </section>
+    `;
+
+    $('#ch-go')?.addEventListener('click', ()=>{
+      const tank = num($('#ch-tank').value);
+      const gpa  = num($('#ch-gpa').value);
+      const job  = num($('#ch-job').value);
+
+      if (!tank || !gpa){
+        $('#ch-out').textContent = 'Enter Tank Size and GPA.'; return;
+      }
+
+      const acresPerTank = tank / gpa;
+      let totalProductGal = 0;
+
+      const lines = [];
+      for (let i=0;i<6;i++){
+        const name = String($('#ch-name-'+i).value||'').trim() || `(Product ${i+1})`;
+        const rate = num($('#ch-rate-'+i).value);
+        const unit = $('#ch-unit-'+i).value;
+        if (!rate) continue;
+
+        const perAcreGal = toGal(rate, unit);
+        const perTankGal = perAcreGal * acresPerTank;
+        totalProductGal += perTankGal;
+
+        lines.push(`<li>${name}: <strong>${fmt(perTankGal.toFixed(3))}</strong> gal/tank <span class="small muted">(${rate} ${unit}/ac)</span></li>`);
+      }
+
+      const tanksNeeded = job ? Math.ceil(job / acresPerTank) : null;
+
+      $('#ch-out').innerHTML = `
+        <div><strong>Acres per tank:</strong> ${fmt(acresPerTank.toFixed(2))}</div>
+        <div><strong>Carrier per tank:</strong> ${fmt(tank)} gal</div>
+        <ul style="margin:8px 0 0 18px;">${lines.join('') || '<li class="muted">No products entered.</li>'}</ul>
+        <div style="margin-top:6px;"><strong>Total product in mix:</strong> ${fmt(totalProductGal.toFixed(3))} gal</div>
+        ${tanksNeeded ? `<div><strong>Tanks needed for ${fmt(job)} ac:</strong> ${fmt(tanksNeeded)}</div>` : ''}
+        <div class="small muted" style="margin-top:6px;">Always confirm label requirements and product compatibility.</div>
+      `;
+    });
+  }
+
+  function route(){ if (location.hash==='#/calc/chem'){ renderChem(); return true; } return false; }
+  window.addEventListener('hashchange', route, {passive:true});
 })();
