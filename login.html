@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-fallback-version="v12.2.21">
+<html lang="en" data-fallback-version="v12.2.22">
 <head>
   <meta charset="utf-8">
   <meta name="viewport"
@@ -43,20 +43,29 @@
 
     .field{margin:14px 0;}
     .label{display:block; font-weight:700; margin-bottom:6px;}
-    .row{
-      display:grid; grid-template-columns: 1fr 96px; gap:10px; align-items:center;
+
+    .input{
+      position:relative;
     }
     input[type="email"], input[type="password"], input[type="text"]{
-      font-size:16px; /* avoid iOS zoom */
+      width:100%;
+      font-size:16px; /* prevent iOS zoom */
       height:var(--ctl-h); line-height:calc(var(--ctl-h) - 2px);
-      padding:0 14px; border:1px solid var(--bd); border-radius:12px; background:#fff;
+      padding:0 14px;
+      border:1px solid var(--bd); border-radius:12px; background:#fff;
       outline:none;
     }
-    .toggle{
-      height:var(--ctl-h);
-      border:1px solid var(--bd); background:#fff; border-radius:12px;
-      font-weight:700; color:var(--brand); width:96px; cursor:pointer;
+    /* make room for the eye icon */
+    .input.has-eye input{ padding-right:46px; }
+
+    .pw-eye{
+      position:absolute; right:6px; top:50%; transform:translateY(-50%);
+      display:grid; place-items:center;
+      width:36px; height:36px; border:0; background:transparent; padding:0; margin:0;
+      cursor:pointer; border-radius:8px;
     }
+    .pw-eye:active{ transform:translateY(-50%) scale(.98); }
+    .pw-eye svg{ width:22px; height:22px; }
 
     .actions{
       margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -81,7 +90,6 @@
     <main class="main" role="main">
       <section class="card" aria-label="Login">
         <div class="brand">
-          <!-- Try relative first; if it fails, fall back to absolute -->
           <img id="dfLogo" src="icons/logo.png" alt="Dowson Farms logo"
                onerror="this.onerror=null; this.src='/icons/logo.png'">
         </div>
@@ -94,16 +102,30 @@
         <form id="loginForm" novalidate>
           <div class="field">
             <label class="label" for="email">Username</label>
-            <input id="email" name="email" type="email" inputmode="email" autocomplete="username"
-                   placeholder="Email" required>
+            <div class="input">
+              <input id="email" name="email" type="email" inputmode="email" autocomplete="username"
+                     placeholder="Email" required>
+            </div>
           </div>
 
           <div class="field">
             <label class="label" for="password">Password</label>
-            <div class="row">
+            <div class="input has-eye">
               <input id="password" name="password" type="password" autocomplete="current-password"
                      placeholder="Password" required>
-              <button type="button" class="toggle" id="togglePw" aria-pressed="false">Show</button>
+              <button class="pw-eye" type="button" id="togglePw" aria-label="Show password" aria-pressed="false">
+                <!-- eye (visible) -->
+                <svg id="eyeOn" viewBox="0 0 24 24" fill="none" stroke="#0f4d1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <!-- eye-off (hidden) -->
+                <svg id="eyeOff" viewBox="0 0 24 24" fill="none" stroke="#0f4d1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.77 21.77 0 0 1-3.22 4.31"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -141,14 +163,18 @@
       };
       $('#verText').textContent = pickVersion();
 
-      // --- show/hide password (height stays fixed) ---
+      // --- eye toggle inside input ---
       const pw = $('#password');
-      const tgl = $('#togglePw');
-      tgl.addEventListener('click', ()=>{
+      const btn = $('#togglePw');
+      const eyeOn = $('#eyeOn');
+      const eyeOff = $('#eyeOff');
+      btn.addEventListener('click', ()=>{
         const show = pw.type === 'password';
         pw.type = show ? 'text' : 'password';
-        tgl.textContent = show ? 'Hide' : 'Show';
-        tgl.setAttribute('aria-pressed', show ? 'true' : 'false');
+        btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+        btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        eyeOn.style.display = show ? 'none' : '';
+        eyeOff.style.display = show ? '' : 'none';
       });
 
       // --- demo login ---
@@ -163,7 +189,6 @@
         clearError();
         const email = String($('#email').value || '').trim().toLowerCase();
         const pass  = String($('#password').value || '');
-
         if (email === DEMO_EMAIL && pass === DEMO_PASS) {
           try { localStorage.setItem('df_user', email); } catch {}
           location.href = '/#\/home';
