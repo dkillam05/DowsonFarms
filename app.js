@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.7';
+  const VERSION = 'v12.2.8';
 
   // App constants
   const APP = {
@@ -3061,4 +3061,142 @@
   // expose on DF namespace
   window.DF = window.DF || {};
   window.DF.util = { fmtCommas, readNumeric, store, toast };
+})();
+
+/* ================= App v12 — Part 41: Theme System + Settings UI (Auto / Light / Dark) ================= */
+(function DF_Part41_Theme(){
+  'use strict';
+  if (window.__DF_P41_THEME__) return; window.__DF_P41_THEME__ = true;
+
+  const $  = (s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+
+  const KEY = 'df_theme'; // 'auto' | 'light' | 'dark'
+
+  // ---------- CSS Variables + iOS overscroll background fix ----------
+  (function ensureThemeCSS(){
+    if (document.getElementById('df-theme-css')) return;
+    const css = document.createElement('style');
+    css.id = 'df-theme-css';
+    css.textContent = `
+      :root{
+        /* light defaults */
+        --bg:#f6f3e4;
+        --fg:#1a1a1a;
+        --muted:#6e6e6e;
+        --tile:#ffffff;
+        --bd:rgba(0,0,0,.08);
+        --brand:#0f4d1d;
+        --head:#efe9d0;
+        --foot:#efe9d0;
+        --link:#0b5f2a;
+        --seg-active:#0f4d1d;
+        --page-bg: var(--bg);
+      }
+      /* explicit Light */
+      [data-theme="light"]{
+        --bg:#f6f3e4; --fg:#1a1a1a; --muted:#6e6e6e; --tile:#fff; --bd:rgba(0,0,0,.08);
+        --brand:#0f4d1d; --head:#efe9d0; --foot:#efe9d0; --link:#0b5f2a; --seg-active:#0f4d1d;
+        --page-bg: var(--bg);
+      }
+      /* explicit Dark */
+      [data-theme="dark"]{
+        --bg:#0f0f0f; --fg:#f1f1f1; --muted:#9b9b9b; --tile:#1a1a1a; --bd:rgba(255,255,255,.15);
+        --brand:#4caf50; --head:#161616; --foot:#161616; --link:#9ae19a; --seg-active:#2e7d32;
+        --page-bg: var(--bg);
+      }
+      /* AUTO follows system */
+      [data-theme="auto"]{ --page-bg: var(--bg); }
+      @media (prefers-color-scheme: dark){
+        [data-theme="auto"]{
+          --bg:#0f0f0f; --fg:#f1f1f1; --muted:#9b9b9b; --tile:#1a1a1a; --bd:rgba(255,255,255,.15);
+          --brand:#4caf50; --head:#161616; --foot:#161616; --link:#9ae19a; --seg-active:#2e7d32;
+          --page-bg: var(--bg);
+        }
+      }
+      /* paint everything (incl. iOS overscroll) */
+      html, body, #app, main { background-color: var(--page-bg) !important; color: var(--fg); }
+      .site-head{ background:var(--head); border-bottom:1px solid var(--bd); }
+      .site-foot{ background:var(--foot); border-top:1px solid var(--bd); }
+      .df-tile, .df-subtile, input, textarea, select, .btn { background: var(--tile); border-color: var(--bd); color: var(--fg); }
+      a { color: var(--link); }
+
+      /* segmented control */
+      .seg{
+        display:inline-flex; border:1px solid var(--bd); border-radius:10px; overflow:hidden;
+        background:transparent;
+      }
+      .seg button{
+        appearance:none; border:0; background:transparent; cursor:pointer;
+        padding:8px 14px; font-weight:600; color:var(--fg);
+      }
+      .seg button.active{ background:var(--seg-active); color:#fff; }
+    `;
+    document.head.appendChild(css);
+  })();
+
+  // ---------- Theme API ----------
+  function getTheme(){
+    try{ return (localStorage.getItem(KEY)||'auto'); }catch{ return 'auto'; }
+  }
+  function applyTheme(v){
+    const val = (v==='light'||v==='dark') ? v : 'auto';
+    document.documentElement.setAttribute('data-theme', val);
+  }
+  function setTheme(v){
+    const val = (v==='light'||v==='dark') ? v : 'auto';
+    try{ localStorage.setItem(KEY, val); }catch{}
+    applyTheme(val);
+    if (window.DF?.util?.toast) DF.util.toast(`Theme: ${val.toUpperCase()}`);
+  }
+
+  // start with saved (or auto)
+  applyTheme(getTheme());
+
+  // ---------- Settings → Theme screen ----------
+  function renderSettingsTheme(){
+    const cur = getTheme();
+    const root = app(); if (!root) return;
+
+    root.innerHTML = `
+      <section class="section">
+        <h1>🎨 Theme</h1>
+
+        <div class="field">
+          <label style="font-weight:700; display:block; margin-bottom:6px;">Appearance</label>
+          <div class="seg" id="df-theme-seg">
+            <button type="button" data-val="auto"  class="${cur==='auto' ? 'active' : ''}">Auto</button>
+            <button type="button" data-val="light" class="${cur==='light'? 'active' : ''}">Light</button>
+            <button type="button" data-val="dark"  class="${cur==='dark' ? 'active' : ''}">Dark</button>
+          </div>
+          <div class="muted" style="margin-top:8px;">“Auto” follows your device’s system setting.</div>
+        </div>
+
+        <div class="section">
+          <a class="btn" href="#/settings">← Back to Settings</a>
+        </div>
+      </section>
+    `;
+
+    const seg = $('#df-theme-seg');
+    seg?.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-val]'); if (!btn) return;
+      const choice = btn.getAttribute('data-val');
+      setTheme(choice);
+      seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  }
+
+  // ---------- Route hook ----------
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'');
+    if (h === '#/settings/theme'){ renderSettingsTheme(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+
+  // ---------- Export small API ----------
+  window.DF = window.DF || {};
+  window.DF.theme = { get:getTheme, set:setTheme, apply:applyTheme };
 })();
