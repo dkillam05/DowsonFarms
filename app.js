@@ -730,3 +730,149 @@
 
 })(); // end PART 5
 
+/* APP v12 — Part 6: Dashboard tiles + Logout wiring */
+(function DF_v12_Part6(){
+  'use strict';
+  if (window.__DF_V12_P6__) return;
+  window.__DF_V12_P6__ = true;
+
+  // --- tiny helpers / shared handles from earlier parts ---
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  const app = ()=> $('#app');
+  const has = (obj, k)=>Object.prototype.hasOwnProperty.call(obj||{}, k);
+
+  // Expose namespace if not present
+  window.DF = window.DF || {};
+  const NS = window.DF;
+
+  // ======================================================
+  // 1) Logout wiring (works with login.html or fallback inline)
+  // ======================================================
+  function doLogout(){
+    try {
+      localStorage.removeItem('df_user');
+      sessionStorage.clear();
+    } catch {}
+    fetch('login.html', {method:'HEAD'})
+      .then(r=>{
+        if (r.ok) location.href = 'login.html';
+        else {
+          location.hash = '#/login';
+          renderLoginInline();
+        }
+      })
+      .catch(()=>{
+        location.hash = '#/login';
+        renderLoginInline();
+      });
+  }
+
+  function wireLogout(){
+    const btn = $('#logoutBtn') || $$('button, a').find(b=>(b.textContent||'').trim().toLowerCase()==='logout');
+    if (!btn) return;
+    if (btn.dataset.dfWired==='1') return;
+    btn.dataset.dfWired='1';
+    btn.addEventListener('click', (e)=>{ e.preventDefault(); doLogout(); });
+  }
+
+  // Minimal inline login fallback
+  function renderLoginInline(){
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>Login</h1>
+        <div class="field"><input id="li-email" type="email" placeholder="Email"></div>
+        <div class="field" style="display:flex;gap:8px;">
+          <input id="li-pass" type="password" placeholder="Password" style="flex:1;">
+          <button class="btn-primary" id="li-go">Log In</button>
+        </div>
+      </section>
+    `;
+    $('#li-go')?.addEventListener('click', ()=>{
+      const email = String($('#li-email')?.value||'').trim();
+      try { if (email) localStorage.setItem('df_user', email); } catch {}
+      location.hash = '#/home';
+      if (typeof window.DF?.renderHome === 'function') window.DF.renderHome();
+    });
+  }
+
+  // Rewire logout on SPA navigation
+  window.addEventListener('hashchange', wireLogout, {passive:true});
+  document.addEventListener('click', ()=> setTimeout(wireLogout,0), true);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireLogout, {once:true});
+  } else {
+    wireLogout();
+  }
+
+  // ======================================================
+  // 2) Dashboard (Home) tiles — emoji/icons from v10.15.1
+  // ======================================================
+  const TILES = [
+    { href:'#/crop',    icon:'🌱', label:'Crop Production' },
+    { href:'#/grain',   icon:'🌾', label:'Grain Tracking' },
+    { href:'#/equip',   icon:'🚜', label:'Equipment' },
+    { href:'#/calc',    icon:'🧮', label:'Calculators' },
+    { href:'#/reports', icon:'📊', label:'Reports' },
+    { href:'#/team',    icon:'👥', label:'Team / Partners' },
+    { href:'#/feedback',icon:'💬', label:'Feedback' },
+    { href:'#/settings',icon:'⚙️', label:'Setups / Settings' },
+  ];
+
+  function tilesHTML(){
+    return `
+      <section class="section">
+        <h1>Home</h1>
+        <div class="df-tiles">
+          ${TILES.map(t=>`
+            <a class="df-tile" href="${t.href}" aria-label="${t.label}">
+              <div class="df-emoji">${t.icon}</div>
+              <div class="df-label">${t.label}</div>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function ensureTileStyles(){
+    if ($('#df-tile-styles')) return;
+    const css = document.createElement('style');
+    css.id = 'df-tile-styles';
+    css.textContent = `
+      .df-tiles{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+      @media (min-width:760px){ .df-tiles{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+      .df-tile{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+        text-decoration:none; border:1px solid rgba(0,0,0,.08); border-radius:12px;
+        padding:14px 10px; background:#fff; color:inherit; box-shadow:0 1px 0 rgba(0,0,0,.04); }
+      .df-tile:active{ transform:scale(.98); }
+      .df-emoji{ font-size:28px; line-height:1; margin-bottom:6px; }
+      .df-label{ font-weight:600; text-align:center; }
+      body{ background:#f7f5e8; }
+    `;
+    document.head.appendChild(css);
+  }
+
+  function renderHome(){
+    ensureTileStyles();
+    const root = app(); if (!root) return;
+    root.innerHTML = tilesHTML();
+    wireLogout();
+  }
+
+  NS.renderHome = renderHome;
+
+  // ======================================================
+  // 3) Router hook for #/home
+  // ======================================================
+  function route(){
+    const h = location.hash || '#/home';
+    if (h === '#/home' || h === '#/' || h === '#') {
+      renderHome();
+      return true;
+    }
+    return false;
+  }
+  if (window.DF?.routerHooks) window.DF.routerHooks.push(route);
+})();
