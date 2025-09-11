@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.0';
+  const VERSION = 'v12.2.1';
 
   // App constants
   const APP = {
@@ -458,4 +458,208 @@
 
   // First paint (router core listens and will render the route)
   if (!location.hash) location.hash = '#/home';
+})();
+
+/* =========================================================
+   APP v12.2.1 — Part 9: Feedback Forms
+   - Report Errors
+   - New Feature Request
+   - Saves entries to localStorage
+   ========================================================= */
+(function DF_v1221_Part9(){
+  'use strict';
+  if (window.__DF_v1221_Part9__) return;
+  window.__DF_v1221_Part9__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=>$('#app');
+
+  function renderFeedbackError(){
+    const today = new Date().toISOString().slice(0,10);
+    app().innerHTML = `
+      <section class="section">
+        <h1>🐞 Report Errors</h1>
+        <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
+        <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
+        <div class="field"><input id="err-by" type="text" placeholder="Submitted by"></div>
+        <div class="field"><input id="err-date" type="date" value="${today}"></div>
+        <button class="btn-primary" id="err-submit">Submit</button>
+        <p class="muted"><a href="#/feedback">← Back</a></p>
+      </section>`;
+    $('#err-submit')?.addEventListener('click', ()=>{
+      const subj=$('#err-subj').value.trim();
+      const desc=$('#err-desc').value.trim();
+      if(!subj||!desc){ alert('Please fill required fields.'); return; }
+      const entry={type:'error',subj,desc,by:$('#err-by').value, date:$('#err-date').value, ts:Date.now()};
+      const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]');
+      list.push(entry); localStorage.setItem(key,JSON.stringify(list));
+      alert('Saved!'); location.hash='#/feedback';
+    });
+  }
+
+  function renderFeedbackFeature(){
+    const today = new Date().toISOString().slice(0,10);
+    app().innerHTML = `
+      <section class="section">
+        <h1>💡 New Feature Request</h1>
+        <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
+        <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe your idea *"></textarea></div>
+        <div class="field"><input id="feat-by" type="text" placeholder="Submitted by"></div>
+        <div class="field"><input id="feat-date" type="date" value="${today}"></div>
+        <button class="btn-primary" id="feat-submit">Submit</button>
+        <p class="muted"><a href="#/feedback">← Back</a></p>
+      </section>`;
+    $('#feat-submit')?.addEventListener('click', ()=>{
+      const subj=$('#feat-subj').value.trim();
+      const desc=$('#feat-desc').value.trim();
+      if(!subj||!desc){ alert('Please fill required fields.'); return; }
+      const entry={type:'feature',subj,desc,by:$('#feat-by').value, date:$('#feat-date').value, ts:Date.now()};
+      const key='df_feedback'; const list=JSON.parse(localStorage.getItem(key)||'[]');
+      list.push(entry); localStorage.setItem(key,JSON.stringify(list));
+      alert('Saved!'); location.hash='#/feedback';
+    });
+  }
+
+  // router hooks
+  window.addEventListener('hashchange', ()=>{
+    if (location.hash==='#/feedback/error') renderFeedbackError();
+    if (location.hash==='#/feedback/feature') renderFeedbackFeature();
+  });
+})();
+
+/* =========================================================
+   APP v12.2.1 — Part 10: Feedback Summary Report
+   - Lists all saved feedback
+   - Printable table
+   ========================================================= */
+(function DF_v1221_Part10(){
+  'use strict';
+  if (window.__DF_v1221_Part10__) return;
+  window.__DF_v1221_Part10__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=>$('#app');
+
+  function renderFeedbackSummary(){
+    const list=JSON.parse(localStorage.getItem('df_feedback')||'[]')
+      .sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const rows=list.map((f,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${f.type}</td>
+        <td>${f.date||''}</td>
+        <td>${f.subj||''}</td>
+        <td>${f.desc||''}</td>
+        <td>${f.by||''}</td>
+      </tr>`).join('');
+    app().innerHTML=`
+      <section class="section">
+        <h1>📝 Feedback Summary</h1>
+        ${list.length?`
+          <table border="1" cellpadding="6">
+            <thead><tr><th>#</th><th>Type</th><th>Date</th><th>Subject</th><th>Details</th><th>By</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <button id="print" class="btn-primary">Print</button>
+        `:`<p class="muted">No feedback yet.</p>`}
+        <p class="muted"><a href="#/reports">← Back</a></p>
+      </section>`;
+    $('#print')?.addEventListener('click',()=>window.print());
+  }
+
+  window.addEventListener('hashchange', ()=>{
+    if (location.hash==='#/reports/feedback') renderFeedbackSummary();
+  });
+})();
+
+/* =========================================================
+   APP v12.2.1 — Part 11: Settings → Farms
+   - CRUD for farms
+   - Persists to localStorage
+   ========================================================= */
+(function DF_v1221_Part11(){
+  'use strict';
+  if (window.__DF_v1221_Part11__) return;
+  window.__DF_v1221_Part11__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=>$('#app');
+  const key='df_farms';
+
+  function load(){ return JSON.parse(localStorage.getItem(key)||'[]'); }
+  function save(list){ localStorage.setItem(key,JSON.stringify(list)); }
+
+  function renderFarms(){
+    const farms=load();
+    const rows=farms.map((f,i)=>`
+      <li>${f.name}
+        <button data-i="${i}" data-act="del">Delete</button>
+      </li>`).join('');
+    app().innerHTML=`
+      <section class="section">
+        <h1>🏠 Farms</h1>
+        <ul>${rows||'<li class="muted">No farms yet.</li>'}</ul>
+        <div class="field"><input id="farmName" placeholder="Farm name"></div>
+        <button id="farmAdd" class="btn-primary">Add</button>
+        <p class="muted"><a href="#/settings">← Back</a></p>
+      </section>`;
+    $('#farmAdd')?.addEventListener('click',()=>{
+      const v=$('#farmName').value.trim(); if(!v) return;
+      const list=load(); list.push({id:Date.now(),name:v}); save(list); renderFarms();
+    });
+    app().querySelectorAll('button[data-act="del"]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const i=+btn.dataset.i; const list=load(); list.splice(i,1); save(list); renderFarms();
+      });
+    });
+  }
+
+  window.addEventListener('hashchange',()=>{ if(location.hash==='#/settings/farms') renderFarms(); });
+})();
+
+/* =========================================================
+   APP v12.2.1 — Part 12: Settings → Fields
+   - CRUD for fields
+   - Persists to localStorage
+   ========================================================= */
+(function DF_v1221_Part12(){
+  'use strict';
+  if (window.__DF_v1221_Part12__) return;
+  window.__DF_v1221_Part12__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=>$('#app');
+  const key='df_fields';
+
+  function load(){ return JSON.parse(localStorage.getItem(key)||'[]'); }
+  function save(list){ localStorage.setItem(key,JSON.stringify(list)); }
+
+  function renderFields(){
+    const fields=load();
+    const rows=fields.map((f,i)=>`
+      <li>${f.name} (${f.acres||'?'} ac)
+        <button data-i="${i}" data-act="del">Delete</button>
+      </li>`).join('');
+    app().innerHTML=`
+      <section class="section">
+        <h1>🗺️ Fields</h1>
+        <ul>${rows||'<li class="muted">No fields yet.</li>'}</ul>
+        <div class="field"><input id="fldName" placeholder="Field name"></div>
+        <div class="field"><input id="fldAc" type="number" placeholder="Acres"></div>
+        <button id="fldAdd" class="btn-primary">Add</button>
+        <p class="muted"><a href="#/settings">← Back</a></p>
+      </section>`;
+    $('#fldAdd')?.addEventListener('click',()=>{
+      const n=$('#fldName').value.trim(); if(!n) return;
+      const ac=+$('#fldAc').value; const list=load();
+      list.push({id:Date.now(),name:n,acres:ac}); save(list); renderFields();
+    });
+    app().querySelectorAll('button[data-act="del"]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const i=+btn.dataset.i; const list=load(); list.splice(i,1); save(list); renderFields();
+      });
+    });
+  }
+
+  window.addEventListener('hashchange',()=>{ if(location.hash==='#/settings/fields') renderFields(); });
 })();
