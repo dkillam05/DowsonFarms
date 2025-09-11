@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.14';
+  const VERSION = 'v12.2.15';
 
   // App constants
   const APP = {
@@ -555,16 +555,54 @@
 })();
 
 
-/* =======================
-   Part 8 — Boot sequence
-   ======================= */
+/* ======================================================
+   Part 8 — Boot (login-aware)
+   ====================================================== */
 (function DF_V12_P8_BOOT(){
   'use strict';
   if (window.__DF_V12_P8__) return; window.__DF_V12_P8__ = true;
+  const { APP, $, fmt, on } = window.DF;
 
-  // First paint (router core listens and will render the route)
-  if (!location.hash) location.hash = '#/home';
+  // Helper: paint footer version + date/time if footer exists
+  function paintFootMeta(){
+    const v = $('#version'); if (v) v.textContent = APP.version;
+    const dt = $('#foot-datetime');
+    if (dt){
+      const now = new Date();
+      const date = now.toLocaleDateString(undefined, { month:'long', day:'numeric', year:'numeric' });
+      const time = now.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+      dt.textContent = `${date} • ${time}`;
+    }
+  }
+
+  function boot(){
+    // If this is the standalone login page, skip SPA init and just paint footer meta.
+    if (document.body?.dataset?.page === 'login'){
+      paintFootMeta();
+      // keep footer time fresh
+      setInterval(paintFootMeta, 60_000);
+      return;
+    }
+
+    // Normal app boot
+    paintFootMeta(); // also paint on app pages
+    // Wire logout once
+    if (typeof window.DF?.wireLogout === 'function') window.DF.wireLogout();
+    // Initial route pass
+    if (typeof window.DF?.route === 'function') window.DF.route();
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot, { once:true });
+  } else { boot(); }
+
+  // Route on hashchange (app pages only)
+  window.addEventListener('hashchange', ()=> {
+    if (document.body?.dataset?.page === 'login') return;
+    if (typeof window.DF?.route === 'function') window.DF.route();
+  }, { passive:true });
 })();
+
 
 /* =========================================================
    APP v12.2.1 — Part 9: Feedback Forms
