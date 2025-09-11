@@ -1,169 +1,153 @@
 <!doctype html>
-<html lang="en" data-theme="auto">
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Login • Dowson Farms</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Dowson Farms — Sign in</title>
   <link rel="icon" href="icons/logo.png">
   <style>
     :root{
-      --bg:#f6f3e4; --card:#ffffff; --fg:#1a1a1a; --muted:#6e6e6e; --brand:#0f4d1d; --bd:rgba(0,0,0,.08);
+      --bg:#111; --card:#1a1a1a; --fg:#eee; --muted:#a7a7a7;
+      --brand:#134d1d; --bd:#2a2a2a; --input:#111; --ok:#1e7f34; --warn:#c62828;
     }
-    html,body{height:100%;}
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f6f3e4; --card:#fff; --fg:#1a1a1a; --muted:#6e6e6e; --bd:rgba(0,0,0,.12); --input:#fff; }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--fg);
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      display:flex; align-items:center; justify-content:center;
-      padding:24px;
+      display:flex; align-items:center; justify-content:center; padding:24px;
     }
-    .wrap{ width:100%; max-width:420px; }
-    .logo{
-      display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;
-    }
-    .logo img{ width:56px; height:56px; border-radius:12px; }
-    .logo .brand{ font-weight:800; font-size:22px; letter-spacing:.2px; }
+    .wrap{width:100%; max-width:680px}
+    .brand{display:flex; align-items:center; gap:12px; margin:0 0 14px;}
+    .brand img{width:44px; height:44px; border-radius:50%}
+    .brand h1{font-size:28px; margin:0; line-height:1.1}
     .card{
-      background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:18px 16px;
-      box-shadow:0 6px 18px rgba(0,0,0,.06);
+      background:var(--card); border:1px solid var(--bd); border-radius:16px;
+      padding:22px; box-shadow:0 10px 30px rgba(0,0,0,.3);
     }
-    .title{ font-size:22px; font-weight:800; margin:0 0 6px; }
-    .muted{ color:var(--muted); }
-    .field{ margin:10px 0; }
-    .label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .title{font-size:28px; font-weight:800; margin:0 0 10px}
+    .lead{color:var(--muted); margin:0 0 18px}
+    label{display:block; font-weight:600; margin:12px 0 6px}
     .input{
       display:flex; align-items:center; gap:8px;
-      border:1px solid var(--bd); border-radius:12px; background:#fff;
+      background:var(--input); border:1px solid var(--bd); border-radius:12px;
       padding:10px 12px;
     }
-    /* prevent iOS zoom on focus by ensuring >=16px font-size */
     input{
-      border:0; outline:0; flex:1; font-size:16px; line-height:1.2; background:transparent;
+      background:transparent; border:0; outline:0; color:var(--fg); width:100%;
+      font-size:16px; -webkit-text-size-adjust:100%;
     }
-    .btn-primary{
-      width:100%; padding:10px 12px; border:0; border-radius:12px;
-      background:var(--brand); color:#fff; font-weight:700; cursor:pointer;
+    .toggle{background:#2b2b2b; border:1px solid var(--bd); color:#ddd; padding:6px 10px; border-radius:10px}
+    .hint{color:var(--muted); font-size:14px; margin:10px 0 16px}
+    .error{color:var(--warn); font-weight:700; margin:12px 0 0; display:none}
+    .row{display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:space-between}
+    .a{color:inherit; text-decoration:underline}
+    .btn{
+      background:var(--brand); color:#fff; border:0; border-radius:12px;
+      padding:12px 18px; font-weight:700; min-width:120px;
     }
-    .row{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .link{ color:inherit; text-decoration:none; font-weight:600; }
     .foot{
-      text-align:center; color:var(--muted); margin-top:12px; font-weight:600;
-      display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;
+      display:flex; gap:10px; align-items:center; justify-content:center;
+      color:var(--muted); margin-top:14px; font-weight:600;
     }
-    .eye-btn{ border:0; background:transparent; cursor:pointer; font-size:14px; color:var(--muted); }
+    .dot{opacity:.6}
   </style>
-  <script defer src="app.js"></script>
 </head>
 <body>
-  <main class="wrap" role="main">
-    <div class="logo">
-      <img src="icons/logo.png" alt="Dowson Farms">
-      <div class="brand">Dowson Farms</div>
+  <div class="wrap">
+    <div class="brand">
+      <img src="icons/logo.png" alt="Logo"><h1>Dowson Farms</h1>
     </div>
 
-    <section class="card" aria-label="Login">
-      <h1 class="title">Welcome back</h1>
-      <p class="muted" style="margin-top:0;">Sign in to continue.</p>
+    <div class="card" role="form" aria-labelledby="t1">
+      <h2 id="t1" class="title">Welcome back</h2>
+      <p class="lead">Sign in to continue.</p>
 
-      <div class="field">
-        <label class="label" for="li-email">Email</label>
-        <div class="input">
-          <input id="li-email" type="email" autocomplete="username" placeholder="you@example.com" inputmode="email">
-        </div>
+      <label for="email">Email</label>
+      <div class="input">
+        <input id="email" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com" />
       </div>
 
-      <div class="field">
-        <label class="label" for="li-pass">Password</label>
-        <div class="input">
-          <input id="li-pass" type="password" autocomplete="current-password" placeholder="Password">
-          <button type="button" id="togglePass" class="eye-btn" aria-label="Show password">Show</button>
-        </div>
+      <label for="pass">Password</label>
+      <div class="input">
+        <input id="pass" type="password" inputmode="text" autocomplete="current-password" placeholder="Your password" />
+        <button id="show" class="toggle" type="button" aria-label="Show or hide password">Show</button>
       </div>
 
-      <div class="row" style="margin:10px 0 6px;">
-        <a class="link" id="forgotLink" href="#" role="button">Forgot password?</a>
-        <span class="muted" id="policy">Min 6 chars, 1 capital, 1 number</span>
+      <div id="hint" class="hint">Min 6 chars, include <b>1 capital</b> and <b>1 number</b>. Specials allowed.</div>
+      <div id="err" class="error">These credentials are not recognized.</div>
+
+      <div class="row" style="margin-top:8px">
+        <a id="forgot" class="a" href="#">Forgot password?</a>
+        <button id="go" class="btn" type="button">Log In</button>
       </div>
-
-      <button id="li-go" class="btn-primary">Log In</button>
-    </section>
-
-    <div class="foot">
-      <span id="foot-date">—</span>
-      <span aria-hidden="true">•</span>
-      <span id="foot-time">—</span>
-      <span aria-hidden="true">•</span>
-      <span id="foot-ver">v0.0.0</span>
     </div>
-  </main>
+
+    <div id="foot" class="foot">
+      <span id="today"></span><span id="vDot" class="dot">•</span><span id="ver"></span>
+    </div>
+  </div>
 
   <script>
-    (function(){
-      // Time & date
-      function fmtDate(d){
-        const opts = { year:'numeric', month:'long', day:'numeric' };
-        return new Intl.DateTimeFormat(undefined, opts).format(d);
+    // Version from query string (e.g., login.html?v=12.2.11)
+    const v = new URL(location.href).searchParams.get('v') || '';
+    const verEl = document.getElementById('ver');
+    const dotEl = document.getElementById('vDot');
+    if (v) { verEl.textContent = 'v' + v; } else { verEl.textContent = ''; dotEl.style.display='none'; }
+
+    // Today (e.g., September 11th 2025)
+    const todayEl = document.getElementById('today');
+    const d = new Date();
+    const nth = (n)=>({1:'st',2:'nd',3:'rd'})[(n%10)] && ![11,12,13].includes(n%100) ? ({1:'st',2:'nd',3:'rd'})[(n%10)] : 'th';
+    todayEl.textContent = d.toLocaleString(undefined,{month:'long'}) + ' ' + d.getDate() + nth(d.getDate()) + ' ' + d.getFullYear();
+
+    // Show/Hide password
+    document.getElementById('show').addEventListener('click', ()=>{
+      const p = document.getElementById('pass');
+      p.type = p.type === 'password' ? 'text' : 'password';
+      document.getElementById('show').textContent = p.type === 'password' ? 'Show' : 'Hide';
+    });
+
+    // Validation helpers
+    const strong = (s)=> /[A-Z]/.test(s) && /\d/.test(s) && s.length >= 6;
+
+    // Demo account (front-end only)
+    const DEMO = { email:'demo@dowsonfarms.com', pass:'Demo123' };
+
+    // Log In
+    document.getElementById('go').addEventListener('click', ()=>{
+      const email = (document.getElementById('email').value||'').trim().toLowerCase();
+      const pass  = document.getElementById('pass').value||'';
+      const err   = document.getElementById('err');
+
+      err.style.display = 'none';
+      if (!strong(pass)) {
+        err.textContent = 'Password must include 1 capital, 1 number, and be 6+ chars.';
+        err.style.display = 'block';
+        return;
       }
-      function fmtTime(d){
-        const opts = { hour:'numeric', minute:'2-digit' };
-        return new Intl.DateTimeFormat(undefined, opts).format(d);
-      }
-      function tick(){
-        const now = new Date();
-        document.getElementById('foot-date').textContent = fmtDate(now);
-        document.getElementById('foot-time').textContent = fmtTime(now);
-      }
-      tick(); setInterval(tick, 15_000);
-
-      // Version (from app.js Part 1)
-      try{
-        const v = (window.DF && window.DF.VERSION) ? window.DF.VERSION : 'v0.0.0';
-        document.getElementById('foot-ver').textContent = v;
-      }catch{}
-
-      // Show/Hide password
-      const pass = document.getElementById('li-pass');
-      const tog  = document.getElementById('togglePass');
-      tog.addEventListener('click', ()=>{
-        const show = pass.type === 'password';
-        pass.type = show ? 'text' : 'password';
-        tog.textContent = show ? 'Hide' : 'Show';
-        tog.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-      });
-
-      // Forgot password (stub for now)
-      document.getElementById('forgotLink').addEventListener('click', (e)=>{
-        e.preventDefault();
-        const email = (document.getElementById('li-email').value || '').trim();
-        if (!email) { alert('Enter your email first.'); return; }
-        // In real app: call backend to send reset if account exists
-        alert('If an account exists for '+email+', a reset link will be sent.');
-      });
-
-      // Validate + login
-      function passwordOK(pw){
-        if (pw.length < 6) return false;
-        if (!/[A-Z]/.test(pw)) return false;
-        if (!/[0-9]/.test(pw)) return false;
-        return true; // special chars allowed
-      }
-      document.getElementById('li-go').addEventListener('click', ()=>{
-        const email = (document.getElementById('li-email').value||'').trim();
-        const pass  = (document.getElementById('li-pass').value||'');
-        if (!email){ alert('Enter email.'); return; }
-        if (!passwordOK(pass)){ alert('Password must be 6+ chars with 1 capital and 1 number.'); return; }
-
-        // Demo account (optional): demo@dowsonfarms.com / Demo123
-        const demoOK = email.toLowerCase()==='demo@dowsonfarms.com' && pass==='Demo123';
-        if (!demoOK){
-          // For now, allow any valid combo (you can lock this down later)
-          // alert('Invalid login'); return; // <-- uncomment to enforce demo-only
-        }
-
+      // Accept demo account on this build
+      if (email === DEMO.email && pass === DEMO.pass) {
         try { localStorage.setItem('df_user', email); } catch {}
-        // Navigate to app
-        location.href = 'index.html#/';
-      });
-    })();
+        location.replace('./#\/home'); // go to app
+        return;
+      }
+      // In production you’d POST to your auth API here…
+      err.textContent = 'These credentials are not recognized.';
+      err.style.display = 'block';
+    });
+
+    // Forgot password (stub)
+    document.getElementById('forgot').addEventListener('click', (e)=>{
+      e.preventDefault();
+      const email = (document.getElementById('email').value||'').trim();
+      if (!email) { alert('Enter your email first.'); return; }
+      // You would call your backend to send a reset email.
+      alert('If an account exists for ' + email + ', a reset link will be sent.');
+    });
   </script>
 </body>
 </html>
