@@ -313,3 +313,97 @@
   // For manual testing from console:
   // window.dispatchEvent(new Event('DF_NEW_VERSION'));
 })();
+
+/* =========================
+   v12.0.0 — Part 4: SW Handshake + Registration
+   Append directly below Part 3
+   ========================= */
+(function DF_PART4_SW(){
+  'use strict';
+  if (window.__DF_PART4__) return;
+  window.__DF_PART4__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+
+  // Reads VERSION from Part 1 (DF_VERSION). Fallback if not found.
+  const VERSION = (window.DF_VERSION || 'v12.0.0');
+
+  // Register the SW and wire messages → update banner
+  function registerSW(){
+    if (!('serviceWorker' in navigator)) return;
+
+    // Add a tiny UI hook to force “check for updates”
+    window.DF_checkForUpdates = async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        await reg?.update();
+      } catch {}
+    };
+
+    window.addEventListener('load', async ()=>{
+      try{
+        // Register once; SW will receive VERSION via postMessage
+        const reg = await navigator.serviceWorker.register('service-worker.js', { updateViaCache:'none' });
+
+        // As soon as a worker is ready (installing/waiting/active), send the version
+        function sendVersionTo(sw){
+          try{ sw?.postMessage({type:'SET_VERSION', version: VERSION}); }catch{}
+        }
+        if (reg.installing) sendVersionTo(reg.installing);
+        if (reg.waiting)    sendVersionTo(reg.waiting);
+        if (reg.active)     sendVersionTo(reg.active);
+
+        // When a new SW is found, send the version, and wait for install to complete
+        reg.addEventListener('updatefound', ()=>{
+          const sw = reg.installing;
+          if (!sw) return;
+          sendVersionTo(sw);
+          sw.addEventListener('statechange', ()=>{
+            // When it’s installed **and** we already have a controller,
+            // there’s an update waiting → show banner.
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              window.dispatchEvent(new Event('DF_NEW_VERSION'));
+            }
+          });
+        });
+
+        // SW → page messages
+        navigator.serviceWorker.addEventListener('message', (ev)=>{
+          const msg = ev.data || {};
+          if (msg.type === 'NEW_VERSION_READY') {
+            // Trigger banner (Part 3 listens for this event)
+            window.dispatchEvent(new Event('DF_NEW_VERSION'));
+          }
+        });
+
+        // If the page becomes visible again, poll for updates quickly
+        document.addEventListener('visibilitychange', ()=>{
+          if (document.visibilityState === 'visible') reg.update().catch(()=>{});
+        });
+
+        // Hook the banner “Refresh” button to tell SW to activate immediately
+        document.addEventListener('click', (e)=>{
+          const btn = e.target.closest?.('#update-refresh');
+          if (!btn) return;
+          // Ask SW to skip waiting, then hard-reload when controller changes
+          (async ()=>{
+            const reg2 = await navigator.serviceWorker.getRegistration();
+            reg2?.waiting?.postMessage({type:'SKIP_WAITING'});
+          })().catch(()=>{});
+        });
+
+        // When the active controller changes (new SW takes over), reload
+        navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+          // Make sure we really pick up the fresh bits
+          location.reload();
+        });
+
+      }catch(e){
+        // Non-fatal; app still runs without SW
+        console.warn('[SW] registration failed', e);
+      }
+    });
+  }
+
+  registerSW();
+})();
