@@ -1,164 +1,168 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="auto">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Login • Dowson Farms</title>
-  <link rel="icon" href="icons/logo.png" />
+  <link rel="icon" href="icons/logo.png">
   <style>
     :root{
-      --bg:#f6f3e4; --fg:#1a1a1a; --muted:#6e6e6e;
-      --tile:#fff; --bd:rgba(0,0,0,.08); --brand:#0f4d1d;
+      --bg:#f6f3e4; --card:#ffffff; --fg:#1a1a1a; --muted:#6e6e6e; --brand:#0f4d1d; --bd:rgba(0,0,0,.08);
     }
-    html,body{height:100%}
+    html,body{height:100%;}
     body{
       margin:0; background:var(--bg); color:var(--fg);
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      display:flex; flex-direction:column; min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      padding:24px;
     }
-    .login-wrap{
-      flex:1; display:flex; align-items:center; justify-content:center; padding:24px 12px;
+    .wrap{ width:100%; max-width:420px; }
+    .logo{
+      display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;
     }
+    .logo img{ width:56px; height:56px; border-radius:12px; }
+    .logo .brand{ font-weight:800; font-size:22px; letter-spacing:.2px; }
     .card{
-      width:min(520px, 92vw);
-      background:#fff; border:1px solid var(--bd); border-radius:14px;
+      background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:18px 16px;
       box-shadow:0 6px 18px rgba(0,0,0,.06);
-      padding:18px;
     }
-    .brand{
-      display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:8px;
-    }
-    .brand img{ width:64px; height:64px; border-radius:50%; }
-    .brand .t1{ font-weight:800; font-size:20px; letter-spacing:.2px; }
-    .brand .t2{ color:var(--muted); font-size:12px; }
+    .title{ font-size:22px; font-weight:800; margin:0 0 6px; }
+    .muted{ color:var(--muted); }
     .field{ margin:10px 0; }
-    label{ display:block; font-weight:600; font-size:13px; margin-bottom:6px; color:#333; }
+    .label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .input{
+      display:flex; align-items:center; gap:8px;
+      border:1px solid var(--bd); border-radius:12px; background:#fff;
+      padding:10px 12px;
+    }
+    /* prevent iOS zoom on focus by ensuring >=16px font-size */
     input{
-      width:100%; border:1px solid var(--bd); border-radius:10px; background:#fff;
-      padding:12px; font-size:16px; /* prevent iOS zoom */
+      border:0; outline:0; flex:1; font-size:16px; line-height:1.2; background:transparent;
     }
-    .pass-row{ display:flex; gap:8px; align-items:stretch; }
     .btn-primary{
-      background:var(--brand); color:#fff; border:0; border-radius:10px; padding:12px 14px; cursor:pointer;
-      font-weight:700;
+      width:100%; padding:10px 12px; border:0; border-radius:12px;
+      background:var(--brand); color:#fff; font-weight:700; cursor:pointer;
     }
-    .row-actions{
-      display:flex; justify-content:space-between; align-items:center; margin-top:8px;
-    }
+    .row{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .link{ color:inherit; text-decoration:none; font-weight:600; }
-    .link:hover{ text-decoration:underline; }
-    footer.site-foot{
-      border-top:1px solid var(--bd); background:#efe9d0;
+    .foot{
+      text-align:center; color:var(--muted); margin-top:12px; font-weight:600;
+      display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;
     }
-    .foot-inner{
-      max-width:980px; margin:0 auto; padding:10px 12px;
-      display:flex; align-items:center; justify-content:center; gap:10px; color:var(--muted); font-weight:600;
-      flex-wrap:wrap;
-    }
-    .meta{ display:flex; gap:12px; flex-wrap:wrap; }
+    .eye-btn{ border:0; background:transparent; cursor:pointer; font-size:14px; color:var(--muted); }
   </style>
+  <script defer src="app.js"></script>
 </head>
-<!-- IMPORTANT: data-page="login" tells app.js to skip SPA boot -->
-<body data-page="login">
-  <main class="login-wrap">
-    <section class="card" aria-label="Sign in">
-      <div class="brand">
-        <img src="icons/logo.png" alt="Dowson Farms">
-        <div class="t1">Dowson Farms</div>
-        <div class="t2">Sign in to continue</div>
-      </div>
+<body>
+  <main class="wrap" role="main">
+    <div class="logo">
+      <img src="icons/logo.png" alt="Dowson Farms">
+      <div class="brand">Dowson Farms</div>
+    </div>
+
+    <section class="card" aria-label="Login">
+      <h1 class="title">Welcome back</h1>
+      <p class="muted" style="margin-top:0;">Sign in to continue.</p>
 
       <div class="field">
-        <label for="li-email">Email</label>
-        <input id="li-email" type="email" autocomplete="username" placeholder="you@example.com" />
-      </div>
-
-      <div class="field">
-        <label for="li-pass">Password</label>
-        <div class="pass-row">
-          <input id="li-pass" type="password" autocomplete="current-password" placeholder="Password (min 7, 1 uppercase, 1 number)" />
-          <button id="li-toggle" class="btn-primary" aria-label="Show/Hide password" title="Show/Hide">👁️</button>
+        <label class="label" for="li-email">Email</label>
+        <div class="input">
+          <input id="li-email" type="email" autocomplete="username" placeholder="you@example.com" inputmode="email">
         </div>
       </div>
 
-      <div class="row-actions">
-        <button id="li-go" class="btn-primary">Log In</button>
-        <a id="li-forgot" href="#" class="link">Forgot password?</a>
+      <div class="field">
+        <label class="label" for="li-pass">Password</label>
+        <div class="input">
+          <input id="li-pass" type="password" autocomplete="current-password" placeholder="Password">
+          <button type="button" id="togglePass" class="eye-btn" aria-label="Show password">Show</button>
+        </div>
       </div>
+
+      <div class="row" style="margin:10px 0 6px;">
+        <a class="link" id="forgotLink" href="#" role="button">Forgot password?</a>
+        <span class="muted" id="policy">Min 6 chars, 1 capital, 1 number</span>
+      </div>
+
+      <button id="li-go" class="btn-primary">Log In</button>
     </section>
+
+    <div class="foot">
+      <span id="foot-date">—</span>
+      <span aria-hidden="true">•</span>
+      <span id="foot-time">—</span>
+      <span aria-hidden="true">•</span>
+      <span id="foot-ver">v0.0.0</span>
+    </div>
   </main>
 
-  <footer id="footer" class="site-foot">
-    <div class="foot-inner">
-      <span>© Dowson Farms</span>
-      <span aria-hidden="true">•</span>
-      <span id="version">v0.0.0</span>
-      <span aria-hidden="true">•</span>
-      <span id="foot-datetime" class="meta"></span>
-    </div>
-  </footer>
-
-  <!-- Load your main app so it can paint version/date/time, but guarded to NOT boot SPA -->
-  <script src="app.js" defer></script>
   <script>
-    // Minimal login-only behavior (runs after app.js loads):
     (function(){
-      function $(s, r=document){ return r.querySelector(s); }
+      // Time & date
+      function fmtDate(d){
+        const opts = { year:'numeric', month:'long', day:'numeric' };
+        return new Intl.DateTimeFormat(undefined, opts).format(d);
+      }
+      function fmtTime(d){
+        const opts = { hour:'numeric', minute:'2-digit' };
+        return new Intl.DateTimeFormat(undefined, opts).format(d);
+      }
+      function tick(){
+        const now = new Date();
+        document.getElementById('foot-date').textContent = fmtDate(now);
+        document.getElementById('foot-time').textContent = fmtTime(now);
+      }
+      tick(); setInterval(tick, 15_000);
+
+      // Version (from app.js Part 1)
+      try{
+        const v = (window.DF && window.DF.VERSION) ? window.DF.VERSION : 'v0.0.0';
+        document.getElementById('foot-ver').textContent = v;
+      }catch{}
 
       // Show/Hide password
-      $('#li-toggle')?.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const p = $('#li-pass');
-        if (!p) return;
-        p.type = (p.type === 'password') ? 'text' : 'password';
+      const pass = document.getElementById('li-pass');
+      const tog  = document.getElementById('togglePass');
+      tog.addEventListener('click', ()=>{
+        const show = pass.type === 'password';
+        pass.type = show ? 'text' : 'password';
+        tog.textContent = show ? 'Hide' : 'Show';
+        tog.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
       });
 
-      // Forgot password — demo behavior only
-      $('#li-forgot')?.addEventListener('click', (e)=>{
+      // Forgot password (stub for now)
+      document.getElementById('forgotLink').addEventListener('click', (e)=>{
         e.preventDefault();
-        const email = String($('#li-email')?.value||'').trim();
-        if (!email){ alert('Enter your email first.'); return; }
-        // Simulate: if email == demo, "send" reset; else deny.
-        if (/^demo@dowsonfarms\.com$/i.test(email)){
-          alert('Password reset link sent to your email.');
-        } else {
-          alert('No account found for that email.');
-        }
+        const email = (document.getElementById('li-email').value || '').trim();
+        if (!email) { alert('Enter your email first.'); return; }
+        // In real app: call backend to send reset if account exists
+        alert('If an account exists for '+email+', a reset link will be sent.');
       });
 
-      // Simple password policy: >=7 chars, 1 uppercase, 1 number
-      function passOK(s){
-        return /[A-Z]/.test(s) && /\d/.test(s) && String(s).length >= 7;
+      // Validate + login
+      function passwordOK(pw){
+        if (pw.length < 6) return false;
+        if (!/[A-Z]/.test(pw)) return false;
+        if (!/[0-9]/.test(pw)) return false;
+        return true; // special chars allowed
       }
+      document.getElementById('li-go').addEventListener('click', ()=>{
+        const email = (document.getElementById('li-email').value||'').trim();
+        const pass  = (document.getElementById('li-pass').value||'');
+        if (!email){ alert('Enter email.'); return; }
+        if (!passwordOK(pass)){ alert('Password must be 6+ chars with 1 capital and 1 number.'); return; }
 
-      $('#li-go')?.addEventListener('click', ()=>{
-        const email = String($('#li-email')?.value||'').trim();
-        const pass  = String($('#li-pass')?.value||'');
-        if (!email || !pass){ alert('Enter email and password.'); return; }
-        if (!passOK(pass)){ alert('Password must be at least 7 chars, include one uppercase and one number.'); return; }
-
-        // Demo account
-        const isDemo = /^demo@dowsonfarms\.com$/i.test(email) && pass === 'Demo123';
-        if (!isDemo){
-          alert('Invalid credentials (demo: demo@dowsonfarms.com / Demo123)'); return;
+        // Demo account (optional): demo@dowsonfarms.com / Demo123
+        const demoOK = email.toLowerCase()==='demo@dowsonfarms.com' && pass==='Demo123';
+        if (!demoOK){
+          // For now, allow any valid combo (you can lock this down later)
+          // alert('Invalid login'); return; // <-- uncomment to enforce demo-only
         }
+
         try { localStorage.setItem('df_user', email); } catch {}
-
-        // Go to app
-        location.href = './# /home'.replace(' ',''); // ensure hash exists
+        // Navigate to app
+        location.href = 'index.html#/';
       });
-
-      // Paint date/time in footer (app.js will also do this, but this ensures it’s present if app.js delays)
-      function paintDateTime(){
-        const el = $('#foot-datetime'); if (!el) return;
-        const now = new Date();
-        const date = now.toLocaleDateString(undefined, { month:'long', day:'numeric', year:'numeric' });
-        const time = now.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
-        el.textContent = `${date} • ${time}`;
-      }
-      paintDateTime();
-      // refresh time every minute
-      setInterval(paintDateTime, 60_000);
     })();
   </script>
 </body>
