@@ -23,36 +23,43 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- ===== Header ===== -->
-  <header id="header" class="app-header">
-    <div class="logo">
-      <img src="icons/logo.png" alt="Dowson Farms Logo">
-      <span class="logo-text">Dowson Farms</span>
+
+  <!-- ===== Header (matches app.js/CSS expectations) ===== -->
+  <header id="header" class="site-head">
+    <div class="container head-inner">
+      <a href="#/home" class="brand" aria-label="Dowson Farms Home">
+        <img src="icons/logo.png" alt="Dowson Farms Logo" class="brand-logo" width="36" height="36">
+        <span class="brand-title">Dowson Farms</span>
+      </a>
+      <nav class="head-actions">
+        <!-- Part 46 will inject a clock <span id="df-clock"> here -->
+        <button id="logoutBtn" class="btn">Logout</button>
+      </nav>
     </div>
-    <div id="clock"></div>
-    <button id="logout" class="logout">Logout</button>
   </header>
 
-  <!-- ===== Breadcrumbs ===== -->
-  <nav id="breadcrumbs" class="breadcrumbs"></nav>
+  <!-- ===== Breadcrumbs (placeholder; Part 47+ will render into this) ===== -->
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs"></nav>
 
   <!-- ===== Main App Container ===== -->
-  <main id="app"></main>
+  <main id="app" class="app"></main>
 
-  <!-- ===== Update Banner ===== -->
+  <!-- ===== Update Banner (hidden until SW says there’s an update) ===== -->
   <div id="update-banner" hidden>
     🔄 New update available.
     <button id="reload-app" class="btn">Refresh</button>
   </div>
 
-  <!-- ===== Footer ===== -->
-  <footer id="footer" class="app-footer">
-    <span>© Dowson Farms</span>
-    <span aria-hidden="true">•</span>
-    <span id="version">v0.0.0</span>
+  <!-- ===== Footer (version filled by app.js via #version) ===== -->
+  <footer id="footer" class="site-foot">
+    <div class="container foot-inner">
+      <span>© Dowson Farms</span>
+      <span aria-hidden="true">•</span>
+      <span id="version">v0.0.0</span>
+    </div>
   </footer>
 
-  <!-- ===== App Code ===== -->
+  <!-- App -->
   <script defer src="app.js"></script>
 </body>
 </html>
