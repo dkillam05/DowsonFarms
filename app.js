@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.19';
+  const VERSION = 'v12.2.20';
 
   // App constants
   const APP = {
