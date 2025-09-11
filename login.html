@@ -1,30 +1,248 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dowson Farms — Login</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <link rel="stylesheet" href="styles.css" />
-  <!-- Fallback meta refresh after 1s in case JS is blocked -->
-  <meta http-equiv="refresh" content="1;url=./#/login">
+  <title>Login • Dowson Farms</title>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    :root{
+      --bg: #0f0f0f;
+      --card:#161616;
+      --fg: #f2f2f2;
+      --muted:#9aa0a6;
+      --brand:#0f4d1d;
+      --brand-ink:#ffffff;
+      --ring:rgba(56,189,248,.35);
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#0b0b0a; /* page is mostly card; bg is only outer edge on OLED */
+        --card:#f6f3e4;
+        --fg:#1a1a1a;
+        --muted:#6e6e6e;
+        --brand:#0f4d1d;
+        --brand-ink:#fff;
+        --ring:rgba(15,77,29,.25);
+      }
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      -webkit-text-size-adjust:100%;
+      font: 16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+
+    /* time (top right) */
+    .timebar{
+      position:fixed; inset:12px 16px auto auto;
+      font-weight:600; letter-spacing:.2px; opacity:.9;
+      user-select:none; pointer-events:none;
+    }
+
+    /* centered login card */
+    .wrap{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      box-sizing:border-box;
+    }
+    .card{
+      width:min(720px, 92vw);
+      background:var(--card);
+      border-radius:18px;
+      box-shadow:0 8px 32px rgba(0,0,0,.35);
+      padding:28px 22px 22px;
+      border:1px solid rgba(0,0,0,.12);
+    }
+    @media (min-width:540px){ .card{ padding:36px 32px 28px; } }
+
+    .brand{
+      display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:18px;
+    }
+    .brand img{ width:96px; height:96px; border-radius:50%; display:block; }
+    .brand h1{ margin:0; font-size:clamp(24px,4vw,34px); }
+
+    .field{ margin:12px 0; }
+    label{ display:block; font-weight:600; margin:0 0 6px; }
+    input{
+      width:100%;
+      padding:14px 14px;
+      font-size:16px; /* >=16px prevents iOS zoom on focus */
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.15);
+      background:#fff;
+      color:#111;
+      box-sizing:border-box;
+      outline: none;
+    }
+    input:focus{ box-shadow:0 0 0 4px var(--ring); border-color:transparent; }
+
+    .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .row .grow{ flex:1 1 auto; }
+    .btn{
+      appearance:none; border:0; border-radius:12px;
+      padding:12px 16px; font-weight:700; cursor:pointer;
+      font-size:16px; /* prevent zoom */
+    }
+    .btn-primary{ background:var(--brand); color:var(--brand-ink); }
+    .btn-link{ background:transparent; color:var(--brand); }
+    .help{ color:var(--muted); margin-top:8px; }
+    .err{ color:#ef4444; font-weight:600; margin-top:8px; }
+
+    footer{
+      position:fixed; inset:auto 0 0 0;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      padding:10px 12px; color:var(--muted);
+      background:transparent;
+      font-weight:600;
+      pointer-events:none;
+      user-select:none;
+    }
+    .hidden{ display:none !important; }
+  </style>
 </head>
-<body style="display:grid;place-items:center;min-height:100vh;">
-  <div style="text-align:center;max-width:480px;padding:16px;">
-    <h1>Redirecting to login…</h1>
-    <p>If you are not redirected automatically, <a href="./#/login">tap here</a>.</p>
-  </div>
+<body>
+  <!-- time (top-right) -->
+  <div class="timebar" id="timebar">--:--</div>
+
+  <main class="wrap">
+    <section class="card" aria-label="Login">
+      <div class="brand">
+        <img src="icons/logo.png" alt="Dowson Farms" />
+        <h1>Dowson Farms</h1>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" inputmode="email" autocomplete="username"
+                 placeholder="you@farm.com" required />
+        </div>
+
+        <div class="field">
+          <label for="pass">Password</label>
+          <input id="pass" name="pass" type="password" autocomplete="current-password"
+                 placeholder="••••••••" required />
+          <div class="help">Min 6 chars, include <b>one capital</b> and <b>one number</b>. Specials allowed.</div>
+        </div>
+
+        <div id="err" class="err hidden" role="alert"></div>
+
+        <div class="row" style="margin-top:12px;">
+          <button type="button" id="forgot" class="btn btn-link">Forgot password?</button>
+          <div class="grow"></div>
+          <button type="submit" class="btn btn-primary">Log In</button>
+        </div>
+
+        <div class="help" style="margin-top:10px;">
+          Demo account: <code>Demo@dowsonfarm.com</code> / <code>Demo123</code>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <span id="copyright">© Dowson Farms</span>
+    <span aria-hidden="true">•</span>
+    <span id="longdate">—</span>
+    <span aria-hidden="true">•</span>
+    <span id="ver">v12.2.10</span>
+  </footer>
 
   <script>
-    // Always convert real page load to hash route under index.html
-    (function () {
-      // If already on the correct hash, bounce to index immediately
-      if (location.hash && location.hash.startsWith('#/')) {
-        location.replace('./');
-        return;
+    (function(){
+      'use strict';
+
+      // ---------- Clock (top-right) & long date (footer)
+      const timebar = document.getElementById('timebar');
+      const longdate = document.getElementById('longdate');
+
+      function ordinal(n){
+        const s=["th","st","nd","rd"], v=n%100;
+        return n + (s[(v-20)%10] || s[v] || s[0]);
       }
-      location.replace('./#/login');
-    })();
+      function paintClock(){
+        const d = new Date();
+        const hh = d.getHours().toString().padStart(2,'0');
+        const mm = d.getMinutes().toString().padStart(2,'0');
+        timebar.textContent = `${hh}:${mm}`;
+        const month = d.toLocaleString(undefined,{month:'long'});
+        longdate.textContent = `${month} ${ordinal(d.getDate())} ${d.getFullYear()}`;
+      }
+      paintClock();
+      setInterval(paintClock, 60_000);
+
+      // ---------- Form logic
+      const DEMO_EMAIL = 'demo@dowsonfarm.com';
+      const DEMO_PASS  = 'Demo123';
+
+      const $ = s => document.querySelector(s);
+      const err = $('#err');
+
+      function showErr(msg){
+        err.textContent = msg;
+        err.classList.remove('hidden');
+      }
+      function clearErr(){ err.textContent=''; err.classList.add('hidden'); }
+
+      function validPassword(pw){
+        return pw.length >= 6 && /[A-Z]/.test(pw) && /\d/.test(pw);
+      }
+
+      $('#loginForm').addEventListener('submit', (e)=>{
+        e.preventDefault();
+        clearErr();
+
+        const email = ($('#email').value || '').trim();
+        const pass  = $('#pass').value || '';
+
+        if (!email || !pass){
+          showErr('Enter your email and password.'); return;
+        }
+        if (!validPassword(pass)){
+          showErr('Password must be at least 6 characters and include one capital letter and one number.');
+          return;
+        }
+
+        // Demo-only auth
+        if (email.toLowerCase() === DEMO_EMAIL && pass === DEMO_PASS){
+          try { localStorage.setItem('df_user', email); } catch {}
+          // Go back to app home
+          location.href = './#/home';
+          return;
+        }
+
+        // Static site note
+        showErr('These credentials are not recognized. (Demo account only on this build.)');
+      });
+
+      // ---------- Forgot Password
+      $('#forgot').addEventListener('click', ()=>{
+        clearErr();
+        const email = prompt('Enter your account email to reset your password:','');
+        if (!email) return;
+
+        if (email.trim().toLowerCase() === DEMO_EMAIL){
+          alert('A reset link has been sent to your email (demo).');
+        } else {
+          alert('No account found for that email on this demo.');
+        }
+
+        // If you hook up a backend later, trigger the API here.
+        // Example: fetch("/api/reset", {method:"POST", body:JSON.stringify({email})})
+      });
+
+      // ---------- Hide app header if a SW-cached index is visible behind us
+      // (No-op here, but safe if index tries to paint.)
+      document.getElementById('header')?.classList.add('hidden');
+    }());
   </script>
 </body>
 </html>
