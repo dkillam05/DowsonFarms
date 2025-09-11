@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.4.0',
+    version: 'v12.4.1',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
