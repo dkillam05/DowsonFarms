@@ -1,17 +1,27 @@
 {
   "name": "Dowson Farms",
   "short_name": "Dowson Farms",
-  "description": "Dowson Farms PWA",
+  "version": "12.0.0",
+  "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#f7f7e9",
-  "theme_color": "#154d23",
-
-  "start_url": "/?source=pwa",        ✅ root site
-  "scope": "/",                        ✅ root site
-
+  "background_color": "#FFFFF0",
+  "theme_color": "#1B5E20",
+  "orientation": "portrait-primary",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+    {
+      "src": "icons/logo.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
