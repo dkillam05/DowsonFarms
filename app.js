@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.10';
+  const VERSION = 'v12.2.11';
 
   // App constants
   const APP = {
@@ -3258,94 +3258,3 @@
   window.DF.renderLogin = renderLogin;
 })();
 
-/* ================= App v12 — Part 43: Header & Footer Polish ================= */
-(function DF_Part43_HeaderFooter(){
-  'use strict';
-  if (window.__DF_P43_HEADERFOOT__) return; window.__DF_P43_HEADERFOOT__ = true;
-
-  const $ = (s,r=document)=>r.querySelector(s);
-
-  // --- Styles for header/footer ---
-  function injectPolishCSS(){
-    if ($('#df-headfoot-css')) return;
-    const css = document.createElement('style');
-    css.id = 'df-headfoot-css';
-    css.textContent = `
-      header.site-head {
-        position:sticky; top:0; z-index:100;
-        background:#1B5E20; /* dark green */
-        color:#fff; border-bottom:2px solid rgba(0,0,0,.2);
-      }
-      header .container {
-        display:flex; align-items:center; justify-content:space-between;
-        padding:6px 12px;
-      }
-      .brand { display:flex; align-items:center; gap:8px; }
-      .brand-logo { border-radius:50%; width:36px; height:36px; }
-      .brand-title { font-weight:700; font-size:20px; }
-      #clock { font-family:monospace; font-size:15px; }
-      footer.site-foot {
-        background:#1B5E20; color:#fff;
-        border-top:2px solid rgba(0,0,0,.2);
-      }
-      footer .container {
-        display:flex; align-items:center; justify-content:center; gap:10px;
-        padding:8px 12px; font-size:14px; font-weight:600;
-      }
-    `;
-    document.head.appendChild(css);
-  }
-
-  // --- Update footer with date + version ---
-  function paintFooter(){
-    const f = $('#footer .foot-inner');
-    if (!f) return;
-    const now = new Date();
-    const opts = { year:'numeric', month:'long', day:'numeric' };
-    const dateStr = now.toLocaleDateString(undefined, opts);
-    const ver = window.DF?.VERSION || 'v0.0.0';
-    f.innerHTML = `
-      <span>© Dowson Farms</span>
-      <span aria-hidden="true">•</span>
-      <span>${dateStr}</span>
-      <span aria-hidden="true">•</span>
-      <span>${ver}</span>
-    `;
-  }
-
-  // --- Live clock in header ---
-  function startClock(){
-    const el = $('#clock');
-    if (!el) return;
-    function tick(){
-      const now = new Date();
-      el.textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    }
-    tick();
-    setInterval(tick, 60*1000);
-  }
-
-  // --- Ensure DOM slots exist ---
-  function ensureHeaderFooter(){
-    const head = $('#header .container');
-    if (head && !$('#clock')){
-      const clock = document.createElement('div');
-      clock.id = 'clock';
-      head.appendChild(clock);
-    }
-  }
-
-  // --- Init ---
-  function init(){
-    injectPolishCSS();
-    ensureHeaderFooter();
-    paintFooter();
-    startClock();
-  }
-
-  if (document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', init, {once:true});
-  } else {
-    init();
-  }
-})();
