@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.4',
+    version: 'v12.6.5',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -3749,90 +3749,125 @@
 })();
 
 /* =========================================================
-   APP v12.x — Part 47: Header/Foot polish (drop-in)
-   - Smaller green header (white text) with live clock (top-right)
-   - Ivory footer with pretty date (“September 11th, 2025”) + version
+   APP v12.x — Part 46: Green+Gold Header & Footer polish
+   - Header & footer: green (footer slightly darker), gold text
+   - Compact header with safe-area top padding (mobile friendly)
+   - Logout on the right, themed
+   - Live clock (header) & pretty date (footer)
    - Hides header/footer on #/login
-   - Class-agnostic: targets #header / #footer directly (safe)
    - Idempotent: safe to include once
    ========================================================= */
-(function DF_V12_P47_HEADER_FOOTER(){
+(function DF_V12_P46_HEADER_FOOTER(){
   'use strict';
-  if (window.__DF_V12_P47__) return; window.__DF_V12_P47__ = true;
+  if (window.__DF_V12_P46__) return; window.__DF_V12_P46__ = true;
 
   // helpers
   const $  = (s, r=document)=>r.querySelector(s);
   const esc = s => String(s??'');
   const VERSION = esc((window.DF && window.DF.VERSION) || '');
 
-  // 1) inject minimal CSS (scoped by ids where possible)
+  // 1) Inject theme CSS
   (function injectCSS(){
-    if ($('#df-p47-polish-css')) return;
+    if ($('#df-p46-polish-css')) return;
     const css = document.createElement('style');
-    css.id = 'df-p47-polish-css';
+    css.id = 'df-p46-polish-css';
     css.textContent = `
       :root{
-        --df-green:#175c2e;
-        --df-ivory:#efe9d0;
-        --df-border:rgba(0,0,0,.08);
+        --df-green:#144a25;        /* header green (rich) */
+        --df-green-dk:#103c1e;     /* footer green (slightly darker) */
+        --df-gold:#e2c65a;         /* elegant gold */
+        --df-gold-dk:#c7b04f;      /* pressed/hover tone */
+        --df-shadow:0 1px 0 rgba(0,0,0,.05);
       }
-      /* header */
+
+      /* ——— Header ——— */
       #header{
-        background:var(--df-green)!important;
-        color:#fff!important;
-        border-bottom:1px solid rgba(255,255,255,.15)!important;
+        background:var(--df-green) !important;
+        color:var(--df-gold) !important;
+        border-bottom:1px solid rgba(0,0,0,.15) !important;
       }
-      #header .brand-title{ color:#fff!important; font-size:20px!important; }
-      #header .brand-logo{ box-shadow:0 0 0 2px rgba(255,255,255,.15); }
-      #header .head-inner{ padding-top:8px!important; padding-bottom:8px!important; }
+      #header .head-inner{
+        padding-top: max(6px, env(safe-area-inset-top));
+        padding-bottom: 6px;
+      }
+      #header .brand{ gap:8px; }
+      #header .brand-logo{
+        width:26px; height:26px; border-radius:50%;
+        box-shadow:0 0 0 1px rgba(255,255,255,.08);
+      }
+      #header .brand-title{
+        color:var(--df-gold) !important;
+        font-weight:700; font-size:18px; letter-spacing:.2px;
+      }
+
+      /* Right side actions */
       #header .head-actions{ display:flex; align-items:center; gap:10px; }
+      #header .head-actions .dot{ color:var(--df-gold); opacity:.8; }
       #header .head-actions .btn{
-        background:rgba(255,255,255,.08)!important;
-        color:#fff!important; border:1px solid rgba(255,255,255,.2)!important;
+        background:transparent;
+        color:var(--df-gold);
+        border:1px solid rgba(226,198,90,.55);
         border-radius:10px; padding:6px 10px; cursor:pointer;
+        box-shadow: var(--df-shadow);
       }
+      #header .head-actions .btn:active{
+        color:var(--df-gold-dk);
+        border-color: rgba(226,198,90,.9);
+        transform: translateY(1px);
+      }
+
+      /* Header clock */
       #df-clock{
         font-variant-numeric: tabular-nums;
-        font-weight:600; letter-spacing:.2px; color:#fff; opacity:.95;
+        font-weight:600;
+        letter-spacing:.2px;
+        color:var(--df-gold);
       }
-      /* footer */
-      #footer{ background:var(--df-ivory)!important; border-top:1px solid var(--df-border)!important; }
-      #footer .foot-inner{ display:flex; align-items:center; justify-content:center; gap:10px; }
-      #df-date{ opacity:.8; }
-      /* keep page height comfy with smaller header/footer */
-      .app{ min-height:calc(100vh - 120px)!important; }
+
+      /* ——— Footer ——— */
+      #footer{
+        background:var(--df-green-dk) !important;
+        color:var(--df-gold) !important;
+        border-top:1px solid rgba(0,0,0,.2) !important;
+      }
+      #footer .foot-inner{
+        gap:10px;
+      }
+      #footer a{ color:var(--df-gold); }
+      #df-date{ opacity:.95; }
+
+      /* ——— Layout min-height to account for compact bars ——— */
+      .app{ min-height:calc(100vh - 104px) !important; }
+      /* If your head/foot are even shorter later, adjust 104px accordingly. */
     `;
     document.head.appendChild(css);
   })();
 
-  // 2) ensure clock node in header (append to .head-actions or header if absent)
+  // 2) Ensure clock (right side)
   function ensureClock(){
-    const h = $('#header'); if (!h) return;
-    let host = h.querySelector('.head-actions') || h;
+    const head = $('#header'); if (!head) return;
+    const actions = head.querySelector('.head-actions'); if (!actions) return;
+
     if (!$('#df-clock')){
-      // separator dot (if actions area exists)
-      if (host !== h) {
-        const sep = document.createElement('span');
-        sep.setAttribute('aria-hidden','true'); sep.textContent = '•';
-        sep.style.opacity = '.8';
-        host.appendChild(sep);
-      }
+      const sep = document.createElement('span');
+      sep.className = 'dot'; sep.setAttribute('aria-hidden','true'); sep.textContent = '•';
       const clock = document.createElement('span');
       clock.id = 'df-clock';
-      host.appendChild(clock);
+      actions.appendChild(sep);
+      actions.appendChild(clock);
     }
   }
 
-  // 3) ensure pretty date appears in footer before version if present
+  // 3) Ensure pretty date in footer (before version if present)
   function ensureDate(){
-    const f = $('#footer'); if (!f) return;
-    const inner = f.querySelector('.foot-inner') || f;
+    const foot = $('#footer'); if (!foot) return;
+    const inner = foot.querySelector('.foot-inner') || foot;
     if ($('#df-date')) return;
 
     const dot = document.createElement('span');
-    dot.setAttribute('aria-hidden','true'); dot.textContent='•';
-
-    const dateSpan = document.createElement('span'); dateSpan.id='df-date';
+    dot.className='dot'; dot.setAttribute('aria-hidden','true'); dot.textContent='•';
+    const dateSpan = document.createElement('span');
+    dateSpan.id='df-date';
 
     const ver = $('#version');
     if (ver && ver.parentElement === inner){
@@ -3844,13 +3879,19 @@
     }
   }
 
-  // 4) updaters
-  function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+  // 4) Updaters (time + date)
+  function ordinal(n){
+    const s = ['th','st','nd','rd'], v = n%100;
+    return n + (s[(v-20)%10] || s[v] || s[0]);
+  }
   function fmtDate(d){
-    return d.toLocaleString(undefined,{month:'long'})+' '+ordinal(d.getDate())+', '+d.getFullYear();
+    const m = d.toLocaleString(undefined,{ month:'long' });
+    const day = ordinal(d.getDate());
+    const y = d.getFullYear();
+    return `${m} ${day}, ${y}`;
   }
   function fmtTime(d){
-    return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    return d.toLocaleTimeString(undefined,{ hour:'numeric', minute:'2-digit' });
   }
   function tick(){
     const now = new Date();
@@ -3858,26 +3899,26 @@
     const ds = $('#df-date'); if (ds) ds.textContent = fmtDate(now);
   }
 
-  // 5) hide chrome on login
+  // 5) Hide header/footer on login hash
   function applyLoginChrome(){
     const isLogin = (location.hash||'').replace(/\/+$/,'') === '#/login';
-    const head = $('#header'), foot = $('#footer');
+    const head = $('#header'); const foot = $('#footer');
     if (head) head.style.display = isLogin ? 'none' : '';
     if (foot) foot.style.display = isLogin ? 'none' : '';
   }
 
-  // 6) init
+  // 6) Boot
   function init(){
     ensureClock();
     ensureDate();
     tick();
     applyLoginChrome();
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, {once:true});
-  } else { init(); }
-
-  // keep fresh & reactive
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init, { once:true });
+  } else {
+    init();
+  }
   setInterval(tick, 15000);
-  window.addEventListener('hashchange', applyLoginChrome, {passive:true});
+  window.addEventListener('hashchange', applyLoginChrome, { passive:true });
 })();
