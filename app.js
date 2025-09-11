@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.8';
+  const VERSION = 'v12.2.9';
 
   // App constants
   const APP = {
@@ -3199,4 +3199,61 @@
   // ---------- Export small API ----------
   window.DF = window.DF || {};
   window.DF.theme = { get:getTheme, set:setTheme, apply:applyTheme };
+})();
+
+/* ================= App v12 — Part 42: Login Route ================= */
+(function DF_Part42_Login(){
+  'use strict';
+  if (window.__DF_P42_LOGIN__) return; window.__DF_P42_LOGIN__ = true;
+
+  const $  = (s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+
+  // --- render inline login form ---
+  function renderLogin(){
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>Login</h1>
+        <div class="field"><input id="li-email" type="email" placeholder="Email"></div>
+        <div class="field" style="display:flex;gap:8px;">
+          <input id="li-pass" type="password" placeholder="Password" style="flex:1;">
+          <button class="btn-primary" id="li-go">Log In</button>
+        </div>
+      </section>
+    `;
+    $('#li-go')?.addEventListener('click', ()=>{
+      const email = String($('#li-email')?.value||'').trim();
+      try{ if (email) localStorage.setItem('df_user', email); }catch{}
+      location.hash = '#/home';
+      if (typeof window.DF?.renderHome === 'function') window.DF.renderHome();
+    });
+    applyLoginChrome();
+  }
+
+  // --- hide header/footer on login page ---
+  function applyLoginChrome(){
+    const isLogin = (location.hash||'').replace(/\/+$/,'') === '#/login';
+    const head = $('#header'); const foot = $('#footer');
+    if (head) head.style.display = isLogin ? 'none' : '';
+    if (foot) foot.style.display = isLogin ? 'none' : '';
+  }
+  window.addEventListener('hashchange', applyLoginChrome, {passive:true});
+
+  // --- hook router ---
+  function routeLogin(){
+    const h = (location.hash||'').replace(/\/+$/,'');
+    if (h === '#/login'){ renderLogin(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', routeLogin, {passive:true});
+  if (document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', ()=>{ routeLogin(); applyLoginChrome(); }, {once:true});
+  } else {
+    routeLogin(); applyLoginChrome();
+  }
+
+  // export
+  window.DF = window.DF || {};
+  window.DF.renderLogin = renderLogin;
 })();
