@@ -2,122 +2,228 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Dowson Farms — Login</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="icons/logo.png">
   <style>
-    body {
-      display:flex; flex-direction:column; justify-content:center; align-items:center;
-      height:100vh; margin:0; background:#f6f3e4; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    :root{
+      --bg:#f6f3e4; --card:#ffffff; --ink:#1a1a1a; --muted:#6e6e6e; --bd:rgba(0,0,0,.12);
+      --brand:#0f4d1d; --brand-ink:#fff; --shadow:0 10px 30px rgba(0,0,0,.12);
     }
-    .login-box {
-      background:#fff; padding:24px; border-radius:16px;
-      box-shadow:0 4px 20px rgba(0,0,0,.1); width:90%; max-width:380px;
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      display:flex; align-items:center; justify-content:center; padding:24px;
     }
-    .login-box h1 { margin:0 0 4px; font-size:24px; }
-    .login-box p { margin:0 0 20px; color:#666; }
-    .field { margin:12px 0; }
-    label { display:block; font-weight:600; margin-bottom:6px; }
-    input {
-      width:100%; padding:12px; border-radius:10px;
-      border:1px solid #ccc; font-size:16px;
+
+    /* Card */
+    .login-wrap{
+      width:100%; max-width:420px; background:var(--card); border-radius:18px;
+      box-shadow:var(--shadow); padding:22px; position:relative;
     }
-    .pw-wrap { position:relative; }
-    .pw-wrap input { padding-right:70px; }
-    .toggle {
-      position:absolute; top:50%; right:10px; transform:translateY(-50%);
-      background:none; border:0; font-size:14px; cursor:pointer; color:#0f4d1d;
+    .brand{
+      text-align:center; margin-top:-56px; margin-bottom:6px;
     }
-    .error {
-      display:none; color:#b00020; font-size:14px; margin-top:6px;
+    .brand .logo{
+      width:96px; height:96px; border-radius:50%; border:6px solid var(--bg);
+      box-shadow:0 6px 18px rgba(0,0,0,.18);
+      background:#fff; object-fit:cover;
     }
-    .actions {
-      display:flex; justify-content:space-between; align-items:center; margin-top:20px;
+    .title{ text-align:center; font-size:28px; font-weight:800; margin:10px 0 18px; }
+    .lead{ text-align:center; color:var(--muted); margin-top:-8px; margin-bottom:18px; }
+
+    label{ display:block; font-weight:700; margin:10px 0 6px; }
+    .field{ position:relative; }
+    input{
+      width:100%; border:1px solid var(--bd); border-radius:12px; background:#fff; color:var(--ink);
+      padding:14px 14px; font-size:16px; outline:none;
     }
-    .btn {
-      background:#0f4d1d; color:#fff; padding:10px 16px; border:0; border-radius:10px;
-      cursor:pointer; font-size:16px; font-weight:600;
+    input:focus{ border-color:#b7c9b7; box-shadow:0 0 0 3px rgba(15,77,29,.15) }
+
+    /* Show/Hide button centered */
+    .pw{
+      padding-right:84px; /* room for toggle */
     }
-    .link { color:#0f4d1d; text-decoration:none; font-size:14px; }
-    .foot {
-      margin-top:24px; font-size:14px; color:#666; text-align:center;
+    .toggle{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      padding:8px 14px; border-radius:10px; border:1px solid var(--bd); background:#fff;
+      color:var(--brand); font-weight:700; cursor:pointer;
+    }
+
+    .actions{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
+    .link{ color:var(--brand); text-decoration:none; font-weight:700; }
+    .btn{
+      background:var(--brand); color:var(--brand-ink); border:0; border-radius:12px;
+      padding:12px 18px; font-size:16px; font-weight:800; cursor:pointer;
+    }
+
+    .error{
+      display:none; color:#b00020; margin-top:10px; font-weight:700;
+    }
+
+    /* Footer */
+    .foot{
+      margin-top:18px; text-align:center; color:var(--muted); font-weight:600;
+    }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,.45); display:none;
+      align-items:center; justify-content:center; padding:20px; z-index:10;
+    }
+    .modal{
+      max-width:520px; width:100%; background:#fff; color:#111; border-radius:14px; padding:18px;
+      box-shadow:0 16px 40px rgba(0,0,0,.25);
+    }
+    .modal h3{ margin:0 0 8px; font-size:20px }
+    .modal p{ margin:8px 0; color:#444 }
+    .modal .row{ display:flex; gap:10px; margin-top:10px }
+    .modal input{ flex:1 }
+    .modal .btn-secondary{
+      background:#f1f1f1; color:#111; border:1px solid #ddd;
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root{ --card:#171717; --ink:#f2f2f2; --muted:#b3b3b3; --bd:rgba(255,255,255,.16) }
+      body{ background:#0f0f0f }
+      .toggle{ background:#111; border-color:#333 }
+      .modal{ background:#202020; color:#f2f2f2; }
+      .modal .btn-secondary{ background:#2a2a2a; color:#f2f2f2; border-color:#3a3a3a; }
     }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <h1>Welcome back</h1>
-    <p>Sign in to continue.</p>
 
+  <main class="login-wrap" role="main" aria-labelledby="loginTitle">
+
+    <!-- Logo -->
+    <div class="brand">
+      <img class="logo" src="icons/logo.png" alt="Dowson Farms logo">
+    </div>
+
+    <h1 id="loginTitle" class="title">Dowson Farms</h1>
+    <p class="lead">Welcome back. Sign in to continue.</p>
+
+    <!-- Email -->
+    <label for="email">Email</label>
     <div class="field">
-      <label for="email">Email</label>
-      <input id="email" type="email" placeholder="you@example.com">
+      <input id="email" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com">
     </div>
 
-    <div class="field pw-wrap">
-      <label for="pass">Password</label>
-      <input id="pass" type="password" placeholder="Password">
-      <button type="button" id="togglePass" class="toggle">Show</button>
+    <!-- Password -->
+    <label for="pass">Password</label>
+    <div class="field">
+      <input id="pass" type="password" class="pw" autocomplete="current-password" placeholder="Password">
+      <button class="toggle" id="togglePass" type="button" aria-pressed="false" aria-controls="pass">Show</button>
     </div>
 
-    <div id="err" class="error">These credentials are not recognized.</div>
+    <!-- Error -->
+    <div id="err" class="error" role="alert">These credentials are not recognized.</div>
 
+    <!-- Actions -->
     <div class="actions">
-      <a href="#" class="link">Forgot password?</a>
+      <a id="forgot" class="link" href="#">Forgot password?</a>
       <button id="go" class="btn">Log In</button>
     </div>
-  </div>
 
-  <div class="foot">
-    <span id="footerDate"></span> • <span id="footerVersion"></span>
+    <!-- Footer -->
+    <div class="foot"><span id="fdate"></span> • <span id="fver"></span></div>
+  </main>
+
+  <!-- Forgot password modal -->
+  <div id="fp-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="fp-title">
+    <div class="modal">
+      <h3 id="fp-title">Reset your password</h3>
+      <p>Enter your email and we’ll send a reset link if an account exists.</p>
+      <div class="row">
+        <input id="fp-email" type="email" placeholder="you@example.com">
+        <button id="fp-send" class="btn">Send link</button>
+        <button id="fp-cancel" class="btn btn-secondary" type="button">Cancel</button>
+      </div>
+      <p id="fp-msg" style="display:none;"></p>
+    </div>
   </div>
 
   <script>
-    // Footer date/version
-    function fmtDate(){
-      const d = new Date();
-      return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-    }
-    document.getElementById('footerDate').textContent = fmtDate();
-    document.getElementById('footerVersion').textContent = (window.DF?.VERSION || 'v0.0.0');
+    // Footer: date + version (from main app.js, if loaded)
+    (function footer(){
+      const fmt = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+      document.getElementById('fdate').textContent = fmt;
+      document.getElementById('fver').textContent = (window.DF && window.DF.VERSION) ? window.DF.VERSION : 'v0.0.0';
+    })();
 
-    // Toggle password visibility
-    const passInput = document.getElementById('pass');
-    const toggleBtn = document.getElementById('togglePass');
-    toggleBtn.addEventListener('click',()=>{
-      if (passInput.type === 'password'){
-        passInput.type = 'text'; toggleBtn.textContent='Hide';
-      } else {
-        passInput.type = 'password'; toggleBtn.textContent='Show';
-      }
-    });
+    // Show/Hide password (keeps label centered)
+    (function pwToggle(){
+      const input = document.getElementById('pass');
+      const btn   = document.getElementById('togglePass');
+      btn.addEventListener('click', ()=>{
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.textContent = show ? 'Hide' : 'Show';
+        btn.setAttribute('aria-pressed', String(show));
+      });
+    })();
 
-    // Validation helpers
-    const strong = (s)=> /[A-Z]/.test(s) && /\d/.test(s) && s.length >= 6;
+    // Simple strength rule (only enforced at login to reduce typos)
+    const strong = s => /[A-Z]/.test(s) && /\d/.test(s) && s.length >= 6;
 
-    // Demo account (front-end only)
+    // Demo account (local only)
     const DEMO = { email:'demo@dowsonfarms.com', pass:'Demo123' };
 
-    // Log In
-    document.getElementById('go').addEventListener('click', ()=>{
-      const email = (document.getElementById('email').value||'').trim().toLowerCase();
-      const pass  = document.getElementById('pass').value||'';
-      const err   = document.getElementById('err');
+    // Log in
+    (function login(){
+      const err = document.getElementById('err');
+      document.getElementById('go').addEventListener('click', ()=>{
+        const email = (document.getElementById('email').value || '').trim().toLowerCase();
+        const pass  = document.getElementById('pass').value || '';
+        err.style.display = 'none';
 
-      err.style.display = 'none';
-      if (!strong(pass)) {
-        err.textContent = 'Password must include 1 capital, 1 number, and be 6+ chars.';
+        if (!strong(pass)) {
+          err.textContent = 'These credentials are not recognized.'; // keep message short
+          err.style.display = 'block';
+          return;
+        }
+        if (email === DEMO.email && pass === DEMO.pass) {
+          try { localStorage.setItem('df_user', email); } catch {}
+          location.replace('./#/home'); // hand off to SPA
+          return;
+        }
         err.style.display = 'block';
-        return;
-      }
-      if (email === DEMO.email && pass === DEMO.pass) {
-        try { localStorage.setItem('df_user', email); } catch {}
-        location.replace('./#/home'); // go to app
-        return;
-      }
-      err.textContent = 'These credentials are not recognized.';
-      err.style.display = 'block';
-    });
+      });
+    })();
+
+    // Forgot password modal (demo)
+    (function forgot(){
+      const open = document.getElementById('forgot');
+      const back = document.getElementById('fp-backdrop');
+      const send = document.getElementById('fp-send');
+      const cancel = document.getElementById('fp-cancel');
+      const email = document.getElementById('fp-email');
+      const msg = document.getElementById('fp-msg');
+
+      function hide(){ back.style.display='none'; msg.style.display='none'; email.value=''; }
+      function show(){ back.style.display='flex'; email.focus(); }
+
+      open.addEventListener('click', (e)=>{ e.preventDefault(); show(); });
+      cancel.addEventListener('click', hide);
+      back.addEventListener('click', (e)=>{ if (e.target === back) hide(); });
+
+      send.addEventListener('click', ()=>{
+        const v = (email.value||'').trim().toLowerCase();
+        msg.style.display='block';
+        if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+          msg.textContent = 'Please enter a valid email address.';
+          msg.style.color = '#b00020';
+          return;
+        }
+        // Demo response
+        msg.textContent = 'If an account exists, a reset link has been sent.';
+        msg.style.color = '#18794e';
+        setTimeout(hide, 1800);
+      });
+    })();
   </script>
 </body>
 </html>
