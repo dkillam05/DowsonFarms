@@ -17,20 +17,11 @@
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
       display:flex; align-items:center; justify-content:center; padding:24px;
     }
-
-    /* Card */
-    .login-wrap{
-      width:100%; max-width:420px; background:var(--card); border-radius:18px;
-      box-shadow:var(--shadow); padding:22px; position:relative;
-    }
-    .brand{
-      text-align:center; margin-top:-56px; margin-bottom:6px;
-    }
-    .brand .logo{
-      width:96px; height:96px; border-radius:50%; border:6px solid var(--bg);
-      box-shadow:0 6px 18px rgba(0,0,0,.18);
-      background:#fff; object-fit:cover;
-    }
+    .login-wrap{ width:100%; max-width:420px; background:var(--card); border-radius:18px;
+      box-shadow:var(--shadow); padding:22px; position:relative; }
+    .brand{ text-align:center; margin-top:-56px; margin-bottom:6px; }
+    .brand .logo{ width:96px; height:96px; border-radius:50%; border:6px solid var(--bg);
+      box-shadow:0 6px 18px rgba(0,0,0,.18); background:#fff; object-fit:cover; }
     .title{ text-align:center; font-size:28px; font-weight:800; margin:10px 0 18px; }
     .lead{ text-align:center; color:var(--muted); margin-top:-8px; margin-bottom:18px; }
 
@@ -42,10 +33,7 @@
     }
     input:focus{ border-color:#b7c9b7; box-shadow:0 0 0 3px rgba(15,77,29,.15) }
 
-    /* Show/Hide button centered */
-    .pw{
-      padding-right:84px; /* room for toggle */
-    }
+    .pw{ padding-right:84px; }
     .toggle{
       position:absolute; right:10px; top:50%; transform:translateY(-50%);
       padding:8px 14px; border-radius:10px; border:1px solid var(--bd); background:#fff;
@@ -54,36 +42,22 @@
 
     .actions{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
     .link{ color:var(--brand); text-decoration:none; font-weight:700; }
-    .btn{
-      background:var(--brand); color:var(--brand-ink); border:0; border-radius:12px;
-      padding:12px 18px; font-size:16px; font-weight:800; cursor:pointer;
-    }
+    .btn{ background:var(--brand); color:var(--brand-ink); border:0; border-radius:12px;
+      padding:12px 18px; font-size:16px; font-weight:800; cursor:pointer; }
 
-    .error{
-      display:none; color:#b00020; margin-top:10px; font-weight:700;
-    }
+    .error{ display:none; color:#b00020; margin-top:10px; font-weight:700; }
 
-    /* Footer */
-    .foot{
-      margin-top:18px; text-align:center; color:var(--muted); font-weight:600;
-    }
+    .foot{ margin-top:18px; text-align:center; color:var(--muted); font-weight:600; }
 
-    /* Modal */
-    .modal-backdrop{
-      position:fixed; inset:0; background:rgba(0,0,0,.45); display:none;
-      align-items:center; justify-content:center; padding:20px; z-index:10;
-    }
-    .modal{
-      max-width:520px; width:100%; background:#fff; color:#111; border-radius:14px; padding:18px;
-      box-shadow:0 16px 40px rgba(0,0,0,.25);
-    }
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none;
+      align-items:center; justify-content:center; padding:20px; z-index:10; }
+    .modal{ max-width:520px; width:100%; background:#fff; color:#111; border-radius:14px; padding:18px;
+      box-shadow:0 16px 40px rgba(0,0,0,.25); }
     .modal h3{ margin:0 0 8px; font-size:20px }
     .modal p{ margin:8px 0; color:#444 }
     .modal .row{ display:flex; gap:10px; margin-top:10px }
     .modal input{ flex:1 }
-    .modal .btn-secondary{
-      background:#f1f1f1; color:#111; border:1px solid #ddd;
-    }
+    .modal .btn-secondary{ background:#f1f1f1; color:#111; border:1px solid #ddd; }
 
     @media (prefers-color-scheme: dark){
       :root{ --card:#171717; --ink:#f2f2f2; --muted:#b3b3b3; --bd:rgba(255,255,255,.16) }
@@ -93,42 +67,107 @@
       .modal .btn-secondary{ background:#2a2a2a; color:#f2f2f2; border-color:#3a3a3a; }
     }
   </style>
+
+  <!-- Load your main SPA bundle so DF.VERSION is available -->
+  <script src="app.js" defer></script>
+  <!-- Our page logic will also be deferred and runs after app.js -->
+  <script defer>
+    // Footer date + version (wait for DF.VERSION if needed)
+    function paintFooter(){
+      const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+      document.getElementById('fdate').textContent = dateStr;
+      document.getElementById('fver').textContent = (window.DF && DF.VERSION) ? DF.VERSION : 'v0.0.0';
+    }
+    document.addEventListener('DOMContentLoaded', paintFooter);
+    // In case app.js finishes a tick later, refresh once
+    window.addEventListener('load', ()=> setTimeout(paintFooter, 50));
+
+    // Show/Hide password
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const inp = document.getElementById('pass');
+      const btn = document.getElementById('togglePass');
+      btn.addEventListener('click', ()=>{
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        btn.textContent = show ? 'Hide' : 'Show';
+        btn.setAttribute('aria-pressed', String(show));
+      });
+    });
+
+    // Simple rule
+    const strong = s => /[A-Z]/.test(s) && /\d/.test(s) && s.length >= 6;
+    const DEMO = { email:'demo@dowsonfarms.com', pass:'Demo123' };
+
+    // Login handling
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const err = document.getElementById('err');
+      document.getElementById('go').addEventListener('click', ()=>{
+        const email = (document.getElementById('email').value||'').trim().toLowerCase();
+        const pass  = document.getElementById('pass').value||'';
+        err.style.display = 'none';
+        if (!strong(pass)){ err.style.display='block'; return; }
+        if (email === DEMO.email && pass === DEMO.pass){
+          try { localStorage.setItem('df_user', email); } catch {}
+          location.replace('./#/home');
+        } else {
+          err.style.display='block';
+        }
+      });
+    });
+
+    // Forgot password modal (demo)
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const open = document.getElementById('forgot');
+      const back = document.getElementById('fp-backdrop');
+      const send = document.getElementById('fp-send');
+      const cancel = document.getElementById('fp-cancel');
+      const email = document.getElementById('fp-email');
+      const msg = document.getElementById('fp-msg');
+
+      const hide = ()=>{ back.style.display='none'; msg.style.display='none'; email.value=''; };
+      const show = ()=>{ back.style.display='flex'; email.focus(); };
+
+      open.addEventListener('click', (e)=>{ e.preventDefault(); show(); });
+      cancel.addEventListener('click', hide);
+      back.addEventListener('click', (e)=>{ if (e.target===back) hide(); });
+
+      send.addEventListener('click', ()=>{
+        const v = (email.value||'').trim().toLowerCase();
+        msg.style.display='block';
+        if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+          msg.textContent = 'Please enter a valid email address.'; msg.style.color = '#b00020'; return;
+        }
+        msg.textContent = 'If an account exists, a reset link has been sent.';
+        msg.style.color = '#18794e';
+        setTimeout(hide, 1800);
+      });
+    });
+  </script>
 </head>
 <body>
-
   <main class="login-wrap" role="main" aria-labelledby="loginTitle">
-
-    <!-- Logo -->
-    <div class="brand">
-      <img class="logo" src="icons/logo.png" alt="Dowson Farms logo">
-    </div>
-
+    <div class="brand"><img class="logo" src="icons/logo.png" alt="Dowson Farms logo"></div>
     <h1 id="loginTitle" class="title">Dowson Farms</h1>
     <p class="lead">Welcome back. Sign in to continue.</p>
 
-    <!-- Email -->
-    <label for="email">Email</label>
+    <label for="email">Username</label>
     <div class="field">
-      <input id="email" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com">
+      <input id="email" type="email" inputmode="email" autocomplete="username" placeholder="Email">
     </div>
 
-    <!-- Password -->
     <label for="pass">Password</label>
     <div class="field">
       <input id="pass" type="password" class="pw" autocomplete="current-password" placeholder="Password">
       <button class="toggle" id="togglePass" type="button" aria-pressed="false" aria-controls="pass">Show</button>
     </div>
 
-    <!-- Error -->
     <div id="err" class="error" role="alert">These credentials are not recognized.</div>
 
-    <!-- Actions -->
     <div class="actions">
       <a id="forgot" class="link" href="#">Forgot password?</a>
       <button id="go" class="btn">Log In</button>
     </div>
 
-    <!-- Footer -->
     <div class="foot"><span id="fdate"></span> • <span id="fver"></span></div>
   </main>
 
@@ -145,85 +184,5 @@
       <p id="fp-msg" style="display:none;"></p>
     </div>
   </div>
-
-  <script>
-    // Footer: date + version (from main app.js, if loaded)
-    (function footer(){
-      const fmt = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-      document.getElementById('fdate').textContent = fmt;
-      document.getElementById('fver').textContent = (window.DF && window.DF.VERSION) ? window.DF.VERSION : 'v0.0.0';
-    })();
-
-    // Show/Hide password (keeps label centered)
-    (function pwToggle(){
-      const input = document.getElementById('pass');
-      const btn   = document.getElementById('togglePass');
-      btn.addEventListener('click', ()=>{
-        const show = input.type === 'password';
-        input.type = show ? 'text' : 'password';
-        btn.textContent = show ? 'Hide' : 'Show';
-        btn.setAttribute('aria-pressed', String(show));
-      });
-    })();
-
-    // Simple strength rule (only enforced at login to reduce typos)
-    const strong = s => /[A-Z]/.test(s) && /\d/.test(s) && s.length >= 6;
-
-    // Demo account (local only)
-    const DEMO = { email:'demo@dowsonfarms.com', pass:'Demo123' };
-
-    // Log in
-    (function login(){
-      const err = document.getElementById('err');
-      document.getElementById('go').addEventListener('click', ()=>{
-        const email = (document.getElementById('email').value || '').trim().toLowerCase();
-        const pass  = document.getElementById('pass').value || '';
-        err.style.display = 'none';
-
-        if (!strong(pass)) {
-          err.textContent = 'These credentials are not recognized.'; // keep message short
-          err.style.display = 'block';
-          return;
-        }
-        if (email === DEMO.email && pass === DEMO.pass) {
-          try { localStorage.setItem('df_user', email); } catch {}
-          location.replace('./#/home'); // hand off to SPA
-          return;
-        }
-        err.style.display = 'block';
-      });
-    })();
-
-    // Forgot password modal (demo)
-    (function forgot(){
-      const open = document.getElementById('forgot');
-      const back = document.getElementById('fp-backdrop');
-      const send = document.getElementById('fp-send');
-      const cancel = document.getElementById('fp-cancel');
-      const email = document.getElementById('fp-email');
-      const msg = document.getElementById('fp-msg');
-
-      function hide(){ back.style.display='none'; msg.style.display='none'; email.value=''; }
-      function show(){ back.style.display='flex'; email.focus(); }
-
-      open.addEventListener('click', (e)=>{ e.preventDefault(); show(); });
-      cancel.addEventListener('click', hide);
-      back.addEventListener('click', (e)=>{ if (e.target === back) hide(); });
-
-      send.addEventListener('click', ()=>{
-        const v = (email.value||'').trim().toLowerCase();
-        msg.style.display='block';
-        if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
-          msg.textContent = 'Please enter a valid email address.';
-          msg.style.color = '#b00020';
-          return;
-        }
-        // Demo response
-        msg.textContent = 'If an account exists, a reset link has been sent.';
-        msg.style.color = '#18794e';
-        setTimeout(hide, 1800);
-      });
-    })();
-  </script>
 </body>
 </html>
