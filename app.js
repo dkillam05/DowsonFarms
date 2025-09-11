@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.6',
+    version: 'v12.6.7',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -3749,112 +3749,137 @@
 })();
 
 /* =========================================================
-   APP v12.6.6 — Part 46: Header/Foot Polish
-   - Small green header + green footer
-   - Golden yellow text for branding/date/version
-   - Smaller logo, clock + logout aligned right
+   APP v12.x — Part 46 (Reset): JD-style chrome
+   - Compact deep-green header + matching footer
+   - Gold typography, small logo, clock top-right
+   - Themed Logout button
+   - Safe on login (chrome hidden)
    ========================================================= */
-(function DF_V12_P46_HEADERFOOT(){
+(function DF_V12_P46_RESET(){
   'use strict';
   if (window.__DF_V12_P46__) return; window.__DF_V12_P46__ = true;
 
-  const $ = (s,r=document)=>r.querySelector(s);
+  // -------- helpers --------
+  const $ = (s, r=document)=>r.querySelector(s);
+  const DF = window.DF || {};
+  const VERSION = String(DF.VERSION || '');
 
-  // Inject styles
+  // -------- theme CSS (header/footer only) --------
   (function injectCSS(){
-    if ($('#df-p46-css')) return;
+    if ($('#df-p46-reset-css')) return;
     const css = document.createElement('style');
-    css.id = 'df-p46-css';
+    css.id = 'df-p46-reset-css';
     css.textContent = `
       :root{
-        --df-green:#154d2a;
-        --df-gold:#d8b63a;
+        --df-green:#114d28;      /* deep green */
+        --df-green-2:#0e4423;    /* footer a hair darker */
+        --df-gold:#f3d370;       /* elegant gold text */
+        --df-gold-weak:#e8cc67;
+        --df-white:#ffffff;
+        --df-shadow:0 1px 0 rgba(0,0,0,.08);
       }
+
+      /* HEADER — compact */
       .site-head{
+        position:sticky; top:0; z-index:10;
         background:var(--df-green)!important;
         color:var(--df-gold)!important;
-        border-bottom:1px solid rgba(0,0,0,.2);
+        border:0; box-shadow:var(--df-shadow);
       }
-      .head-inner{
+      .site-head .head-inner{
         display:flex; align-items:center; justify-content:space-between;
-        padding:4px 10px!important;
+        gap:12px; padding:6px 10px;   /* compact! */
       }
-      .brand{ display:flex; align-items:center; gap:8px; }
-      .brand-logo{ width:28px; height:28px; border-radius:50%; }
-      .brand-title{ font-weight:700; font-size:18px; color:var(--df-gold)!important; }
-
-      .head-actions{ display:flex; align-items:center; gap:10px; }
-      #df-clock{ font-size:14px; font-weight:600; color:var(--df-gold)!important; }
+      /* make ANY image in header small, even if class missing */
+      .site-head img{ width:28px; height:28px; object-fit:cover; border-radius:50%; }
+      .site-head .brand{ display:flex; align-items:center; gap:8px; }
+      .site-head .brand-title{
+        color:var(--df-gold)!important;
+        font-weight:700; font-size:18px; letter-spacing:.2px;
+      }
+      .site-head .head-actions{ display:flex; align-items:center; gap:8px; }
+      .site-head .head-actions .dot{ color:var(--df-gold-weak); }
+      #df-clock{
+        font-variant-numeric:tabular-nums; font-weight:600;
+        color:var(--df-gold);
+      }
+      /* Themed Logout */
       #logoutBtn{
-        background:transparent!important;
-        border:1px solid var(--df-gold)!important;
-        color:var(--df-gold)!important;
-        border-radius:6px; padding:4px 8px; font-size:13px;
+        background:transparent; color:var(--df-gold);
+        border:1px solid rgba(243,211,112,.35);
+        border-radius:10px; padding:4px 10px; cursor:pointer;
       }
+      #logoutBtn:active{ transform:scale(.98); }
 
+      /* FOOTER — matching green, gold text */
       .site-foot{
-        background:var(--df-green)!important;
+        background:var(--df-green-2)!important;
         color:var(--df-gold)!important;
-        border-top:1px solid rgba(0,0,0,.2);
+        border:0; box-shadow:0 -1px 0 rgba(0,0,0,.08);
       }
-      .foot-inner{
-        display:flex; justify-content:center; gap:10px;
-        font-size:13px; font-weight:500;
+      .site-foot .foot-inner{
+        display:flex; align-items:center; justify-content:center; gap:10px;
+        padding:8px 10px;
       }
+      .site-foot .dot{ color:var(--df-gold-weak); }
+
+      /* CONTENT HEIGHT (header ~40px, footer ~40px) */
+      .app{ min-height:calc(100vh - 80px)!important; }
+
+      /* Hide chrome on login route */
+      body.df-login #header, body.df-login #footer{ display:none!important; }
     `;
     document.head.appendChild(css);
   })();
 
-  // Ensure clock exists
+  // -------- clock + pretty date --------
+  function ordinal(n){ const s=['th','st','nd','rd'],v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+  function prettyDate(d){
+    return d.toLocaleString(undefined,{month:'long'})+' '+ordinal(d.getDate())+', '+d.getFullYear();
+  }
+  function prettyTime(d){
+    return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  }
+
   function ensureClock(){
-    const actions = $('#header .head-actions'); if (!actions) return;
-    if (!$('#df-clock')){
-      const clock = document.createElement('span');
-      clock.id = 'df-clock';
-      actions.appendChild(clock);
-    }
+    const actions = $('#header .head-actions');
+    if (!actions || $('#df-clock')) return;
+    const sep = document.createElement('span'); sep.className='dot'; sep.setAttribute('aria-hidden','true'); sep.textContent='•';
+    const clock = document.createElement('span'); clock.id='df-clock';
+    actions.appendChild(sep); actions.appendChild(clock);
   }
 
-  // Tick time
+  function ensureDate(){
+    const inner = $('#footer .foot-inner'); if (!inner) return;
+    if ($('#df-date')) return;
+    const dot = document.createElement('span'); dot.className='dot'; dot.setAttribute('aria-hidden','true'); dot.textContent='•';
+    const date = document.createElement('span'); date.id='df-date';
+    const ver = $('#version');
+    if (ver && ver.parentElement===inner){ inner.insertBefore(dot, ver); inner.insertBefore(date, ver); }
+    else { inner.appendChild(dot); inner.appendChild(date); }
+  }
+
   function tick(){
-    const c = $('#df-clock');
-    if (c){
-      const now = new Date();
-      c.textContent = now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
-    }
-    const d = $('#df-date');
-    if (d){
-      const now = new Date();
-      const m = now.toLocaleString(undefined,{month:'long'});
-      const day = now.getDate();
-      const y = now.getFullYear();
-      d.textContent = `${m} ${day}, ${y}`;
-    }
+    const now = new Date();
+    const c = $('#df-clock'); if (c) c.textContent = prettyTime(now);
+    const d = $('#df-date');  if (d) d.textContent = prettyDate(now);
   }
 
-  // Ensure footer date+version
-  function ensureFooter(){
-    const foot = $('#footer .foot-inner'); if (!foot) return;
-    if (!$('#df-date')){
-      const dot1 = document.createElement('span'); dot1.textContent='•';
-      const date = document.createElement('span'); date.id='df-date';
-      const ver = $('#version');
-      if (ver){
-        foot.insertBefore(dot1, ver);
-        foot.insertBefore(date, ver);
-      }
-    }
+  // -------- login chrome toggle --------
+  function applyLoginChrome(){
+    const isLogin = (location.hash||'').replace(/\/+$/,'') === '#/login';
+    document.body.classList.toggle('df-login', isLogin);
   }
 
+  // -------- init --------
   function init(){
     ensureClock();
-    ensureFooter();
+    ensureDate();
     tick();
+    applyLoginChrome();
   }
-
-  if (document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', init,{once:true});
-  } else init();
-
-  setInterval(tick,15000);
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init, {once:true}); }
+  else { init(); }
+  setInterval(tick, 15000);
+  window.addEventListener('hashchange', applyLoginChrome, {passive:true});
 })();
