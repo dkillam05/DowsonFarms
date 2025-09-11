@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.6';
+  const VERSION = 'v12.2.7';
 
   // App constants
   const APP = {
@@ -2701,4 +2701,364 @@
   }
   window.addEventListener('hashchange', route, {passive:true});
   if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ================= App v12 — Part 37: Crop Production Hub + Crop Year ================= */
+(function DF_Part37_CropHub(){
+  'use strict';
+  if (window.__DF_P37__) return; window.__DF_P37__ = true;
+
+  const $  = (s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+
+  // ----- storage helpers -----
+  const uKey = ()=> {
+    let email='';
+    try { email = String(localStorage.getItem('df_user')||'').trim(); } catch {}
+    return email || 'anon';
+  };
+  const YEARS_KEY = 'df_crop_years';
+  const SEL_KEY   = (user)=> `df_crop_year_selected::${user}`;
+
+  function loadJSON(k, fb){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch{ return fb; } }
+  function saveJSON(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+
+  // ----- years list (2024 … current+1) -----
+  function allowedYears(){
+    const CUR = new Date().getFullYear();
+    const MAX = CUR + 1, MIN = 2024;
+    const arr = [];
+    for (let y=MIN; y<=Math.min(MAX, MAX); y++) arr.push(y);
+    return arr;
+  }
+  function initYearsSeed(){
+    let ys = loadJSON(YEARS_KEY, null);
+    if (!Array.isArray(ys) || !ys.length){
+      ys = allowedYears();
+      saveJSON(YEARS_KEY, ys);
+    }
+    return ys;
+  }
+  function allYears(){
+    const base = initYearsSeed().map(Number);
+    return Array.from(new Set(base)).filter(Number.isFinite).sort((a,b)=>b-a);
+  }
+  function getSelected(){
+    const key = SEL_KEY(uKey());
+    const raw = localStorage.getItem(key);
+    const n   = Number(raw);
+    if (Number.isFinite(n) && allYears().includes(n)) return n;
+    // default: most recent allowed year
+    return allYears()[0] || new Date().getFullYear();
+  }
+  function setSelected(y){
+    const yr = Number(y);
+    if (!Number.isFinite(yr) || !allYears().includes(yr)) return;
+    localStorage.setItem(SEL_KEY(uKey()), String(yr));
+  }
+  function addYearFlow(){
+    const CUR = new Date().getFullYear();
+    const MAX = CUR + 1, MIN = 2024;
+    const def = String(Math.min(MAX, getSelected() || CUR));
+    const input = prompt(`Add crop year (${MIN}–${MAX}):`, def);
+    if (input===null) return;
+    const yr = Number(input);
+    if (!Number.isFinite(yr) || yr<MIN || yr>MAX){ alert(`Year must be between ${MIN} and ${MAX}.`); return; }
+    const ys = allYears();
+    if (!ys.includes(yr)){
+      ys.push(yr);
+      saveJSON(YEARS_KEY, Array.from(new Set(ys)).sort((a,b)=>b-a));
+    }
+    setSelected(yr);
+    renderCropHub(); // refresh UI
+  }
+
+  function ensureCSS(){
+    if ($('#df-p37-css')) return;
+    const css = document.createElement('style');
+    css.id = 'df-p37-css';
+    css.textContent = `
+      .cy-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
+      .df-subtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+      @media (min-width:760px){ .df-subtiles{grid-template-columns:repeat(3,minmax(0,1fr));} }
+      .df-subtile{display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;text-decoration:none;color:inherit}
+      .df-subtile .em{font-size:20px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  // Submenu (same families as 10.15.1)
+  const SUBS = [
+    { href:'#/crop/planting',  icon:'🌱', label:'Planting' },
+    { href:'#/crop/spraying',  icon:'🧪', label:'Spraying' },
+    { href:'#/crop/aerial',    icon:'✈️', label:'Aerial Spray' },
+    { href:'#/crop/harvest',   icon:'🚜', label:'Harvest' },
+    { href:'#/crop/maint',     icon:'🧰', label:'Field Maintenance' },
+    { href:'#/crop/scouting',  icon:'🔍', label:'Scouting' },
+    { href:'#/crop/trials',    icon:'🧫', label:'Trials' },
+  ];
+
+  function renderCropHub(){
+    ensureCSS();
+    const root = app(); if (!root) return;
+    const years = allYears(), sel = getSelected();
+
+    root.innerHTML = `
+      <section class="section">
+        <h1>🌽 Crop Production</h1>
+        <div class="cy-row">
+          <label style="font-weight:600;">Crop Year:</label>
+          <select id="cy-year" style="min-width:140px;">
+            ${years.map(y=>`<option value="${y}" ${y===sel?'selected':''}>${y}</option>`).join('')}
+          </select>
+          <button id="cy-add" class="btn">➕ Add year…</button>
+          <span class="muted small">Saved per user.</span>
+        </div>
+        <div class="df-subtiles">
+          ${SUBS.map(s=>`
+            <a class="df-subtile" href="${s.href}">
+              <span class="em">${s.icon}</span><span>${s.label}</span>
+            </a>
+          `).join('')}
+        </div>
+        <p class="muted" style="margin-top:12px;"><a href="#/home">← Back to Home</a></p>
+      </section>
+    `;
+
+    $('#cy-year')?.addEventListener('change', (e)=> setSelected(e.target.value));
+    $('#cy-add') ?.addEventListener('click', addYearFlow);
+  }
+
+  // lightweight shells for leaf pages
+  function renderLeaf(title, em){
+    const root=app(); if (!root) return;
+    const yr = getSelected();
+    root.innerHTML = `
+      <section class="section">
+        <h1>${em} ${title}</h1>
+        <p class="muted">Active Crop Year: <strong>${yr}</strong></p>
+        <p class="muted">Scaffold page — wiring details will come next.</p>
+        <p class="muted"><a href="#/crop">← Back to Crop Production</a></p>
+      </section>
+    `;
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'')||'#/crop';
+    if (h==='#/crop'){ renderCropHub(); return true; }
+    const map = {
+      '#/crop/planting':['Planting','🌱'],
+      '#/crop/spraying':['Spraying','🧪'],
+      '#/crop/aerial':['Aerial Spray','✈️'],
+      '#/crop/harvest':['Harvest','🚜'],
+      '#/crop/maint':['Field Maintenance','🧰'],
+      '#/crop/scouting':['Scouting','🔍'],
+      '#/crop/trials':['Trials','🧫'],
+    };
+    if (map[h]){ const [t,e]=map[h]; renderLeaf(t,e); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+
+  // expose current crop year getter for other parts
+  window.DF = window.DF || {};
+  window.DF.getCropYear = getSelected;
+})();
+
+/* ================= App v12 — Part 38: Grain Tracking Hub + Stubs ================= */
+(function DF_Part38_GrainHub(){
+  'use strict';
+  if (window.__DF_P38__) return; window.__DF_P38__ = true;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+
+  function ensureCSS(){
+    if ($('#df-p38-css')) return;
+    const css=document.createElement('style');
+    css.id='df-p38-css';
+    css.textContent=`
+      .df-subtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+      @media (min-width:760px){ .df-subtiles{grid-template-columns:repeat(3,minmax(0,1fr));} }
+      .df-subtile{display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;text-decoration:none;color:inherit}
+      .df-subtile .em{font-size:20px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  const SUBS = [
+    { href:'#/grain/bag',   icon:'🛍️', label:'Grain Bag' },
+    { href:'#/grain/bins',  icon:'🏚️', label:'Grain Bins' },
+    { href:'#/grain/cont',  icon:'📄',  label:'Grain Contracts' },
+    { href:'#/grain/ocr',   icon:'🧾',  label:'Grain Ticket OCR' },
+  ];
+
+  function hub(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>🌾 Grain Tracking</h1>
+        <div class="df-subtiles">
+          ${SUBS.map(s=>`
+            <a class="df-subtile" href="${s.href}">
+              <span class="em">${s.icon}</span><span>${s.label}</span>
+            </a>
+          `).join('')}
+        </div>
+        <p class="muted" style="margin-top:12px;"><a href="#/home">← Back to Home</a></p>
+      </section>
+    `;
+  }
+
+  function leaf(title, em){
+    app().innerHTML = `
+      <section class="section">
+        <h1>${em} ${title}</h1>
+        <p class="muted">Scaffold view — detailed UI to follow.</p>
+        <p class="muted"><a href="#/grain">← Back to Grain Tracking</a></p>
+      </section>
+    `;
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'')||'#/grain';
+    if (h==='#/grain'){ hub(); return true; }
+    const map = {
+      '#/grain/bag':['Grain Bag','🛍️'],
+      '#/grain/bins':['Grain Bins','🏚️'],
+      '#/grain/cont':['Grain Contracts','📄'],
+      '#/grain/ocr':['Grain Ticket OCR','🧾'],
+    };
+    if (map[h]){ const [t,e]=map[h]; leaf(t,e); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ================= App v12 — Part 39: Equipment Hub + Stubs ================= */
+(function DF_Part39_EquipHub(){
+  'use strict';
+  if (window.__DF_P39__) return; window.__DF_P39__ = true;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+
+  function ensureCSS(){
+    if ($('#df-p39-css')) return;
+    const css=document.createElement('style');
+    css.id='df-p39-css';
+    css.textContent=`
+      .df-subtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+      @media (min-width:760px){ .df-subtiles{grid-template-columns:repeat(3,minmax(0,1fr));} }
+      .df-subtile{display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;text-decoration:none;color:inherit}
+      .df-subtile .em{font-size:20px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  const SUBS = [
+    { href:'#/equip/tech',      icon:'🛰️', label:'StarFire / Technology' },
+    { href:'#/equip/tractors',  icon:'🚜', label:'Tractors' },
+    { href:'#/equip/combines',  icon:'🚜', label:'Combines' },
+    { href:'#/equip/sprayers',  icon:'💦', label:'Sprayer / Fertilizer' },
+    { href:'#/equip/const',     icon:'🏗️', label:'Construction Equipment' },
+    { href:'#/equip/trucks',    icon:'🚚', label:'Trucks' },
+    { href:'#/equip/trailers',  icon:'🚛', label:'Trailers' },
+    { href:'#/equip/impl',      icon:'⚙️', label:'Farm Implements' },
+  ];
+
+  function hub(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>🛠️ Equipment</h1>
+        <div class="df-subtiles">
+          ${SUBS.map(s=>`
+            <a class="df-subtile" href="${s.href}">
+              <span class="em">${s.icon}</span><span>${s.label}</span>
+            </a>`).join('')}
+        </div>
+        <p class="muted" style="margin-top:12px;"><a href="#/home">← Back to Home</a></p>
+      </section>
+    `;
+  }
+
+  function leaf(title, em){
+    app().innerHTML = `
+      <section class="section">
+        <h1>${em} ${title}</h1>
+        <p class="muted">Scaffold view — more to wire later.</p>
+        <p class="muted"><a href="#/equip">← Back to Equipment</a></p>
+      </section>
+    `;
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'')||'#/equip';
+    if (h==='#/equip'){ hub(); return true; }
+    const map={
+      '#/equip/tech':['StarFire / Technology','🛰️'],
+      '#/equip/tractors':['Tractors','🚜'],
+      '#/equip/combines':['Combines','🚜'],
+      '#/equip/sprayers':['Sprayer / Fertilizer','💦'],
+      '#/equip/const':['Construction Equipment','🏗️'],
+      '#/equip/trucks':['Trucks','🚚'],
+      '#/equip/trailers':['Trailers','🚛'],
+      '#/equip/impl':['Farm Implements','⚙️'],
+    };
+    if (map[h]){ const [t,e]=map[h]; leaf(t,e); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ================= App v12 — Part 40: Global Utilities (fmt, readNumeric, toast) ================= */
+(function DF_Part40_Utils(){
+  'use strict';
+  if (window.__DF_P40__) return; window.__DF_P40__ = true;
+
+  // Number formatting with commas and optional decimals cap
+  function fmtCommas(n, opts={}){
+    const {decimals=null} = opts;
+    const v = Number(n); if (!Number.isFinite(v)) return String(n);
+    const d = decimals==null ? (Math.abs(v)%1===0 ? 0 : (Math.abs(v)>=100 ? 1 : 2)) : Math.max(0, Math.min(6, decimals));
+    try { return v.toLocaleString(undefined, {minimumFractionDigits:d, maximumFractionDigits:d}); }
+    catch { return String(v); }
+  }
+
+  // Read numeric from input/element (handles commas)
+  function readNumeric(el){
+    if (!el) return null;
+    const raw = String(el.value||'').replace(/,/g,'').trim();
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  // Safe ls helpers (strings/JSON)
+  const store = {
+    get(k, fb){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch{ return fb; } },
+    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
+    del(k){ try{ localStorage.removeItem(k); }catch{} },
+  };
+
+  // Tiny toast (non-blocking notice)
+  function toast(msg, ms=1800){
+    let el = document.getElementById('df-toast');
+    if (!el){
+      el = document.createElement('div');
+      el.id = 'df-toast';
+      el.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#222;color:#fff;padding:8px 12px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .15s ease;z-index:9999';
+      document.body.appendChild(el);
+    }
+    el.textContent = String(msg||'');
+    el.style.opacity = '1';
+    setTimeout(()=>{ el.style.opacity='0'; }, ms);
+  }
+
+  // expose on DF namespace
+  window.DF = window.DF || {};
+  window.DF.util = { fmtCommas, readNumeric, store, toast };
 })();
