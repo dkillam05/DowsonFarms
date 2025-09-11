@@ -16,33 +16,57 @@
      • Header/Footer hidden on #/login
    ============================================================ */
 
-
-/* =========================
-   Part 1 — Globals & Config
-   ========================= */
+/* =========================================================
+   Dowson Farms — APP v12.x
+   Part 1 — Globals & Config + Service Worker Glue
+   - Defines DF namespace, APP config, helpers ($, $$, esc)
+   - Single source of truth for VERSION (bump here only)
+   - Registers sw.js with ?v=<APP.version> so updates propagate
+   ========================================================= */
 (function DF_V12_P1_GLOBALS(){
   'use strict';
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
-  // Version surfaces in footer
-  const VERSION = 'v12.3.0';
-
-  // App constants
+  // ---------- Single source of truth (bump this only) ----------
   const APP = {
     name: 'Dowson Farms',
+    // 👇 bump this one string for every release; SW & login/footer follow it
+    version: 'v12.3.1',
+
+    // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
     loginPage: 'login.html'
   };
 
-  // Tiny helpers used across parts
-  const $  = (s, r=document)=>r.querySelector(s);
-  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const appRoot = ()=> $('#app');
+  // ---------- Namespace & tiny helpers ----------
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, m => (
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
+  ));
 
-  // Expose a single namespace
+  // expose into window.DF (don’t clobber if present)
   window.DF = window.DF || {};
-  Object.assign(window.DF, { VERSION, APP, $, $$, esc, appRoot });
+  // freeze shallow objects to avoid accidental mutation later
+  window.DF.APP = Object.freeze(APP);
+  window.DF.$ = $;
+  window.DF.$$ = $$;
+  window.DF.esc = esc;
+  window.DF.VERSION = APP.version; // convenience for footers/pages
+
+  // ---------- Service Worker glue (tied to APP.version) ----------
+  (function DF_SW_GLUE(){
+    try {
+      const V = APP.version || 'v0';
+      if ('serviceWorker' in navigator) {
+        // The version query forces a new SW install when you bump APP.version
+        navigator.serviceWorker.register(`sw.js?v=${encodeURIComponent(V)}`, {
+          scope: './',
+          updateViaCache: 'none'
+        });
+      }
+    } catch {}
+  })();
 })();
 
 
