@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.8',
+    version: 'v12.6.9',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -3749,72 +3749,109 @@
 })();
 
 /* =========================================================
-   APP v12.6.x — Part 46: Header/Footer Polish (smaller, green+gold)
+   APP v12.x — Part 46 (REPLACE): Compact Green+Gold Header & Footer
+   - Very small header (JD-style: dark green bg, gold text)
+   - Small round logo, tight padding, brand title inline
+   - Clock on the right; Logout button gold-outline
+   - Matching green footer with gold text (date • version)
+   - Works with existing #header / #footer DOM from Part 2
+   - Hides header/footer on #/login
    ========================================================= */
 (function DF_V12_P46_HEADER_FOOTER(){
   'use strict';
   if (window.__DF_V12_P46__) return; window.__DF_V12_P46__ = true;
 
-  const $  = (sel, r=document)=>r.querySelector(sel);
+  const $ = (s,r=document)=>r.querySelector(s);
   const DF = window.DF || {};
   const VERSION = DF.VERSION || '';
 
-  // Inject styles
-  (function injectCSS(){
-    if ($('#df-p46-css')) return;
+  // ---------- Styles ----------
+  (function injectPolishCSS(){
+    if ($('#df-p46-polish-css')) return;
     const css = document.createElement('style');
-    css.id = 'df-p46-css';
+    css.id = 'df-p46-polish-css';
     css.textContent = `
       :root{
-        --df-green:#134c25;          /* dark green */
-        --df-gold:#e6c84f;           /* golden yellow */
-        --df-border:rgba(0,0,0,.15);
+        --df-green:#124a24;          /* deep green */
+        --df-green-b:#0f3f1e;        /* slightly darker for footer */
+        --df-gold:#e6c84f;           /* elegant golden yellow */
+        --df-shadow:rgba(0,0,0,.15);
       }
 
-      /* Header (smaller, green, gold text) */
+      /* HEADER (compact) */
       .site-head{
         background:var(--df-green)!important;
         color:var(--df-gold)!important;
-        border-bottom:1px solid var(--df-border)!important;
+        border-bottom:1px solid rgba(0,0,0,.08)!important;
       }
       .site-head .head-inner{
         display:flex; align-items:center; justify-content:space-between;
-        padding:4px 10px;   /* smaller height */
+        padding:4px 10px;               /* tight */
+        min-height:40px;                /* compact */
       }
       .site-head .brand{
-        display:flex; align-items:center; gap:6px;
+        display:flex; align-items:center; gap:8px;
+        min-width:0;
       }
-      .site-head .brand-logo{ height:28px; width:28px; border-radius:50%; }
-      .site-head .brand-title{ font-weight:700; font-size:18px; color:var(--df-gold)!important; }
-      .site-head .head-actions{ display:flex; align-items:center; gap:8px; }
-      #df-clock{ font-size:14px; font-weight:600; color:var(--df-gold)!important; }
+      .site-head .brand-logo{
+        width:22px; height:22px; border-radius:50%;
+        box-shadow:0 0 0 1px rgba(255,255,255,.18);
+        object-fit:cover;
+      }
+      .site-head .brand-title{
+        font-size:16px; font-weight:700; color:var(--df-gold)!important;
+        letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      }
+
+      .site-head .head-actions{
+        display:flex; align-items:center; gap:8px;
+        color:var(--df-gold)!important;
+      }
+      .site-head .head-actions .dot{ color:rgba(255,255,255,.65)!important; }
+      #df-clock{
+        font-size:13px; font-weight:600; letter-spacing:.2px;
+        color:var(--df-gold)!important; font-variant-numeric:tabular-nums;
+      }
       #logoutBtn{
         background:transparent; color:var(--df-gold)!important;
         border:1px solid var(--df-gold)!important; border-radius:8px;
-        padding:4px 8px; font-size:13px; cursor:pointer;
+        padding:3px 8px; font-size:12.5px; line-height:1.2; cursor:pointer;
       }
 
-      /* Footer (green, gold text, smaller) */
+      /* FOOTER (compact, matching green) */
       .site-foot{
-        background:var(--df-green)!important;
+        background:var(--df-green-b)!important;
         color:var(--df-gold)!important;
-        border-top:1px solid var(--df-border)!important;
+        border-top:1px solid rgba(0,0,0,.08)!important;
       }
       .site-foot .foot-inner{
-        display:flex; justify-content:center; align-items:center;
-        gap:8px; padding:4px 10px; font-size:13px; font-weight:500;
+        display:flex; align-items:center; justify-content:center;
+        gap:10px; padding:4px 10px; font-size:13px; font-weight:600;
       }
+      #df-date{ opacity:.95; }
+      .site-foot .foot-inner .dot{ color:rgba(255,255,255,.6); }
 
-      /* App body accounts for smaller header/footer */
-      .app{ min-height:calc(100vh - 80px)!important; }
+      /* Body fill accounts for compact chrome (header+footer) */
+      .app{ min-height:calc(100vh - 88px)!important; }
+
+      /* Keep anchor color gold inside header/footer if any */
+      .site-head a, .site-foot a{ color:var(--df-gold)!important; text-decoration:none; }
     `;
     document.head.appendChild(css);
   })();
 
-  // Ensure clock in header
+  // ---------- Clock (top-right) ----------
   function ensureClock(){
     const head = $('#header'); if (!head) return;
-    const actions = head.querySelector('.head-actions'); if (!actions) return;
+    const actions = head.querySelector('.head-actions');
+    if (!actions) return;
+
+    if (!$('#df-clock-sep')){
+      const sep = document.createElement('span');
+      sep.id='df-clock-sep';
+      sep.className='dot'; sep.setAttribute('aria-hidden','true'); sep.textContent='•';
+      actions.appendChild(sep);
+    }
     if (!$('#df-clock')){
       const clock = document.createElement('span');
       clock.id = 'df-clock';
@@ -3822,47 +3859,62 @@
     }
   }
 
-  // Ensure date in footer
+  // ---------- Footer date (pretty) before version ----------
   function ensureDate(){
     const foot = $('#footer'); if (!foot) return;
+    const inner = foot.querySelector('.foot-inner') || foot;
+    const ver = $('#version');
+
     if (!$('#df-date')){
-      const dateSpan = document.createElement('span');
-      dateSpan.id = 'df-date';
-      const ver = $('#version');
-      if (ver){
-        ver.insertAdjacentElement('beforebegin', dateSpan);
-        ver.insertAdjacentText('beforebegin',' • ');
+      const dot = document.createElement('span');
+      dot.className='dot'; dot.setAttribute('aria-hidden','true'); dot.textContent='•';
+      const ds = document.createElement('span');
+      ds.id='df-date';
+
+      if (ver && ver.parentElement===inner){
+        inner.insertBefore(dot, ver);
+        inner.insertBefore(ds, ver);
       } else {
-        foot.querySelector('.foot-inner').appendChild(dateSpan);
+        inner.appendChild(dot);
+        inner.appendChild(ds);
       }
     }
   }
 
+  // ---------- Format helpers ----------
+  function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
   function fmtDate(d){
     const m = d.toLocaleString(undefined,{ month:'long' });
-    const day = d.getDate();
-    const y = d.getFullYear();
-    return `${m} ${day}, ${y}`;
+    return `${m} ${ordinal(d.getDate())}, ${d.getFullYear()}`;
   }
   function fmtTime(d){
     return d.toLocaleTimeString(undefined,{ hour:'numeric', minute:'2-digit' });
   }
-
   function tick(){
     const now = new Date();
     const c = $('#df-clock'); if (c) c.textContent = fmtTime(now);
     const ds = $('#df-date'); if (ds) ds.textContent = fmtDate(now);
   }
 
+  // ---------- Hide chrome on #/login ----------
+  function applyLoginChrome(){
+    const isLogin = (location.hash||'').replace(/\/+$/,'') === '#/login';
+    const head = $('#header'), foot = $('#footer');
+    if (head) head.style.display = isLogin ? 'none' : '';
+    if (foot) foot.style.display = isLogin ? 'none' : '';
+  }
+
+  // ---------- Init ----------
   function init(){
     ensureClock();
     ensureDate();
     tick();
+    applyLoginChrome();
   }
-
   if (document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', init, { once:true });
   } else { init(); }
 
   setInterval(tick, 15000);
+  window.addEventListener('hashchange', applyLoginChrome, { passive:true });
 })();
