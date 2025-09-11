@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.0',
+    version: 'v12.6.1',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -69,9 +69,9 @@
   })();
 })();
 
-
 /* ======================================================
-   Part 2 — Base DOM + Base Styles + Footer Version Paint
+   APP v12 — Part 2 (REPLACEMENT)
+   Base DOM + Base Styles + Footer Version (safe-area + sticky footer)
    ====================================================== */
 (function DF_V12_P2_SHELL(){
   'use strict';
@@ -85,13 +85,13 @@
       h.id = 'header';
       h.className = 'site-head';
       h.innerHTML = `
+        <div class="brandbar"></div>
         <div class="container head-inner">
           <div class="brand">
-            <img src="${esc(APP.logo)}" alt="Logo" class="brand-logo" width="40" height="40">
+            <img src="${esc(APP.logo)}" alt="Logo" class="brand-logo" width="36" height="36">
             <span class="brand-title">${esc(APP.name)}</span>
           </div>
           <nav class="head-actions">
-            <span class="dot" aria-hidden="true">•</span>
             <button id="logoutBtn" class="btn">Logout</button>
           </nav>
         </div>
@@ -110,7 +110,7 @@
       f.className = 'site-foot';
       f.innerHTML = `
         <div class="container foot-inner">
-          <span>© Dowson Farms</span>
+          <span id="foot-date"></span>
           <span aria-hidden="true">•</span>
           <span id="version">v0.0.0</span>
         </div>
@@ -119,7 +119,7 @@
     }
   })();
 
-  // Minimal, safe base CSS (scoped to app look/feel)
+  // Base CSS (sticky footer, iOS safe-area, slimmer header)
   (function injectBaseCSS(){
     if ($('#df-v12-base-css')) return;
     const css = document.createElement('style');
@@ -128,20 +128,39 @@
       :root{
         --bg:#f6f3e4; --fg:#1a1a1a; --muted:#6e6e6e;
         --tile:#fff; --bd:rgba(0,0,0,.08); --brand:#0f4d1d;
+        --foot-h: 52px; /* footer height without safe-area */
       }
       html,body{height:100%}
       body{margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg);}
+
       .container{max-width:980px; margin:0 auto; padding:12px;}
-      .site-head{position:sticky; top:0; background:#efe9d0; border-bottom:1px solid var(--bd); z-index:10;}
-      .head-inner{display:flex; align-items:center; justify-content:space-between;}
+
+      /* Header */
+      .site-head{position:sticky; top:0; z-index:10; background:#efe9d0; border-bottom:1px solid var(--bd);}
+      .brandbar{height:6px; background:var(--brand);}
+      .head-inner{display:flex; align-items:center; justify-content:space-between; padding-top:8px; padding-bottom:8px;}
       .brand{display:flex; align-items:center; gap:10px;}
       .brand-logo{border-radius:50%}
-      .brand-title{font-weight:700; font-size:22px}
-      .head-actions .btn{background:#fff; border:1px solid var(--bd); border-radius:10px; padding:6px 12px; cursor:pointer;}
-      .head-actions .dot{color:var(--muted)}
-      .app{min-height:calc(100vh - 140px);}
-      .site-foot{border-top:1px solid var(--bd); background:#efe9d0;}
-      .foot-inner{display:flex; align-items:center; justify-content:center; gap:10px; color:var(--muted); font-weight:600;}
+      .brand-title{font-weight:700; font-size:20px}
+      .btn{background:#fff; border:1px solid var(--bd); border-radius:10px; padding:6px 12px; cursor:pointer;}
+
+      /* App area: pad bottom so fixed footer never overlaps */
+      .app{min-height:calc(100vh - 140px); padding-bottom:calc(var(--foot-h) + env(safe-area-inset-bottom, 0px) + 16px);}
+
+      /* Sticky footer (safe-area aware) */
+      .site-foot{
+        position:fixed; left:0; right:0; bottom:0;
+        height:calc(var(--foot-h) + env(safe-area-inset-bottom, 0px));
+        background:#efe9d0; border-top:1px solid var(--bd);
+        padding-bottom:env(safe-area-inset-bottom, 0px);
+      }
+      .foot-inner{
+        height:var(--foot-h);
+        display:flex; align-items:center; justify-content:center; gap:10px;
+        color:var(--muted); font-weight:600;
+      }
+
+      /* Sections / tiles (unchanged) */
       .section{padding:18px 12px;}
       h1{margin:0 0 10px; font-size:28px}
       .muted{color:var(--muted)}
@@ -149,6 +168,7 @@
       input{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--bd); background:#fff; }
       .field{ margin:8px 0; }
       a{ color:inherit; }
+
       /* Tiles */
       .df-tiles{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
       @media (min-width:760px){ .df-tiles{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
@@ -156,6 +176,7 @@
       .df-tile:active{ transform:scale(.985); }
       .df-emoji{ font-size:28px; line-height:1; margin-bottom:6px; }
       .df-label{ font-weight:700; text-align:center; }
+
       /* Sub-tiles */
       .df-subtiles{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:10px; }
       @media (min-width:760px){ .df-subtiles{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
@@ -165,10 +186,20 @@
     document.head.appendChild(css);
   })();
 
-  // Paint version in footer
-  (function paintVersion(){
+  // Paint version & date in footer
+  (function paintFooter(){
     const v = document.getElementById('version');
     if (v) v.textContent = window.DF.VERSION;
+    const d = document.getElementById('foot-date');
+    if (d){
+      try {
+        const now = new Date();
+        const fmt = new Intl.DateTimeFormat(undefined, { dateStyle:'long' });
+        d.textContent = fmt.format(now);
+      } catch {
+        d.textContent = new Date().toLocaleDateString();
+      }
+    }
   })();
 })();
 
