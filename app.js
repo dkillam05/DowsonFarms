@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.5';
+  const VERSION = 'v12.2.6';
 
   // App constants
   const APP = {
@@ -1861,4 +1861,844 @@
 
   window.DF = window.DF || {};
   window.DF.renderTeamDirectory = renderDirectory;
+})();
+
+/* ======================== App v12 — Part 30: Settings → Farms ======================== */
+(function DF_Part30_SettingsFarms(){
+  'use strict';
+  if (window.__DF_P30__) return; window.__DF_P30__ = true;
+
+  const $ = (s, r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const KEY = 'df_farms';
+
+  const load = ()=> { try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch{ return []; } };
+  const save = (a)=>{ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch{} };
+  const id   = ()=> (crypto?.getRandomValues ? crypto.getRandomValues(new Uint32Array(2))[0].toString(36) : Math.random().toString(36).slice(2)) + Date.now().toString(36);
+
+  function ensureCSS(){
+    if ($('#df-p30-css')) return;
+    const css = document.createElement('style');
+    css.id = 'df-p30-css';
+    css.textContent = `
+      .df-list{list-style:none;padding:0;margin:10px 0}
+      .df-row{display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;padding:10px;margin:8px 0}
+      .df-actions .btn{margin-left:6px}
+      .chip-arch{background:#eee;border-radius:999px;padding:2px 8px;margin-left:8px}
+      .grid2{display:grid;grid-template-columns:1fr auto;gap:8px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  function render(){
+    ensureCSS();
+    const root = app(); if (!root) return;
+    let farms = load().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}));
+    const rows = farms.map((f,i)=>`
+      <li class="df-row" data-i="${i}">
+        <div><strong>${f.name||'(unnamed farm)'}</strong>${f.archived?` <span class="chip-arch">Archived</span>`:''}</div>
+        <div class="df-actions">
+          ${f.archived?`
+            <button class="btn" data-act="unarchive">Unarchive</button>
+            <button class="btn" data-act="delete">Delete</button>
+          `:`
+            <button class="btn" data-act="rename">Rename</button>
+            <button class="btn" data-act="archive">Archive</button>
+            <button class="btn" data-act="delete">Delete</button>
+          `}
+        </div>
+      </li>`).join('');
+
+    root.innerHTML = `
+      <section class="section">
+        <h1>🏠 Farms</h1>
+        <p class="muted">Manage farm names. You cannot delete a farm if fields are still assigned.</p>
+        <ul class="df-list">${rows || '<li class="muted">No farms yet.</li>'}</ul>
+        <div class="grid2">
+          <input id="farm-name" type="text" placeholder="New farm name">
+          <button id="farm-add" class="btn-primary">➕ Add</button>
+        </div>
+        <p style="margin-top:10px;"><a class="btn" href="#/settings">Back to Settings</a></p>
+      </section>
+    `;
+
+    $('#farm-add')?.addEventListener('click', ()=>{
+      const name = String($('#farm-name')?.value||'').trim();
+      if (!name) return;
+      farms = load();
+      if (farms.some(f=>String(f.name).toLowerCase()===name.toLowerCase())){ alert('That farm already exists.'); return; }
+      farms.push({id:id(), name, archived:false});
+      save(farms); render();
+    });
+
+    root.querySelector('.df-list')?.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-act]'); if (!btn) return;
+      const row = btn.closest('[data-i]'); const i = Number(row?.dataset.i);
+      farms = load(); const f = farms[i]; if (!f) return;
+      const act = btn.dataset.act;
+
+      if (act==='rename'){
+        const nn = prompt('Rename farm:', f.name||''); if (!nn) return;
+        if (farms.some((x,ix)=>ix!==i && String(x.name).toLowerCase()===nn.toLowerCase())){ alert('Another farm uses that name.'); return; }
+        f.name = nn.trim();
+      } else if (act==='archive'){ f.archived = true; }
+      else if (act==='unarchive'){ f.archived = false; }
+      else if (act==='delete'){
+        // guard: prevent deletion if fields exist pointing here
+        const fields = (function(){ try{return JSON.parse(localStorage.getItem('df_fields2')||'[]');}catch{return[];} })();
+        if (fields.some(fl=>fl.farmId===f.id)){ alert('This farm has fields assigned. Archive instead, or move/delete fields first.'); return; }
+        if (!confirm(`Delete “${f.name}”? This cannot be undone.`)) return;
+        farms.splice(i,1);
+      }
+      save(farms); render();
+    });
+  }
+
+  // route hook
+  function route(){
+    const h = (location.hash||'').replace(/\/+$/,'');
+    if (h==='#/settings/farms'){ render(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ======================== App v12 — Part 31: Settings → Fields ======================== */
+(function DF_Part31_SettingsFields(){
+  'use strict';
+  if (window.__DF_P31__) return; window.__DF_P31__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const FARMS_KEY='df_farms', FIELDS_KEY='df_fields2';
+  const load = (k,fb=[])=>{ try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(fb));}catch{return fb;} };
+  const save = (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} };
+  const id = ()=> (crypto?.getRandomValues ? crypto.getRandomValues(new Uint32Array(2))[0].toString(36) : Math.random().toString(36).slice(2)) + Date.now().toString(36);
+
+  function ensureCSS(){
+    if ($('#df-p31-css')) return;
+    const css=document.createElement('style');
+    css.id='df-p31-css';
+    css.textContent=`
+      .df-list{list-style:none;padding:0;margin:10px 0}
+      .df-row{border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;padding:10px;margin:8px 0}
+      .df-row .top{display:flex;justify-content:space-between;align-items:center}
+      .df-row .line{margin-top:6px;color:#666}
+      .df-actions .btn{margin-left:6px}
+      .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+      .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  function farmName(id){ const f=load(FARMS_KEY,[]).find(x=>x.id===id); return f?.name || '(Unknown)'; }
+  function num(v){ const n=Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; }
+
+  function render(){
+    ensureCSS();
+    const root=app(); if (!root) return;
+    const farms = load(FARMS_KEY,[]).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}));
+    let fields = load(FIELDS_KEY,[]);
+    // sort by farm name then field name
+    fields.sort((a,b)=> (farmName(a.farmId)).localeCompare(farmName(b.farmId),undefined,{sensitivity:'base'}) ||
+                        String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}));
+    const items = fields.map((fl,i)=>{
+      const badges = [];
+      if (fl.crp?.yes) badges.push(`CRP ${fl.crp.acres||0} ac`);
+      if (fl.hel?.yes) badges.push(`HEL ${fl.hel.acres||0} ac`);
+      return `
+        <li class="df-row" data-i="${i}">
+          <div class="top">
+            <div><strong>${fl.name||'(unnamed field)'}</strong> ${fl.archived?'<span class="chip-arch">Archived</span>':''}</div>
+            <div class="df-actions">
+              ${fl.archived?`
+                <button class="btn" data-act="unarchive">Unarchive</button>
+                <button class="btn" data-act="delete">Delete</button>
+              `:`
+                <button class="btn" data-act="rename">Rename</button>
+                <button class="btn" data-act="archive">Archive</button>
+                <button class="btn" data-act="delete">Delete</button>
+              `}
+            </div>
+          </div>
+          <div class="line">${farmName(fl.farmId)} • Tillable: ${fl.tillable||0} ac ${badges.length?'• '+badges.join(' • '):''}</div>
+        </li>`;
+    }).join('');
+
+    const farmOpts = farms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+
+    root.innerHTML = `
+      <section class="section">
+        <h1>🗺️ Fields</h1>
+        <p class="muted">Each field belongs to a farm. Enter tillable acres, optional CRP and HEL.</p>
+        <ul class="df-list">${items || '<li class="muted">No fields yet.</li>'}</ul>
+
+        <h3 style="margin-top:12px;">Add Field</h3>
+        <div class="grid2">
+          <label><span class="small muted">Farm *</span><select id="fld-farm">${farmOpts}</select></label>
+          <label><span class="small muted">Field Name *</span><input id="fld-name" type="text" placeholder="e.g., North 80"></label>
+        </div>
+        <div class="grid3">
+          <label><span class="small muted">Tillable Acres *</span><input id="fld-till" type="number" step="any" min="0.01"></label>
+          <label><span class="small muted">CRP?</span><select id="fld-crp-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select></label>
+          <label><span class="small muted">CRP Acres</span><input id="fld-crp-ac" type="number" step="any" min="0" disabled></label>
+        </div>
+        <div class="grid2">
+          <label><span class="small muted">HEL?</span><select id="fld-hel-yes"><option value="no" selected>No</option><option value="yes">Yes</option></select></label>
+          <label><span class="small muted">HEL Acres</span><input id="fld-hel-ac" type="number" step="any" min="0" disabled></label>
+        </div>
+        <button id="fld-add" class="btn-primary">➕ Add Field</button>
+        <p style="margin-top:10px;"><a class="btn" href="#/settings">Back to Settings</a></p>
+      </section>
+    `;
+
+    const crpSel=$('#fld-crp-yes'), crpAc=$('#fld-crp-ac');
+    const helSel=$('#fld-hel-yes'), helAc=$('#fld-hel-ac');
+    crpSel?.addEventListener('change', ()=>{ crpAc.disabled = crpSel.value!=='yes'; if (crpAc.disabled) crpAc.value=''; });
+    helSel?.addEventListener('change', ()=>{ helAc.disabled = helSel.value!=='yes'; if (helAc.disabled) helAc.value=''; });
+
+    $('#fld-add')?.addEventListener('click', ()=>{
+      const farmId = $('#fld-farm').value;
+      const name = String($('#fld-name')?.value||'').trim();
+      const till = num($('#fld-till').value);
+      const crpYes = $('#fld-crp-yes').value==='yes';
+      const crpA = num($('#fld-crp-ac').value);
+      const helYes = $('#fld-hel-yes').value==='yes';
+      const helA = num($('#fld-hel-ac').value);
+
+      if (!farmId || !name || !(till>0)){ alert('Farm, Field Name, and Tillable Acres are required.'); return; }
+      if (crpYes && !(crpA>0)){ alert('Enter CRP acres (or set CRP to No).'); return; }
+      if (helYes && !(helA>0)){ alert('Enter HEL acres (or set HEL to No).'); return; }
+      if (crpYes && crpA>till){ alert('CRP acres cannot exceed Tillable.'); return; }
+      if (helYes && helA>till){ alert('HEL acres cannot exceed Tillable.'); return; }
+
+      fields = load(FIELDS_KEY,[]);
+      if (fields.some(f=>f.farmId===farmId && String(f.name).toLowerCase()===name.toLowerCase())){
+        alert('A field with that name already exists in this farm.'); return;
+      }
+
+      fields.push({
+        id:id(), farmId, name, tillable:till,
+        crp:{yes:crpYes, acres:crpYes?crpA:0},
+        hel:{yes:helYes, acres:helYes?helA:0},
+        archived:false
+      });
+      save(FIELDS_KEY, fields);
+      render();
+    });
+
+    root.querySelector('.df-list')?.addEventListener('click',(e)=>{
+      const btn = e.target.closest('button[data-act]'); if (!btn) return;
+      const i = Number(btn.closest('[data-i]')?.dataset.i);
+      fields = load(FIELDS_KEY,[]); const fl = fields[i]; if (!fl) return;
+      const act = btn.dataset.act;
+
+      if (act==='rename'){
+        const nf = prompt('Rename field:', fl.name||''); if (!nf) return;
+        if (fields.some((f,ix)=>ix!==i && f.farmId===fl.farmId && String(f.name).toLowerCase()===nf.toLowerCase())){
+          alert('Another field in this farm already uses that name.'); return;
+        }
+        fl.name = nf.trim();
+      } else if (act==='archive'){ fl.archived = true; }
+      else if (act==='unarchive'){ fl.archived = false; }
+      else if (act==='delete'){
+        if (!confirm(`Delete “${fl.name}”? This cannot be undone.`)) return;
+        fields.splice(i,1);
+      }
+      save(FIELDS_KEY, fields); render();
+    });
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'');
+    if (h==='#/settings/fields'){ render(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ======================== App v12 — Part 32: Feedback Forms ======================== */
+(function DF_Part32_FeedbackForms(){
+  'use strict';
+  if (window.__DF_P32__) return; window.__DF_P32__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+  const app = ()=> $('#app');
+  const KEY='df_feedback';
+
+  const MAIN_TO_SUB = {
+    'Crop Production': ['Planting','Spraying','Aerial Spray','Harvest','Field Maintenance','Scouting','Trials'],
+    'Calculators': ['Fertilizer','Bin Volume','Area','Combine Yield','Chemical Mix'],
+    'Equipment': ['Technology','Tractors','Combines','Sprayer/Fert','Construction','Trucks','Trailers','Implements'],
+    'Grain Tracking': ['Grain Bag','Bins','Contracts','Ticket OCR'],
+    'Team & Partners': ['Employees','Subcontractors','Vendors','Directory'],
+    'Reports': ['Pre-made','Feedback Summary','Grain Bag','AI Reports','Yield Report'],
+    'Settings': ['Crop Type','Theme','Farms','Fields','Users'],
+    'Feedback': ['Report Errors','New Feature Request']
+  };
+  const CATS = ['Bug / Error','New Feature','UI / Design'];
+
+  function fillSelect(sel, arr, ph){
+    sel.innerHTML = `<option value="">${ph}</option>` + arr.map(v=>`<option>${v}</option>`).join('');
+  }
+  function wireCascade(){
+    const main = $('#fb-main'), sub = $('#fb-sub');
+    if (!main || !sub) return;
+    const update = ()=>{
+      const list = MAIN_TO_SUB[main.value] || [];
+      fillSelect(sub, list, 'Sub…');
+    };
+    main.addEventListener('change', update); update();
+  }
+
+  function saveItem(obj){
+    try{ const list = JSON.parse(localStorage.getItem(KEY)||'[]'); list.push(obj); localStorage.setItem(KEY, JSON.stringify(list)); }catch{}
+  }
+
+  function renderError(){
+    const today = new Date().toISOString().slice(0,10);
+    app().innerHTML = `
+      <section class="section">
+        <h1>🐞 Report Errors</h1>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <label><span class="small muted">Main *</span><select id="fb-main"></select></label>
+          <label><span class="small muted">Sub *</span><select id="fb-sub"></select></label>
+          <label><span class="small muted">Category *</span><select id="fb-cat"></select></label>
+        </div>
+        <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
+        <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
+        <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date</span></label></div>
+        <div class="field"><input id="err-by" type="text" placeholder="Submitted by (optional)" value=""></div>
+        <button id="err-save" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back</a>
+      </section>`;
+    fillSelect($('#fb-main'), Object.keys(MAIN_TO_SUB), 'Main…');
+    fillSelect($('#fb-cat'), CATS, 'Category…');
+    wireCascade();
+    $('#err-save')?.addEventListener('click', ()=>{
+      const main=$('#fb-main').value.trim(), sub=$('#fb-sub').value.trim(), cat=$('#fb-cat').value.trim();
+      const subject=$('#err-subj').value.trim(), details=$('#err-desc').value.trim();
+      const date=$('#err-date').value.trim(), by=$('#err-by').value.trim();
+      if(!main||!sub||!cat||!subject||!details){ alert('Please fill all required fields.'); return; }
+      saveItem({type:'error', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
+      alert('Thanks! Your error report was saved.');
+      location.hash = '#/feedback';
+    });
+  }
+
+  function renderFeature(){
+    const today = new Date().toISOString().slice(0,10);
+    app().innerHTML = `
+      <section class="section">
+        <h1>💡 New Feature Request</h1>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <label><span class="small muted">Main *</span><select id="fb-main"></select></label>
+          <label><span class="small muted">Sub *</span><select id="fb-sub"></select></label>
+          <label><span class="small muted">Category *</span><select id="fb-cat"></select></label>
+        </div>
+        <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
+        <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
+        <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date</span></label></div>
+        <div class="field"><input id="feat-by" type="text" placeholder="Submitted by (optional)" value=""></div>
+        <button id="feat-save" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back</a>
+      </section>`;
+    fillSelect($('#fb-main'), Object.keys(MAIN_TO_SUB), 'Main…');
+    fillSelect($('#fb-cat'), CATS, 'Category…');
+    wireCascade();
+    $('#feat-save')?.addEventListener('click', ()=>{
+      const main=$('#fb-main').value.trim(), sub=$('#fb-sub').value.trim(), cat=$('#fb-cat').value.trim();
+      const subject=$('#feat-subj').value.trim(), details=$('#feat-desc').value.trim();
+      const date=$('#feat-date').value.trim(), by=$('#feat-by').value.trim();
+      if(!main||!sub||!cat||!subject||!details){ alert('Please fill all required fields.'); return; }
+      saveItem({type:'feature', date, subject, details, by, main, sub, category:cat, ts:Date.now()});
+      alert('Thanks! Your feature request was saved.');
+      location.hash = '#/feedback';
+    });
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'');
+    if (h==='#/feedback/error'){ renderError(); return true; }
+    if (h==='#/feedback/feature'){ renderFeature(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ====================== App v12 — Part 33: Reports → Feedback Summary ====================== */
+(function DF_Part33_ReportFeedback(){
+  'use strict';
+  if (window.__DF_P33__) return; window.__DF_P33__ = true;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+  const KEY='df_feedback';
+
+  function ensureCSS(){
+    if ($('#df-p33-css')) return;
+    const css=document.createElement('style');
+    css.id='df-p33-css';
+    css.textContent=`
+      .report-table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+      .report-table th,.report-table td{border:1px solid rgba(0,0,0,.1);padding:8px;vertical-align:top}
+      .report-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+      .report-actions{margin-top:10px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  function render(){
+    ensureCSS();
+    const list=(function(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]');}catch{return[];} })()
+      .sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const rows=list.map((it,i)=>{
+      const when = it.date || (it.ts ? new Date(it.ts).toLocaleString() : '');
+      const kind = it.type==='feature' ? 'Feature' : 'Error';
+      const esc=s=>String(s||'').replace(/</g,'&lt;');
+      const det=esc((it.details||'').replace(/\n/g,'<br>'));
+      return `<tr>
+        <td>${i+1}</td><td>${when}</td><td>${kind}</td>
+        <td>${esc(it.main||'')}</td><td>${esc(it.sub||'')}</td><td>${esc(it.category||'')}</td>
+        <td>${esc(it.subject||'')}</td><td>${det}</td><td>${esc(it.by||'')}</td>
+      </tr>`;
+    }).join('');
+
+    app().innerHTML = `
+      <section class="section">
+        <div class="report-head">
+          <h1>📑 Feedback Summary</h1>
+          <div class="muted">${new Date().toLocaleDateString()}</div>
+        </div>
+        ${list.length?`
+          <table class="report-table">
+            <thead><tr>
+              <th>#</th><th>When</th><th>Type</th><th>Main</th><th>Sub</th><th>Category</th>
+              <th>Subject</th><th>Details</th><th>Submitted By</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `:'<p class="muted">No feedback yet.</p>'}
+        <div class="report-actions">
+          <button id="print-report" class="btn-primary">Print / Save PDF</button>
+          <a class="btn" href="#/reports">Back</a>
+        </div>
+      </section>
+    `;
+    $('#print-report')?.addEventListener('click', ()=>window.print());
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'');
+    if (h==='#/reports/feedback'){ render(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ================= App v12 — Part 34: Calculators Hub + Shell Routes ================= */
+(function DF_Part34_CalcsHub(){
+  'use strict';
+  if (window.__DF_P34__) return; window.__DF_P34__ = true;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+
+  function ensureCSS(){
+    if ($('#df-p34-css')) return;
+    const css=document.createElement('style');
+    css.id='df-p34-css';
+    css.textContent=`
+      .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      @media (min-width:760px){ .grid2{grid-template-columns:repeat(3,minmax(0,1fr));} }
+      .tile{display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:10px;text-decoration:none;color:inherit}
+      .tile .em{font-size:20px}
+      .card{border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;padding:12px;margin-top:10px}
+      .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      @media (max-width:560px){ .calc-grid{grid-template-columns:1fr 1fr;} }
+    `;
+    document.head.appendChild(css);
+  }
+
+  function hub(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>🧮 Calculators</h1>
+        <div class="grid2">
+          <a class="tile" href="#/calc/fertilizer"><span class="em">🧪</span><span>Fertilizer</span></a>
+          <a class="tile" href="#/calc/bin"><span class="em">🛢️</span><span>Bin Volume</span></a>
+          <a class="tile" href="#/calc/area"><span class="em">📐</span><span>Area</span></a>
+          <a class="tile" href="#/calc/yield"><span class="em">🌽</span><span>Combine Yield</span></a>
+          <a class="tile" href="#/calc/chem"><span class="em">🧴</span><span>Chemical Mix</span></a>
+        </div>
+        <p class="muted" style="margin-top:10px;"><a href="#/home">← Back to Home</a></p>
+      </section>
+    `;
+  }
+
+  function shell(title, em){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>${em} ${title}</h1>
+        <div class="card"><p class="muted">Calculator shell loaded — logic coming in Parts 35–36.</p></div>
+        <p style="margin-top:10px;"><a class="btn" href="#/calc">Back to Calculators</a></p>
+      </section>
+    `;
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'')||'#/calc';
+    if (h==='#/calc'){ hub(); return true; }
+    if (h==='#/calc/fertilizer'){ shell('Fertilizer','🧪'); return true; }
+    if (h==='#/calc/bin'){ shell('Bin Volume','🛢️'); return true; }
+    if (h==='#/calc/area'){ shell('Area','📐'); return true; }
+    if (h==='#/calc/yield'){ shell('Combine Yield','🌽'); return true; }
+    if (h==='#/calc/chem'){ shell('Chemical Mix','🧴'); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ================= App v12 — Part 35: Fertilizer + Bin Volume Calculators ================= */
+(function DF_Part35_CalcFert_Bin(){
+  'use strict';
+  if (window.__DF_P35__) return; window.__DF_P35__ = true;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+  const num=v=>{ const n=Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; };
+  const commas=v=>{ try{return Number(v).toLocaleString();}catch{return String(v);} };
+
+  function ensureCSS(){
+    if ($('#df-p35-css')) return;
+    const css=document.createElement('style');
+    css.id='df-p35-css';
+    css.textContent=`
+      .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .card{border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;padding:12px;margin-top:10px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  // -------- Fertilizer --------
+  function viewFert(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>🧪 Fertilizer Calculator</h1>
+        <div class="calc-grid">
+          <label><span class="small muted">Nutrient</span>
+            <select id="f-n"><option>N</option><option>P₂O₅</option><option>K₂O</option></select>
+          </label>
+          <label><span class="small muted">Target lb/ac *</span><input id="f-target" type="number" step="any"></label>
+          <label><span class="small muted">Product Analysis % *</span><input id="f-ana" type="number" step="any" placeholder="e.g., 32"></label>
+          <label><span class="small muted">Density (lb/gal)</span>
+            <select id="f-den">
+              <option value="11.06">UAN 32 (11.06)</option>
+              <option value="10.67">UAN 28 (10.67)</option>
+              <option value="8.34">Water (8.34)</option>
+            </select>
+          </label>
+          <label><span class="small muted">Acres *</span><input id="f-ac" type="number" step="any"></label>
+        </div>
+        <div style="margin-top:8px;">
+          <button id="f-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+        </div>
+        <div id="f-out" class="card" style="display:none;"></div>
+      </section>
+    `;
+    $('#f-go')?.addEventListener('click', ()=>{
+      const target=num($('#f-target').value), ana=num($('#f-ana').value), den=num($('#f-den').value||'11.06'), ac=num($('#f-ac').value);
+      if (!target || !ana || !ac || ana<=0 || ana>100){ alert('Enter valid target, analysis(1–100) and acres.'); return; }
+      const frac=ana/100, lbA=target/frac, galA=lbA/(den||1);
+      const out=$('#f-out'); out.style.display='';
+      out.innerHTML = `
+        <div><strong>Product lb/acre:</strong> ${commas(lbA.toFixed(2))}</div>
+        <div><strong>Product gal/acre:</strong> ${commas(galA.toFixed(2))}</div>
+        <div><strong>Total lbs:</strong> ${commas((lbA*ac).toFixed(0))}</div>
+        <div><strong>Total gal:</strong> ${commas((galA*ac).toFixed(1))}</div>
+        <div class="small muted" style="margin-top:6px;">Density affects gal/acre; analysis drives lb/acre.</div>
+      `;
+    });
+  }
+
+  // -------- Bin Volume --------
+  function viewBin(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>🛢️ Bin Volume Calculator</h1>
+        <div class="calc-grid">
+          <label><span class="small muted">Diameter (ft) *</span><input id="b-d" type="number" step="any"></label>
+          <label><span class="small muted">Grain Depth (ft) *</span><input id="b-h" type="number" step="any"></label>
+          <label><span class="small muted">Roof</span>
+            <select id="b-roof"><option value="flat">Flat/Simplified</option><option value="cone">Cone (add rise)</option></select>
+          </label>
+          <label id="b-rise-wrap" style="display:none;"><span class="small muted">Cone Rise (ft)</span><input id="b-rise" type="number" step="any"></label>
+          <label><span class="small muted">Crop</span>
+            <select id="b-crop"><option>Corn</option><option>Soybeans</option><option>Custom</option></select>
+          </label>
+          <label><span class="small muted">lb / bu</span><input id="b-lbbu" type="number" step="any" value="56"></label>
+          <label><span class="small muted">ft³ / bu</span><input id="b-buft3" type="number" step="any" value="1.244"></label>
+        </div>
+        <div style="margin-top:8px;">
+          <button id="b-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+        </div>
+        <div id="b-out" class="card" style="display:none;"></div>
+      </section>
+    `;
+    $('#b-roof')?.addEventListener('change', ()=>{ $('#b-rise-wrap').style.display = ($('#b-roof').value==='cone')?'block':'none'; });
+    $('#b-crop')?.addEventListener('change', ()=>{
+      if ($('#b-crop').value==='Corn') $('#b-lbbu').value='56';
+      else if ($('#b-crop').value==='Soybeans') $('#b-lbbu').value='60';
+    });
+    $('#b-go')?.addEventListener('click', ()=>{
+      const d=num($('#b-d').value), h=num($('#b-h').value), roof=$('#b-roof').value, rise=num($('#b-rise')?.value||0);
+      const lbbu=num($('#b-lbbu').value||56), buft3=num($('#b-buft3').value||1.244);
+      if(!d||!h||!lbbu||!buft3){ alert('Enter diameter, depth, lb/bu, ft³/bu.'); return; }
+      const r=d/2, volCyl=Math.PI*r*r*h, volCone = roof==='cone' && rise>0 ? (Math.PI*r*r*rise)/3 : 0;
+      const vol = volCyl + volCone, bu=vol/buft3, wt=bu*lbbu;
+      const out=$('#b-out'); out.style.display=''; out.innerHTML = `
+        <div><strong>Volume (ft³):</strong> ${commas(vol.toFixed(0))}</div>
+        <div><strong>Bushels:</strong> ${commas(bu.toFixed(0))}</div>
+        <div><strong>Estimated Weight (lb):</strong> ${commas(wt.toFixed(0))}</div>
+        <div class="small muted" style="margin-top:6px;">Assumes ideal fill; adjust for void/packing as needed.</div>
+      `;
+    });
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'');
+    if (h==='#/calc/fertilizer'){ viewFert(); return true; }
+    if (h==='#/calc/bin'){ viewBin(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
+})();
+
+/* ============== App v12 — Part 36: Area + Combine Yield + Chemical Mix ============== */
+(function DF_Part36_CalcArea_Yield_Chem(){
+  'use strict';
+  if (window.__DF_P36__) return; window.__DF_P36__ = true;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const app=()=>$('#app');
+  const num=v=>{ const n=Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; };
+  const commas=v=>{ try{return Number(v).toLocaleString();}catch{return String(v);} };
+
+  function ensureCSS(){
+    if ($('#df-p36-css')) return;
+    const css=document.createElement('style');
+    css.id='df-p36-css';
+    css.textContent=`
+      .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      @media (max-width:560px){ .calc-grid{grid-template-columns:1fr 1fr;} }
+      .card{border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;padding:12px;margin-top:10px}
+    `;
+    document.head.appendChild(css);
+  }
+
+  // -------- Area --------
+  function viewArea(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>📐 Area</h1>
+        <div class="calc-grid">
+          <label><span class="small muted">Shape</span>
+            <select id="a-shape"><option>Rectangle</option><option>Circle</option><option>Triangle</option></select>
+          </label>
+          <label><span class="small muted">Units</span>
+            <select id="a-unit"><option value="ft">Feet</option><option value="m">Meters</option></select>
+          </label>
+        </div>
+        <div id="a-rect" class="calc-grid" style="margin-top:8px;">
+          <label><span class="small muted">Length *</span><input id="a-len" type="number" step="any"></label>
+          <label><span class="small muted">Width *</span><input id="a-wid" type="number" step="any"></label>
+        </div>
+        <div id="a-circ" class="calc-grid" style="display:none;margin-top:8px;">
+          <label><span class="small muted">Diameter *</span><input id="a-dia" type="number" step="any"></label>
+          <div></div>
+        </div>
+        <div id="a-tri" class="calc-grid" style="display:none;margin-top:8px;">
+          <label><span class="small muted">Base *</span><input id="a-base" type="number" step="any"></label>
+          <label><span class="small muted">Height *</span><input id="a-height" type="number" step="any"></label>
+        </div>
+        <div style="margin-top:8px;">
+          <button id="a-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+        </div>
+        <div id="a-out" class="card" style="display:none;"></div>
+      </section>
+    `;
+    const show=()=>{
+      const s=$('#a-shape').value;
+      $('#a-rect').style.display = s==='Rectangle'?'grid':'none';
+      $('#a-circ').style.display = s==='Circle'?'grid':'none';
+      $('#a-tri').style.display  = s==='Triangle'?'grid':'none';
+    };
+    $('#a-shape').addEventListener('change', show); show();
+    $('#a-go').addEventListener('click', ()=>{
+      const unit=$('#a-unit').value; let A=0;
+      const s=$('#a-shape').value;
+      if (s==='Rectangle'){ const L=num($('#a-len').value), W=num($('#a-wid').value); if(!L||!W) return alert('Enter length & width.'); A=L*W; }
+      else if (s==='Circle'){ const D=num($('#a-dia').value); if(!D) return alert('Enter diameter.'); const r=D/2; A=Math.PI*r*r; }
+      else { const B=num($('#a-base').value), H=num($('#a-height').value); if(!B||!H) return alert('Enter base & height.'); A=0.5*B*H; }
+      const acres = unit==='ft' ? (A/43560) : (A/4046.8564224);
+      const out=$('#a-out'); out.style.display='';
+      out.innerHTML = `<div><strong>Area (${unit==='ft'?'ft²':'m²'}):</strong> ${commas(A.toFixed(2))}</div>
+        <div><strong>Area (acres):</strong> ${commas(acres.toFixed(4))}</div>`;
+    });
+  }
+
+  // -------- Combine Yield (length + header width + true vs elevator shrink) --------
+  function viewYield(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>🌽 Combine Yield</h1>
+        <div class="calc-grid">
+          <label><span class="small muted">Crop</span>
+            <select id="cy-crop"><option>Corn</option><option>Soybeans</option></select>
+          </label>
+          <label><span class="small muted">Wet Weight (lb) *</span><input id="cy-wet" type="number" step="any"></label>
+          <label><span class="small muted">Moisture % *</span><input id="cy-moist" type="number" step="any"></label>
+          <label><span class="small muted">Length (ft) *</span><input id="cy-length" type="number" step="any"></label>
+          <label><span class="small muted">Header Width *</span>
+            <select id="cy-width"><option value="30">30’</option><option value="35">35’</option><option value="40" selected>40’</option><option value="45">45’</option></select>
+          </label>
+          <label><span class="small muted">Dry Basis %</span><input id="cy-base" type="number" step="any" placeholder="auto"></label>
+          <label><span class="small muted">lb / bu</span><input id="cy-lbbu" type="number" step="any" placeholder="auto"></label>
+        </div>
+        <div style="margin-top:8px;">
+          <button id="cy-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+        </div>
+        <div id="cy-out" class="card" style="display:none;"></div>
+      </section>
+    `;
+
+    const PRESETS = { Corn:{ base:15.5, lbbu:56 }, Soybeans:{ base:13.0, lbbu:60 } };
+    const fill=()=>{
+      const crop=$('#cy-crop').value; const p=PRESETS[crop];
+      if (!$('#cy-base').value) $('#cy-base').value=p.base;
+      if (!$('#cy-lbbu').value) $('#cy-lbbu').value=p.lbbu;
+    };
+    $('#cy-crop').addEventListener('change', fill); fill();
+
+    const elevatorShrinkPct=(moist, base)=>{
+      if (moist<=base) return 0;
+      const maxM=29, maxS=21; if (moist>=maxM) return maxS;
+      const slope=maxS/(maxM-base); return slope*(moist-base);
+    };
+
+    $('#cy-go').addEventListener('click', ()=>{
+      const crop=$('#cy-crop').value, wetLb=num($('#cy-wet').value), moist=num($('#cy-moist').value);
+      const lenFt=num($('#cy-length').value), headFt=num($('#cy-width').value);
+      const base=num($('#cy-base').value||PRESETS[crop].base), lbbu=num($('#cy-lbbu').value||PRESETS[crop].lbbu);
+      if(!wetLb||!moist||!lenFt||!headFt){ alert('Enter Wet Weight, Moisture, Length and Header Width.'); return; }
+      const acres=(lenFt*headFt)/43560; if (acres<=0) return alert('Calculated acres <= 0. Check length/header width.');
+      const wetBu=wetLb/lbbu;
+      const dryFactor=(100-moist)/(100-base); const trueBu=wetBu*dryFactor; const trueYield=trueBu/acres; const trueShrink=(1-dryFactor)*100;
+      const elevShrink=elevatorShrinkPct(moist,base); const elevBu=wetBu*(1-(elevShrink/100)); const elevYield=elevBu/acres;
+      const out=$('#cy-out'); out.style.display='';
+      out.innerHTML = `
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div><strong>Acres (calc):</strong> ${acres.toFixed(3)}</div>
+          <div><strong>Wet Bushels:</strong> ${commas(wetBu.toFixed(2))}</div>
+          <div><strong>Test Wt:</strong> ${lbbu} lb/bu</div>
+          <div><strong>Dry Basis:</strong> ${base}%</div>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(0,0,0,.12);margin:8px 0;">
+        <div class="calc-grid" style="grid-template-columns:1fr 1fr;">
+          <div>
+            <h3 style="margin:0 0 6px 0;">True Shrink</h3>
+            <div><strong>Adj. Bushels:</strong> ${commas(trueBu.toFixed(2))}</div>
+            <div><strong>Yield:</strong> ${commas(trueYield.toFixed(1))} bu/ac</div>
+            <div class="small muted">Shrink ≈ ${trueShrink.toFixed(1)}% (to ${base}%).</div>
+          </div>
+          <div>
+            <h3 style="margin:0 0 6px 0;">Elevator Shrink</h3>
+            <div><strong>Adj. Bushels:</strong> ${commas(elevBu.toFixed(2))}</div>
+            <div><strong>Yield:</strong> ${commas(elevYield.toFixed(1))} bu/ac</div>
+            <div class="small muted">Prorated elevator shrink ≈ ${elevShrink.toFixed(1)}%.</div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  // -------- Chemical Mix --------
+  function viewChem(){
+    ensureCSS();
+    app().innerHTML = `
+      <section class="section">
+        <h1>🧴 Chemical Mix</h1>
+        <div class="calc-grid">
+          <label><span class="small muted">Tank Size (gal) *</span><input id="ch-tank" type="number" step="any"></label>
+          <label><span class="small muted">Carrier GPA *</span><input id="ch-gpa" type="number" step="any"></label>
+          <label><span class="small muted">Job Acres (optional)</span><input id="ch-job" type="number" step="any"></label>
+        </div>
+        <h3 style="margin-top:10px;">Products (rate per acre)</h3>
+        <div id="prod-wrap"></div>
+        <div style="margin-top:8px;">
+          <button id="ch-go" class="btn-primary">Calculate</button>
+          <a class="btn" href="#/calc">Back</a>
+        </div>
+        <div id="ch-out" class="card" style="display:none;"></div>
+      </section>
+    `;
+    const wrap=$('#prod-wrap');
+    const rows = Array.from({length:6}).map((_,i)=>`
+      <div class="calc-grid" style="margin-top:6px;">
+        <label><span class="small muted">Product ${i+1}</span><input id="ch-name-${i}" type="text"></label>
+        <label><span class="small muted">Rate / acre</span><input id="ch-rate-${i}" type="number" step="any"></label>
+        <label><span class="small muted">Unit</span>
+          <select id="ch-unit-${i}"><option value="oz">oz</option><option value="pt">pt</option><option value="qt">qt</option><option value="gal">gal</option></select>
+        </label>
+      </div>`).join('');
+    wrap.innerHTML = rows;
+
+    const toGal=(u,x)=>{ const v=num(x); if(!v) return 0; if(u==='gal')return v; if(u==='qt')return v/4; if(u==='pt')return v/8; if(u==='oz')return v/128; return 0; };
+
+    $('#ch-go').addEventListener('click', ()=>{
+      const tank=num($('#ch-tank').value), gpa=num($('#ch-gpa').value), job=num($('#ch-job').value);
+      if(!tank||!gpa){ alert('Enter Tank Size and Carrier GPA.'); return; }
+      const acPerTank=tank/gpa; let total=0;
+      const lines=[];
+      for(let i=0;i<6;i++){
+        const name=$('#ch-name-'+i).value, rate=$('#ch-rate-'+i).value, unit=$('#ch-unit-'+i).value;
+        const perAcreGal=toGal(unit,rate); const perTankGal=perAcreGal*acPerTank;
+        if (perTankGal>0){ total+=perTankGal; lines.push(`<li>${name||'(Unnamed)'}: <strong>${commas(perTankGal.toFixed(3))}</strong> gal / tank <span class="small muted">(${rate} ${unit}/ac)</span></li>`); }
+      }
+      const out=$('#ch-out'); out.style.display='';
+      const tanks = job>0 ? `<li><strong>Tanks needed for ${commas(job)} ac:</strong> ${commas(Math.ceil(job/acPerTank))}</li>` : '';
+      out.innerHTML = `
+        <div><strong>Acres per tank:</strong> ${commas(acPerTank.toFixed(2))}</div>
+        <div><strong>Carrier per tank (gal):</strong> ${commas(tank)}</div>
+        <ul style="margin:8px 0 0 18px;">${lines.join('') || '<li class="muted">No products entered.</li>'}</ul>
+        <div style="margin-top:6px;"><strong>Total product volume in mix (gal):</strong> ${commas(total.toFixed(3))}</div>
+        ${tanks}
+        <div class="small muted" style="margin-top:6px;">Confirm compatibility and label requirements.</div>
+      `;
+    });
+  }
+
+  function route(){
+    const h=(location.hash||'').replace(/\/+$/,'');
+    if (h==='#/calc/area'){ viewArea(); return true; }
+    if (h==='#/calc/yield'){ viewYield(); return true; }
+    if (h==='#/calc/chem'){ viewChem(); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', route, {passive:true});
+  if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
 })();
