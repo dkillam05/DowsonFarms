@@ -211,3 +211,8 @@ body{ background: var(--df-bg) !important; }
   color: var(--df-gold) !important;
   border: 0 !important;
 }
+
+/* ===== Adjust header for iOS safe area ===== */
+.site-head {
+  padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important;
+}
