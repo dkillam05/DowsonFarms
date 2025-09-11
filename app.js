@@ -374,17 +374,19 @@
 
 })();
 
-
-/* ===============================================
-   Part 5 — Home Dashboard (order + emojis EXACT)
-   =============================================== */
+/* =========================================================
+   Part 5 — Home Dashboard (tiles & route)
+   Depends on: Part 1 (DF namespace/helpers), Part 2 (base DOM/CSS), Part 3 (router), Part 4 (auth)
+   ========================================================= */
 (function DF_V12_P5_HOME(){
   'use strict';
   if (window.__DF_V12_P5__) return; window.__DF_V12_P5__ = true;
-  const { appRoot } = window.DF;
 
-  // EXACT order + emojis you requested
-  const HOME_TILES = [
+  const DF  = window.DF || {};
+  const { APP, $, $$, esc } = DF;
+
+  // --- Home tiles (order + emojis as requested) ---
+  const TILES = [
     { href:'#/crop',     icon:'🌽', label:'Crop Production' },
     { href:'#/grain',    icon:'🌾', label:'Grain Tracking' },
     { href:'#/equip',    icon:'🚜', label:'Equipment' },
@@ -392,7 +394,7 @@
     { href:'#/reports',  icon:'📊', label:'Reports' },
     { href:'#/team',     icon:'🤝', label:'Team / Partners' },
     { href:'#/feedback', icon:'💬', label:'Feedback' },
-    { href:'#/settings', icon:'⚙️', label:'Setups / Settings' }
+    { href:'#/settings', icon:'⚙️', label:'Setups / Settings' },
   ];
 
   function tilesHTML(){
@@ -400,10 +402,10 @@
       <section class="section">
         <h1>Home</h1>
         <div class="df-tiles">
-          ${HOME_TILES.map(t=>`
-            <a class="df-tile" href="${t.href}" aria-label="${t.label}">
+          ${TILES.map(t => `
+            <a class="df-tile" href="${t.href}" aria-label="${esc(t.label)}">
               <div class="df-emoji">${t.icon}</div>
-              <div class="df-label">${t.label}</div>
+              <div class="df-label">${esc(t.label)}</div>
             </a>
           `).join('')}
         </div>
@@ -412,14 +414,41 @@
   }
 
   function renderHome(){
-    const root = appRoot(); if (!root) return;
+    const root = $('#app'); if (!root) return;
     root.innerHTML = tilesHTML();
+    // If Part 4 provided a logout wire, nudge it after re-render:
+    try { DF.auth?.wireLogout?.(); } catch {}
   }
 
-  // Register route for #/home
-  window.DF.routeRegister('#/home', renderHome);
-  // Expose for later parts if needed
-  window.DF.renderHome = renderHome;
+  // expose for other parts (login redirect uses this)
+  DF.renderHome = renderHome;
+  window.DF = DF;
+
+  // --- Route registration ---
+  // Prefer the Part 3 router if present; otherwise add a tiny fallback.
+  const register = (DF.router && typeof DF.router.register === 'function')
+    ? DF.router.register.bind(DF.router)
+    : null;
+
+  if (register) {
+    register('/home', renderHome);
+    // Make home the default if router supports it
+    if (typeof DF.router.setDefault === 'function') {
+      DF.router.setDefault('/home');
+    }
+  } else {
+    // Fallback: simple hash listener for #/home, #, #/
+    function routeFallback(){
+      const h = (location.hash || '#/home').replace(/\/+$/,'');
+      if (h === '#/home' || h === '#/' || h === '#') { renderHome(); }
+    }
+    window.addEventListener('hashchange', routeFallback, { passive:true });
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', routeFallback, { once:true });
+    } else {
+      routeFallback();
+    }
+  }
 })();
 
 
