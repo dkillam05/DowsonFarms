@@ -71,3 +71,25 @@ body{
 .update-banner .msg{ color:#304135; font-weight:600; }
 .update-banner .actions{ display:flex; gap:8px; }
 .update-banner .btn-primary{ background:var(--brand); color:#fff; }
+
+/* ==== DF shell overrides (sticky footer + slim header) ==== */
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; margin: 0; }
+
+/* Header (slimmer) */
+.site-head { background:#efe9d0; border-bottom:1px solid rgba(0,0,0,.08); position: sticky; top: 0; z-index: 10; }
+.site-head .head-inner { max-width:980px; margin:0 auto; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
+.site-head .brand { display:flex; align-items:center; gap:10px; }
+.site-head .brand-logo { width:40px; height:40px; border-radius:50%; }
+.site-head .brand-title { font-weight:700; font-size:22px; }
+
+/* Main area grows to fill space */
+#app { flex: 1 0 auto; min-height: 0; }
+
+/* Footer always on bottom, never off-screen on short pages */
+.site-foot { flex-shrink: 0; background:#efe9d0; border-top:1px solid rgba(0,0,0,.08); position: sticky; bottom: 0; }
+.site-foot .foot-inner { max-width:980px; margin:0 auto; padding:8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); 
+  display:flex; justify-content:center; align-items:center; gap:10px; color:#6e6e6e; font-weight:600; }
+
+/* Ensure content never hides behind the sticky footer */
+.app, #app { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
