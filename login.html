@@ -1,23 +1,24 @@
 <!doctype html>
-<html lang="en" data-fallback-version="v12.2.20">
+<html lang="en" data-fallback-version="v12.2.21">
 <head>
   <meta charset="utf-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#0f4d1d">
   <title>Dowson Farms — Login</title>
-  <link rel="icon" href="/icons/logo.png">
+  <link rel="icon" href="icons/logo.png">
   <style>
     :root{
       --bg:#f6f3e4; --panel:#ffffff; --fg:#1a1a1a; --muted:#6e6e6e;
       --brand:#0f4d1d; --bd:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
-      --radius:22px;
+      --radius:22px; --ctl-h:48px;
     }
     html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--fg);
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      -webkit-text-size-adjust:100%;
     }
 
     .wrap{min-height:100%; display:flex; flex-direction:column;}
@@ -36,24 +37,25 @@
     }
     .brand img{width:100%; height:100%; object-fit:cover}
 
-    .title{
-      margin-top:48px; text-align:center;
-    }
+    .title{ margin-top:48px; text-align:center; }
     .title h1{font-size:34px; margin:0 0 4px; letter-spacing:.3px;}
     .title p{margin:0; color:var(--muted); font-size:18px;}
 
     .field{margin:14px 0;}
     .label{display:block; font-weight:700; margin-bottom:6px;}
-    .row{display:flex; gap:10px; align-items:stretch;}
-    input[type="email"], input[type="password"]{
-      flex:1; font-size:16px; /* avoid iOS zoom */
-      padding:14px 14px; border:1px solid var(--bd); border-radius:12px; background:#fff;
+    .row{
+      display:grid; grid-template-columns: 1fr 96px; gap:10px; align-items:center;
+    }
+    input[type="email"], input[type="password"], input[type="text"]{
+      font-size:16px; /* avoid iOS zoom */
+      height:var(--ctl-h); line-height:calc(var(--ctl-h) - 2px);
+      padding:0 14px; border:1px solid var(--bd); border-radius:12px; background:#fff;
       outline:none;
     }
     .toggle{
-      border:1px solid var(--bd); background:#fff; border-radius:12px; padding:0 16px;
-      font-weight:700; color:var(--brand); min-width:86px; cursor:pointer;
-      display:grid; place-items:center;
+      height:var(--ctl-h);
+      border:1px solid var(--bd); background:#fff; border-radius:12px;
+      font-weight:700; color:var(--brand); width:96px; cursor:pointer;
     }
 
     .actions{
@@ -79,7 +81,9 @@
     <main class="main" role="main">
       <section class="card" aria-label="Login">
         <div class="brand">
-          <img src="/icons/logo.png" alt="Dowson Farms logo">
+          <!-- Try relative first; if it fails, fall back to absolute -->
+          <img id="dfLogo" src="icons/logo.png" alt="Dowson Farms logo"
+               onerror="this.onerror=null; this.src='/icons/logo.png'">
         </div>
 
         <div class="title">
@@ -122,28 +126,22 @@
     (function(){
       'use strict';
 
-      // --- utilities ---
       const $ = (s,r=document)=>r.querySelector(s);
-      const prettyDate = (d=new Date())=>{
-        const ord = n => (n%10==1&&n%100!=11)?'st':(n%10==2&&n%100!=12)?'nd':(n%10==3&&n%100!=13)?'rd':'th';
-        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-        return months[d.getMonth()]+' '+d.getDate()+ord(d.getDate())+' '+d.getFullYear();
-      };
 
-      // --- date + version paint ---
-      $('#dateText').textContent = prettyDate();
+      // --- date + version ---
+      const ord = n => (n%10==1&&n%100!=11)?'st':(n%10==2&&n%100!=12)?'nd':(n%10==3&&n%100!=13)?'rd':'th';
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const d = new Date();
+      $('#dateText').textContent = `${months[d.getMonth()]} ${d.getDate()}${ord(d.getDate())} ${d.getFullYear()}`;
 
       const pickVersion = ()=>{
-        // 1) from app if present
         if (window.DF && window.DF.VERSION) return window.DF.VERSION;
-        // 2) from localStorage (set by app.js on boot)
         try { const v = localStorage.getItem('df_version'); if (v) return v; } catch {}
-        // 3) fallback baked into this file
         return document.documentElement.getAttribute('data-fallback-version') || 'v0.0.0';
       };
       $('#verText').textContent = pickVersion();
 
-      // --- show/hide password ---
+      // --- show/hide password (height stays fixed) ---
       const pw = $('#password');
       const tgl = $('#togglePw');
       tgl.addEventListener('click', ()=>{
@@ -153,10 +151,9 @@
         tgl.setAttribute('aria-pressed', show ? 'true' : 'false');
       });
 
-      // --- demo login handler ---
+      // --- demo login ---
       const DEMO_EMAIL = 'demo@dowsonfarms.com';
       const DEMO_PASS  = 'Demo123';
-
       const errorBox = $('#errorBox');
       const showError = (msg)=>{ errorBox.textContent = msg; errorBox.style.display='block'; };
       const clearError = ()=>{ errorBox.textContent=''; errorBox.style.display='none'; };
@@ -170,21 +167,19 @@
         if (email === DEMO_EMAIL && pass === DEMO_PASS) {
           try { localStorage.setItem('df_user', email); } catch {}
           location.href = '/#\/home';
-          return;
+        } else {
+          showError('These credentials are not recognized.');
         }
-        showError('These credentials are not recognized.');
       });
 
-      // --- forgot password flow (simulated) ---
+      // --- forgot password (demo) ---
       $('#forgotLink').addEventListener('click', (e)=>{
         e.preventDefault();
         const input = prompt('Enter your email to reset your password:');
         if (!input) return;
         const email = String(input).trim().toLowerCase();
-
         if (email === DEMO_EMAIL) {
           alert('Reset link sent (demo). Check your inbox.');
-          // Open a prefilled mail draft (demo UX)
           const subj = encodeURIComponent('Password reset request');
           const body = encodeURIComponent('Hi,\n\nPlease reset my password for Dowson Farms.\n\nThanks,\n'+email);
           location.href = `mailto:${email}?subject=${subj}&body=${body}`;
@@ -193,7 +188,7 @@
         }
       });
 
-      // prevent history/route weirdness if someone arrives with a hash
+      // Clean URL if someone arrives with a hash
       if (location.hash && location.pathname.endsWith('/login.html')) {
         history.replaceState(null, '', '/login.html');
       }
