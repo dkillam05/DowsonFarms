@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.11';
+  const VERSION = 'v12.2.12';
 
   // App constants
   const APP = {
@@ -3258,3 +3258,260 @@
   window.DF.renderLogin = renderLogin;
 })();
 
+/* ================= App v12 — Part 44: Clean Login View + Hide Chrome ================= */
+(function DF_Part44_LoginPolish(){
+  'use strict';
+  if (window.__DF_P44_LOGIN__) return; window.__DF_P44_LOGIN__ = true;
+
+  const $ = (s,r=document)=>r.querySelector(s);
+
+  // --- minimal CSS just for the login screen ---
+  function injectLoginCSS(){
+    if ($('#df-login-css')) return;
+    const css = document.createElement('style');
+    css.id = 'df-login-css';
+    css.textContent = `
+      /* Fullscreen centered login layout */
+      .df-login-wrap{
+        min-height:100vh;
+        display:grid;
+        place-items:center;
+        background:var(--bg, #111);
+      }
+      .df-login-card{
+        width:min(520px, 92vw);
+        background:#fff;
+        color:#111;
+        border-radius:14px;
+        border:1px solid rgba(0,0,0,.08);
+        box-shadow:0 10px 30px rgba(0,0,0,.12);
+        padding:22px 18px;
+      }
+      @media (prefers-color-scheme: dark){
+        .df-login-wrap{ background:#0e0e0e; }
+        .df-login-card{
+          background:#151515; color:#eee;
+          border-color:rgba(255,255,255,.08);
+        }
+        .df-login-card input{ background:#1b1b1b; color:#eee; border-color:rgba(255,255,255,.12); }
+      }
+
+      .df-login-brand{
+        display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:14px;
+      }
+      .df-login-logo{
+        width:84px; height:84px; border-radius:50%; object-fit:cover;
+        box-shadow:0 4px 12px rgba(0,0,0,.18);
+      }
+      .df-login-title{ font-weight:800; font-size:20px; letter-spacing:.2px; }
+
+      .df-login-fields{ display:flex; flex-direction:column; gap:10px; }
+      .df-login-fields input{
+        width:100%; padding:12px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.12);
+        outline:none;
+      }
+      .df-login-actions{ display:flex; justify-content:flex-end; margin-top:8px; }
+      .df-btn-primary{
+        background:#0f4d1d; color:#fff; border:0; border-radius:10px; padding:10px 16px; font-weight:700;
+      }
+    `;
+    document.head.appendChild(css);
+  }
+
+  // --- render a centered login view with your logo ---
+  function renderLoginCentered(){
+    injectLoginCSS();
+    const root = $('#app'); if (!root) return;
+    const logoPath = 'icons/logo.png'; // your existing logo
+    const farmName = (window.DF && window.DF.APP_NAME) || 'Dowson Farms';
+
+    root.innerHTML = `
+      <div class="df-login-wrap">
+        <div class="df-login-card" role="dialog" aria-labelledby="df-login-title">
+          <div class="df-login-brand">
+            <img src="${logoPath}" alt="Dowson Farms logo" class="df-login-logo">
+            <div id="df-login-title" class="df-login-title">${farmName}</div>
+          </div>
+          <div class="df-login-fields">
+            <input id="df-login-email" type="email" placeholder="Email" autocomplete="username" inputmode="email">
+            <input id="df-login-pass" type="password" placeholder="Password" autocomplete="current-password">
+          </div>
+          <div class="df-login-actions">
+            <button id="df-login-btn" class="df-btn-primary">Log In</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const go = ()=>{
+      const email = String($('#df-login-email')?.value||'').trim();
+      try{ if (email) localStorage.setItem('df_user', email); }catch{}
+      location.hash = '#/home';
+      // Let whatever renders home do its thing
+      if (typeof window.DF?.renderHome === 'function') window.DF.renderHome();
+      // show chrome again
+      showChrome();
+    };
+
+    $('#df-login-btn')?.addEventListener('click', go);
+    $('#df-login-pass')?.addEventListener('keydown', (e)=>{ if (e.key==='Enter') go(); });
+  }
+
+  // --- hide/show header/footer when on login ---
+  function hideChrome(){
+    const h = $('#header'); if (h) h.style.display = 'none';
+    const f = $('#footer'); if (f) f.style.display = 'none';
+  }
+  function showChrome(){
+    const h = $('#header'); if (h) h.style.display = '';
+    const f = $('#footer'); if (f) f.style.display = '';
+  }
+
+  function maybeLoginMode(){
+    const hash = (location.hash||'').replace(/\/+$/,'');
+    if (hash === '#/login'){
+      hideChrome();
+      renderLoginCentered();
+      return true;
+    }
+    showChrome();
+    return false;
+  }
+
+  // init + listen for SPA nav
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', maybeLoginMode, {once:true});
+  } else {
+    maybeLoginMode();
+  }
+  window.addEventListener('hashchange', maybeLoginMode, {passive:true});
+})();
+
+/* ================= App v12 — Part 45: Home Route Restore + Header/Footer polish ================= */
+(function DF_Part45_RouterAndChrome(){
+  'use strict';
+  if (window.__DF_P45__) return; window.__DF_P45__ = true;
+
+  const $  = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+  const app = ()=> $('#app');
+
+  // ---- discover basics ----
+  const APP_NAME = (window.DF && (window.DF.APP_NAME||window.DF.APPNAME)) ||
+                   $('.brand-title')?.textContent?.trim() || 'Dowson Farms';
+  const VERSION_SPAN = $('#version');
+
+  // ---- header/footer CSS (smaller, green header) ----
+  (function injectHF(){
+    if ($('#df-p45-css')) return;
+    const css = document.createElement('style');
+    css.id = 'df-p45-css';
+    css.textContent = `
+      .site-head{ position:sticky; top:0; background:#0f4d1d; color:#fff; border-bottom:0; }
+      .site-head .brand-title{ color:#fff; font-size:20px; }
+      .site-head .brand-logo{ border:2px solid rgba(255,255,255,.2); }
+      .site-head .head-inner{ min-height:54px; }
+      .site-head .btn{ background:#fff; color:#0f4d1d; border:0; }
+      .site-head .dot{ display:none; }
+      .df-clock{ font-variant-numeric:tabular-nums; font-weight:600; opacity:.95; }
+      .site-foot{ background:#efe9d0; border-top:1px solid rgba(0,0,0,.08); }
+      .site-foot .foot-inner{ gap:12px; }
+      @media (prefers-color-scheme: dark){
+        .site-head{ background:#0c3c16; }
+        .site-foot{ background:#141414; border-top:1px solid rgba(255,255,255,.08); }
+      }
+    `;
+    document.head.appendChild(css);
+  })();
+
+  // ---- header clock (top-right) ----
+  function ensureClock(){
+    const actions = $('.head-actions');
+    if (!actions) return;
+    if (!$('#df-clock')){
+      const s = document.createElement('span');
+      s.id = 'df-clock';
+      s.className = 'df-clock';
+      // put clock before Logout button
+      const logout = $('#logoutBtn', actions);
+      actions.insertBefore(s, logout || null);
+    }
+    const el = $('#df-clock');
+    const fmt = new Intl.DateTimeFormat(undefined, {hour:'numeric', minute:'2-digit'});
+    el.textContent = fmt.format(new Date());
+  }
+  ensureClock();
+  setInterval(ensureClock, 15000);
+
+  // ---- footer date (September 10th 2025) ----
+  function ordinal(n){
+    const s = ['th','st','nd','rd'], v = n%100;
+    return n + (s[(v-20)%10] || s[v] || s[0]);
+  }
+  function paintFooterDate(){
+    const f = $('.site-foot .foot-inner'); if (!f) return;
+    if (!$('#df-date')){
+      const span = document.createElement('span');
+      span.id = 'df-date';
+      // insert just before version if present
+      const v = $('#version');
+      if (v && v.parentNode){ v.parentNode.insertBefore(span, v); 
+        // add separator dot if you want spacing
+        const dot = document.createElement('span'); dot.textContent = '•'; dot.setAttribute('aria-hidden','true');
+        v.parentNode.insertBefore(dot, v);
+      } else {
+        f.appendChild(span);
+      }
+    }
+    const d = new Date();
+    const month = new Intl.DateTimeFormat(undefined, {month:'long'}).format(d);
+    $('#df-date').textContent = `${month} ${ordinal(d.getDate())} ${d.getFullYear()}`;
+  }
+  paintFooterDate();
+
+  // ---- hide/show chrome on login ----
+  function setChromeVisible(show){
+    const h = $('#header'); if (h) h.style.display = show ? '' : 'none';
+    const ft = $('#footer'); if (ft) ft.style.display = show ? '' : 'none';
+  }
+  function maybeLoginChrome(){
+    const h = (location.hash||'').replace(/\/+$/,'');
+    if (h === '#/login'){ setChromeVisible(false); }
+    else { setChromeVisible(true); }
+  }
+  window.addEventListener('hashchange', maybeLoginChrome, {passive:true});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', maybeLoginChrome, {once:true});
+  } else { maybeLoginChrome(); }
+
+  // ---- safe Home renderer (only if none exists) ----
+  function renderHomeFallback(){
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>Home</h1>
+        <p class="muted">Core ready. Your dashboard tiles will render here as we add them back.</p>
+      </section>
+    `;
+  }
+  if (!window.DF) window.DF = {};
+  if (typeof window.DF.renderHome !== 'function'){
+    window.DF.renderHome = renderHomeFallback;
+  }
+
+  // ---- tiny router shim to guarantee #/home works ----
+  function routeShim(){
+    const h = (location.hash||'').replace(/\/+$/,'') || '#/home';
+    if (h === '#/' || h === '#' || h === '#/home'){
+      try { window.DF.renderHome(); } catch { renderHomeFallback(); }
+      return true;
+    }
+    return false;
+  }
+  // run once now; future navigations still handled by your main router
+  routeShim();
+  window.addEventListener('hashchange', ()=>routeShim(), {passive:true});
+
+  // keep version text if you use it
+  if (VERSION_SPAN && window.DF && window.DF.VERSION) VERSION_SPAN.textContent = window.DF.VERSION;
+})();
