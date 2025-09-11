@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.15';
+  const VERSION = 'v12.2.16';
 
   // App constants
   const APP = {
@@ -555,52 +555,57 @@
 })();
 
 
-/* ======================================================
-   Part 8 — Boot (login-aware)
-   ====================================================== */
+/* =========================================================
+   Part 8 — Boot (single init & route pass) — v12.2.x
+   - Prevents SPA from rendering on login.html
+   - Still exposes DF for version access on login page
+   ========================================================= */
 (function DF_V12_P8_BOOT(){
   'use strict';
   if (window.__DF_V12_P8__) return; window.__DF_V12_P8__ = true;
-  const { APP, $, fmt, on } = window.DF;
+  const { $, DF } = window;
 
-  // Helper: paint footer version + date/time if footer exists
-  function paintFootMeta(){
-    const v = $('#version'); if (v) v.textContent = APP.version;
-    const dt = $('#foot-datetime');
-    if (dt){
-      const now = new Date();
-      const date = now.toLocaleDateString(undefined, { month:'long', day:'numeric', year:'numeric' });
-      const time = now.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
-      dt.textContent = `${date} • ${time}`;
-    }
+  // Helper: are we on the standalone login page?
+  function onLoginHTML(){
+    try {
+      const p = location.pathname || '';
+      return /\/login\.html$/i.test(p);
+    } catch { return false; }
   }
 
+  // SPA init (only when NOT on login.html)
+  function initSPA(){
+    try {
+      if (typeof window.DF?.wireLogout === 'function') window.DF.wireLogout();
+      if (typeof window.DF?.routeAll === 'function')    window.DF.routeAll();
+    } catch(e){ console.error('[DF] initSPA', e); }
+  }
+
+  // Router trigger (hashchange)
+  function onHash(){
+    try { if (typeof window.DF?.routeAll === 'function') window.DF.routeAll(); }
+    catch(e){ console.error('[DF] route', e); }
+  }
+
+  // Boot gate: do nothing on login.html (lets that page control its own UI)
   function boot(){
-    // If this is the standalone login page, skip SPA init and just paint footer meta.
-    if (document.body?.dataset?.page === 'login'){
-      paintFootMeta();
-      // keep footer time fresh
-      setInterval(paintFootMeta, 60_000);
-      return;
+    if (onLoginHTML()){
+      // Hide any app chrome if it exists (defensive; usually not present on login.html)
+      const head = $('#header'); if (head) head.style.display = 'none';
+      const foot = $('#footer'); if (foot) foot.style.display = 'none';
+      return; // IMPORTANT: do not start SPA here
     }
 
-    // Normal app boot
-    paintFootMeta(); // also paint on app pages
-    // Wire logout once
-    if (typeof window.DF?.wireLogout === 'function') window.DF.wireLogout();
-    // Initial route pass
-    if (typeof window.DF?.route === 'function') window.DF.route();
+    // Normal SPA
+    initSPA();
+    window.addEventListener('hashchange', onHash, { passive:true });
   }
 
   if (document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', boot, { once:true });
-  } else { boot(); }
-
-  // Route on hashchange (app pages only)
-  window.addEventListener('hashchange', ()=> {
-    if (document.body?.dataset?.page === 'login') return;
-    if (typeof window.DF?.route === 'function') window.DF.route();
-  }, { passive:true });
+  } else {
+    boot();
+  }
 })();
 
 
