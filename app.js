@@ -25,7 +25,7 @@
   if (window.__DF_V12_P1__) return; window.__DF_V12_P1__ = true;
 
   // Version surfaces in footer
-  const VERSION = 'v12.2.13';
+  const VERSION = 'v12.2.14';
 
   // App constants
   const APP = {
@@ -207,65 +207,171 @@
 })();
 
 
-/* ============================================
-   Part 4 — Auth (Logout/Login + Chrome toggle)
-   ============================================ */
+/* ======================================================
+   Part 4 — Auth (Logout/Login + Hide Chrome on login)
+   ====================================================== */
 (function DF_V12_P4_AUTH(){
   'use strict';
   if (window.__DF_V12_P4__) return; window.__DF_V12_P4__ = true;
-  const { APP, $, appRoot } = window.DF;
 
-  function renderLoginInline(){
-    location.hash = '#/login';
-    const root = appRoot(); if (!root) return;
-    root.innerHTML = `
-      <section class="section">
-        <h1>Login</h1>
-        <div class="field"><input id="li-email" type="email" placeholder="Email"></div>
-        <div class="field" style="display:flex;gap:8px;">
-          <input id="li-pass" type="password" placeholder="Password" style="flex:1;">
-          <button class="btn-primary" id="li-go">Log In</button>
-        </div>
-      </section>
-    `;
-    $('#li-go')?.addEventListener('click', ()=>{
-      try{
-        const email = String($('#li-email')?.value||'').trim();
-        if (email) localStorage.setItem('df_user', email);
-      }catch{}
-      window.DF.routeGo('#/home');
-    });
-  }
+  // pull helpers & config from Part 1
+  const { APP, $, $$, esc } = window.DF || {};
+  if (!APP || !$) { console.error('DF Part 4: missing Part 1 helpers/config'); return; }
 
-  function doLogout(){
-    try{ localStorage.removeItem('df_user'); sessionStorage.clear(); }catch{}
-    fetch(APP.loginPage, {method:'HEAD'})
-      .then(r => { if (r.ok) location.href = APP.loginPage; else renderLoginInline(); })
-      .catch(()=> renderLoginInline());
-  }
-
-  function wireLogout(){
-    const btn = $('#logoutBtn') || Array.from(document.querySelectorAll('button,a')).find(b=>(b.textContent||'').trim().toLowerCase()==='logout');
-    if (!btn || btn.dataset.dfWired==='1') return;
-    btn.dataset.dfWired='1';
-    btn.addEventListener('click', (e)=>{ e.preventDefault(); doLogout(); });
-  }
-
-  // Hide header/footer on login route
-  function toggleChrome(){
-    const isLogin = (location.hash||'').replace(/\/+$/,'') === '#/login';
+  // ------------------------------
+  // 1) Hide chrome on #/login
+  // ------------------------------
+  function applyLoginChrome(){
+    const isLogin = ((location.hash||'').replace(/\/+$/,'') === '#/login');
     const head = $('#header'); const foot = $('#footer');
     if (head) head.style.display = isLogin ? 'none' : '';
     if (foot) foot.style.display = isLogin ? 'none' : '';
   }
+  window.addEventListener('hashchange', applyLoginChrome, {passive:true});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyLoginChrome, {once:true});
+  } else {
+    applyLoginChrome();
+  }
 
-  window.addEventListener('hashchange', ()=>{ wireLogout(); toggleChrome(); }, {passive:true});
+  // ------------------------------
+  // 2) Inline Login (fallback UI)
+  // ------------------------------
+  function renderLoginInline(){
+    location.hash = '#/login';
+    const root = $('#app'); if (!root) return;
+
+    // simple local styles (scoped id to avoid clashes)
+    if (!$('#df-login-css')) {
+      const css = document.createElement('style');
+      css.id = 'df-login-css';
+      css.textContent = `
+        #df-login{ min-height: 100vh; display:grid; place-items:center; padding:24px; background:var(--bg,#f6f3e4); }
+        #df-login .card{ width:min(520px, 92vw); background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:14px; box-shadow:0 8px 26px rgba(0,0,0,.06); padding:22px 18px; }
+        #df-login .brand{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:8px; }
+        #df-login .brand img{ width:64px; height:64px; border-radius:12px; }
+        #df-login .brand .title{ font-weight:800; letter-spacing:.2px; }
+        #df-login .field{ margin:10px 0; }
+        #df-login input{ width:100%; padding:12px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.12); font-size:16px; }
+        #df-login .row{ display:flex; gap:8px; align-items:center; }
+        #df-login .btn-primary{ background:var(--brand,#0f4d1d); color:#fff; border:0; border-radius:10px; padding:10px 12px; cursor:pointer; white-space:nowrap; }
+        #df-login .muted{ color:#6e6e6e; font-size:.92rem; }
+        #df-login .util{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+        #df-login .pw-wrap{ position:relative; }
+        #df-login .pw-toggle{ position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:.7; }
+        #df-login .footline{ margin-top:10px; display:flex; justify-content:center; gap:8px; color:#6e6e6e; }
+      `;
+      document.head.appendChild(css);
+    }
+
+    // time/date for footer stripe
+    const now = new Date();
+    const dateNice = now.toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+    const timeNice = now.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+
+    root.innerHTML = `
+      <section id="df-login">
+        <div class="card" role="dialog" aria-label="Login">
+          <div class="brand">
+            <img src="${esc(APP.logo)}" alt="Dowson Farms">
+            <div class="title">${esc(APP.name)}</div>
+          </div>
+
+          <div class="field">
+            <input id="li-email" type="email" inputmode="email" autocomplete="username" placeholder="Email">
+          </div>
+
+          <div class="field pw-wrap">
+            <input id="li-pass" type="password" autocomplete="current-password" placeholder="Password (8+ chars, 1 capital, 1 number)">
+            <span id="pw-toggle" class="pw-toggle" title="Show/Hide">👁️</span>
+          </div>
+
+          <div class="util">
+            <button class="btn-primary" id="li-go">Log In</button>
+            <a id="li-forgot" href="#" class="muted">Forgot password?</a>
+          </div>
+
+          <div class="footline">
+            <span>${dateNice}</span><span>•</span><span>${timeNice}</span><span>•</span><span id="login-version">${esc(APP.version)}</span>
+          </div>
+        </div>
+      </section>
+    `;
+
+    // show/hide password
+    $('#pw-toggle')?.addEventListener('click', ()=>{
+      const p = $('#li-pass'); if (!p) return;
+      p.type = p.type === 'password' ? 'text' : 'password';
+    });
+
+    // login click
+    $('#li-go')?.addEventListener('click', ()=>{
+      const email = String($('#li-email')?.value||'').trim();
+      const pass  = String($('#li-pass')?.value||'');
+      // basic policy: 8+ chars, one capital, one number
+      const ok = pass.length>=8 && /[A-Z]/.test(pass) && /\d/.test(pass);
+      if (!email || !ok){
+        alert('Enter a valid email and a password with 8+ chars, 1 capital, and 1 number.');
+        return;
+      }
+      try { localStorage.setItem('df_user', email); } catch {}
+      location.hash = '#/home';
+    });
+
+    // forgot password (demo stub — real wiring would hit your backend)
+    $('#li-forgot')?.addEventListener('click',(e)=>{
+      e.preventDefault();
+      const email = String($('#li-email')?.value||'').trim();
+      if (!email){ alert('Enter your email first.'); return; }
+      // demo: pretend only demo@dowsonfarms.com exists
+      const known = /^demo@dowsonfarms\.com$/i.test(email);
+      alert( known
+        ? 'Password reset link sent. Check your inbox.'
+        : 'No account found for that email.' );
+    });
+  }
+
+  // ------------------------------
+  // 3) Logout (version-aware)
+  // ------------------------------
+  function doLogout(){
+    try {
+      localStorage.removeItem('df_user');
+      sessionStorage.clear();
+    } catch {}
+
+    // Always try to navigate to login.html with version cache-bust
+    const ver = encodeURIComponent(APP.version||'');
+    const ts  = Date.now();
+    const url = `login.html?v=${ver}&ts=${ts}`;
+
+    // First check if login.html exists, otherwise show inline
+    fetch('login.html', { method:'HEAD' })
+      .then(r => { if (r.ok) location.href = url; else renderLoginInline(); })
+      .catch(() => renderLoginInline());
+  }
+
+  // ------------------------------
+  // 4) Wire any "Logout" button
+  // ------------------------------
+  function wireLogout(){
+    const btn = $('#logoutBtn') || $$('button,a').find(b => (b.textContent||'').trim().toLowerCase()==='logout');
+    if (!btn || btn.dataset.dfWired==='1') return;
+    btn.dataset.dfWired='1';
+    btn.addEventListener('click', (e)=>{ e.preventDefault(); doLogout(); });
+  }
+  window.addEventListener('hashchange', ()=> setTimeout(wireLogout,0), {passive:true});
+  document.addEventListener('click', ()=> setTimeout(wireLogout,0), true);
   if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', ()=>{ wireLogout(); toggleChrome(); }, {once:true});
-  } else { wireLogout(); toggleChrome(); }
+    document.addEventListener('DOMContentLoaded', wireLogout, {once:true});
+  } else {
+    wireLogout();
+  }
 
-  // Expose just in case other parts need it
-  window.DF.renderLoginInline = renderLoginInline;
+  // expose a tiny surface under DF.auth for later parts/tests
+  window.DF = window.DF || {};
+  window.DF.auth = { doLogout, renderLoginInline, applyLoginChrome, wireLogout };
+
 })();
 
 
