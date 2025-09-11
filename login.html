@@ -2,113 +2,94 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Dowson Farms — Sign in</title>
-  <link rel="icon" href="icons/logo.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Dowson Farms — Login</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
-    :root{
-      --bg:#111; --card:#1a1a1a; --fg:#eee; --muted:#a7a7a7;
-      --brand:#134d1d; --bd:#2a2a2a; --input:#111; --ok:#1e7f34; --warn:#c62828;
+    body {
+      display:flex; flex-direction:column; justify-content:center; align-items:center;
+      height:100vh; margin:0; background:#f6f3e4; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     }
-    @media (prefers-color-scheme: light){
-      :root{ --bg:#f6f3e4; --card:#fff; --fg:#1a1a1a; --muted:#6e6e6e; --bd:rgba(0,0,0,.12); --input:#fff; }
+    .login-box {
+      background:#fff; padding:24px; border-radius:16px;
+      box-shadow:0 4px 20px rgba(0,0,0,.1); width:90%; max-width:380px;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--fg);
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      display:flex; align-items:center; justify-content:center; padding:24px;
+    .login-box h1 { margin:0 0 4px; font-size:24px; }
+    .login-box p { margin:0 0 20px; color:#666; }
+    .field { margin:12px 0; }
+    label { display:block; font-weight:600; margin-bottom:6px; }
+    input {
+      width:100%; padding:12px; border-radius:10px;
+      border:1px solid #ccc; font-size:16px;
     }
-    .wrap{width:100%; max-width:680px}
-    .brand{display:flex; align-items:center; gap:12px; margin:0 0 14px;}
-    .brand img{width:44px; height:44px; border-radius:50%}
-    .brand h1{font-size:28px; margin:0; line-height:1.1}
-    .card{
-      background:var(--card); border:1px solid var(--bd); border-radius:16px;
-      padding:22px; box-shadow:0 10px 30px rgba(0,0,0,.3);
+    .pw-wrap { position:relative; }
+    .pw-wrap input { padding-right:70px; }
+    .toggle {
+      position:absolute; top:50%; right:10px; transform:translateY(-50%);
+      background:none; border:0; font-size:14px; cursor:pointer; color:#0f4d1d;
     }
-    .title{font-size:28px; font-weight:800; margin:0 0 10px}
-    .lead{color:var(--muted); margin:0 0 18px}
-    label{display:block; font-weight:600; margin:12px 0 6px}
-    .input{
-      display:flex; align-items:center; gap:8px;
-      background:var(--input); border:1px solid var(--bd); border-radius:12px;
-      padding:10px 12px;
+    .error {
+      display:none; color:#b00020; font-size:14px; margin-top:6px;
     }
-    input{
-      background:transparent; border:0; outline:0; color:var(--fg); width:100%;
-      font-size:16px; -webkit-text-size-adjust:100%;
+    .actions {
+      display:flex; justify-content:space-between; align-items:center; margin-top:20px;
     }
-    .toggle{background:#2b2b2b; border:1px solid var(--bd); color:#ddd; padding:6px 10px; border-radius:10px}
-    .hint{color:var(--muted); font-size:14px; margin:10px 0 16px}
-    .error{color:var(--warn); font-weight:700; margin:12px 0 0; display:none}
-    .row{display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:space-between}
-    .a{color:inherit; text-decoration:underline}
-    .btn{
-      background:var(--brand); color:#fff; border:0; border-radius:12px;
-      padding:12px 18px; font-weight:700; min-width:120px;
+    .btn {
+      background:#0f4d1d; color:#fff; padding:10px 16px; border:0; border-radius:10px;
+      cursor:pointer; font-size:16px; font-weight:600;
     }
-    .foot{
-      display:flex; gap:10px; align-items:center; justify-content:center;
-      color:var(--muted); margin-top:14px; font-weight:600;
+    .link { color:#0f4d1d; text-decoration:none; font-size:14px; }
+    .foot {
+      margin-top:24px; font-size:14px; color:#666; text-align:center;
     }
-    .dot{opacity:.6}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="brand">
-      <img src="icons/logo.png" alt="Logo"><h1>Dowson Farms</h1>
-    </div>
+  <div class="login-box">
+    <h1>Welcome back</h1>
+    <p>Sign in to continue.</p>
 
-    <div class="card" role="form" aria-labelledby="t1">
-      <h2 id="t1" class="title">Welcome back</h2>
-      <p class="lead">Sign in to continue.</p>
-
+    <div class="field">
       <label for="email">Email</label>
-      <div class="input">
-        <input id="email" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com" />
-      </div>
-
-      <label for="pass">Password</label>
-      <div class="input">
-        <input id="pass" type="password" inputmode="text" autocomplete="current-password" placeholder="Your password" />
-        <button id="show" class="toggle" type="button" aria-label="Show or hide password">Show</button>
-      </div>
-
-      <div id="hint" class="hint">Min 6 chars, include <b>1 capital</b> and <b>1 number</b>. Specials allowed.</div>
-      <div id="err" class="error">These credentials are not recognized.</div>
-
-      <div class="row" style="margin-top:8px">
-        <a id="forgot" class="a" href="#">Forgot password?</a>
-        <button id="go" class="btn" type="button">Log In</button>
-      </div>
+      <input id="email" type="email" placeholder="you@example.com">
     </div>
 
-    <div id="foot" class="foot">
-      <span id="today"></span><span id="vDot" class="dot">•</span><span id="ver"></span>
+    <div class="field pw-wrap">
+      <label for="pass">Password</label>
+      <input id="pass" type="password" placeholder="Password">
+      <button type="button" id="togglePass" class="toggle">Show</button>
+    </div>
+
+    <div id="err" class="error">These credentials are not recognized.</div>
+
+    <div class="actions">
+      <a href="#" class="link">Forgot password?</a>
+      <button id="go" class="btn">Log In</button>
     </div>
   </div>
 
+  <div class="foot">
+    <span id="footerDate"></span> • <span id="footerVersion"></span>
+  </div>
+
   <script>
-    // Version from query string (e.g., login.html?v=12.2.11)
-    const v = new URL(location.href).searchParams.get('v') || '';
-    const verEl = document.getElementById('ver');
-    const dotEl = document.getElementById('vDot');
-    if (v) { verEl.textContent = 'v' + v; } else { verEl.textContent = ''; dotEl.style.display='none'; }
+    // Footer date/version
+    function fmtDate(){
+      const d = new Date();
+      return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    }
+    document.getElementById('footerDate').textContent = fmtDate();
+    document.getElementById('footerVersion').textContent = (window.DF?.VERSION || 'v0.0.0');
 
-    // Today (e.g., September 11th 2025)
-    const todayEl = document.getElementById('today');
-    const d = new Date();
-    const nth = (n)=>({1:'st',2:'nd',3:'rd'})[(n%10)] && ![11,12,13].includes(n%100) ? ({1:'st',2:'nd',3:'rd'})[(n%10)] : 'th';
-    todayEl.textContent = d.toLocaleString(undefined,{month:'long'}) + ' ' + d.getDate() + nth(d.getDate()) + ' ' + d.getFullYear();
-
-    // Show/Hide password
-    document.getElementById('show').addEventListener('click', ()=>{
-      const p = document.getElementById('pass');
-      p.type = p.type === 'password' ? 'text' : 'password';
-      document.getElementById('show').textContent = p.type === 'password' ? 'Show' : 'Hide';
+    // Toggle password visibility
+    const passInput = document.getElementById('pass');
+    const toggleBtn = document.getElementById('togglePass');
+    toggleBtn.addEventListener('click',()=>{
+      if (passInput.type === 'password'){
+        passInput.type = 'text'; toggleBtn.textContent='Hide';
+      } else {
+        passInput.type = 'password'; toggleBtn.textContent='Show';
+      }
     });
 
     // Validation helpers
@@ -129,24 +110,13 @@
         err.style.display = 'block';
         return;
       }
-      // Accept demo account on this build
       if (email === DEMO.email && pass === DEMO.pass) {
         try { localStorage.setItem('df_user', email); } catch {}
-        location.replace('./#\/home'); // go to app
+        location.replace('./#/home'); // go to app
         return;
       }
-      // In production you’d POST to your auth API here…
       err.textContent = 'These credentials are not recognized.';
       err.style.display = 'block';
-    });
-
-    // Forgot password (stub)
-    document.getElementById('forgot').addEventListener('click', (e)=>{
-      e.preventDefault();
-      const email = (document.getElementById('email').value||'').trim();
-      if (!email) { alert('Enter your email first.'); return; }
-      // You would call your backend to send a reset email.
-      alert('If an account exists for ' + email + ', a reset link will be sent.');
     });
   </script>
 </body>
