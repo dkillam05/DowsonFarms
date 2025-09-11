@@ -407,3 +407,326 @@
 
   registerSW();
 })();
+
+/* =========================================================
+   Dowson Farms — v12.0.0
+   app.js — PART 5: Reports + Feedback (forms & pre-made)
+   ========================================================= */
+(function DF_APP_P5(){
+  'use strict';
+  if (window.__DF_APP_P5__) return;
+  window.__DF_APP_P5__ = true;
+
+  // ---------- Safe shims (no-op if core already defined) ----------
+  const $ = (s, r=document)=>r.querySelector(s);
+  const esc = s => String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m]));
+  const nl2br = s => esc(s).replace(/\n/g,'<br>');
+  const fmt = (n) => (typeof window.fmtCommas==='function' ? window.fmtCommas(n) : (Number(n).toLocaleString?.() ?? String(n)));
+  const pretty = (d) => (typeof window.prettyDate==='function' ? window.prettyDate(d) : new Date(d).toLocaleDateString());
+  const appEl = ()=> (window.app || document.getElementById('app') || document.body);
+
+  function tile(emoji,label,href){
+    if (typeof window.tile === 'function') return window.tile(emoji,label,href);
+    return `<a class="tile" href="${href}"><span class="emoji">${emoji}</span><span class="label">${esc(label)}</span></a>`;
+  }
+
+  // ---------- LocalStorage helpers ----------
+  function lsGet(key, fb){
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fb; } catch { return fb; }
+  }
+  function lsSet(key, val){
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  }
+
+  // Feedback storage (shared)
+  function loadFeedback(){ return lsGet('df_feedback', []); }
+  function saveFeedback(entry){
+    const list = loadFeedback(); list.push(entry); lsSet('df_feedback', list);
+  }
+
+  // Grain-bag data (for pre-made report). Falls back to empty.
+  function loadBags(){
+    // Support any prior keys you used
+    const a = lsGet('df_bags', null);
+    const b = lsGet('df_grain_bags', null);
+    return Array.isArray(a) ? a : (Array.isArray(b) ? b : []);
+  }
+
+  // ---------- REPORTS: Hub ----------
+  window.viewReportsHub = function viewReportsHub(){
+    appEl().innerHTML = `
+      <section class="section">
+        <h1>Reports</h1>
+        <div class="grid">
+          ${tile('📄','Pre-made Reports','#/ai/premade')}
+          ${tile('🤖','AI Reports','#/ai/ai')}
+          ${tile('📊','Yield Report','#/ai/yield')}
+        </div>
+        <section class="section" style="margin-top:12px;">
+          <h2>🔮 Future</h2>
+          <p class="muted">ChatGPT integration to generate & save custom reports is planned.</p>
+        </section>
+        <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+      </section>
+    `;
+  };
+
+  // ---------- REPORTS: Pre-made picker ----------
+  window.viewReportsPremade = function viewReportsPremade(){
+    appEl().innerHTML = `
+      <section class="section">
+        <h1>Pre-made Reports</h1>
+        <div class="grid">
+          ${tile('🧾','Feedback Summary','#/ai/premade/feedback')}
+          ${tile('🧺','Grain Bag Report','#/ai/premade/grain-bags')}
+        </div>
+        <div class="section"><a class="btn" href="#/ai">Back to Reports</a></div>
+      </section>
+    `;
+  };
+
+  // ---------- REPORTS: Feedback Summary ----------
+  window.viewReportsPremadeFeedback = function viewReportsPremadeFeedback(){
+    const items = loadFeedback().sort((a,b)=> (a.ts||0)-(b.ts||0));
+    const rows = items.map((it,i)=>{
+      const when = it.date ? it.date : (it.ts ? new Date(it.ts).toLocaleString() : '');
+      const kind = it.type==='feature' ? 'Feature' : 'Error';
+      const subj = esc(it.subject||'');
+      const dets = nl2br(it.details||'');
+      const by   = esc(it.by||'');
+      const main = esc(it.main||'');
+      const sub  = esc(it.sub||'');
+      const cat  = esc(it.category||'');
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${when}</td>
+        <td>${kind}</td>
+        ${main||sub||cat ? `<td>${main}</td><td>${sub}</td><td>${cat}</td>` : ''}
+        <td>${subj}</td>
+        <td>${dets}</td>
+        <td>${by}</td>
+      </tr>`;
+    }).join('');
+
+    // Include Main/Sub/Category columns only if at least one record has them
+    const hasMSC = items.some(x => x && (x.main || x.sub || x.category));
+
+    appEl().innerHTML = `
+      <section class="report-page">
+        <header class="report-head">
+          <div class="head-left">
+            <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+            <div class="org">
+              <div class="org-name">Dowson Farms</div>
+              <div class="org-sub">Pre-Made Report</div>
+            </div>
+          </div>
+          <div class="head-right">
+            <div class="r-title">Feedback Summary</div>
+            <div class="r-date">${pretty(new Date())}</div>
+          </div>
+        </header>
+
+        <div class="report-body watermark">
+          ${items.length ? `
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>When</th>
+                <th>Type</th>
+                ${hasMSC ? '<th>Main</th><th>Sub</th><th>Category</th>' : ''}
+                <th>Subject</th>
+                <th>Details</th>
+                <th>Submitted By</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>` : `<p class="muted">No feedback saved yet.</p>`}
+        </div>
+
+        <footer class="report-foot">
+          <div>${typeof window.displayVersion==='function' ? window.displayVersion(window.APP_VERSION||'v12.0.0') : (window.APP_VERSION||'v12.0.0')}</div>
+          <div class="page-num">Page 1</div>
+        </footer>
+
+        <div class="report-actions hidden-print">
+          <button class="btn-primary" id="print-report">Print / Save PDF</button>
+          <a class="btn" href="#/ai/premade">Back</a>
+        </div>
+      </section>
+    `;
+    $('#print-report')?.addEventListener('click', ()=>window.print());
+  };
+
+  // ---------- REPORTS: Grain Bag Report (group by location) ----------
+  window.viewReportsPremadeGrainBags = function viewReportsPremadeGrainBags(){
+    const bags = loadBags();
+    const byLoc = {};
+    for (const b of bags) {
+      const loc = b?.location || 'Unspecified';
+      (byLoc[loc] ||= []).push(b);
+    }
+
+    let grandTotal = 0;
+    const sections = Object.keys(byLoc).sort().map(loc=>{
+      const rows = byLoc[loc].map(b=>{
+        const bus = Number(b?.bushels||0); grandTotal += bus;
+        return `<tr>
+          <td>${esc(b?.date||'')}</td>
+          <td>${esc(b?.crop||'')}</td>
+          <td class="num">${fmt(bus)}</td>
+          <td>${esc(b?.notes||'')}</td>
+        </tr>`;
+      }).join('');
+
+      const locTotal = byLoc[loc].reduce((s,x)=>s + Number(x?.bushels||0), 0);
+      return `
+        <h3 class="section-head">${esc(loc)}</h3>
+        <table class="report-table compact">
+          <thead><tr><th>Date</th><th>Crop</th><th class="num">Est. Bu</th><th>Notes</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="2" class="num">Subtotal</td><td class="num">${fmt(locTotal)}</td><td></td></tr></tfoot>
+        </table>
+      `;
+    }).join('') || `<p class="muted">No grain bags recorded yet.</p>`;
+
+    appEl().innerHTML = `
+      <section class="report-page">
+        <header class="report-head">
+          <div class="head-left">
+            <img src="icons/logo.png" alt="Dowson Farms" class="report-logo">
+            <div class="org">
+              <div class="org-name">Dowson Farms</div>
+              <div class="org-sub">Pre-Made Report</div>
+            </div>
+          </div>
+          <div class="head-right">
+            <div class="r-title">Grain Bag Report</div>
+            <div class="r-date">${pretty(new Date())}</div>
+          </div>
+        </header>
+
+        <div class="report-body watermark">
+          ${sections}
+          ${bags.length ? `
+            <div class="grand-total">
+              <div><strong>Grand Total (Est. Bushels):</strong> ${fmt(grandTotal)}</div>
+              <div class="muted small">Average moisture: (tracking to be added)</div>
+            </div>
+          `:''}
+        </div>
+
+        <footer class="report-foot">
+          <div>${typeof window.displayVersion==='function' ? window.displayVersion(window.APP_VERSION||'v12.0.0') : (window.APP_VERSION||'v12.0.0')}</div>
+          <div class="page-num">Page 1</div>
+        </footer>
+
+        <div class="report-actions hidden-print">
+          <button class="btn-primary" id="print-report">Print / Save PDF</button>
+          <a class="btn" href="#/ai/premade">Back</a>
+        </div>
+      </section>
+    `;
+    $('#print-report')?.addEventListener('click', ()=>window.print());
+  };
+
+  // ---------- REPORTS: placeholders for AI / Yield (wired later) ----------
+  window.viewReportsAI = window.viewReportsAI || function(){ appEl().innerHTML = `
+    <section class="section">
+      <h1>AI Reports</h1>
+      <p class="muted">Coming soon.</p>
+      <a class="btn" href="#/ai">Back to Reports</a>
+    </section>`; };
+
+  window.viewReportsYield = window.viewReportsYield || function(){ appEl().innerHTML = `
+    <section class="section">
+      <h1>Yield Report</h1>
+      <p class="muted">Coming soon.</p>
+      <a class="btn" href="#/ai">Back to Reports</a>
+    </section>`; };
+
+  // ---------- FEEDBACK: Hub ----------
+  window.viewFeedbackHub = function viewFeedbackHub(){
+    appEl().innerHTML = `
+      <section class="section">
+        <h1>Feedback</h1>
+        <div class="grid">
+          ${tile('🛠️','Report Errors','#/feedback/errors')}
+          ${tile('💡','New Feature Request','#/feedback/feature')}
+          ${tile('🧾','Summary Report','#/ai/premade/feedback')}
+        </div>
+        <div class="section"><a class="btn" href="#/home">Back to Dashboard</a></div>
+      </section>
+    `;
+  };
+
+  // ---------- FEEDBACK: Report Errors ----------
+  window.viewFeedbackErrors = function viewFeedbackErrors(){
+    const today = new Date().toISOString().slice(0,10);
+    const user = (localStorage.getItem('df_user')||'').trim();
+    appEl().innerHTML = `
+      <section class="section">
+        <h1>🛠️ Report Errors</h1>
+        <div class="field"><label class="choice"><input id="err-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+        <div class="field"><input id="err-subj" type="text" placeholder="Subject *"></div>
+        <div class="field"><textarea id="err-desc" rows="5" placeholder="What happened? *"></textarea></div>
+        <div class="field"><input id="err-by" type="text" placeholder="Submitted by" value="${esc(user)}"></div>
+        <button id="err-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+      </section>
+    `;
+    $('#err-submit')?.addEventListener('click', ()=>{
+      const date=String($('#err-date').value||'').trim();
+      const subject=String($('#err-subj').value||'').trim();
+      const details=String($('#err-desc').value||'').trim();
+      const by=String($('#err-by').value||'').trim();
+      if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
+      saveFeedback({type:'error', date, subject, details, by, ts:Date.now()});
+      alert('Thanks! Your error report was saved.'); location.hash='#/feedback';
+    });
+  };
+
+  // ---------- FEEDBACK: Feature Request ----------
+  window.viewFeedbackFeature = function viewFeedbackFeature(){
+    const today = new Date().toISOString().slice(0,10);
+    const user = (localStorage.getItem('df_user')||'').trim();
+    appEl().innerHTML = `
+      <section class="section">
+        <h1>💡 New Feature Request</h1>
+        <div class="field"><label class="choice"><input id="feat-date" type="date" value="${today}"> <span class="small muted">Date (Required)</span></label></div>
+        <div class="field"><input id="feat-subj" type="text" placeholder="Feature title *"></div>
+        <div class="field"><textarea id="feat-desc" rows="5" placeholder="Describe the idea *"></textarea></div>
+        <div class="field"><input id="feat-by" type="text" placeholder="Submitted by" value="${esc(user)}"></div>
+        <button id="feat-submit" class="btn-primary">Submit</button> <a class="btn" href="#/feedback">Back to Feedback</a>
+      </section>
+    `;
+    $('#feat-submit')?.addEventListener('click', ()=>{
+      const date=String($('#feat-date').value||'').trim();
+      const subject=String($('#feat-subj').value||'').trim();
+      const details=String($('#feat-desc').value||'').trim();
+      const by=String($('#feat-by').value||'').trim();
+      if(!date||!subject||!details){ alert('Please fill the required fields.'); return; }
+      saveFeedback({type:'feature', date, subject, details, by, ts:Date.now()});
+      alert('Thanks! Your feature request was saved.'); location.hash='#/feedback';
+    });
+  };
+
+  // ---------- Optional: tiny router hooks if your router isn’t wired yet ----------
+  // If your central router is already handling these hashes, this is harmless.
+  window.addEventListener('hashchange', miniRoute, { passive:true });
+  document.addEventListener('DOMContentLoaded', miniRoute, { once:true });
+  function miniRoute(){
+    const h = location.hash || '#/home';
+    if      (h==='#/ai')                       return window.viewReportsHub?.();
+    else if (h==='#/ai/premade')               return window.viewReportsPremade?.();
+    else if (h==='#/ai/premade/feedback')      return window.viewReportsPremadeFeedback?.();
+    else if (h==='#/ai/premade/grain-bags')    return window.viewReportsPremadeGrainBags?.();
+    else if (h==='#/ai/ai')                    return window.viewReportsAI?.();
+    else if (h==='#/ai/yield')                 return window.viewReportsYield?.();
+    else if (h==='#/feedback')                 return window.viewFeedbackHub?.();
+    else if (h==='#/feedback/errors')          return window.viewFeedbackErrors?.();
+    else if (h==='#/feedback/feature')         return window.viewFeedbackFeature?.();
+  }
+
+})(); // end PART 5
+
