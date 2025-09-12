@@ -133,3 +133,37 @@ body{ background: var(--df-bg) !important; }
 
 .bc-sep{ color: rgba(0,0,0,.35); }
 
+/* ===== v12.6.x – Tile contrast hardening + force light UI ===== */
+
+/* Stop UA dark-mode auto theming */
+html { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  html { color-scheme: light; } /* keep our chosen colors */
+}
+
+/* Keep our warm paper background, even if the OS is dark */
+body { background: var(--df-cream) !important; }
+
+/* Tiles and subtiles should always be high-contrast on white */
+.df-tile,
+.df-subtile,
+.card {
+  background: #ffffff !important;
+  color: #111111 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04);
+}
+
+.df-tile .df-label,
+.df-subtile span,
+.card h3 {
+  color: #111111 !important;
+  opacity: 1 !important;
+}
+
+/* Emoji and icons should never be dimmed */
+.df-emoji,
+.df-subtile .em { filter: none !important; opacity: 1 !important; }
+
+/* Safety: ensure links inside tiles don’t pick odd visited colors */
+.df-tile, .df-tile:link, .df-tile:visited { color: #111111 !important; text-decoration: none; }
+
