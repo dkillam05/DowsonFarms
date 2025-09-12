@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v14.20.0',
+    version: 'v14.30.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -510,22 +510,22 @@
 
 
 /* =========================================================
-   Part 6 — Menus & Submenus (robust routing)
-   - Top tiles (Home)
-   - Submenu grids for each section
-   - Handles #/feedback and #/settings correctly
-   - Unifies tile classes + sets section hooks for CSS
+   APP v13 — Part 6: Menus, Submenus, Breadcrumbs
+   - Uniform tiles/classes for CSS to style consistently
+   - Route flag on <body data-route="..."> for section styling
+   - No duplicate "Home" in breadcrumbs
    ========================================================= */
-(function DF_V12_P6_MENUS(){
+(function DF_V13_P6_MENUS(){
   'use strict';
-  if (window.__DF_V12_P6__) return; window.__DF_V12_P6__ = true;
+  if (window.__DF_V13_P6__) return; window.__DF_V13_P6__ = true;
 
-  // tiny helpers
+  // ---------- tiny helpers ----------
   const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
   const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const app = ()=> $('#app');
+  const root = ()=> $('#app');
 
-  // Same top-level tiles (kept here for label/emoji lookup)
+  // ---------- home tiles ----------
   const HOME_TILES = [
     { href:'#/crop',     icon:'🌽', label:'Crop Production' },
     { href:'#/grain',    icon:'🌾', label:'Grain Tracking' },
@@ -537,7 +537,7 @@
     { href:'#/settings', icon:'⚙️', label:'Setups / Settings' },
   ];
 
-  // Submenus
+  // ---------- submenus ----------
   const SUBMENUS = {
     '#/crop': [
       { href:'#/crop/planting',  icon:'🌱', label:'Planting' },
@@ -565,11 +565,11 @@
       { href:'#/equip/impl',      icon:'⚙️', label:'Farm Implements' },
     ],
     '#/calc': [
-      { href:'#/calc/fertilizer', icon:'🧮', label:'Fertilizer' },
-      { href:'#/calc/bin',        icon:'📦', label:'Bin Volume' },
+      { href:'#/calc/fertilizer', icon:'🧪', label:'Fertilizer' },
+      { href:'#/calc/bin',        icon:'🛢️', label:'Bin Volume' },
       { href:'#/calc/area',       icon:'📐', label:'Area' },
-      { href:'#/calc/yield',      icon:'🌾', label:'Combine Yield' },
-      { href:'#/calc/chem',       icon:'🧪', label:'Chemical Mix' },
+      { href:'#/calc/yield',      icon:'🌽', label:'Combine Yield' },
+      { href:'#/calc/chem',       icon:'🧴', label:'Chemical Mix' },
     ],
     '#/reports': [
       { href:'#/reports/premade', icon:'📑', label:'Pre-made Reports' },
@@ -597,94 +597,169 @@
     ],
   };
 
-  const TOP_BASES = Object.keys(SUBMENUS); // all top-level sections
+  // ---------- route utilities ----------
+  const TOPS = Object.keys(SUBMENUS); // ['#/crop', '#/grain', ...]
+  const titleForTop = (hashTop)=>{
+    const item = HOME_TILES.find(t => t.href === hashTop);
+    return item ? item.label : '';
+  };
 
-  function setSectionByHash(baseHash){
-    const name = (baseHash || '#/home').replace(/^#\//,''); // e.g., 'calc'
-    try {
-      document.body.dataset.route = name || 'home';
-      const root = app(); if (root) root.setAttribute('data-section', name || 'home');
-    } catch {}
+  function setRouteFlag(){
+    const h = (location.hash || '#/home').replace(/\/+$/,'');
+    const top = h.startsWith('#/') ? h.slice(2).split('/')[0] : 'home';
+    document.body.setAttribute('data-route', top || 'home');        // e.g., "calc"
+    const appEl = root();
+    if (appEl) appEl.dataset.section = top || 'home';               // e.g., data-section="calc"
   }
 
-  function renderSubmenu(baseHash, title, emoji){
-    const items = SUBMENUS[baseHash] || [];
-    const root = app(); if (!root) return;
-    setSectionByHash(baseHash); // <-- crucial for CSS hooks (calc page!)
-    root.innerHTML = `
+  // ---------- breadcrumbs ----------
+  function renderBreadcrumbs(h){
+    const bar = $('#breadcrumbs');
+    if (!bar) return;
+
+    const norm = (h||'').replace(/\/+$/,'') || '#/home';
+    const parts = norm.slice(2).split('/'); // ['home'] or ['crop','planting']
+    const crumbs = [];
+
+    // Always Home (link unless already on home)
+    crumbs.push({ href:'#/home', label:'Home', link: norm !== '#/home' });
+
+    // Top section (if exists)
+    if (parts[0] && parts[0] !== 'home'){
+      const topHash = `#/${parts[0]}`;
+      crumbs.push({ href: topHash, label: titleForTop(topHash), link: norm !== topHash });
+    }
+
+    // Leaf (humanize last segment)
+    if (parts.length > 1){
+      const leaf = parts.slice(-1)[0]
+        .replace(/[-_]/g,' ')
+        .replace(/\b\w/g, m=>m.toUpperCase());
+      crumbs.push({ href: norm, label: leaf, link:false });
+    }
+
+    bar.innerHTML = `
+      <div class="inner">
+        ${crumbs.map((c,i)=>{
+          const sep = i ? `<span class="bc-sep" aria-hidden="true">›</span>` : '';
+          const node = c.link ? `<a class="bc-link" href="${c.href}">${esc(c.label)}</a>`
+                              : `<span class="bc-current">${esc(c.label)}</span>`;
+          return `${sep}${node}`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // ---------- renderers ----------
+  function renderHome(){
+    setRouteFlag();
+    renderBreadcrumbs('#/home');
+    const el = root(); if (!el) return;
+    el.innerHTML = `
       <section class="section">
-        <h1>${emoji} ${esc(title)}</h1>
+        <h1>Home</h1>
+        <div class="df-tiles">
+          ${HOME_TILES.map(t=>`
+            <a class="df-tile" href="${t.href}" aria-label="${esc(t.label)}">
+              <div class="df-emoji">${t.icon}</div>
+              <div class="df-label">${esc(t.label)}</div>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderSubmenu(baseHash){
+    setRouteFlag();
+    renderBreadcrumbs(baseHash);
+    const list = SUBMENUS[baseHash] || [];
+    const title = titleForTop(baseHash);
+    const topIcon = (HOME_TILES.find(t=>t.href===baseHash)?.icon) || '📁';
+
+    const el = root(); if (!el) return;
+    el.innerHTML = `
+      <section class="section">
+        <h1>${topIcon} ${esc(title)}</h1>
         <div class="df-subtiles">
-          ${items.map(it=>`
-            <a class="df-subtile df-tile-unified" href="${it.href}" data-nav="subtile">
+          ${list.map(it=>`
+            <a class="df-subtile" href="${it.href}">
               <span class="em">${it.icon}</span>
               <span class="df-label">${esc(it.label)}</span>
             </a>
           `).join('')}
         </div>
-        <p class="muted" style="margin-top:12px;">
+
+        <p style="margin-top:14px">
+          <a class="btn-back" href="#/home" aria-label="Back to Home">← Back to Home</a>
+        </p>
+      </section>
+    `;
+  }
+
+  function renderLeaf(fullHash){
+    setRouteFlag();
+    renderBreadcrumbs(fullHash);
+    // Try to find a matching entry to show icon/title
+    let title = fullHash.replace(/^#\//,'').split('/').slice(-1)[0]
+      .replace(/[-_]/g,' ')
+      .replace(/\b\w/g, m=>m.toUpperCase());
+    let icon = '📄';
+
+    for (const base of TOPS){
+      const match = (SUBMENUS[base] || []).find(x => x.href === fullHash);
+      if (match){ title = match.label; icon = match.icon; break; }
+    }
+
+    const parent = '#/' + fullHash.replace(/^#\//,'').split('/')[0];
+
+    const el = root(); if (!el) return;
+    el.innerHTML = `
+      <section class="section">
+        <h1>${icon} ${esc(title)}</h1>
+        <p class="muted">Screen scaffold — coming soon.</p>
+        <p style="margin-top:14px; display:flex; gap:10px;">
+          <a class="btn-back" href="${parent}">← Back to ${esc(titleForTop(parent) || 'Menu')}</a>
           <a class="btn-back" href="#/home">← Back to Home</a>
         </p>
       </section>
     `;
-    try { window.DF?.ui?.paintBreadcrumbs?.(['Home', title]); } catch {}
-    scrollTo(0,0);
   }
 
-  function renderLeaf(title, emoji, baseHash){
-    const root = app(); if (!root) return;
-    setSectionByHash(baseHash);
-    root.innerHTML = `
-      <section class="section">
-        <h1>${emoji} ${esc(title)}</h1>
-        <p class="muted">Screen scaffold — coming back step-by-step.</p>
-        <p class="muted"><a class="btn-back" href="${baseHash||'#/home'}">← Back</a></p>
-      </section>
-    `;
-    try { window.DF?.ui?.paintBreadcrumbs?.(['Home', (HOME_TILES.find(t=>t.href===baseHash)?.label||''), title]); } catch {}
-    scrollTo(0,0);
+  // ---------- routing ----------
+  function normalize(h){
+    if (!h || h === '#') return '#/home';
+    return h.replace(/\/+$/,'');
   }
 
   function routeMenus(){
-    const h = (location.hash||'').replace(/\/+$/,'') || '#/home';
+    const h = normalize(location.hash);
+    setRouteFlag();
 
-    // home is handled by Part 5, but keep a gentle fallback:
-    if (h === '#/home' || h === '#/' || h === '#') {
-      try { window.DF?.renderHome?.(); } catch {}
-      return true;
-    }
+    // Home
+    if (h === '#/home' || h === '#/') { renderHome(); scrollTo(0,0); return true; }
 
-    // exact top-level submenu match
-    if (TOP_BASES.includes(h)){
-      const tile = HOME_TILES.find(t=>t.href===h) || {label:'',icon:''};
-      renderSubmenu(h, tile.label, tile.icon);
-      return true;
-    }
+    // Top-level menus
+    if (TOPS.includes(h)){ renderSubmenu(h); scrollTo(0,0); return true; }
 
-    // leaf routes (anything deeper than a top base)
-    const base = TOP_BASES.find(b=>h.startsWith(b+'/'));
-    if (base){
-      const sub = (SUBMENUS[base]||[]).find(x=>x.href===h);
-      if (sub) { renderLeaf(sub.label, sub.icon, base); return true; }
-      renderLeaf(h.replace(/^#\//,''), '📄', base); return true;
-    }
+    // Leaf pages
+    const base = TOPS.find(b => h.startsWith(b + '/'));
+    if (base){ renderLeaf(h); scrollTo(0,0); return true; }
 
-    return false; // allow other parts to try
+    return false; // let other parts handle
   }
 
-  // robust hash-link delegation (works for dynamically rendered tiles)
+  // ---------- robust link delegation for hash links ----------
   document.addEventListener('click', (e)=>{
     const a = e.target.closest('a[href^="#/"]');
     if (!a) return;
     e.preventDefault();
     const to = a.getAttribute('href');
-    if (to && to !== location.hash) {
-      location.hash = to;
-    } else {
-      routeMenus(); // same-hash click still forces render
-    }
+    if (to && to !== location.hash){ location.hash = to; }
+    else { routeMenus(); } // same-hash re-render
   }, true);
 
+  // ---------- boot ----------
   window.addEventListener('hashchange', routeMenus, { passive:true });
   if (document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', routeMenus, { once:true });
