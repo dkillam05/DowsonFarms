@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.6.0',
+    version: 'v13.7.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4104,3 +4104,115 @@
     styleBackLinks(document);
   }
 })();
+
+/* =========================================================
+   APP v13.x — Part 49: Sticky crumbs + tile normalize + back button
+   - Breadcrumbs stick under header (accounts for header height)
+   - Tiles unified (main + submenus + calculators), labels auto-shrink
+   - “Back to …” links upgraded to consistent button style
+   ========================================================= */
+(function DF_V13_P49_UI_POLISH(){
+  'use strict';
+  if (window.__DF_V13_P49__) return; window.__DF_V13_P49__ = true;
+
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+
+  // ============== 1) Sticky breadcrumbs under header ==============
+  function setHeaderOffset(){
+    const head = $('#header');
+    const h = head ? head.getBoundingClientRect().height : 0;
+    // expose a CSS var that the breadcrumb bar uses for sticky top
+    document.documentElement.style.setProperty('--df-head-h', Math.round(h)+'px');
+  }
+
+  function ensureStickyCrumbs(){
+    const bc = $('#breadcrumbs');
+    if (!bc) return;
+    bc.classList.add('df-crumbs-sticky'); // CSS handles sticky + colors
+    // ensure an inner wrapper for padding/scroll
+    if (!bc.querySelector('.inner')){
+      const wrap = document.createElement('div');
+      wrap.className = 'inner';
+      while (bc.firstChild) wrap.appendChild(bc.firstChild);
+      bc.appendChild(wrap);
+    }
+  }
+
+  // ============== 2) Tile normalization (look & label fit) ==============
+  function normalizeTiles(ctx=document){
+    // both home tiles (.df-tile) and submenu tiles (.df-subtile)
+    const tiles = $$('.df-tile, .df-subtile, .card', ctx);
+    for (const t of tiles){
+      t.classList.add('df-tile-unified'); // CSS gives common bg/border/text
+      // find label element or synthesize one for subtiles
+      let label = t.querySelector('.df-label') ||
+                  t.querySelector('span, .label, .title, h3');
+      if (!label) continue;
+
+      // one-line, no-wrap, then autoshrink to fit width
+      label.classList.add('df-oneline');
+      autoShrink(label, 14); // min font-size px
+      // helpful tooltip for longer names
+      if (!label.title) label.title = label.textContent.trim();
+    }
+  }
+
+  // shrink text so it fits its parent width on a single line
+  function autoShrink(el, minPx){
+    const parent = el.parentElement || el;
+    // Start from computed size, reduce until it fits or hit min
+    const style = getComputedStyle(el);
+    let size = parseFloat(style.fontSize) || 20;
+    el.style.whiteSpace = 'nowrap';
+    el.style.display = 'inline-block';
+    for (let i=0; i<12; i++){
+      if (el.scrollWidth <= parent.clientWidth - 16) break; // small padding allowance
+      size -= 1;
+      if (size <= minPx) { size = minPx; break; }
+      el.style.fontSize = size + 'px';
+    }
+  }
+
+  // ============== 3) Back link → button ==============================
+  function upgradeBackLinks(ctx=document){
+    const links = $$('a', ctx).filter(a=>{
+      const txt = (a.textContent || '').trim().toLowerCase();
+      return txt.startsWith('back to ') || txt === 'back' || a.classList.contains('back-link');
+    });
+    for (const a of links){
+      a.classList.add('btn','btn-back');               // unified style
+      if (!a.dataset.iconified){
+        a.dataset.iconified = '1';
+        a.innerHTML = '←&nbsp;' + a.innerHTML.trim();  // small arrow
+      }
+    }
+  }
+
+  // ============== Boot & keep fresh =================================
+  function runAll(ctx=document){
+    setHeaderOffset();
+    ensureStickyCrumbs();
+    normalizeTiles(ctx);
+    upgradeBackLinks(ctx);
+  }
+
+  // Run initially and whenever content changes (route changes)
+  const runSoon = ()=>requestAnimationFrame(()=>runAll(document));
+  window.addEventListener('resize', setHeaderOffset, {passive:true});
+  window.addEventListener('orientationchange', setHeaderOffset, {passive:true});
+  window.addEventListener('hashchange', runSoon, {passive:true});
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', runSoon, {once:true});
+  } else { runSoon(); }
+
+  // If your app swaps #app innerHTML, call window.DF?.afterRender?.()
+  window.DF = window.DF || {};
+  const prevAfter = window.DF.afterRender;
+  window.DF.afterRender = function(ctx){
+    if (typeof prevAfter === 'function') prevAfter(ctx);
+    runAll(ctx || document);
+  };
+})();
+
