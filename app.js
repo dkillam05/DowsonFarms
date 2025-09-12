@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.9.0',
+    version: 'v13.10.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4362,4 +4362,46 @@
   `;
   document.head.appendChild(css);
 })();
+
+/* ===========================================
+   Part 52 — Consistent Typography & Styling
+   =========================================== */
+(function DF_V13_P50(){
+  'use strict';
+  if (window.__DF_V13_P50__) return;
+  window.__DF_V13_P50__ = true;
+
+  const css = `
+    /* 14px bold everywhere on tiles */
+    .df-tile, .df-subtile, .card {
+      font-size:14px !important; font-weight:700 !important; text-align:center !important;
+    }
+    .df-label, .df-subtile span, .card h3, .df-tile span {
+      font-size:14px !important; font-weight:700 !important;
+    }
+
+    /* Back button (small, dark) */
+    .btn-back{
+      background:#111 !important; color:#f9f9f2 !important;
+      border:1px solid #333 !important; border-radius:6px !important;
+      font-size:13px !important; font-weight:600 !important; padding:6px 12px !important;
+    }
+    .btn-back:hover{ background:#222 !important; }
+
+    /* Footer spacing/height */
+    .site-foot .foot-inner{ padding:6px 12px !important; font-size:12px !important; gap:20px !important; }
+
+    /* Dark mode tile unification (incl. Calculators) */
+    @media (prefers-color-scheme: dark){
+      .df-tile, .df-subtile, .card{
+        background:#111315 !important; color:#f9f9f2 !important;
+        border:1px solid #1f6a33 !important; box-shadow:none !important;
+      }
+      .df-tile .df-label, .df-subtile span, .card h3 { color:#f9f9f2 !important; }
+    }
+  `;
+  const s = document.createElement('style'); s.textContent = css;
+  document.head.appendChild(s);
+})();
+
 
