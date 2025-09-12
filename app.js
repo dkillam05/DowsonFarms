@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.5.0',
+    version: 'v13.6.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4072,4 +4072,35 @@
     document.addEventListener('DOMContentLoaded', init, {once:true});
   } else { init(); }
   window.addEventListener('hashchange', render, {passive:true});
+})();
+
+/* =========================================================
+   APP v13.x — Part 48: Back-link Normalizer
+   - Finds any "Back to ..." anchors rendered by screens
+   - Gives them the nice button look used on Employees page
+   - No changes required in individual screens
+   ========================================================= */
+(function DF_V13_P47_BACKLINKS(){
+  'use strict';
+  if (window.__DF_V13_P47__) return; window.__DF_V13_P47__ = true;
+
+  function styleBackLinks(root=document){
+    const links = Array.from(root.querySelectorAll('a'));
+    for (const a of links){
+      const t = (a.textContent || '').trim();
+      if (/^(\u2190|←)?\s*Back\b/i.test(t)){   // matches "Back to Home", "← Back…" etc.
+        a.classList.add('back-link');
+      }
+    }
+  }
+
+  // Run after each route paint
+  document.addEventListener('DF:route:paint', () => styleBackLinks(document), {passive:true});
+
+  // Also run once now (in case something already rendered)
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', () => styleBackLinks(document), { once:true });
+  } else {
+    styleBackLinks(document);
+  }
 })();
