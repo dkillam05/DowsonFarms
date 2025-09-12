@@ -203,3 +203,62 @@ body[data-theme="light"] .card{
 @media (display-mode: standalone){
   .site-head{ padding-top:env(safe-area-inset-top, 6px); }
 }
+
+/* === FINAL OVERRIDE: Dark mode tiles are dark everywhere === */
+@media (prefers-color-scheme: dark){
+  /* Auto-dark unless user has explicitly forced light with data-theme="light" */
+  body:not([data-theme="light"]) :where(
+    .df-tiles > a,
+    .df-tiles .df-tile,
+    .df-subtiles > a,
+    .df-subtiles .df-subtile,
+    .card
+  ){
+    background:#111315 !important;
+    color:#f9f9f2 !important;
+    border:1px solid #1f6a33 !important;
+    box-shadow:none !important;
+  }
+
+  /* Make sure text inside tiles inherits the light color */
+  body:not([data-theme="light"]) :where(
+    .df-tile .df-label,
+    .df-subtile .df-label,
+    .df-subtile span,
+    .card h3,
+    .card span
+  ){ color:inherit !important; }
+
+  /* Calculators: belt-and-suspenders (if that view uses different wrappers) */
+  body:not([data-theme="light"]) :where(
+    main a[href^="#/calc"],
+    #calculators .tile,
+    .calc-grid > *,
+    .calc-tiles > *,
+    .calc-list > *
+  ){
+    background:#111315 !important;
+    color:#f9f9f2 !important;
+    border:1px solid #1f6a33 !important;
+    box-shadow:none !important;
+  }
+}
+
+/* If you ever force dark via <body data-theme="dark"> mirror the same look */
+body[data-theme="dark"] :where(
+  .df-tiles > a,
+  .df-tiles .df-tile,
+  .df-subtiles > a,
+  .df-subtiles .df-subtile,
+  .card,
+  main a[href^="#/calc"],
+  #calculators .tile,
+  .calc-grid > *,
+  .calc-tiles > *,
+  .calc-list > *
+){
+  background:#111315 !important;
+  color:#f9f9f2 !important;
+  border:1px solid #1f6a33 !important;
+  box-shadow:none !important;
+}
