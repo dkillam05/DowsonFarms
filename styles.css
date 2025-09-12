@@ -311,3 +311,68 @@ body[data-route="calculators"] .df-tiles > *[aria-disabled]{
   filter: none !important;
   pointer-events: auto !important;
 }
+
+/* ==== Patch: labels fit, sticky breadcrumbs, calculators dark ==== */
+
+/* 1) Long labels stay inside the tile */
+.df-label,
+.df-subtile span{
+  white-space: normal !important;        /* allow wrapping */
+  overflow-wrap: anywhere !important;    /* break long words */
+  word-break: break-word !important;
+  line-height: 1.2 !important;
+  font-size: clamp(16px, 2.8vw, 22px) !important;
+}
+
+/* 2) Breadcrumbs stay fixed under the header */
+.site-head{ --head-h: 44px; }            /* our slim header height */
+.breadcrumbs{
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + var(--head-h));
+  z-index: 8;
+}
+
+/* 3) Calculators — force tiles to match dark theme style everywhere   */
+/* Works even if that page uses different classnames.                  */
+/* Light */
+main a[href^="#/calc"],
+main .calc-grid > *,
+main .calc-tiles > *,
+main .calc-list > *,
+#calculators .tile,
+#calculators a,
+body[data-route="calculators"] .df-subtiles > *,
+body[data-route="calculators"] .df-tiles > *{
+  background: #ffffff !important;
+  color: #111 !important;
+  border: 1.5px solid #e6e3d3 !important;
+  border-radius: 14px !important;
+  padding: 18px 14px !important;
+  text-decoration: none !important;
+  display:flex; align-items:center; gap:10px;
+}
+
+/* Dark */
+@media (prefers-color-scheme: dark){
+  body:not([data-theme="light"]) main a[href^="#/calc"],
+  body:not([data-theme="light"]) main .calc-grid > *,
+  body:not([data-theme="light"]) main .calc-tiles > *,
+  body:not([data-theme="light"]) main .calc-list > *,
+  body:not([data-theme="light"]) #calculators .tile,
+  body:not([data-theme="light"]) #calculators a,
+  body:not([data-theme="light"])[data-route="calculators"] .df-subtiles > *,
+  body:not([data-theme="light"])[data-route="calculators"] .df-tiles > *{
+    background: #111315 !important;
+    color: #f9f9f2 !important;
+    border: 1px solid #1f6a33 !important;   /* same JD-ish green border */
+  }
+}
+
+/* Remove any “disabled/washed-out” look on calculators */
+main a[href^="#/calc"][aria-disabled],
+main a[href^="#/calc"].is-disabled{
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto !important;
+}
+
