@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.16',
+    version: 'v12.6.17',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -3898,20 +3898,16 @@
 
 /* =========================================================
    APP v12 — Part 47: Breadcrumbs
-   - Renders clickable "Home › Section › Subsection"
-   - Updates on hashchange, hides on #/login
-   - Works even if a route isn't in the menu map (titleized)
+   - Deere-style: golden bar, green text
+   - No duplicate "Home"
+   - Hides on login
    ========================================================= */
 (function DF_V12_P47_BREADCRUMBS(){
   'use strict';
   if (window.__DF_V12_P47__) return; window.__DF_V12_P47__ = true;
 
-  // helpers
   const $  = (s, r=document)=>r.querySelector(s);
-  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
-  const DF = window.DF || {};
 
-  // target element (index.html already has it; create if missing)
   function ensureCrumbBar(){
     let el = $('#breadcrumbs');
     if (!el){
@@ -3931,7 +3927,6 @@
     return el;
   }
 
-  // map known labels (matches your Home tiles & submenus)
   const LABELS = {
     '#/home': 'Home',
     '#/crop': 'Crop Production',
@@ -3944,25 +3939,23 @@
     '#/settings': 'Setups / Settings'
   };
 
-  // titleize fallback for unknown leaf segments
-  const titleize = (s)=> s
-    .replace(/[-_]+/g,' ')
+  const titleize = (s)=> s.replace(/[-_]+/g,' ')
     .replace(/\b\w/g, c=>c.toUpperCase());
 
   function makeCrumbs(hashRaw){
     const h = (hashRaw || location.hash || '#/home').replace(/\/+$/,'');
     if (!h || h === '#' ) return [{href:'#/home', label:'Home'}];
-
-    // hide on login
     if (h === '#/login') return null;
 
-    // split into segments
     const segs = h.replace(/^#\//,'').split('/').filter(Boolean);
+    const crumbs = [];
 
-    const crumbs = [{ href:'#/home', label: LABELS['#/home'] }];
+    // only push Home if we’re not literally on Home
+    if (!(segs.length === 0 || segs[0] === 'home')){
+      crumbs.push({ href:'#/home', label: 'Home' });
+    }
 
     if (segs.length){
-      // accumulate hrefs like "#/crop", "#/crop/planting", ...
       let acc = '#';
       for (let i=0;i<segs.length;i++){
         acc += '/' + segs[i];
@@ -3979,7 +3972,6 @@
     const inner = bar.querySelector('.inner');
     const crumbs = makeCrumbs(location.hash);
 
-    // hide on login
     const isLogin = (location.hash||'').replace(/\/+$/,'') === '#/login';
     bar.style.display = isLogin ? 'none' : '';
 
@@ -4009,11 +4001,9 @@
     });
   }
 
-  // boot + keep fresh
   function init(){ render(); }
   if (document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', init, {once:true});
   } else { init(); }
   window.addEventListener('hashchange', render, {passive:true});
 })();
-
