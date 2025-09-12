@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.10.0',
+    version: 'v13.11.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4390,6 +4390,14 @@
 
     /* Footer spacing/height */
     .site-foot .foot-inner{ padding:6px 12px !important; font-size:12px !important; gap:20px !important; }
+    
+    @media (prefers-color-scheme: light){
+  .df-tile, .df-subtile, .card{
+    background:#ffffff !important; color:#111111 !important;
+    border:1px solid #e6e3d3 !important; box-shadow:0 1px 0 rgba(0,0,0,.04) !important;
+  }
+  .df-tile .df-label, .df-subtile span, .card h3{ color:#111111 !important; }
+}
 
     /* Dark mode tile unification (incl. Calculators) */
     @media (prefers-color-scheme: dark){
