@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.14',
+    version: 'v12.6.15',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -3896,92 +3896,3 @@
   window.addEventListener('hashchange', applyLoginChrome, {passive:true});
 })();
 
-/* =========================
- * PART 47 — Breadcrumb Header
- * ========================= */
-
-/** Map route segment -> nice label (extend as you add routes) */
-const DF_ROUTE_LABELS = {
-  '': 'Home',
-  'home': 'Home',
-  'fields': 'Fields',
-  'equipment': 'Equipment',
-  'grain': 'Grain',
-  'reports': 'AI Reports',
-  'settings': 'Settings',
-  'login': 'Login'
-};
-
-function dfTitleize(seg){
-  return seg
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b([a-z])/g, m => m.toUpperCase());
-}
-
-/** If a view sets #content.dataset.title, use that for the last crumb */
-function dfGetOverrideTitle(){
-  const el = document.getElementById('content');
-  return (el && el.dataset && el.dataset.title) ? el.dataset.title : '';
-}
-
-function dfBuildCrumbs(){
-  const raw = (location.hash || '#/home').replace(/^#\//, '');
-  const parts = raw.split('/').filter(Boolean);
-
-  const crumbs = [];
-  // Always start with Home
-  crumbs.push({ text: DF_ROUTE_LABELS['home'] || 'Home', href: '#/home' });
-
-  let path = '';
-  parts.forEach((seg, i) => {
-    path += (i === 0 ? '' : '/') + seg;
-    const isLast = i === parts.length - 1;
-    const label = DF_ROUTE_LABELS[seg] || dfTitleize(seg);
-    crumbs.push({
-      text: isLast ? (dfGetOverrideTitle() || label) : label,
-      href: isLast ? null : `#/${path}`
-    });
-  });
-
-  // If only "home", show just the single crumb
-  if (parts.length === 0 || parts[0] === 'home') crumbs.splice(1);
-  return crumbs;
-}
-
-function dfRenderBreadcrumbs(){
-  const breadcrumbsEl = document.getElementById('breadcrumbs');
-  if (!breadcrumbsEl) return;
-
-  const items = dfBuildCrumbs();
-  let html = '';
-  items.forEach((item, i) => {
-    if (i > 0) html += `<span class="sep"></span>`;
-    if (item.href){
-      html += `<a href="${item.href}" aria-label="${item.text}">${item.text}</a>`;
-    } else {
-      html += `<span class="current" aria-current="page">${item.text}</span>`;
-    }
-  });
-  breadcrumbsEl.innerHTML = html;
-}
-
-/** Re-render on navigation changes */
-window.addEventListener('hashchange', () => {
-  // If your router sets #content.dataset.title during view load,
-  // call dfRenderBreadcrumbs() after that swap; calling here is still safe.
-  dfRenderBreadcrumbs();
-});
-
-/** Initial render after DOM is ready */
-document.addEventListener('DOMContentLoaded', () => {
-  dfRenderBreadcrumbs();
-});
-
-/** Optional helper: call this after your router finishes loading a view
- * and sets #content.dataset.title to reflect the specific item/page.
- * Example:
- *   const content = document.getElementById('content');
- *   content.dataset.title = '1726 McKay West Side';
- *   dfRenderBreadcrumbs();
- */
-window.dfRenderBreadcrumbs = dfRenderBreadcrumbs;
