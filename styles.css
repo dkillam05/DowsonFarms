@@ -264,19 +264,34 @@ body[data-theme="dark"] :where(
 }
 
 
-/* === DEBUG (remove after test) — Calculators dark-tile probe === */
-@media (prefers-color-scheme: dark){
-  /* Hit the usual shapes on Calculators */
-  #app :where(.calc-grid > *, .calc-tiles > *, .calc-list > *, .df-subtiles > a, .df-subtile, .df-tile, .card){
-    outline: 2px dashed magenta !important; /* VISUAL PROBE */
-  }
+/* ---- Calculators tiles: match the global look (light + dark) ---- */
 
-  /* If the route/section is tagged, catch that too */
-  body[data-route="calculators"] #app :where(.df-subtile, .df-tile, .card, .calc-grid > *, .calc-tiles > *, .calc-list > *){
+/* Light mode — white tiles */
+@media (prefers-color-scheme: light){
+  body[data-route="calc"] #app :where(.df-subtile, .df-tile, .card, .calc-grid > *, .calc-tiles > *, .calc-list > *){
+    background:#ffffff !important;
+    color:#111111 !important;
+    border:1px solid #e6e3d3 !important;
+    box-shadow:0 1px 0 rgba(0,0,0,.04) !important;
+    border-radius:14px !important;
+    text-decoration:none !important;
+  }
+}
+
+/* Dark mode — dark tiles */
+@media (prefers-color-scheme: dark){
+  body[data-route="calc"] #app :where(.df-subtile, .df-tile, .card, .calc-grid > *, .calc-tiles > *, .calc-list > *){
     background:#111315 !important;
     color:#f9f9f2 !important;
     border:1px solid #1f6a33 !important;
     box-shadow:none !important;
+    border-radius:14px !important;
+    text-decoration:none !important;
   }
 }
 
+/* Never dim “disabled” calc tiles */
+body[data-route="calc"] #app :where(.df-subtile, .df-tile, .card, .calc-grid > *, .calc-tiles > *, .calc-list > *)[aria-disabled],
+body[data-route="calc"] #app :where(.df-subtile, .df-tile, .card, .calc-grid > *, .calc-tiles > *, .calc-list > *).is-disabled{
+  opacity:1 !important; filter:none !important; pointer-events:auto !important;
+}
