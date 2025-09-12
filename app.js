@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.7.0',
+    version: 'v13.8.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4216,3 +4216,90 @@
   };
 })();
 
+/* =========================================================
+   APP v13.x — Part 50: Back-button + Tile Text Tuning
+   - Unifies every “Back to …” link into a pill button
+   - Shrinks tile/subtile label text for better fit
+   - Idempotent and safe (can be loaded once)
+   ========================================================= */
+(function DF_V13_P50_BACK_AND_TILES(){
+  'use strict';
+  if (window.__DF_V13_P50__) return; window.__DF_V13_P50__ = true;
+
+  // ---------- CSS (button style + smaller tile labels) ----------
+  (function injectCSS(){
+    if (document.getElementById('df-p50-css')) return;
+    const css = document.createElement('style');
+    css.id = 'df-p50-css';
+    css.textContent = `
+      /* Tile labels — slightly smaller, consistent */
+      .df-label{ font-size:18px !important; line-height:1.15 !important; font-weight:800 !important; }
+      /* On submenus we often use .df-subtile with inline text; normalize too */
+      .df-subtile .em + span, .df-subtile span.df-label { font-size:18px !important; line-height:1.15 !important; font-weight:800 !important; }
+
+      /* Try to reduce awkward wraps without truncating */
+      .df-label, .df-subtile span{ word-break: keep-all; text-wrap: balance; }
+
+      /* Unified back button (match Vendor look) */
+      .btn-back{
+        display:inline-flex; align-items:center; justify-content:center;
+        gap:10px;
+        padding:10px 14px;
+        border-radius:12px;
+        background:transparent;
+        border:2px solid rgba(241,213,101,.40); /* gold outline */
+        color:#ffd84c;
+        font-weight:800;
+        text-decoration:none;
+        box-shadow:none;
+      }
+      .btn-back::before{ content:"\u2190"; font-weight:900; } /* ← */
+      .btn-back:hover{ background:rgba(255,216,75,.08); }
+      .btn-back:active{ transform:translateY(1px); }
+
+      /* Light mode readability of the same button */
+      @media (prefers-color-scheme: light){
+        .btn-back{
+          border-color:rgba(15,77,29,.35);     /* green outline */
+          color:#0f4d1d;                        /* green text */
+        }
+        .btn-back:hover{ background:rgba(15,77,29,.06); }
+      }
+    `;
+    document.head.appendChild(css);
+  })();
+
+  // ---------- JS: upgrade “Back to …” links into buttons ----------
+  function upgradeBackLinks(root=document){
+    // Any anchor that starts with "Back to " or has data-back
+    const candidates = Array.from(root.querySelectorAll('a'))
+      .filter(a => !a.classList.contains('btn-back'))
+      .filter(a => /\bBack to\b/i.test(a.textContent.trim()) || a.hasAttribute('data-back'));
+    candidates.forEach(a => a.classList.add('btn-back'));
+  }
+
+  // Run after each route render
+  function onRender(){
+    const app = document.getElementById('app');
+    if (app) upgradeBackLinks(app);
+  }
+
+  // Mutation observer so we catch new content the router paints
+  const mo = new MutationObserver((muts)=> {
+    for (const m of muts){
+      if (m.addedNodes && m.addedNodes.length) { onRender(); break; }
+    }
+  });
+  if (document.getElementById('app')){
+    mo.observe(document.getElementById('app'), { childList:true, subtree:true });
+  } else {
+    document.addEventListener('DOMContentLoaded', ()=> {
+      const app = document.getElementById('app');
+      if (app) mo.observe(app, { childList:true, subtree:true });
+      onRender();
+    }, {once:true});
+  }
+
+  // First pass right now
+  onRender();
+})();
