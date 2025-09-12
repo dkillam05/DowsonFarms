@@ -1,495 +1,176 @@
-/* ===== Dowson Farms — Chrome Compact (v12.6.x final) ===== */
+/* ==========================================================
+   Dowson Farms — Unified Styles (v12.6.x)
+   - Single source of truth for header, footer, breadcrumbs
+   - Consistent tiles/cards across Home & sub-menus
+   - Light + Dark (auto) with Deere-inspired palette
+   - Compact chrome with safe-area handling for iOS PWA
+   ========================================================== */
+
+/* --------- Brand tokens --------- */
 :root{
-  --df-green: #0f4d1d;      /* rich green */
-  --df-gold:  #f1d565;      /* elegant gold */
-  --df-bg:    #f6f3e4;      /* warm backdrop */
+  /* Brand */
+  --brand-green:  #0f4d1d;
+  --brand-gold:   #f1d565;
+
+  /* Light surface */
+  --paper:        #f6f3e4;
+  --ink:          #1b1b1b;
+  --muted:        #666;
+
+  /* Light tiles/cards */
+  --tile-bg:      #ffffff;
+  --tile-ink:     #111111;
+  --tile-bd:      #e6e3d3;
+  --tile-shadow:  0 1px 0 rgba(0,0,0,.04);
+
+  /* Dark surfaces */
+  --dark-bg:      #0e0f10;
+  --dark-card:    #111315;
+  --dark-ink:     #f9f9f2;
+  --dark-bd:      #1f6a33;  /* green outline like Equipment */
 }
 
-/* Page backdrop stays warm */
-body{ background: var(--df-bg) !important; }
+/* --------- Base --------- */
+*{ box-sizing: border-box; }
+html, body { height: 100%; }
+html { color-scheme: light; }       /* prevent UA auto-theming conflicts */
+body{
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
 
-/* ---------- Header (small, green) ---------- */
+.container{ max-width: 980px; margin:0 auto; padding: 0 12px; }
+.hide{ display:none !important; }
+
+/* --------- Header (compact, green, gold text) --------- */
 .site-head{
-  background: var(--df-green) !important;
-  color: var(--df-gold) !important;
-  border: 0 !important;
+  position: sticky; top: 0; z-index: 20;
+  background: var(--brand-green);
+  color: var(--brand-gold);
+  border: 0;
   box-shadow: 0 1px 0 rgba(0,0,0,.10);
 }
 .site-head .head-inner{
-  padding: 6px 10px !important;          /* tighter */
-  gap: 10px !important;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  max-width: 980px; margin: 0 auto;
 }
-.brand-logo{
-  width: 28px !important; height: 28px !important;  /* smaller mark */
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(0,0,0,.12);
-}
-.brand-title{
-  font-size: 18px !important;
-  line-height: 1 !important;
-  font-weight: 700 !important;
-  color: var(--df-gold) !important;
-  letter-spacing: .2px;
-}
+.brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+.brand-logo{ width:28px; height:28px; border-radius:50%; object-fit:cover; box-shadow:0 0 0 2px rgba(0,0,0,.12); }
+.brand-title{ font-size:18px; font-weight:700; letter-spacing:.2px; color:var(--brand-gold); }
+
 .head-actions{ display:flex; align-items:center; gap:10px; }
 .head-actions .btn{
-  background: transparent !important;
-  color: var(--df-gold) !important;
-  border: 1px solid rgba(241,213,101,.35) !important; /* gold-ish border */
-  border-radius: 10px; padding: 4px 10px; font-weight: 600;
+  appearance:none; border:1px solid rgba(241,213,101,.35);
+  background: transparent; color: var(--brand-gold);
+  border-radius: 10px; padding: 4px 10px; font-weight: 600; cursor:pointer;
 }
-.head-actions .btn:hover{ background: rgba(255,255,255,.06) !important; }
+#df-clock{ font-variant-numeric: tabular-nums; font-weight:600; color:var(--brand-gold); }
 
-/* optional clock styling (if present via JS Part 46) */
-#df-clock{ color: var(--df-gold) !important; font-variant-numeric: tabular-nums; opacity:.95; }
+/* --------- Breadcrumbs (gold bar, green text) --------- */
+.breadcrumbs{
+  background: var(--brand-gold);
+  color: var(--brand-green);
+  border-bottom: 1px solid rgba(0,0,0,.10);
+}
+.breadcrumbs .inner{
+  max-width: 980px; margin:0 auto; padding: 6px 12px;
+  display:flex; align-items:center; gap:8px; white-space:nowrap; overflow-x:auto;
+}
+.bc-link{ color: var(--brand-green); text-decoration:none; font-weight:600; }
+.bc-current{ color:#083015; font-weight:700; }
+.bc-sep{ color: rgba(0,0,0,.35); }
 
-/* ---------- Footer (small, green) ---------- */
+/* --------- App area & sticky footer spacing --------- */
+.app, #app{ min-height: 0; padding: 16px 0 calc(64px + env(safe-area-inset-bottom,0px)); }
+
+/* --------- Footer (compact, green, gold text) --------- */
 .site-foot{
-  background: var(--df-green) !important;
-  color: var(--df-gold) !important;
-  border: 0 !important;
-  position: sticky; bottom: 0; z-index: 9;
+  position: sticky; bottom: 0; z-index: 10;
+  background: var(--brand-green); color: var(--brand-gold); border: 0;
 }
-.foot-inner{
-  padding: 8px 10px !important;           /* tighter */
-  gap: 10px !important;
-  font-size: 13px !important;
-  line-height: 1.2 !important;
-  justify-content: center !important;
+.site-foot .foot-inner{
+  max-width:980px; margin:0 auto;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom,0px));
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  font-size:13px; line-height:1.2;
 }
-#df-date, #version{ color: var(--df-gold) !important; }
-.foot-inner .dot{ color: var(--df-gold) !important; opacity:.8; }
+.site-foot .dot{ color: var(--brand-gold); opacity:.85; }
+#df-date, #version{ color: var(--brand-gold); }
 
-/* ---------- Layout guard so footer never overlaps content ---------- */
-.app, #app{ padding-bottom: 64px !important; } /* space for sticky footer */
-
-/* ---------- Neutralize earlier ivory header/footer blocks ---------- */
-.site-head:not(.keep-ivory), .site-foot:not(.keep-ivory){
-  background: var(--df-green) !important;
-  color: var(--df-gold) !important;
-  border: 0 !important;
+/* --------- Buttons (generic) --------- */
+.btn{
+  appearance:none; border:1px solid var(--tile-bd); background:#fff;
+  color:#163a24; padding:8px 12px; border-radius:10px; font-weight:600; cursor:pointer;
 }
 
-/* ===== Breadcrumbs (v12) ===== */
-.breadcrumbs{
-  background: var(--df-cream, #f6f3e4);
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  font-size: 14px;
-  color: #1b5e20;               /* green text */
+/* --------- Home grid / submenu grid --------- */
+.df-tiles, .df-subtiles{ display:grid; grid-template-columns:1fr; gap:14px; }
+@media (min-width:640px){ .df-tiles, .df-subtiles{ grid-template-columns:1fr 1fr; } }
+
+/* --------- Unified tiles & cards (light) --------- */
+.df-tile, .df-subtile, .card{
+  background: var(--tile-bg);
+  color: var(--tile-ink);
+  border: 1.5px solid var(--tile-bd);
+  border-radius: 14px;
+  box-shadow: var(--tile-shadow);
+  display:flex; align-items:center; justify-content:center;
+  text-decoration:none; padding: 18px 14px;
+}
+.df-emoji, .df-subtile .em{ font-size:28px; line-height:1; margin-right:10px; }
+.df-label{ font-weight:700; text-align:center; }
+
+/* Prevent washed-out tiles anywhere */
+.df-tile.is-disabled, .df-subtile.is-disabled,
+.df-tile[aria-disabled], .df-subtile[aria-disabled],
+.card.is-disabled, .card[aria-disabled]{
+  opacity:1 !important; filter:none !important; pointer-events:auto;
 }
 
-.breadcrumbs .inner{
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 6px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.bc-link{
-  color: #1b5e20;
-  text-decoration: none;
-  font-weight: 600;
-}
-.bc-current{
-  color: #37433b;               /* readable, not too light */
-  font-weight: 700;
-}
-
-.bc-sep{ color: rgba(0,0,0,.35); }
-
-/* ===== Breadcrumbs (v12 Deere style) ===== */
-.breadcrumbs{
-  background: #d4af37;          /* golden yellow bar */
-  border-bottom: 1px solid rgba(0,0,0,.1);
-  font-size: 14px;
-  color: #0f4d1d;               /* dark green text */
-}
-
-.breadcrumbs .inner{
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 6px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  overflow-x: auto;
-}
-
-.bc-link{
-  color: #0f4d1d;
-  text-decoration: none;
-  font-weight: 600;
-}
-.bc-current{
-  color: #083015;               /* darker green for current */
-  font-weight: 700;
-}
-
-.bc-sep{ color: rgba(0,0,0,.35); }
-
-/* ===== v12.6.x – Tile contrast hardening + force light UI ===== */
-
-/* Stop UA dark-mode auto theming */
-html { color-scheme: light; }
-@media (prefers-color-scheme: dark) {
-  html { color-scheme: light; } /* keep our chosen colors */
-}
-
-/* Keep our warm paper background, even if the OS is dark */
-body { background: var(--df-cream) !important; }
-
-/* Tiles and subtiles should always be high-contrast on white */
-.df-tile,
-.df-subtile,
-.card {
-  background: #ffffff !important;
-  color: #111111 !important;
-  box-shadow: 0 1px 0 rgba(0,0,0,.04);
-}
-
-.df-tile .df-label,
-.df-subtile span,
-.card h3 {
-  color: #111111 !important;
-  opacity: 1 !important;
-}
-
-/* Emoji and icons should never be dimmed */
-.df-emoji,
-.df-subtile .em { filter: none !important; opacity: 1 !important; }
-
-/* Safety: ensure links inside tiles don’t pick odd visited colors */
-.df-tile, .df-tile:link, .df-tile:visited { color: #111111 !important; text-decoration: none; }
-
-/* ===== v12.6.x – Dark Mode Tile Fix ===== */
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #111 !important;   /* dark background */
-    color: #f5f5f5 !important;     /* light text */
-  }
-
-  .card,
-  .df-tile,
-  .df-subtile {
-    background: #222 !important;   /* dark gray tiles */
-    border: 1px solid #333 !important;
-    color: #f5f5f5 !important;     /* tile text stays readable */
-  }
-
-  /* Optional: make emoji pop on dark */
-  .df-emoji, .em {
-    filter: brightness(1.1);
-  }
-
-  .site-foot,
-  .site-head {
-    background: #0f4d1d !important; /* keep your Deere green */
-    color: #fcd94b !important;      /* golden text */
-  }
-
-  #breadcrumbs {
-    background: #fcd94b !important;
-    color: #0f4d1d !important;
-  }
-}
-
-/* ===== Dark Mode Polish (v12.6.x) ===== */
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #000 !important; /* solid black background */
-    color: #e6e6e6 !important;
-  }
-
-  /* Header/footer keep farm branding */
-  .site-head, .site-foot {
-    background: var(--df-green) !important;
-    color: #ffd84c !important; /* golden yellow */
-  }
-
-  /* Breadcrumb bar: gold background, green text */
-  .breadcrumbs {
-    background: #ffd84c !important;
-    color: var(--df-green) !important;
-    font-weight: 600;
-    padding: 6px 12px;
-  }
-  .breadcrumbs a {
-    color: var(--df-green) !important;
-    text-decoration: none;
-    font-weight: 700;
-  }
-
-  /* Tiles (cards) */
-  .card, .df-tile, .df-subtile {
-    background: #111 !important;   /* dark box */
-    border: 1px solid var(--df-green) !important; /* green outline */
-    color: #9de59d !important;     /* soft green text */
-    border-radius: 12px;
-  }
-  .card h3, .df-tile span, .df-subtile span {
-    color: #9de59d !important;
-  }
-
-  /* Back to dashboard button or similar controls */
-  .btn {
-    background: #222 !important;
-    border: 1px solid #555 !important;
-    color: #eee !important;
-  }
-}
-
-/* === DF Tiles – unify look across Home (.df-tile) and submenus (.df-subtile) === */
-/* Shared tile palette (light) */
-:root{
-  --tile-bg: #111;         /* will be overridden for light; set dark default below */
-  --tile-fg: #e6efe8;
-  --tile-bd: #2a7a3d;      /* green border like Equipment */
-  --tile-shadow: none;
-}
-/* Light theme */
-@media (prefers-color-scheme: light){
-  :root{
-    --tile-bg: #ffffff;
-    --tile-fg: #1a1a1a;
-    --tile-bd: #e6e3d3;
-    --tile-shadow: 0 1px 0 rgba(0,0,0,.04);
-  }
-}
-/* Dark theme */
+/* --------- Dark Mode (auto) --------- */
 @media (prefers-color-scheme: dark){
-  :root{
-    --tile-bg: #101010;    /* dark card */
-    --tile-fg: #d9f0db;    /* soft greenish white text */
-    --tile-bd: #2b7f40;    /* JD-ish green border */
-    --tile-shadow: none;
-  }
-}
-
-/* Apply the same visual to BOTH tile types */
-.df-tile,
-.df-subtile{
-  background: var(--tile-bg) !important;
-  color: var(--tile-fg) !important;
-  border: 1.5px solid var(--tile-bd) !important;
-  border-radius: 14px !important;
-  box-shadow: var(--tile-shadow) !important;
-  display: flex; align-items: center; justify-content: center;
-  text-decoration: none;
-  padding: 18px 14px !important;
-}
-
-/* Make the Home grid and submenu grid spacing consistent */
-.df-tiles,
-.df-subtiles{
-  gap: 14px !important;
-}
-
-/* Emoji + labels sizing consistent */
-.df-emoji,
-.df-subtile .em{ font-size: 28px !important; line-height: 1; margin-right: 10px; }
-.df-label{ font-weight: 700 !important; text-align: center; }
-
-/* Remove the washed-out look some tiles had (e.g., Calculators) */
-.df-tile.is-disabled,
-.df-subtile.is-disabled{
-  opacity: 1 !important;
-  filter: none !important;
-  pointer-events: auto;   /* allows tapping just like others */
-}
-
-/* Optional: hover/active feedback (subtle) */
-@media (hover:hover){
-  .df-tile:hover, .df-subtile:hover{ transform: translateY(-1px); }
-}
-.df-tile:active, .df-subtile:active{ transform: scale(.985); }
-
-/* === Dowson Farms — Dark theme tile normalization (Home + Submenus) === */
-/* Applies when the device is in dark mode OR you force it with data-theme="dark" */
-
-@media (prefers-color-scheme: dark) {
-  body:not([data-theme="light"]) {
-    --df-dark-bg: #0e0f10;     /* page background */
-    --df-dark-card: #111315;   /* tile background */
-    --df-dark-ink: #e9f2e6;    /* tile text */
-    --df-dark-border: #1f6a33; /* green border like Equipment screen */
-
-    background: var(--df-dark-bg) !important;
-    color: var(--df-dark-ink) !important;
+  body{
+    background: var(--dark-bg);
+    color: var(--dark-ink);
   }
 
-  /* Home tiles */
-  body:not([data-theme="light"]) .df-tile {
-    background: var(--df-dark-card) !important;
-    color: var(--df-dark-ink) !important;
-    border: 1px solid var(--df-dark-border) !important;
+  /* Keep brand chrome */
+  .site-head, .site-foot{
+    background: var(--brand-green);
+    color: var(--brand-gold);
+  }
+  .brand-title, #df-clock{ color: var(--brand-gold); }
+
+  /* Gold breadcrumb bar w/ green text */
+  .breadcrumbs{ background: var(--brand-gold); color: var(--brand-green); }
+  .breadcrumbs a{ color: var(--brand-green); }
+
+  /* All tiles/cards unified */
+  .df-tile, .df-subtile, .card{
+    background: var(--dark-card) !important;
+    color: var(--dark-ink) !important;
+    border: 1px solid var(--dark-bd) !important;
     box-shadow: none !important;
   }
-  body:not([data-theme="light"]) .df-tile .df-label { color: inherit !important; }
-  body:not([data-theme="light"]) .df-tiles a.df-tile { text-decoration: none !important; }
-
-  /* Submenu tiles */
-  body:not([data-theme="light"]) .df-subtile {
-    background: var(--df-dark-card) !important;
-    color: var(--df-dark-ink) !important;
-    border: 1px solid var(--df-dark-border) !important;
-    box-shadow: none !important;
-  }
-  body:not([data-theme="light"]) .df-subtile .em { color: inherit !important; }
-
-  /* Kill any “disabled/washed” styles that might grey tiles */
-  body:not([data-theme="light"]) .df-tile[aria-disabled],
-  body:not([data-theme="light"]) .df-subtile[aria-disabled],
-  body:not([data-theme="light"]) .df-tile.is-disabled,
-  body:not([data-theme="light"]) .df-subtile.is-disabled {
-    opacity: 1 !important;
-    filter: none !important;
-  }
-
-  /* Optionally darken generic cards too, if you use .card in dark */
-  body:not([data-theme="light"]) .card {
-    background: var(--df-dark-card) !important;
-    color: var(--df-dark-ink) !important;
-    border: 1px solid var(--df-dark-border) !important;
-  }
 }
 
-/* If you ever force dark via JS/HTML: <body data-theme="dark"> — mirror the same rules */
-body[data-theme="dark"] {
-  --df-dark-bg: #0e0f10;
-  --df-dark-card: #111315;
-  --df-dark-ink: #e9f2e6;
-  --df-dark-border: #1f6a33;
-  background: var(--df-dark-bg) !important;
-  color: var(--df-dark-ink) !important;
+/* --------- Force-dark support (if you ever set <body data-theme="dark">) --------- */
+body[data-theme="dark"]{
+  background: var(--dark-bg) !important;
+  color: var(--dark-ink) !important;
 }
 body[data-theme="dark"] .df-tile,
 body[data-theme="dark"] .df-subtile,
-body[data-theme="dark"] .card {
-  background: var(--df-dark-card) !important;
-  color: var(--df-dark-ink) !important;
-  border: 1px solid var(--df-dark-border) !important;
+body[data-theme="dark"] .card{
+  background: var(--dark-card) !important;
+  color: var(--dark-ink) !important;
+  border: 1px solid var(--dark-bd) !important;
   box-shadow: none !important;
 }
-body[data-theme="dark"] .df-tile .df-label,
-body[data-theme="dark"] .df-subtile .em { color: inherit !important; }
-body[data-theme="dark"] .df-tile[aria-disabled],
-body[data-theme="dark"] .df-subtile[aria-disabled],
-body[data-theme="dark"] .df-tile.is-disabled,
-body[data-theme="dark"] .df-subtile.is-disabled {
-  opacity: 1 !important;
-  filter: none !important;
-}
 
-/* === Dowson Farms — Dark theme consistency (all tiles, all screens) === */
-@media (prefers-color-scheme: dark) {
-  body:not([data-theme="light"]) {
-    --df-dark-bg: #0e0f10;     /* background */
-    --df-dark-card: #111315;   /* tile/card bg */
-    --df-dark-ink: #f9f9f2;    /* ivory/white text */
-    --df-dark-border: #1f6a33; /* green border */
-    background: var(--df-dark-bg) !important;
-    color: var(--df-dark-ink) !important;
-  }
-
-  /* Home + submenu tiles */
-  body:not([data-theme="light"]) .df-tile,
-  body:not([data-theme="light"]) .df-subtile,
-  body:not([data-theme="light"]) .card {
-    background: var(--df-dark-card) !important;
-    color: var(--df-dark-ink) !important;
-    border: 1px solid var(--df-dark-border) !important;
-    box-shadow: none !important;
-  }
-
-  /* Tile labels/text */
-  body:not([data-theme="light"]) .df-tile .df-label,
-  body:not([data-theme="light"]) .df-subtile .em,
-  body:not([data-theme="light"]) .card h3,
-  body:not([data-theme="light"]) .card span {
-    color: var(--df-dark-ink) !important;
-  }
-
-  /* Cancel "disabled/grey" states */
-  body:not([data-theme="light"]) .df-tile[aria-disabled],
-  body:not([data-theme="light"]) .df-subtile[aria-disabled],
-  body:not([data-theme="light"]) .card[aria-disabled],
-  body:not([data-theme="light"]) .df-tile.is-disabled,
-  body:not([data-theme="light"]) .df-subtile.is-disabled,
-  body:not([data-theme="light"]) .card.is-disabled {
-    opacity: 1 !important;
-    filter: none !important;
-    color: var(--df-dark-ink) !important;
-  }
-}
-
-/* If forced dark via <body data-theme="dark"> */
-body[data-theme="dark"] {
-  --df-dark-bg: #0e0f10;
-  --df-dark-card: #111315;
-  --df-dark-ink: #f9f9f2;
-  --df-dark-border: #1f6a33;
-  background: var(--df-dark-bg) !important;
-  color: var(--df-dark-ink) !important;
-}
-body[data-theme="dark"] .df-tile,
-body[data-theme="dark"] .df-subtile,
-body[data-theme="dark"] .card {
-  background: var(--df-dark-card) !important;
-  color: var(--df-dark-ink) !important;
-  border: 1px solid var(--df-dark-border) !important;
-}
-body[data-theme="dark"] .df-tile .df-label,
-body[data-theme="dark"] .df-subtile .em,
-body[data-theme="dark"] .card h3,
-body[data-theme="dark"] .card span {
-  color: var(--df-dark-ink) !important;
-}
-
-/* === DF final unify — dark mode tiles everywhere (Home, submenus, Calculators) === */
-@media (prefers-color-scheme: dark) {
-  body:not([data-theme="light"]) {
-    --df-dark-bg: #0e0f10;
-    --df-dark-card: #111315;
-    --df-dark-ink: #f9f9f2;
-    --df-dark-border: #1f6a33;
-    background: var(--df-dark-bg) !important;
-    color: var(--df-dark-ink) !important;
-  }
-
-  /* ALL tiles/cards */
-  body:not([data-theme="light"]) .df-tile,
-  body:not([data-theme="light"]) .df-subtile,
-  body:not([data-theme="light"]) .card {
-    background: var(--df-dark-card) !important;
-    border: 1px solid var(--df-dark-border) !important;
-    color: var(--df-dark-ink) !important;
-    box-shadow: none !important;
-    opacity: 1 !important; filter: none !important;
-  }
-
-  /* Calculator page uses .card — give it explicit specificity too */
-  body:not([data-theme="light"]) .calc-grid .card {
-    background: var(--df-dark-card) !important;
-    border: 1px solid var(--df-dark-border) !important;
-    color: var(--df-dark-ink) !important;
-  }
-}
-
-/* If you ever force dark manually */
-body[data-theme="dark"] .df-tile,
-body[data-theme="dark"] .df-subtile,
-body[data-theme="dark"] .card,
-body[data-theme="dark"] .calc-grid .card {
-  background: #111315 !important;
-  border: 1px solid #1f6a33 !important;
-  color: #f9f9f2 !important;
-  box-shadow: none !important;
-  opacity: 1 !important; filter: none !important;
-}
-
+/* --------- Nice-to-haves --------- */
+a{ color: inherit; }
+.muted{ color: var(--muted); }
