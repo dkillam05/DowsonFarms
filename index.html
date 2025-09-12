@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Dowson Farms</title>
 
-  <!-- PWA -->
+  <!-- PWA basics -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#1B5E20">
 
@@ -19,47 +19,55 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 
-  <!-- Styles -->
+  <!-- App styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ===== Header (matches app.js/CSS expectations) ===== -->
-  <header id="header" class="site-head">
-    <div class="container head-inner">
-      <a href="#/home" class="brand" aria-label="Dowson Farms Home">
-        <img src="icons/logo.png" alt="Dowson Farms Logo" class="brand-logo" width="36" height="36">
-        <span class="brand-title">Dowson Farms</span>
-      </a>
-      <nav class="head-actions">
-        <!-- Part 46 will inject a clock <span id="df-clock"> here -->
-        <button id="logoutBtn" class="btn">Logout</button>
-      </nav>
+  <!-- Header -->
+  <header class="app-header" role="banner">
+    <div class="logo">
+      <img src="icons/logo.png" alt="Dowson Farms Logo" />
+      <span class="logo-text">Dowson Farms</span>
+    </div>
+    <div class="header-right">
+      <div id="date" class="date">—</div>
+      <div id="clock" class="clock">—</div>
+      <a class="logout" href="#/login" aria-label="Logout">Logout</a>
     </div>
   </header>
 
-  <!-- ===== Breadcrumbs (placeholder; Part 47+ will render into this) ===== -->
-  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs"></nav>
+  <!-- Breadcrumbs (sticky under header) -->
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
 
-  <!-- ===== Main App Container ===== -->
-  <main id="app" class="app"></main>
+  <!-- Content -->
+  <main id="content" role="main">
+    <!-- Your router will inject views here -->
+  </main>
 
-  <!-- ===== Update Banner (hidden until SW says there’s an update) ===== -->
-  <div id="update-banner" hidden>
-    🔄 New update available.
-    <button id="reload-app" class="btn">Refresh</button>
-  </div>
-
-  <!-- ===== Footer (version filled by app.js via #version) ===== -->
-  <footer id="footer" class="site-foot">
-    <div class="container foot-inner">
-      <span>© Dowson Farms</span>
-      <span aria-hidden="true">•</span>
-      <span id="version">v0.0.0</span>
-    </div>
+  <!-- Footer (optional; fixed) -->
+  <footer class="app-footer" role="contentinfo">
+    <div>© <span id="year">2025</span> Dowson Farms • All rights reserved</div>
   </footer>
 
-  <!-- App -->
-  <script defer src="app.js"></script>
+  <!-- App script -->
+  <script src="app.js" defer></script>
+  <script>
+    // Simple year + start clock/date (non-conflicting helpers)
+    document.addEventListener('DOMContentLoaded', () => {
+      const y = document.getElementById('year');
+      if (y) y.textContent = String(new Date().getFullYear());
+
+      const dateEl = document.getElementById('date');
+      const clockEl = document.getElementById('clock');
+      function tick() {
+        const now = new Date();
+        if (dateEl) dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        if (clockEl) clockEl.textContent = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      }
+      tick();
+      setInterval(tick, 15000);
+    });
+  </script>
 </body>
 </html>
