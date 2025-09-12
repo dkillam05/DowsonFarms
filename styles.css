@@ -198,3 +198,49 @@ body { background: var(--df-cream) !important; }
     color: #0f4d1d !important;
   }
 }
+
+/* ===== Dark Mode Polish (v12.6.x) ===== */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #000 !important; /* solid black background */
+    color: #e6e6e6 !important;
+  }
+
+  /* Header/footer keep farm branding */
+  .site-head, .site-foot {
+    background: var(--df-green) !important;
+    color: #ffd84c !important; /* golden yellow */
+  }
+
+  /* Breadcrumb bar: gold background, green text */
+  .breadcrumbs {
+    background: #ffd84c !important;
+    color: var(--df-green) !important;
+    font-weight: 600;
+    padding: 6px 12px;
+  }
+  .breadcrumbs a {
+    color: var(--df-green) !important;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  /* Tiles (cards) */
+  .card, .df-tile, .df-subtile {
+    background: #111 !important;   /* dark box */
+    border: 1px solid var(--df-green) !important; /* green outline */
+    color: #9de59d !important;     /* soft green text */
+    border-radius: 12px;
+  }
+  .card h3, .df-tile span, .df-subtile span {
+    color: #9de59d !important;
+  }
+
+  /* Back to dashboard button or similar controls */
+  .btn {
+    background: #222 !important;
+    border: 1px solid #555 !important;
+    color: #eee !important;
+  }
+}
+
