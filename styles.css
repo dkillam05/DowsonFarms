@@ -1,128 +1,104 @@
-/* =======================
-   Dowson Farms – Base UI
-   ======================= */
-
-/* Brand & surfaces */
-:root{
-  --brand-green:  #0f4d1d;
-  --brand-gold:   #f1d565;
-
-  --paper:        #f6f3e4;
-  --ink:          #1b1b1b;
-
-  --tile-bg:      #ffffff;
-  --tile-ink:     #111111;
-  --tile-bd:      #e6e3d3;
-  --tile-shadow:  0 1px 0 rgba(0,0,0,.04);
-
-  --dark-bg:      #0e0f10;
-  --dark-card:    #111315;
-  --dark-ink:     #f9f9f2;
-  --dark-bd:      #1f6a33;
-
-  --head-h: 56px; /* used for sticky breadcrumbs offset */
+/* Global */
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background-color: #FFFFF0; /* Ivory */
+  color: #333;
 }
-
-*{ box-sizing:border-box; }
-html, body { height:100%; }
-body{
-  margin:0;
-  background:var(--paper);
-  color:var(--ink);
-  font:16px/1.45 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-}
-
-.container{ max-width:980px; margin:0 auto; padding:0 12px; }
-a{ color:inherit; }
-.muted{ color:#666; }
 
 /* Header */
-.site-head{
-  position:sticky; top:0; z-index:20;
-  background:var(--brand-green); color:var(--brand-gold);
-  box-shadow:0 1px 0 rgba(0,0,0,.1);
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #1B5E20; /* Dark green */
+  color: #FFFFFF;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
-.site-head .head-inner{
-  padding: calc(8px + env(safe-area-inset-top,0px)) 12px 8px;
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-}
-.brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
-.brand-logo{ width:28px; height:28px; border-radius:50%; object-fit:cover; }
-.brand-title{ font-size:18px; font-weight:700; color:var(--brand-gold); }
-.head-actions{ display:flex; align-items:center; gap:10px; }
-.head-actions .btn{
-  border:1px solid rgba(241,213,101,.35);
-  background:transparent; color:var(--brand-gold);
-  border-radius:10px; padding:4px 10px; font-weight:600; cursor:pointer;
-}
-#df-clock{ color:var(--brand-gold); font-variant-numeric:tabular-nums; }
 
-/* Breadcrumbs (sticky under header) */
-.breadcrumbs{
-  position:sticky;
-  top: calc(env(safe-area-inset-top,0px) + var(--head-h));
-  z-index:10;
-  background:var(--brand-gold);
-  color:var(--brand-green);
-  border-bottom:1px solid rgba(0,0,0,.1);
+.logo {
+  display: flex;
+  align-items: center;
 }
-.breadcrumbs .inner{
-  max-width:980px; margin:0 auto; padding:6px 12px;
-  display:flex; align-items:center; gap:8px; white-space:nowrap; overflow-x:auto;
-}
-.breadcrumbs a{ text-decoration:none; font-weight:700; color:var(--brand-green); }
-.bc-sep{ opacity:.6; }
 
-/* App & Footer spacing */
-.app, #app{ padding:16px 0 calc(56px + env(safe-area-inset-bottom,0px)); }
+.logo img {
+  height: 40px;
+  margin-right: 10px;
+}
+
+.logo-text {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+#clock {
+  font-size: 1em;
+}
+
+.logout {
+  color: #FFFFFF;
+  text-decoration: none;
+  margin-left: 20px;
+}
+
+/* Main Layout */
+main {
+  padding: 80px 20px 60px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 20px;
+}
+
+.tile {
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.tile .icon {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+.tile .label {
+  font-weight: 600;
+}
+
+/* Breadcrumbs */
+#breadcrumbs {
+  margin-bottom: 20px;
+  font-size: 0.9em;
+  color: #666;
+}
 
 /* Footer */
-.site-foot{
-  position:sticky; bottom:0; z-index:9;
-  background:var(--brand-green); color:var(--brand-gold);
-}
-.foot-inner{
-  max-width:980px; margin:0 auto;
-  padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px));
-  display:flex; align-items:center; justify-content:center; gap:16px;
-  font-size:12px; line-height:1.2; white-space:nowrap;
-}
-.foot-inner .dot{ opacity:.85; }
-
-/* Tiles (Home + submenus) */
-.df-tiles, .df-subtiles{ display:grid; grid-template-columns:1fr; gap:14px; }
-@media (min-width:640px){ .df-tiles, .df-subtiles{ grid-template-columns:1fr 1fr; } }
-
-.df-tile, .df-subtile, .card{
-  background:var(--tile-bg);
-  color:var(--tile-ink);
-  border:1.5px solid var(--tile-bd);
-  border-radius:14px;
-  box-shadow:var(--tile-shadow);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-decoration:none;
-  padding:18px 14px;
-  text-align:center;
-  font-size:14px; font-weight:700;
-}
-.df-emoji, .em{ font-size:28px; line-height:1; margin-bottom:6px; }
-
-/* Back button (uniform) */
-.btn-back{
-  display:inline-block; padding:6px 12px; border-radius:6px;
-  border:1px solid #333; background:#111; color:#f9f9f2;
-  text-decoration:none; font-size:13px; font-weight:600;
-}
-.btn-back:hover{ background:#222; }
-
-/* Dark mode */
-@media (prefers-color-scheme: dark){
-  body{ background:var(--dark-bg) !important; color:var(--dark-ink) !important; }
-
-  .df-tile, .df-subtile, .card{
-    background:var(--dark-card) !important;
-    color:var(--dark-ink) !important;
-    border:1px solid var(--dark-bd) !important;
-    box-shadow:none !important;
-  }
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #1B5E20;
+  color: #FFFFFF;
+  text-align: center;
+  padding: 10px;
+  font-size: 0.9em;
 }
