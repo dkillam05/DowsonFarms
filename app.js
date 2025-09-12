@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v15.0.2',
+    version: 'v15.0.3',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -1039,42 +1039,32 @@
 })();
 
 /* =========================================================
-   APP v12.2.2 — Part 13: Calculators Hub
+   APP v12.2.2 — Part 13: Calculators Hub (RETired / NO-OP)
+   Purpose: prevent the old calculators hub from rendering.
+   Part 6 now owns `#/calc` and all submenu tiles.
    ========================================================= */
-(function DF_v1222_P13(){
+(function DF_v1222_P13_RETIRE(){
   'use strict';
-  if (window.__DF_V1222_P13__) return; window.__DF_V1222_P13__ = true;
 
-  const $  = (s,r=document)=>r.querySelector(s);
-  const app = ()=> $('#app');
+  // Mark this part as "loaded" so any old guards see it and exit.
+  // We intentionally do NOT register routes or touch the DOM.
+  if (window.__DF_V1222_P13__) return;
+  window.__DF_V1222_P13__ = true;
 
-  const SUBS = [
-    { href:'#/calc/fertilizer', icon:'🧮', label:'Fertilizer' },
-    { href:'#/calc/yield',      icon:'🌽', label:'Combine Yield' },
-    { href:'#/calc/bin',        icon:'🏚️', label:'Bin Volume' },
-    { href:'#/calc/area',       icon:'📐', label:'Area' },
-    { href:'#/calc/chem',       icon:'🧪', label:'Chemical Mix' },
-  ];
-
-  function renderCalcHub(){
-    app().innerHTML = `
-      <section class="section">
-        <h1>🧮 Calculators</h1>
-        <div class="df-subtiles">
-          ${SUBS.map(s=>`
-            <a class="df-subtile" href="${s.href}">
-              <span class="em">${s.icon}</span><span>${s.label}</span>
-            </a>`).join('')}
-        </div>
-        <p class="muted" style="margin-top:12px;"><a href="#/home">← Back to Home</a></p>
-      </section>`;
+  // Optional nicety: if someone lands directly on "#/calc" before
+  // Part 6 runs, nudge a hashchange so Part 6 can render the tiles.
+  function nudge(){
+    if (location.hash === '#/calc') {
+      // trigger the router tick without rendering anything here
+      setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 0);
+    }
   }
-
-  function route(){
-    if (location.hash==='#/calc'){ renderCalcHub(); return true; }
-    return false;
+  window.addEventListener('hashchange', nudge, { passive: true });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', nudge, { once: true });
+  } else {
+    nudge();
   }
-  window.addEventListener('hashchange', route,{passive:true});
 })();
 
 /* =========================================================
