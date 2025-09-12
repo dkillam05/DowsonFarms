@@ -1,118 +1,71 @@
+/* ===== Dowson Farms — Chrome Compact (v12.6.x final) ===== */
 :root{
-  /* Adjust header height if needed */
-  --header-height: 64px;
-  /* Breadcrumb bar height (approx padding + line height) */
-  --crumbs-height: 36px;
-  /* Footer height (if fixed footer is used) */
-  --footer-height: 40px;
-
-  /* Brand */
-  --green: #1B5E20;
-  --green-2: #2E7D32;
-  --ivory: #FFFFF0;
+  --df-green: #0f4d1d;      /* rich green */
+  --df-gold:  #f1d565;      /* elegant gold */
+  --df-bg:    #f6f3e4;      /* warm backdrop */
 }
 
-/* Global */
-*{ box-sizing: border-box; }
-html, body{
-  height: 100%;
-  margin: 0;
-  background: var(--ivory);
-  color: #333;
-  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-}
+/* Page backdrop stays warm */
+body{ background: var(--df-bg) !important; }
 
-/* Fixed header */
-.app-header{
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: var(--header-height);
-  padding: 10px 16px;
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 2px 5px rgba(0,0,0,.12);
-  z-index: 1000;
+/* ---------- Header (small, green) ---------- */
+.site-head{
+  background: var(--df-green) !important;
+  color: var(--df-gold) !important;
+  border: 0 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.10);
 }
-.logo{ display:flex; align-items:center; gap:10px; min-width:0; }
-.logo img{ height: 40px; width: auto; }
-.logo-text{ font-size: 1.25rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.header-right{ display:flex; align-items:center; gap:12px; }
-.date, .clock{ font-size:.95rem; opacity:.95; }
-.logout{ color:#fff; text-decoration:none; font-weight:600; }
+.site-head .head-inner{
+  padding: 6px 10px !important;          /* tighter */
+  gap: 10px !important;
+}
+.brand-logo{
+  width: 28px !important; height: 28px !important;  /* smaller mark */
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.12);
+}
+.brand-title{
+  font-size: 18px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  color: var(--df-gold) !important;
+  letter-spacing: .2px;
+}
+.head-actions{ display:flex; align-items:center; gap:10px; }
+.head-actions .btn{
+  background: transparent !important;
+  color: var(--df-gold) !important;
+  border: 1px solid rgba(241,213,101,.35) !important; /* gold-ish border */
+  border-radius: 10px; padding: 4px 10px; font-weight: 600;
+}
+.head-actions .btn:hover{ background: rgba(255,255,255,.06) !important; }
 
-/* Breadcrumb bar (sticky under header) */
-.breadcrumbs{
-  position: sticky;
-  top: var(--header-height);
-  z-index: 999;
-  background: #F7F7E6;
-  padding: 6px 12px;
-  padding-top: calc(6px + env(safe-area-inset-top, 0px)); /* iOS PWA notch friendliness */
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.breadcrumbs a,
-.breadcrumbs span{
-  font-size: .95rem;
-  line-height: 1.4;
-  color: var(--green);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 38vw; /* prevents overflow on phones */
-}
-.breadcrumbs .current{
-  color: var(--green-2);
-  font-weight: 600;
-}
-.breadcrumbs .sep::before{
-  content: "›";
-  opacity: .5;
-  margin: 0 4px;
-}
-.breadcrumbs a:active{ opacity:.7; }
+/* optional clock styling (if present via JS Part 46) */
+#df-clock{ color: var(--df-gold) !important; font-variant-numeric: tabular-nums; opacity:.95; }
 
-/* Main content is pushed below header + crumbs, and above footer */
-main, #content{
-  min-height: calc(100dvh - var(--header-height) - var(--crumbs-height) - var(--footer-height));
-  margin-top: calc(var(--header-height) + var(--crumbs-height));
-  padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+/* ---------- Footer (small, green) ---------- */
+.site-foot{
+  background: var(--df-green) !important;
+  color: var(--df-gold) !important;
+  border: 0 !important;
+  position: sticky; bottom: 0; z-index: 9;
 }
-
-/* Footer (fixed optional) */
-.app-footer{
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  height: var(--footer-height);
-  width: 100%;
-  background: rgba(0,0,0,0.04);
-  border-top: 1px solid rgba(0,0,0,0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 8px;
-  backdrop-filter: saturate(120%) blur(2px);
-  z-index: 900;
-  color:#444;
-  font-size:.9rem;
+.foot-inner{
+  padding: 8px 10px !important;           /* tighter */
+  gap: 10px !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  justify-content: center !important;
 }
+#df-date, #version{ color: var(--df-gold) !important; }
+.foot-inner .dot{ color: var(--df-gold) !important; opacity:.8; }
 
-/* Utilities */
-.hidden{ display:none !important; }
+/* ---------- Layout guard so footer never overlaps content ---------- */
+.app, #app{ padding-bottom: 64px !important; } /* space for sticky footer */
 
-/* Small devices tweaks */
-@media (max-width: 380px){
-  .logo-text{ font-size: 1.1rem; }
-  .breadcrumbs a, .breadcrumbs span{ max-width: 32vw; }
+/* ---------- Neutralize earlier ivory header/footer blocks ---------- */
+.site-head:not(.keep-ivory), .site-foot:not(.keep-ivory){
+  background: var(--df-green) !important;
+  color: var(--df-gold) !important;
+  border: 0 !important;
 }
