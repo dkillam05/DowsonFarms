@@ -441,3 +441,67 @@ body{ padding-top: env(safe-area-inset-top,0px); }
   font-weight:700;
 }
 .back-link:hover{ filter:brightness(1.05); }
+
+/* ===== Part 49 — Sticky crumbs, unified tiles, back button ===== */
+
+/* Breadcrumbs stick right under header; top comes from JS var */
+#breadcrumbs.df-crumbs-sticky{
+  position: sticky;
+  top: var(--df-head-h, 46px);
+  z-index: 8;
+  background: #d4af37;           /* golden bar */
+  color: #0f4d1d;
+  border-bottom: 1px solid rgba(0,0,0,.12);
+}
+#breadcrumbs.df-crumbs-sticky .inner{
+  max-width: 980px; margin: 0 auto;
+  padding: 6px 12px;
+  display:flex; align-items:center; gap:8px;
+  white-space: nowrap; overflow-x:auto;
+}
+#breadcrumbs.df-crumbs-sticky a{ color:#0f4d1d; font-weight:700; text-decoration:none; }
+#breadcrumbs.df-crumbs-sticky .bc-sep{ color: rgba(0,0,0,.35); }
+
+/* One-line labels, no wrapping */
+.df-oneline{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
+}
+
+/* Unified tile look (applies to .df-tile, .df-subtile, and .card) */
+.df-tile-unified,
+.df-tile-unified:link,
+.df-tile-unified:visited{
+  background: #111315 !important;        /* dark card */
+  border: 1px solid #1f6a33 !important;   /* green outline */
+  color: #f9f9f2 !important;              /* ivory text */
+  border-radius: 14px !important;
+  text-decoration: none !important;
+}
+.df-tile-unified .df-label,
+.df-tile-unified h3,
+.df-tile-unified span{
+  color: inherit !important;
+  font-weight: 700;
+  /* reasonable starting size; JS will shrink if needed */
+  font-size: 22px;
+}
+
+/* Make all grids use same spacing */
+.df-tiles, .df-subtiles{ gap: 14px !important; }
+
+/* Back button — consistent across app */
+.btn-back{
+  display:inline-flex; align-items:center; gap:8px;
+  background:#0f4d1d !important; color:#ffd84c !important;
+  border:1px solid rgba(255,216,76,.35) !important;
+  border-radius:12px; padding:10px 14px; font-weight:700;
+  text-decoration:none !important;
+}
+.btn-back:hover{ filter:brightness(1.05); }
+
+/* Keep header from crowding iOS status area in standalone mode */
+:root{ --df-safe-top: env(safe-area-inset-top, 0px); }
+#header{ padding-top: max(0px, calc(var(--df-safe-top) * 0.5)); }
