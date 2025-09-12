@@ -546,4 +546,30 @@ body{ padding-top: env(safe-area-inset-top,0px); }
   .card h3 { color:#f9f9f2; }
 }
 
+/* === Light vs Dark tiles (consistent 14px bold) === */
 
+/* Base: typography everywhere */
+.df-tile, .df-subtile, .card { font-size:14px; font-weight:700; }
+.df-label, .df-subtile span, .card h3, .df-tile span { font-size:14px; font-weight:700; }
+
+/* Light mode → white tiles */
+@media (prefers-color-scheme: light){
+  .df-tile, .df-subtile, .card{
+    background:#ffffff;
+    color:#111111;
+    border:1px solid #e6e3d3;
+    box-shadow:0 1px 0 rgba(0,0,0,.04);
+  }
+  .df-tile .df-label, .df-subtile span, .card h3{ color:#111111; }
+}
+
+/* Dark mode → dark tiles */
+@media (prefers-color-scheme: dark){
+  .df-tile, .df-subtile, .card{
+    background:#111315;
+    color:#f9f9f2;
+    border:1px solid #1f6a33;
+    box-shadow:none;
+  }
+  .df-tile .df-label, .df-subtile span, .card h3{ color:#f9f9f2; }
+}
