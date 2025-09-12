@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.8.0',
+    version: 'v13.9.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4303,3 +4303,63 @@
   // First pass right now
   onRender();
 })();
+
+/* =========================================================
+   APP v13.x — Part 51: Back button size + smaller menu text + tighter footer
+   - Smaller, neutral back button (no green/gold fill)
+   - Smaller bold text on ALL tiles/submenus
+   - Footer shorter with wider spacing between items
+   ========================================================= */
+(function DF_V13_P51_UI_TWEAKS(){
+  'use strict';
+  if (window.__DF_V13_P51__) return; window.__DF_V13_P51__ = true;
+
+  const cssId = 'df-p51-css';
+  if (document.getElementById(cssId)) return;
+
+  const css = document.createElement('style');
+  css.id = cssId;
+  css.textContent = `
+    /* ---- 1) Back button: smaller + neutral theme ---- */
+    .btn-back{
+      padding: 6px 10px !important;          /* smaller */
+      border-radius: 10px !important;
+      border: 1.5px solid rgba(0,0,0,.28) !important;
+      background: transparent !important;
+      color: inherit !important;             /* use page text color */
+      font-weight: 800 !important;
+      font-size: 14px !important;            /* smaller text */
+      gap: 8px !important;
+    }
+    .btn-back::before{ content:"\\2190"; font-weight:900; }
+    .btn-back:hover{ background: rgba(0,0,0,.06) !important; }
+    @media (prefers-color-scheme: dark){
+      .btn-back{
+        border-color: rgba(255,255,255,.32) !important;
+      }
+      .btn-back:hover{ background: rgba(255,255,255,.06) !important; }
+    }
+
+    /* ---- 2) Menus: smaller (still bold) labels everywhere ---- */
+    .df-label,
+    .df-subtile .em + span,
+    .df-subtile span.df-label{
+      font-size: 16px !important;            /* down from 18+ */
+      line-height: 1.2 !important;
+      font-weight: 800 !important;
+      word-break: keep-all;
+      text-wrap: balance;
+    }
+
+    /* ---- 3) Footer: shorter + more spacing between items ---- */
+    .site-foot .foot-inner{
+      padding: 6px 10px !important;          /* shorter footer */
+      gap: 16px !important;                   /* more space between items */
+    }
+    #df-date, #version{
+      font-size: 12.5px !important;          /* slightly smaller */
+    }
+  `;
+  document.head.appendChild(css);
+})();
+
