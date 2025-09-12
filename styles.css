@@ -244,3 +244,68 @@ body { background: var(--df-cream) !important; }
   }
 }
 
+/* === DF Tiles – unify look across Home (.df-tile) and submenus (.df-subtile) === */
+/* Shared tile palette (light) */
+:root{
+  --tile-bg: #111;         /* will be overridden for light; set dark default below */
+  --tile-fg: #e6efe8;
+  --tile-bd: #2a7a3d;      /* green border like Equipment */
+  --tile-shadow: none;
+}
+/* Light theme */
+@media (prefers-color-scheme: light){
+  :root{
+    --tile-bg: #ffffff;
+    --tile-fg: #1a1a1a;
+    --tile-bd: #e6e3d3;
+    --tile-shadow: 0 1px 0 rgba(0,0,0,.04);
+  }
+}
+/* Dark theme */
+@media (prefers-color-scheme: dark){
+  :root{
+    --tile-bg: #101010;    /* dark card */
+    --tile-fg: #d9f0db;    /* soft greenish white text */
+    --tile-bd: #2b7f40;    /* JD-ish green border */
+    --tile-shadow: none;
+  }
+}
+
+/* Apply the same visual to BOTH tile types */
+.df-tile,
+.df-subtile{
+  background: var(--tile-bg) !important;
+  color: var(--tile-fg) !important;
+  border: 1.5px solid var(--tile-bd) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--tile-shadow) !important;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  padding: 18px 14px !important;
+}
+
+/* Make the Home grid and submenu grid spacing consistent */
+.df-tiles,
+.df-subtiles{
+  gap: 14px !important;
+}
+
+/* Emoji + labels sizing consistent */
+.df-emoji,
+.df-subtile .em{ font-size: 28px !important; line-height: 1; margin-right: 10px; }
+.df-label{ font-weight: 700 !important; text-align: center; }
+
+/* Remove the washed-out look some tiles had (e.g., Calculators) */
+.df-tile.is-disabled,
+.df-subtile.is-disabled{
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto;   /* allows tapping just like others */
+}
+
+/* Optional: hover/active feedback (subtle) */
+@media (hover:hover){
+  .df-tile:hover, .df-subtile:hover{ transform: translateY(-1px); }
+}
+.df-tile:active, .df-subtile:active{ transform: scale(.985); }
+
