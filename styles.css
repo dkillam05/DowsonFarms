@@ -450,3 +450,46 @@ body[data-theme="dark"] .card h3,
 body[data-theme="dark"] .card span {
   color: var(--df-dark-ink) !important;
 }
+
+/* === DF final unify — dark mode tiles everywhere (Home, submenus, Calculators) === */
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) {
+    --df-dark-bg: #0e0f10;
+    --df-dark-card: #111315;
+    --df-dark-ink: #f9f9f2;
+    --df-dark-border: #1f6a33;
+    background: var(--df-dark-bg) !important;
+    color: var(--df-dark-ink) !important;
+  }
+
+  /* ALL tiles/cards */
+  body:not([data-theme="light"]) .df-tile,
+  body:not([data-theme="light"]) .df-subtile,
+  body:not([data-theme="light"]) .card {
+    background: var(--df-dark-card) !important;
+    border: 1px solid var(--df-dark-border) !important;
+    color: var(--df-dark-ink) !important;
+    box-shadow: none !important;
+    opacity: 1 !important; filter: none !important;
+  }
+
+  /* Calculator page uses .card — give it explicit specificity too */
+  body:not([data-theme="light"]) .calc-grid .card {
+    background: var(--df-dark-card) !important;
+    border: 1px solid var(--df-dark-border) !important;
+    color: var(--df-dark-ink) !important;
+  }
+}
+
+/* If you ever force dark manually */
+body[data-theme="dark"] .df-tile,
+body[data-theme="dark"] .df-subtile,
+body[data-theme="dark"] .card,
+body[data-theme="dark"] .calc-grid .card {
+  background: #111315 !important;
+  border: 1px solid #1f6a33 !important;
+  color: #f9f9f2 !important;
+  box-shadow: none !important;
+  opacity: 1 !important; filter: none !important;
+}
+
