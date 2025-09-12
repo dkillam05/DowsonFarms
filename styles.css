@@ -167,3 +167,34 @@ body { background: var(--df-cream) !important; }
 /* Safety: ensure links inside tiles don’t pick odd visited colors */
 .df-tile, .df-tile:link, .df-tile:visited { color: #111111 !important; text-decoration: none; }
 
+/* ===== v12.6.x – Dark Mode Tile Fix ===== */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #111 !important;   /* dark background */
+    color: #f5f5f5 !important;     /* light text */
+  }
+
+  .card,
+  .df-tile,
+  .df-subtile {
+    background: #222 !important;   /* dark gray tiles */
+    border: 1px solid #333 !important;
+    color: #f5f5f5 !important;     /* tile text stays readable */
+  }
+
+  /* Optional: make emoji pop on dark */
+  .df-emoji, .em {
+    filter: brightness(1.1);
+  }
+
+  .site-foot,
+  .site-head {
+    background: #0f4d1d !important; /* keep your Deere green */
+    color: #fcd94b !important;      /* golden text */
+  }
+
+  #breadcrumbs {
+    background: #fcd94b !important;
+    color: #0f4d1d !important;
+  }
+}
