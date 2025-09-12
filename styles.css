@@ -505,3 +505,45 @@ body{ padding-top: env(safe-area-inset-top,0px); }
 /* Keep header from crowding iOS status area in standalone mode */
 :root{ --df-safe-top: env(safe-area-inset-top, 0px); }
 #header{ padding-top: max(0px, calc(var(--df-safe-top) * 0.5)); }
+
+/* ===== DF v13 — final, consistent UI ===== */
+
+/* 14px BOLD everywhere on tiles (home + all submenus) */
+.df-tile,
+.df-subtile,
+.card { font-size:14px; font-weight:700; text-align:center; }
+
+/* Tile label text (covers different markup variants) */
+.df-label,
+.df-subtile span,
+.card h3,
+.df-tile span { font-size:14px; font-weight:700; }
+
+/* Back button (the small dark one, like Vendors) */
+.btn-back{
+  background:#111; color:#f9f9f2;
+  border:1px solid #333; border-radius:6px;
+  font-size:13px; font-weight:600; padding:6px 12px;
+}
+.btn-back:hover{ background:#222; }
+
+/* Footer height + spacing between ©, date, version */
+.site-foot .foot-inner{
+  padding:6px 12px;
+  font-size:12px;
+  gap:20px;                 /* more space between items */
+  justify-content:center;
+}
+
+/* Dark mode tiles — same look on ALL screens (incl. Calculators) */
+@media (prefers-color-scheme: dark){
+  .df-tile, .df-subtile, .card{
+    background:#111315; color:#f9f9f2;
+    border:1px solid #1f6a33; box-shadow:none;
+  }
+  .df-tile .df-label,
+  .df-subtile span,
+  .card h3 { color:#f9f9f2; }
+}
+
+
