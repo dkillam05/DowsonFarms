@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v12.6.20',
+    version: 'v12.6.25',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -506,47 +506,67 @@
 })();
 
 
-/* ==========================================
-   Part 6 — Menus & Submenus (placeholders)
-   ========================================== */
+/* =========================================================
+   APP v12.x — Part 6: Menus & Submenus (robust routing)
+   - Top tiles (Home)
+   - Submenu grids for each section
+   - Handles #/feedback and #/settings correctly
+   ========================================================= */
 (function DF_V12_P6_MENUS(){
   'use strict';
   if (window.__DF_V12_P6__) return; window.__DF_V12_P6__ = true;
-  const { appRoot } = window.DF;
 
-  // Submenus (aligned to your 10.15.1 layout; can tweak icons later)
+  // --------- tiny helpers ----------
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const app = ()=> $('#app');
+
+  // --------- Home tiles (order/emojis you set) ----------
+  const HOME_TILES = [
+    { href:'#/crop',     icon:'🌽', label:'Crop Production' },
+    { href:'#/grain',    icon:'🌾', label:'Grain Tracking' },
+    { href:'#/equip',    icon:'🚜', label:'Equipment' },
+    { href:'#/calc',     icon:'🧮', label:'Calculators' },
+    { href:'#/reports',  icon:'📊', label:'Reports' },
+    { href:'#/team',     icon:'🤝', label:'Team / Partners' },
+    { href:'#/feedback', icon:'💬', label:'Feedback' },
+    { href:'#/settings', icon:'⚙️', label:'Setups / Settings' },
+  ];
+
+  // --------- Submenus (your lists) ----------
   const SUBMENUS = {
     '#/crop': [
       { href:'#/crop/planting',  icon:'🌱', label:'Planting' },
       { href:'#/crop/spraying',  icon:'🧪', label:'Spraying' },
-      { href:'#/crop/aerial',    icon:'🚁', label:'Aerial Spray' },
-      { href:'#/crop/harvest',   icon:'🌾', label:'Harvest' },
-      { href:'#/crop/maintenance',icon:'🧰', label:'Field Maintenance' },
-      { href:'#/crop/scouting',  icon:'🔎', label:'Scouting' },
-      { href:'#/crop/trials',    icon:'🧬', label:'Trials' },
+      { href:'#/crop/aerial',    icon:'✈️', label:'Aerial Spray' },
+      { href:'#/crop/harvest',   icon:'🚜', label:'Harvest' },
+      { href:'#/crop/maint',     icon:'🧰', label:'Field Maintenance' },
+      { href:'#/crop/scouting',  icon:'🔍', label:'Scouting' },
+      { href:'#/crop/trials',    icon:'🧫', label:'Trials' },
     ],
     '#/grain': [
       { href:'#/grain/bag',   icon:'🛍️', label:'Grain Bag' },
-      { href:'#/grain/bins',  icon:'🛢️', label:'Grain Bins' },
-      { href:'#/grain/cont',  icon:'📜', label:'Grain Contracts' },
+      { href:'#/grain/bins',  icon:'🏚️', label:'Grain Bins' },
+      { href:'#/grain/cont',  icon:'📄', label:'Grain Contracts' },
       { href:'#/grain/ocr',   icon:'🧾', label:'Grain Ticket OCR' },
     ],
     '#/equip': [
       { href:'#/equip/tech',      icon:'🛰️', label:'StarFire / Technology' },
       { href:'#/equip/tractors',  icon:'🚜', label:'Tractors' },
-      { href:'#/equip/combines',  icon:'🧺', label:'Combines' },  /* we can adjust */
-      { href:'#/equip/sprayers',  icon:'💦', label:'Sprayer / Fertilizer Spreader' },
+      { href:'#/equip/combines',  icon:'🚜', label:'Combines' },
+      { href:'#/equip/sprayers',  icon:'💦', label:'Sprayer / Fertilizer' },
       { href:'#/equip/const',     icon:'🏗️', label:'Construction Equipment' },
       { href:'#/equip/trucks',    icon:'🚚', label:'Trucks' },
       { href:'#/equip/trailers',  icon:'🚛', label:'Trailers' },
       { href:'#/equip/impl',      icon:'⚙️', label:'Farm Implements' },
     ],
     '#/calc': [
-      { href:'#/calc/fertilizer', icon:'🧪', label:'Fertilizer' },
-      { href:'#/calc/bin',        icon:'🛢️', label:'Bin Volume' },
+      { href:'#/calc/fertilizer', icon:'🧮', label:'Fertilizer' },
+      { href:'#/calc/bin',        icon:'📦', label:'Bin Volume' },
       { href:'#/calc/area',       icon:'📐', label:'Area' },
-      { href:'#/calc/yield',      icon:'🌽', label:'Combine Yield' },
-      { href:'#/calc/chem',       icon:'🧴', label:'Chemical Mix' },
+      { href:'#/calc/yield',      icon:'🌾', label:'Combine Yield' },
+      { href:'#/calc/chem',       icon:'🧪', label:'Chemical Mix' },
     ],
     '#/reports': [
       { href:'#/reports/premade', icon:'📑', label:'Pre-made Reports' },
@@ -574,17 +594,35 @@
     ],
   };
 
-  function renderSubmenu(baseHash, title, emoji){
-    const root = appRoot(); if (!root) return;
-    const items = SUBMENUS[baseHash] || [];
+  // --------- renderers ----------
+  function renderHome(){
+    const root = app(); if (!root) return;
     root.innerHTML = `
       <section class="section">
-        <h1>${emoji} ${title}</h1>
+        <h1>Home</h1>
+        <div class="df-tiles">
+          ${HOME_TILES.map(t=>`
+            <a class="df-tile" href="${t.href}" aria-label="${esc(t.label)}">
+              <div class="df-emoji">${t.icon}</div>
+              <div class="df-label">${esc(t.label)}</div>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderSubmenu(baseHash, title, emoji){
+    const items = SUBMENUS[baseHash] || [];
+    const root = app(); if (!root) return;
+    root.innerHTML = `
+      <section class="section">
+        <h1>${emoji} ${esc(title)}</h1>
         <div class="df-subtiles">
           ${items.map(it=>`
             <a class="df-subtile" href="${it.href}">
               <span class="em">${it.icon}</span>
-              <span>${it.label}</span>
+              <span>${esc(it.label)}</span>
             </a>
           `).join('')}
         </div>
@@ -593,37 +631,65 @@
     `;
   }
 
-  // Wire top-level menu routes to render their submenu grids
-  const TOP = [
-    { base:'#/crop',     label:'Crop Production', icon:'🌽' },
-    { base:'#/grain',    label:'Grain Tracking',  icon:'🌾' },
-    { base:'#/equip',    label:'Equipment',       icon:'🚜' },
-    { base:'#/calc',     label:'Calculators',     icon:'🧮' },
-    { base:'#/reports',  label:'Reports',         icon:'📊' },
-    { base:'#/team',     label:'Team / Partners', icon:'🤝' },
-    { base:'#/feedback', label:'Feedback',        icon:'💬' },
-    { base:'#/settings', label:'Setups / Settings', icon:'⚙️' },
-  ];
-
-  TOP.forEach(t=>{
-    window.DF.routeRegister(t.base, ()=> renderSubmenu(t.base, t.label, t.icon));
-  });
-
-  // Leaf routes (placeholders) — anything deeper than top base
   function renderLeaf(title, emoji){
-    const root = appRoot(); if (!root) return;
+    const root = app(); if (!root) return;
     root.innerHTML = `
       <section class="section">
-        <h1>${emoji} ${title}</h1>
-        <p class="muted">Screen scaffold — we’ll wire functionality step-by-step.</p>
+        <h1>${emoji} ${esc(title)}</h1>
+        <p class="muted">Screen scaffold — coming back step-by-step.</p>
         <p class="muted"><a href="javascript:history.back()">← Back</a></p>
       </section>
     `;
   }
 
-  Object.values(SUBMENUS).flat().forEach(item=>{
-    window.DF.routeRegister(item.href, ()=> renderLeaf(item.label, item.icon));
-  });
+  // --------- router ----------
+  const TOP_BASES = ['#/crop','#/grain','#/equip','#/calc','#/reports','#/team','#/feedback','#/settings'];
+
+  function routeMenus(){
+    const h = (location.hash||'').replace(/\/+$/,'') || '#/home';
+
+    // home
+    if (h === '#/home' || h === '#/' || h === '#'){ renderHome(); scrollTo(0,0); return true; }
+
+    // top-level submenus (EXPLICITLY includes feedback & settings)
+    if (TOP_BASES.includes(h)){
+      const tile = HOME_TILES.find(t=>t.href===h) || {label:'',icon:''};
+      renderSubmenu(h, tile.label, tile.icon);
+      scrollTo(0,0);
+      return true;
+    }
+
+    // leaf pages (anything deeper than base)
+    const base = TOP_BASES.find(b=>h.startsWith(b+'/'));
+    if (base){
+      const sub = (SUBMENUS[base]||[]).find(x=>x.href===h);
+      if (sub) { renderLeaf(sub.label, sub.icon); scrollTo(0,0); return true; }
+      renderLeaf(h.replace(/^#\//,''), '📄'); scrollTo(0,0); return true;
+    }
+
+    return false; // allow other parts to try
+  }
+
+  // --------- robust hash-link delegation ----------
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest('a[href^="#/"]');
+    if (!a) return;
+    e.preventDefault();
+    const to = a.getAttribute('href');
+    if (to && to !== location.hash){
+      location.hash = to;
+    } else {
+      // same hash clicked → still force a render
+      routeMenus();
+    }
+  }, true);
+
+  window.addEventListener('hashchange', routeMenus, { passive:true });
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', routeMenus, { once:true });
+  } else {
+    routeMenus();
+  }
 })();
 
 
