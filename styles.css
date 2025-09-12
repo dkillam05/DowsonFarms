@@ -309,3 +309,79 @@ body { background: var(--df-cream) !important; }
 }
 .df-tile:active, .df-subtile:active{ transform: scale(.985); }
 
+/* === Dowson Farms — Dark theme tile normalization (Home + Submenus) === */
+/* Applies when the device is in dark mode OR you force it with data-theme="dark" */
+
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) {
+    --df-dark-bg: #0e0f10;     /* page background */
+    --df-dark-card: #111315;   /* tile background */
+    --df-dark-ink: #e9f2e6;    /* tile text */
+    --df-dark-border: #1f6a33; /* green border like Equipment screen */
+
+    background: var(--df-dark-bg) !important;
+    color: var(--df-dark-ink) !important;
+  }
+
+  /* Home tiles */
+  body:not([data-theme="light"]) .df-tile {
+    background: var(--df-dark-card) !important;
+    color: var(--df-dark-ink) !important;
+    border: 1px solid var(--df-dark-border) !important;
+    box-shadow: none !important;
+  }
+  body:not([data-theme="light"]) .df-tile .df-label { color: inherit !important; }
+  body:not([data-theme="light"]) .df-tiles a.df-tile { text-decoration: none !important; }
+
+  /* Submenu tiles */
+  body:not([data-theme="light"]) .df-subtile {
+    background: var(--df-dark-card) !important;
+    color: var(--df-dark-ink) !important;
+    border: 1px solid var(--df-dark-border) !important;
+    box-shadow: none !important;
+  }
+  body:not([data-theme="light"]) .df-subtile .em { color: inherit !important; }
+
+  /* Kill any “disabled/washed” styles that might grey tiles */
+  body:not([data-theme="light"]) .df-tile[aria-disabled],
+  body:not([data-theme="light"]) .df-subtile[aria-disabled],
+  body:not([data-theme="light"]) .df-tile.is-disabled,
+  body:not([data-theme="light"]) .df-subtile.is-disabled {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  /* Optionally darken generic cards too, if you use .card in dark */
+  body:not([data-theme="light"]) .card {
+    background: var(--df-dark-card) !important;
+    color: var(--df-dark-ink) !important;
+    border: 1px solid var(--df-dark-border) !important;
+  }
+}
+
+/* If you ever force dark via JS/HTML: <body data-theme="dark"> — mirror the same rules */
+body[data-theme="dark"] {
+  --df-dark-bg: #0e0f10;
+  --df-dark-card: #111315;
+  --df-dark-ink: #e9f2e6;
+  --df-dark-border: #1f6a33;
+  background: var(--df-dark-bg) !important;
+  color: var(--df-dark-ink) !important;
+}
+body[data-theme="dark"] .df-tile,
+body[data-theme="dark"] .df-subtile,
+body[data-theme="dark"] .card {
+  background: var(--df-dark-card) !important;
+  color: var(--df-dark-ink) !important;
+  border: 1px solid var(--df-dark-border) !important;
+  box-shadow: none !important;
+}
+body[data-theme="dark"] .df-tile .df-label,
+body[data-theme="dark"] .df-subtile .em { color: inherit !important; }
+body[data-theme="dark"] .df-tile[aria-disabled],
+body[data-theme="dark"] .df-subtile[aria-disabled],
+body[data-theme="dark"] .df-tile.is-disabled,
+body[data-theme="dark"] .df-subtile.is-disabled {
+  opacity: 1 !important;
+  filter: none !important;
+}
