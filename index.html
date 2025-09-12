@@ -7,7 +7,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#1B5E20">
+  <meta name="theme-color" content="#0f4d1d">
 
   <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,20 +15,23 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
 
+  <!-- Tell the browser we support both schemes -->
+  <meta name="color-scheme" content="light dark">
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ===== Header ===== -->
+  <!-- Header -->
   <header id="header" class="site-head">
     <div class="container head-inner">
       <a href="#/home" class="brand" aria-label="Dowson Farms Home">
-        <img src="icons/logo.png" alt="Dowson Farms Logo" class="brand-logo" width="36" height="36">
+        <img src="icons/logo.png" alt="Dowson Farms logo" class="brand-logo" width="36" height="36">
         <span class="brand-title">Dowson Farms</span>
       </a>
       <nav class="head-actions">
@@ -38,30 +41,23 @@
     </div>
   </header>
 
-  <!-- ===== Breadcrumbs ===== -->
+  <!-- Breadcrumbs (rendered by JS) -->
   <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs"></nav>
 
-  <!-- ===== Main App ===== -->
+  <!-- Main app container -->
   <main id="app" class="app"></main>
 
-  <!-- ===== Update Banner ===== -->
-  <div id="update-banner" hidden>
-    🔄 New update available.
-    <button id="reload-app" class="btn">Refresh</button>
-  </div>
-
-  <!-- ===== Footer ===== -->
+  <!-- Footer -->
   <footer id="footer" class="site-foot">
     <div class="container foot-inner">
       <span>© Dowson Farms</span>
-      <span aria-hidden="true">•</span>
+      <span class="dot">•</span>
       <span id="df-date"></span>
-      <span aria-hidden="true">•</span>
+      <span class="dot">•</span>
       <span id="version">v0.0.0</span>
     </div>
   </footer>
 
-  <!-- App -->
   <script defer src="app.js"></script>
 </body>
 </html>
