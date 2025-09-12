@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.20.0',
+    version: 'v13.25.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4471,3 +4471,115 @@
 
   window.addEventListener('hashchange', kick, {passive:true});
 })();
+
+/* =========================================================
+   APP v12 — Part 54: Style Reset + Tile Normalizer
+   - Kill conflicting injected <style> blocks from older parts
+   - Set route hints for CSS (body[data-route], #app[data-section])
+   - Normalize calculators & other legacy pages to use df-* classes
+   - Keep breadcrumbs sticky without changing markup
+   ========================================================= */
+(function DF_V12_P54_CLEANUP(){
+  'use strict';
+  if (window.__DF_V12_P54__) return; window.__DF_V12_P54__ = true;
+
+  // ---------- helpers ----------
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  const app = ()=> $('#app');
+
+  // 1) Remove any old injected style tags so styles.css is the single source of truth
+  function removeInjectedCSS(){
+    const idsToKill = [
+      // older/base
+      'df-v12-base-css',
+      'df-tiles-polish',
+      'df-p46-polish-css',
+      'df-tiles-unified',
+      'df-crumbs-css',
+      // any extra df- style nodes we created along the way
+    ];
+    idsToKill.forEach(id => { const n = $('#'+id); if (n && n.tagName==='STYLE') n.remove(); });
+    // Belt & suspenders: remove ANY <style id="df-...">
+    $$('style[id^="df-"]').forEach(n => n.remove());
+  }
+
+  // 2) Compute route hints for CSS targeting
+  function routeInfo(){
+    const h = (location.hash || '#/home').replace(/\/+$/,'');
+    // top-level section: "#/calc/area" -> "calc"
+    const m = /^#\/([^\/]+)/.exec(h);
+    const section = m ? m[1] : 'home';
+    return { hash: h, section };
+  }
+
+  function applyRouteHints(){
+    const { section } = routeInfo();
+    const b = document.body;
+    const root = app();
+    if (b) b.setAttribute('data-route', section);     // body[data-route="calculators"]
+    if (root) root.setAttribute('data-section', section); // #app[data-section="calc"]
+  }
+
+  // 3) Normalize calculators & legacy screens to use df-* tile classes
+  function normalizeLegacyTiles(){
+    const root = app(); if (!root) return;
+
+    // If a calculators wrapper exists, normalize its children
+    const calcWrappers = [
+      '#calculators', '.calc-grid', '.calc-tiles', '.calc-list', '[data-calc-root="1"]'
+    ].map(sel => root.querySelector(sel)).filter(Boolean);
+
+    calcWrappers.forEach(wrap => {
+      // ensure a uniform grid class on the container
+      if (!wrap.classList.contains('df-subtiles')) wrap.classList.add('df-subtiles');
+      // each child becomes a .df-subtile (anchor or div)
+      Array.from(wrap.children).forEach(ch => {
+        if (!ch.classList.contains('df-subtile')) ch.classList.add('df-subtile');
+        // try to detect an icon + label shape and make sure label has .df-label
+        // if there is a single text node/span inside, wrap in a span.df-label
+        const hasLabel = ch.querySelector('.df-label');
+        if (!hasLabel) {
+          // find a likely text span
+          let t = ch.querySelector('span:not(.em):not(.df-label), h3, p');
+          if (!t) {
+            // create a label node from textContent
+            const s = document.createElement('span');
+            s.className = 'df-label';
+            s.textContent = (ch.textContent || '').trim();
+            ch.innerHTML = '';
+            ch.appendChild(s);
+          } else {
+            t.classList.add('df-label');
+          }
+        }
+      });
+    });
+
+    // Home tiles safety: ensure anchors have df-tile
+    $$('.df-tiles a').forEach(a => a.classList.add('df-tile'));
+  }
+
+  // 4) Breadcrumbs sticky class (if your CSS expects it)
+  function ensureStickyBreadcrumbs(){
+    const bc = $('#breadcrumbs');
+    if (bc && !bc.classList.contains('df-crumbs-sticky')) bc.classList.add('df-crumbs-sticky');
+  }
+
+  // 5) Hook router changes
+  function onRoute(){
+    removeInjectedCSS();
+    applyRouteHints();
+    normalizeLegacyTiles();
+    ensureStickyBreadcrumbs();
+  }
+
+  // Boot + listen
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', onRoute, {once:true});
+  } else {
+    onRoute();
+  }
+  window.addEventListener('hashchange', onRoute, {passive:true});
+})();
+
