@@ -174,3 +174,71 @@ body[data-theme="dark"] .card{
 /* --------- Nice-to-haves --------- */
 a{ color: inherit; }
 .muted{ color: var(--muted); }
+
+/* ==== v13.x — Tile consistency (dark mode) + big submenu tiles ==== */
+/* Only affects DARK mode; light mode remains as-is */
+@media (prefers-color-scheme: dark) {
+  :root{
+    --df-dark-bg:   #0e0f10;   /* page */
+    --df-dark-card: #111315;   /* tile bg */
+    --df-dark-ink:  #f8f7f0;   /* ivory text */
+    --df-dark-bd:   #1f6a33;   /* green outline */
+  }
+
+  /* Page bg/text */
+  body:not([data-theme="light"]) {
+    background: var(--df-dark-bg) !important;
+    color: var(--df-dark-ink) !important;
+  }
+
+  /* Make ALL tiles (home + submenus) look the same in dark mode */
+  body:not([data-theme="light"]) .df-tiles > a,
+  body:not([data-theme="light"]) .df-tiles .df-tile,
+  body:not([data-theme="light"]) .df-subtiles > a,
+  body:not([data-theme="light"]) .df-subtiles .df-subtile,
+  /* catch any card-like tiles */
+  body:not([data-theme="light"]) .card {
+    background: var(--df-dark-card) !important;
+    color: var(--df-dark-ink) !important;
+    border: 1px solid var(--df-dark-bd) !important;
+    box-shadow: none !important;
+  }
+
+  /* Larger, readable sub-menu tiles everywhere (like Reports) */
+  body:not([data-theme="light"]) .df-subtiles{
+    gap: 14px !important;
+  }
+  body:not([data-theme="light"]) .df-subtiles > a,
+  body:not([data-theme="light"]) .df-subtiles .df-subtile{
+    display:flex; align-items:center; gap:12px;
+    padding: 18px 16px !important;
+    border-radius: 14px !important;
+    text-decoration: none;
+    font-weight: 700;
+  }
+  body:not([data-theme="light"]) .df-subtiles :is(.df-label, span, h3){
+    font-size: 22px !important; line-height: 1.15 !important;
+    color: var(--df-dark-ink) !important;
+  }
+  body:not([data-theme="light"]) .df-subtiles :is(.df-emoji,.em){
+    font-size: 28px !important; margin-right: 8px !important;
+  }
+
+  /* --- Calculators hard override (some legacy styles force white) --- */
+  body:not([data-theme="light"]) :is(#screen-calculators,#calculators,[data-route*="calculators"],.calc-grid,.calc-tiles) 
+  :is(a,button,div,.df-subtile,.df-tile,.card){
+    background: var(--df-dark-card) !important;
+    color: var(--df-dark-ink) !important;
+    border: 1px solid var(--df-dark-bd) !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  /* Never dim “disabled” tiles in dark mode */
+  body:not([data-theme="light"]) :is(.df-tile,.df-subtile,.card)[aria-disabled],
+  body:not([data-theme="light"]) :is(.df-tile,.df-subtile,.card).is-disabled{
+    opacity: 1 !important;
+    filter: none !important;
+    color: var(--df-dark-ink) !important;
+  }
+}
