@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v14.30.10',
+    version: 'v15.0.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -2738,23 +2738,48 @@
   if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
 })();
 
-/* ================= App v12 — Part 35: Fertilizer + Bin Volume Calculators ================= */
+/* ================= App v12 — Part 35: Fertilizer + Bin Volume ================= */
 (function DF_Part35_CalcFert_Bin(){
   'use strict';
   if (window.__DF_P35__) return; window.__DF_P35__ = true;
 
-  const $=(s,r=document)=>r.querySelector(s);
+  const $  = (s,r=document)=>r.querySelector(s);
   const app=()=>$('#app');
   const num=v=>{ const n=Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; };
   const commas=v=>{ try{return Number(v).toLocaleString();}catch{return String(v);} };
 
+  // Theme-aware calc styles (shared by Part 35 & 36)
   function ensureCSS(){
-    if ($('#df-p35-css')) return;
+    if (document.getElementById('df-calc-cards-css')) return;
     const css=document.createElement('style');
-    css.id='df-p35-css';
+    css.id='df-calc-cards-css';
     css.textContent=`
       .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-      .card{border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;padding:12px;margin-top:10px}
+      @media (max-width:560px){ .calc-grid{grid-template-columns:1fr 1fr;} }
+
+      /* LIGHT */
+      .card{
+        border:1px solid #e6e3d3;
+        border-radius:10px;
+        background:#ffffff;
+        color:#111;
+        padding:12px;
+        margin-top:10px
+      }
+      /* DARK (auto) */
+      @media (prefers-color-scheme: dark){
+        body:not([data-theme="light"]) .card{
+          border:1px solid #1f6a33;
+          background:#111315;
+          color:#f9f9f2;
+        }
+      }
+      /* DARK (forced) */
+      body[data-theme="dark"] .card{
+        border:1px solid #1f6a33 !important;
+        background:#111315 !important;
+        color:#f9f9f2 !important;
+      }
     `;
     document.head.appendChild(css);
   }
@@ -2762,6 +2787,9 @@
   // -------- Fertilizer --------
   function viewFert(){
     ensureCSS();
+    document.body.setAttribute('data-route','calculators-leaf');
+    app()?.setAttribute('data-section','calc');
+
     app().innerHTML = `
       <section class="section">
         <h1>🧪 Fertilizer Calculator</h1>
@@ -2780,16 +2808,16 @@
           </label>
           <label><span class="small muted">Acres *</span><input id="f-ac" type="number" step="any"></label>
         </div>
-        <div style="margin-top:8px;">
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <button id="f-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
+          <a class="btn-back" href="#/calc">← Back</a>
         </div>
         <div id="f-out" class="card" style="display:none;"></div>
       </section>
     `;
     $('#f-go')?.addEventListener('click', ()=>{
       const target=num($('#f-target').value), ana=num($('#f-ana').value), den=num($('#f-den').value||'11.06'), ac=num($('#f-ac').value);
-      if (!target || !ana || !ac || ana<=0 || ana>100){ alert('Enter valid target, analysis(1–100) and acres.'); return; }
+      if (!target || !ana || !ac || ana<=0 || ana>100){ alert('Enter valid target, analysis (1–100) and acres.'); return; }
       const frac=ana/100, lbA=target/frac, galA=lbA/(den||1);
       const out=$('#f-out'); out.style.display='';
       out.innerHTML = `
@@ -2800,14 +2828,18 @@
         <div class="small muted" style="margin-top:6px;">Density affects gal/acre; analysis drives lb/acre.</div>
       `;
     });
+    scrollTo(0,0);
   }
 
   // -------- Bin Volume --------
   function viewBin(){
     ensureCSS();
+    document.body.setAttribute('data-route','calculators-leaf');
+    app()?.setAttribute('data-section','calc');
+
     app().innerHTML = `
       <section class="section">
-        <h1>🛢️ Bin Volume Calculator</h1>
+        <h1>🛢️ Bin Volume</h1>
         <div class="calc-grid">
           <label><span class="small muted">Diameter (ft) *</span><input id="b-d" type="number" step="any"></label>
           <label><span class="small muted">Grain Depth (ft) *</span><input id="b-h" type="number" step="any"></label>
@@ -2821,9 +2853,9 @@
           <label><span class="small muted">lb / bu</span><input id="b-lbbu" type="number" step="any" value="56"></label>
           <label><span class="small muted">ft³ / bu</span><input id="b-buft3" type="number" step="any" value="1.244"></label>
         </div>
-        <div style="margin-top:8px;">
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <button id="b-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
+          <a class="btn-back" href="#/calc">← Back</a>
         </div>
         <div id="b-out" class="card" style="display:none;"></div>
       </section>
@@ -2846,8 +2878,10 @@
         <div class="small muted" style="margin-top:6px;">Assumes ideal fill; adjust for void/packing as needed.</div>
       `;
     });
+    scrollTo(0,0);
   }
 
+  // Routes for these two calculators
   function route(){
     const h=(location.hash||'').replace(/\/+$/,'');
     if (h==='#/calc/fertilizer'){ viewFert(); return true; }
@@ -2863,19 +2897,40 @@
   'use strict';
   if (window.__DF_P36__) return; window.__DF_P36__ = true;
 
-  const $=(s,r=document)=>r.querySelector(s);
+  const $  = (s,r=document)=>r.querySelector(s);
   const app=()=>$('#app');
   const num=v=>{ const n=Number(String(v).replace(/,/g,'')); return Number.isFinite(n)?n:0; };
   const commas=v=>{ try{return Number(v).toLocaleString();}catch{return String(v);} };
 
+  // Re-use theme-aware calc styles
   function ensureCSS(){
-    if ($('#df-p36-css')) return;
+    if (document.getElementById('df-calc-cards-css')) return;
     const css=document.createElement('style');
-    css.id='df-p36-css';
+    css.id='df-calc-cards-css';
     css.textContent=`
       .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
       @media (max-width:560px){ .calc-grid{grid-template-columns:1fr 1fr;} }
-      .card{border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;padding:12px;margin-top:10px}
+
+      .card{
+        border:1px solid #e6e3d3;
+        border-radius:10px;
+        background:#ffffff;
+        color:#111;
+        padding:12px;
+        margin-top:10px
+      }
+      @media (prefers-color-scheme: dark){
+        body:not([data-theme="light"]) .card{
+          border:1px solid #1f6a33;
+          background:#111315;
+          color:#f9f9f2;
+        }
+      }
+      body[data-theme="dark"] .card{
+        border:1px solid #1f6a33 !important;
+        background:#111315 !important;
+        color:#f9f9f2 !important;
+      }
     `;
     document.head.appendChild(css);
   }
@@ -2883,6 +2938,9 @@
   // -------- Area --------
   function viewArea(){
     ensureCSS();
+    document.body.setAttribute('data-route','calculators-leaf');
+    app()?.setAttribute('data-section','calc');
+
     app().innerHTML = `
       <section class="section">
         <h1>📐 Area</h1>
@@ -2906,9 +2964,9 @@
           <label><span class="small muted">Base *</span><input id="a-base" type="number" step="any"></label>
           <label><span class="small muted">Height *</span><input id="a-height" type="number" step="any"></label>
         </div>
-        <div style="margin-top:8px;">
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <button id="a-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
+          <a class="btn-back" href="#/calc">← Back</a>
         </div>
         <div id="a-out" class="card" style="display:none;"></div>
       </section>
@@ -2931,11 +2989,15 @@
       out.innerHTML = `<div><strong>Area (${unit==='ft'?'ft²':'m²'}):</strong> ${commas(A.toFixed(2))}</div>
         <div><strong>Area (acres):</strong> ${commas(acres.toFixed(4))}</div>`;
     });
+    scrollTo(0,0);
   }
 
-  // -------- Combine Yield (length + header width + true vs elevator shrink) --------
+  // -------- Combine Yield --------
   function viewYield(){
     ensureCSS();
+    document.body.setAttribute('data-route','calculators-leaf');
+    app()?.setAttribute('data-section','calc');
+
     app().innerHTML = `
       <section class="section">
         <h1>🌽 Combine Yield</h1>
@@ -2952,9 +3014,9 @@
           <label><span class="small muted">Dry Basis %</span><input id="cy-base" type="number" step="any" placeholder="auto"></label>
           <label><span class="small muted">lb / bu</span><input id="cy-lbbu" type="number" step="any" placeholder="auto"></label>
         </div>
-        <div style="margin-top:8px;">
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <button id="cy-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
+          <a class="btn-back" href="#/calc">← Back</a>
         </div>
         <div id="cy-out" class="card" style="display:none;"></div>
       </section>
@@ -2964,7 +3026,7 @@
     const fill=()=>{
       const crop=$('#cy-crop').value; const p=PRESETS[crop];
       if (!$('#cy-base').value) $('#cy-base').value=p.base;
-      if (!$('#cy-lbbu').value) $('#cy-lbbu').value=p.lbbu;
+      if (!$('#cy-lbbu').value)  $('#cy-lbbu').value =p.lbbu;
     };
     $('#cy-crop').addEventListener('change', fill); fill();
 
@@ -3008,11 +3070,15 @@
         </div>
       `;
     });
+    scrollTo(0,0);
   }
 
   // -------- Chemical Mix --------
   function viewChem(){
     ensureCSS();
+    document.body.setAttribute('data-route','calculators-leaf');
+    app()?.setAttribute('data-section','calc');
+
     app().innerHTML = `
       <section class="section">
         <h1>🧴 Chemical Mix</h1>
@@ -3023,9 +3089,9 @@
         </div>
         <h3 style="margin-top:10px;">Products (rate per acre)</h3>
         <div id="prod-wrap"></div>
-        <div style="margin-top:8px;">
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <button id="ch-go" class="btn-primary">Calculate</button>
-          <a class="btn" href="#/calc">Back</a>
+          <a class="btn-back" href="#/calc">← Back</a>
         </div>
         <div id="ch-out" class="card" style="display:none;"></div>
       </section>
@@ -3064,18 +3130,21 @@
         <div class="small muted" style="margin-top:6px;">Confirm compatibility and label requirements.</div>
       `;
     });
+    scrollTo(0,0);
   }
 
+  // Routes for these three calculators
   function route(){
     const h=(location.hash||'').replace(/\/+$/,'');
-    if (h==='#/calc/area'){ viewArea(); return true; }
+    if (h==='#/calc/area'){  viewArea();  return true; }
     if (h==='#/calc/yield'){ viewYield(); return true; }
-    if (h==='#/calc/chem'){ viewChem(); return true; }
+    if (h==='#/calc/chem'){  viewChem();  return true; }
     return false;
   }
   window.addEventListener('hashchange', route, {passive:true});
   if (document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', route, {once:true}); } else { route(); }
 })();
+
 
 /* ================= App v12 — Part 37: Crop Production Hub + Crop Year ================= */
 (function DF_Part37_CropHub(){
