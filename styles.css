@@ -69,3 +69,35 @@ body{ background: var(--df-bg) !important; }
   color: var(--df-gold) !important;
   border: 0 !important;
 }
+
+/* ===== Breadcrumbs (v12) ===== */
+.breadcrumbs{
+  background: var(--df-cream, #f6f3e4);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  font-size: 14px;
+  color: #1b5e20;               /* green text */
+}
+
+.breadcrumbs .inner{
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bc-link{
+  color: #1b5e20;
+  text-decoration: none;
+  font-weight: 600;
+}
+.bc-current{
+  color: #37433b;               /* readable, not too light */
+  font-weight: 700;
+}
+
+.bc-sep{ color: rgba(0,0,0,.35); }
