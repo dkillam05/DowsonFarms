@@ -1,15 +1,14 @@
-/* =========================================================
-   Dowson Farms — Unified Styles (clean base + forced theme)
-   ========================================================= */
+/* =======================
+   Dowson Farms – Base UI
+   ======================= */
 
-/* --------- Brand tokens --------- */
+/* Brand & surfaces */
 :root{
   --brand-green:  #0f4d1d;
   --brand-gold:   #f1d565;
 
   --paper:        #f6f3e4;
   --ink:          #1b1b1b;
-  --muted:        #666;
 
   --tile-bg:      #ffffff;
   --tile-ink:     #111111;
@@ -20,152 +19,110 @@
   --dark-card:    #111315;
   --dark-ink:     #f9f9f2;
   --dark-bd:      #1f6a33;
+
+  --head-h: 56px; /* used for sticky breadcrumbs offset */
 }
 
-/* --------- Base --------- */
-*{ box-sizing: border-box; }
-html, body { height: 100%; }
+*{ box-sizing:border-box; }
+html, body { height:100%; }
 body{
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font: 16px/1.45 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:16px/1.45 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
-.container{ max-width: 980px; margin:0 auto; padding: 0 12px; }
-.hide{ display:none !important; }
 
-/* --------- Header --------- */
+.container{ max-width:980px; margin:0 auto; padding:0 12px; }
+a{ color:inherit; }
+.muted{ color:#666; }
+
+/* Header */
 .site-head{
-  position: sticky; top: 0; z-index: 20;
-  background: var(--brand-green);
-  color: var(--brand-gold);
+  position:sticky; top:0; z-index:20;
+  background:var(--brand-green); color:var(--brand-gold);
+  box-shadow:0 1px 0 rgba(0,0,0,.1);
 }
 .site-head .head-inner{
-  padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px;
+  padding: calc(8px + env(safe-area-inset-top,0px)) 12px 8px;
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  max-width: 980px; margin: 0 auto;
 }
 .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
 .brand-logo{ width:28px; height:28px; border-radius:50%; object-fit:cover; }
-.brand-title{ font-size:18px; font-weight:700; letter-spacing:.2px; color:var(--brand-gold); }
-#df-clock{ font-variant-numeric: tabular-nums; font-weight:600; color:var(--brand-gold); }
+.brand-title{ font-size:18px; font-weight:700; color:var(--brand-gold); }
+.head-actions{ display:flex; align-items:center; gap:10px; }
 .head-actions .btn{
   border:1px solid rgba(241,213,101,.35);
-  background: transparent; color: var(--brand-gold);
-  border-radius: 10px; padding: 4px 10px; font-weight: 600; cursor:pointer;
+  background:transparent; color:var(--brand-gold);
+  border-radius:10px; padding:4px 10px; font-weight:600; cursor:pointer;
 }
+#df-clock{ color:var(--brand-gold); font-variant-numeric:tabular-nums; }
 
-/* --------- Breadcrumbs --------- */
+/* Breadcrumbs (sticky under header) */
 .breadcrumbs{
-  background: var(--brand-gold);
-  color: var(--brand-green);
-  border-bottom: 1px solid rgba(0,0,0,.10);
+  position:sticky;
+  top: calc(env(safe-area-inset-top,0px) + var(--head-h));
+  z-index:10;
+  background:var(--brand-gold);
+  color:var(--brand-green);
+  border-bottom:1px solid rgba(0,0,0,.1);
 }
 .breadcrumbs .inner{
-  max-width: 980px; margin:0 auto; padding: 6px 12px;
-  display:flex; align-items:center; gap:8px;
-  white-space:nowrap; overflow-x:auto;
+  max-width:980px; margin:0 auto; padding:6px 12px;
+  display:flex; align-items:center; gap:8px; white-space:nowrap; overflow-x:auto;
 }
-.bc-link{ color: var(--brand-green); text-decoration:none; font-weight:600; }
-.bc-current{ color:#083015; font-weight:700; }
-.bc-sep{ color: rgba(0,0,0,.35); }
+.breadcrumbs a{ text-decoration:none; font-weight:700; color:var(--brand-green); }
+.bc-sep{ opacity:.6; }
 
-/* --------- App & Footer --------- */
-.app, #app{ padding: 16px 0 calc(64px + env(safe-area-inset-bottom,0px)); }
+/* App & Footer spacing */
+.app, #app{ padding:16px 0 calc(56px + env(safe-area-inset-bottom,0px)); }
+
+/* Footer */
 .site-foot{
-  position: sticky; bottom: 0; z-index: 10;
-  background: var(--brand-green); color: var(--brand-gold);
+  position:sticky; bottom:0; z-index:9;
+  background:var(--brand-green); color:var(--brand-gold);
 }
-.site-foot .foot-inner{
+.foot-inner{
   max-width:980px; margin:0 auto;
-  padding: 6px 12px calc(6px + env(safe-area-inset-bottom,0px));
-  display:flex; align-items:center; justify-content:center; gap:20px;
-  font-size:12px; line-height:1.2;
+  padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px));
+  display:flex; align-items:center; justify-content:center; gap:16px;
+  font-size:12px; line-height:1.2; white-space:nowrap;
 }
-.site-foot .dot{ color: var(--brand-gold); opacity:.85; }
+.foot-inner .dot{ opacity:.85; }
 
-/* --------- Tiles (Home + submenus + cards) --------- */
+/* Tiles (Home + submenus) */
 .df-tiles, .df-subtiles{ display:grid; grid-template-columns:1fr; gap:14px; }
 @media (min-width:640px){ .df-tiles, .df-subtiles{ grid-template-columns:1fr 1fr; } }
 
 .df-tile, .df-subtile, .card{
-  background: var(--tile-bg);
-  color: var(--tile-ink);
-  border: 1.5px solid var(--tile-bd);
-  border-radius: 14px;
-  box-shadow: var(--tile-shadow);
+  background:var(--tile-bg);
+  color:var(--tile-ink);
+  border:1.5px solid var(--tile-bd);
+  border-radius:14px;
+  box-shadow:var(--tile-shadow);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-decoration:none; padding: 18px 14px;
-  font-size:14px; font-weight:700; text-align:center;
+  text-decoration:none;
+  padding:18px 14px;
+  text-align:center;
+  font-size:14px; font-weight:700;
 }
 .df-emoji, .em{ font-size:28px; line-height:1; margin-bottom:6px; }
-.df-label{ font-weight:700; }
 
-/* --------- Back Button (small dark) --------- */
+/* Back button (uniform) */
 .btn-back{
-  display:inline-block;
-  padding:6px 12px;
-  border-radius:6px;
-  border:1px solid #333;
-  background:#111;
-  color:#f9f9f2;
-  text-decoration:none;
-  font-size:13px; font-weight:600;
+  display:inline-block; padding:6px 12px; border-radius:6px;
+  border:1px solid #333; background:#111; color:#f9f9f2;
+  text-decoration:none; font-size:13px; font-weight:600;
 }
 .btn-back:hover{ background:#222; }
 
-/* =========================================================
-   Auto Dark Mode — applies when OS is in dark
-   ========================================================= */
+/* Dark mode */
 @media (prefers-color-scheme: dark){
-  body { background: var(--dark-bg) !important; color: var(--dark-ink) !important; }
+  body{ background:var(--dark-bg) !important; color:var(--dark-ink) !important; }
+
   .df-tile, .df-subtile, .card{
-    background: var(--dark-card) !important;
-    color: var(--dark-ink) !important;
-    border: 1px solid var(--dark-bd) !important;
-    box-shadow: none !important;
+    background:var(--dark-card) !important;
+    color:var(--dark-ink) !important;
+    border:1px solid var(--dark-bd) !important;
+    box-shadow:none !important;
   }
-  .df-label, .df-subtile span, .card h3{ color: var(--dark-ink) !important; }
-}
-
-/* =========================================================
-   Forced Theme Support — if JS sets <body data-theme="...">
-   Mirrors auto rules so BOTH paths behave identically.
-   ========================================================= */
-
-/* Force LIGHT */
-body[data-theme="light"]{
-  background: var(--paper) !important;
-  color: var(--ink) !important;
-}
-body[data-theme="light"] :where(.df-tile, .df-subtile, .card){
-  background: var(--tile-bg) !important;
-  color: var(--tile-ink) !important;
-  border: 1.5px solid var(--tile-bd) !important;
-  box-shadow: var(--tile-shadow) !important;
-}
-body[data-theme="light"] :where(.df-label, .df-subtile span, .card h3){
-  color: var(--tile-ink) !important;
-}
-
-/* Force DARK */
-body[data-theme="dark"]{
-  background: var(--dark-bg) !important;
-  color: var(--dark-ink) !important;
-}
-body[data-theme="dark"] :where(.df-tile, .df-subtile, .card){
-  background: var(--dark-card) !important;
-  color: var(--dark-ink) !important;
-  border: 1px solid var(--dark-bd) !important;
-  box-shadow: none !important;
-}
-body[data-theme="dark"] :where(.df-label, .df-subtile span, .card h3){
-  color: var(--dark-ink) !important;
-}
-
-/* ---- Optional: Calculators section hook (doesn’t change colors) ---- */
-/* This just ensures grid layout consistency on calc hub/leaves. */
-#app[data-section="calc"] .df-subtiles{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-@media (max-width:560px){
-  #app[data-section="calc"] .df-subtiles{ grid-template-columns:1fr 1fr; }
 }
