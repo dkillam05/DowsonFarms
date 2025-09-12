@@ -14,7 +14,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
-  <meta name="color-scheme" content="light">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +24,7 @@
 </head>
 <body>
 
-  <!-- ===== Header (matches app.js/CSS expectations) ===== -->
+  <!-- ===== Header ===== -->
   <header id="header" class="site-head">
     <div class="container head-inner">
       <a href="#/home" class="brand" aria-label="Dowson Farms Home">
@@ -33,28 +32,30 @@
         <span class="brand-title">Dowson Farms</span>
       </a>
       <nav class="head-actions">
-        <!-- Part 46 will inject a clock <span id="df-clock"> here -->
+        <span id="df-clock"></span>
         <button id="logoutBtn" class="btn">Logout</button>
       </nav>
     </div>
   </header>
 
-  <!-- ===== Breadcrumbs (placeholder; Part 47+ will render into this) ===== -->
+  <!-- ===== Breadcrumbs ===== -->
   <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs"></nav>
 
-  <!-- ===== Main App Container ===== -->
+  <!-- ===== Main App ===== -->
   <main id="app" class="app"></main>
 
-  <!-- ===== Update Banner (hidden until SW says there’s an update) ===== -->
+  <!-- ===== Update Banner ===== -->
   <div id="update-banner" hidden>
     🔄 New update available.
     <button id="reload-app" class="btn">Refresh</button>
   </div>
 
-  <!-- ===== Footer (version filled by app.js via #version) ===== -->
+  <!-- ===== Footer ===== -->
   <footer id="footer" class="site-foot">
     <div class="container foot-inner">
       <span>© Dowson Farms</span>
+      <span aria-hidden="true">•</span>
+      <span id="df-date"></span>
       <span aria-hidden="true">•</span>
       <span id="version">v0.0.0</span>
     </div>
