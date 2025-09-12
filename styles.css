@@ -101,3 +101,35 @@ body{ background: var(--df-bg) !important; }
 }
 
 .bc-sep{ color: rgba(0,0,0,.35); }
+
+/* ===== Breadcrumbs (v12 Deere style) ===== */
+.breadcrumbs{
+  background: #d4af37;          /* golden yellow bar */
+  border-bottom: 1px solid rgba(0,0,0,.1);
+  font-size: 14px;
+  color: #0f4d1d;               /* dark green text */
+}
+
+.breadcrumbs .inner{
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.bc-link{
+  color: #0f4d1d;
+  text-decoration: none;
+  font-weight: 600;
+}
+.bc-current{
+  color: #083015;               /* darker green for current */
+  font-weight: 700;
+}
+
+.bc-sep{ color: rgba(0,0,0,.35); }
+
