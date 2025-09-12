@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v15.0.1',
+    version: 'v15.0.2',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4217,4 +4217,77 @@
     document.addEventListener('DOMContentLoaded', init, {once:true});
   } else { init(); }
   window.addEventListener('hashchange', render, {passive:true});
+})();
+
+/* =========================================================
+   Part 48 — Section tagger + legacy CSS scrub + tile normalizer
+   - Sets data-section/data-route for CSS scoping
+   - Removes old per-screen CSS that forces white tiles
+   - Normalizes tiles/cards after each navigation
+   ========================================================= */
+(function DF_V12_P53_FIXES(){
+  'use strict';
+  if (window.__DF_V12_P53__) return; window.__DF_V12_P53__ = true;
+
+  const $  = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+
+  // 1) Tag the current section on <body> and #app
+  function setSectionTags(){
+    const hash = (location.hash||'#/home').replace(/\/+$/,'');
+    const parts = hash.slice(2).split('/');      // e.g. "#/calc/area" -> ["calc","area"]
+    const section = parts[0] || 'home';
+    document.body.dataset.section = section;     // ex: data-section="calc"
+    document.body.dataset.route   = section;     // legacy name people used
+    const app = $('#app'); if (app) app.dataset.section = section;
+  }
+
+  // 2) Remove legacy style tags that force white tiles globally
+  //    (from older Parts 35/36 or reports scaffolds)
+  function scrubLegacyCSS(){
+    const ids = ['df-p35-css', 'df-p36-css', 'df-reports-css', 'df-calc-cards-css'];
+    ids.forEach(id => { const el = $('#'+id); if (el) el.remove(); });
+
+    // Safety net: delete any <style> blocks that look like the old white-card calc CSS
+    document.querySelectorAll('style').forEach(st => {
+      const txt = st.textContent || '';
+      // heuristic: a calc grid + .card with background:#fff or similar
+      if (/(\.calc-grid|\#calculators)/.test(txt) && /\.card\s*\{[^}]*background\s*:\s*#?fff/i.test(txt)) {
+        st.remove();
+      }
+      // another common pattern: .df-subtile or .df-tile forced to white
+      if (/\.df-(subtile|tile)\s*\{[^}]*background\s*:\s*#?fff/i.test(txt)) {
+        st.remove();
+      }
+    });
+  }
+
+  // 3) Normalize any inline styles that set white backgrounds on tiles/cards
+  function normalizeTiles(){
+    const nodes = $$('.df-tile, .df-subtile, .card');
+    nodes.forEach(n => {
+      const s = n.getAttribute('style') || '';
+      if (!s) return;
+      // Strip inline background/border/color so the stylesheet wins
+      const cleaned = s
+        .replace(/background\s*:\s*[^;]+;?/gi,'')
+        .replace(/border(-color)?\s*:\s*[^;]+;?/gi,'')
+        .replace(/color\s*:\s*[^;]+;?/gi,'')
+        .trim();
+      if (cleaned) n.setAttribute('style', cleaned); else n.removeAttribute('style');
+    });
+  }
+
+  // 4) One pass that we run after each route change
+  function pass(){
+    setSectionTags();
+    scrubLegacyCSS();
+    normalizeTiles();
+  }
+
+  // Boot + keep in sync
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', pass, { once:true });
+  } else { pass(); }
+  window.addEventListener('hashchange', () => { setTimeout(pass, 0); }, { passive:true });
 })();
