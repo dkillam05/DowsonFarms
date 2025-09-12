@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v13.11.0',
+    version: 'v13.15.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4412,4 +4412,62 @@
   document.head.appendChild(s);
 })();
 
+/* =========================================================
+   APP v12.x — Part 51: Tile Normalizer
+   - Ensures every submenu tile uses class .df-subtile
+   - Tags #app with data-section="calc" | "grain" | etc. for CSS hooks
+   - Runs after any route render
+   ========================================================= */
+(function DF_V12_P51_TILES(){
+  'use strict';
+  if (window.__DF_V12_P51__) return; window.__DF_V12_P51__ = true;
 
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+
+  function sectionFromHash(h){
+    h = (h||location.hash||'').replace(/\/+$/,'');
+    const m = /^#\/([^/]+)/.exec(h);
+    return m ? m[1] : 'home';
+  }
+
+  function normalizeTiles(){
+    const app = $('#app'); if (!app) return;
+    // Mark current top-level section on #app so CSS can key off it (e.g., calc)
+    const sec = sectionFromHash();
+    app.setAttribute('data-section', sec);
+
+    // For any submenu grid, force consistent class
+    // Accept common grid containers then coerce children to .df-subtile
+    const grids = $$('.df-subtiles, .submenu-grid, .grid', app);
+    grids.forEach(g=>{
+      $$('a', g).forEach(a=>{
+        // unify class to .df-subtile (keep any existing classes too)
+        if (!a.classList.contains('df-subtile')) a.classList.add('df-subtile');
+        // also remove any "disabled/ghost" styling classes that may grey tiles
+        a.removeAttribute('aria-disabled');
+        a.classList.remove('is-disabled','ghost','faint','washed');
+      });
+    });
+
+    // Home tiles should remain .df-tile
+    const homeGrid = $('.df-tiles', app);
+    if (homeGrid){
+      $$('a', homeGrid).forEach(a=>{
+        if (!a.classList.contains('df-tile')) a.classList.add('df-tile');
+      });
+    }
+  }
+
+  // Run after initial load and whenever the hash (route) changes
+  function kick(){
+    // Wait a tick for the current route renderer to finish updating DOM
+    requestAnimationFrame(normalizeTiles);
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', kick, {once:true});
+  } else { kick(); }
+
+  window.addEventListener('hashchange', kick, {passive:true});
+})();
