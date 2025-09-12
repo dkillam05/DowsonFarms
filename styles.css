@@ -1,5 +1,5 @@
 /* =========================================================
-   Dowson Farms — Unified Styles (clean base)
+   Dowson Farms — Unified Styles (clean base + forced theme)
    ========================================================= */
 
 /* --------- Brand tokens --------- */
@@ -31,7 +31,6 @@ body{
   color: var(--ink);
   font: 16px/1.45 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
-
 .container{ max-width: 980px; margin:0 auto; padding: 0 12px; }
 .hide{ display:none !important; }
 
@@ -50,7 +49,6 @@ body{
 .brand-logo{ width:28px; height:28px; border-radius:50%; object-fit:cover; }
 .brand-title{ font-size:18px; font-weight:700; letter-spacing:.2px; color:var(--brand-gold); }
 #df-clock{ font-variant-numeric: tabular-nums; font-weight:600; color:var(--brand-gold); }
-
 .head-actions .btn{
   border:1px solid rgba(241,213,101,.35);
   background: transparent; color: var(--brand-gold);
@@ -74,7 +72,6 @@ body{
 
 /* --------- App & Footer --------- */
 .app, #app{ padding: 16px 0 calc(64px + env(safe-area-inset-bottom,0px)); }
-
 .site-foot{
   position: sticky; bottom: 0; z-index: 10;
   background: var(--brand-green); color: var(--brand-gold);
@@ -87,7 +84,7 @@ body{
 }
 .site-foot .dot{ color: var(--brand-gold); opacity:.85; }
 
-/* --------- Tiles --------- */
+/* --------- Tiles (Home + submenus + cards) --------- */
 .df-tiles, .df-subtiles{ display:grid; grid-template-columns:1fr; gap:14px; }
 @media (min-width:640px){ .df-tiles, .df-subtiles{ grid-template-columns:1fr 1fr; } }
 
@@ -104,7 +101,7 @@ body{
 .df-emoji, .em{ font-size:28px; line-height:1; margin-bottom:6px; }
 .df-label{ font-weight:700; }
 
-/* --------- Back Button --------- */
+/* --------- Back Button (small dark) --------- */
 .btn-back{
   display:inline-block;
   padding:6px 12px;
@@ -118,18 +115,57 @@ body{
 .btn-back:hover{ background:#222; }
 
 /* =========================================================
-   Canonical Dark Mode — applies to ALL tiles/cards
+   Auto Dark Mode — applies when OS is in dark
    ========================================================= */
 @media (prefers-color-scheme: dark){
   body { background: var(--dark-bg) !important; color: var(--dark-ink) !important; }
-
   .df-tile, .df-subtile, .card{
     background: var(--dark-card) !important;
     color: var(--dark-ink) !important;
     border: 1px solid var(--dark-bd) !important;
     box-shadow: none !important;
   }
-  .df-label, .df-subtile span, .card h3{
-    color: var(--dark-ink) !important;
-  }
+  .df-label, .df-subtile span, .card h3{ color: var(--dark-ink) !important; }
+}
+
+/* =========================================================
+   Forced Theme Support — if JS sets <body data-theme="...">
+   Mirrors auto rules so BOTH paths behave identically.
+   ========================================================= */
+
+/* Force LIGHT */
+body[data-theme="light"]{
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+}
+body[data-theme="light"] :where(.df-tile, .df-subtile, .card){
+  background: var(--tile-bg) !important;
+  color: var(--tile-ink) !important;
+  border: 1.5px solid var(--tile-bd) !important;
+  box-shadow: var(--tile-shadow) !important;
+}
+body[data-theme="light"] :where(.df-label, .df-subtile span, .card h3){
+  color: var(--tile-ink) !important;
+}
+
+/* Force DARK */
+body[data-theme="dark"]{
+  background: var(--dark-bg) !important;
+  color: var(--dark-ink) !important;
+}
+body[data-theme="dark"] :where(.df-tile, .df-subtile, .card){
+  background: var(--dark-card) !important;
+  color: var(--dark-ink) !important;
+  border: 1px solid var(--dark-bd) !important;
+  box-shadow: none !important;
+}
+body[data-theme="dark"] :where(.df-label, .df-subtile span, .card h3){
+  color: var(--dark-ink) !important;
+}
+
+/* ---- Optional: Calculators section hook (doesn’t change colors) ---- */
+/* This just ensures grid layout consistency on calc hub/leaves. */
+#app[data-section="calc"] .df-subtiles{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:560px){
+  #app[data-section="calc"] .df-subtiles{ grid-template-columns:1fr 1fr; }
 }
