@@ -376,3 +376,68 @@ main a[href^="#/calc"].is-disabled{
   pointer-events: auto !important;
 }
 
+/* ===== v13.x — Tiles, Breadcrumbs, Footer, Safe-area polish ===== */
+
+/* A) Submenu tiles look like Home tiles (emoji above, label below) */
+.df-subtiles .df-subtile{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:8px !important;
+  padding:16px 14px !important;
+  background:var(--df-dark-card,#111315) !important;
+  border:1px solid var(--df-dark-border,#1f6a33) !important;
+  color:var(--df-dark-ink,#f9f9f2) !important;
+  border-radius:14px !important;
+  box-shadow:none !important;
+  text-decoration:none !important;
+}
+.df-subtile .em{ font-size:28px !important; line-height:1; }
+.df-subtile .df-label{
+  font-weight:800 !important;
+  font-size:22px !important;              /* same feel as Home */
+  line-height:1.15 !important;
+  text-align:center !important;
+  max-width:15ch;                          /* prevent super-wide labels */
+  text-wrap:balance;                       /* nicer 1–2 line wrap */
+  white-space:normal !important;
+  word-break:normal !important;
+  hyphens:none !important;
+}
+
+/* Keep Home tiles consistent with the same typography */
+.df-tiles .df-tile .df-label{
+  font-weight:800 !important;
+  font-size:22px !important;
+  line-height:1.15 !important;
+  text-wrap:balance;
+}
+
+/* B) Breadcrumbs fixed under the header (no jumping) */
+.breadcrumbs{
+  position:sticky; 
+  top: calc(env(safe-area-inset-top,0px) + 44px); /* sits just under the compact header */
+  z-index: 8;
+}
+
+/* C) Footer readability: smaller, no wrapping on the date */
+.site-foot .foot-inner{ font-size:12px !important; gap:8px !important; }
+#df-date{ white-space:nowrap !important; }
+
+/* D) Home-screen/PWA notch safety (keeps header off the iOS status area) */
+body{ padding-top: env(safe-area-inset-top,0px); }
+.site-head .head-inner{ padding-top: max(6px, env(safe-area-inset-top,0px)) !important; }
+
+/* E) “Back to …” link as a button (will be applied by Part 47 class) */
+.back-link, .btn-back{
+  display:inline-block;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.25);
+  background:#1a1f1a;
+  color:#fff;
+  text-decoration:none;
+  font-weight:700;
+}
+.back-link:hover{ filter:brightness(1.05); }
