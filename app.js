@@ -31,7 +31,7 @@
   const APP = {
     name: 'Dowson Farms',
     // 👇 bump this one string for every release; SW & login/footer follow it
-    version: 'v15.0.4',
+    version: 'v15.1.0',
 
     // paths (adjust if you ever move assets)
     logo: 'icons/logo.png',
@@ -4282,48 +4282,3 @@
   window.addEventListener('hashchange', () => { setTimeout(pass, 0); }, { passive:true });
 })();
 
-/* =========================================================
-   Part 54 — Navigation safety net (hash-links)
-   - Ensures ALL #/ links navigate on every screen
-   - Forces a router tick even when clicking the same hash
-   - Non-invasive: does not render UI or register routes
-   ========================================================= */
-(function DF_P54_NAV_SAFETY(){
-  'use strict';
-  if (window.__DF_P54__) return; window.__DF_P54__ = true;
-
-  // 1) Click delegate for ANY in-app link: <a href="#/...">
-  document.addEventListener('click', function onHashLinkClick(e){
-    const a = e.target && e.target.closest && e.target.closest('a[href^="#/"]');
-    if (!a) return;              // not an in-app link → ignore
-    const to = a.getAttribute('href');
-    if (!to) return;
-
-    e.preventDefault();          // don't let the browser try to handle it
-    if (location.hash !== to) {
-      location.hash = to;        // normal case: route changes
-    } else {
-      // same hash clicked → still ask the app to re-render
-      try { 
-        window.dispatchEvent(new HashChangeEvent('hashchange')); 
-      } catch {
-        // very old iOS fallback: just nudge with a microtask
-        setTimeout(()=>window.dispatchEvent(new Event('hashchange')),0);
-      }
-    }
-  }, true); // capture = true so we win over other handlers
-
-  // 2) If we start exactly on a known route, make sure the router runs once.
-  function nudgeInitialRoute(){
-    // Only nudge when we have a hash (so /#/calc, /#/home, etc.)
-    if (location.hash && location.hash.startsWith('#/')) {
-      // Let other parts boot, then tick once.
-      setTimeout(()=>window.dispatchEvent(new HashChangeEvent('hashchange')), 0);
-    }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', nudgeInitialRoute, { once:true });
-  } else {
-    nudgeInitialRoute();
-  }
-})();
