@@ -573,3 +573,68 @@ body{ padding-top: env(safe-area-inset-top,0px); }
   }
   .df-tile .df-label, .df-subtile span, .card h3{ color:#f9f9f2; }
 }
+
+/* =========================================================
+   DF v12.x — Tile Consistency Override (final line)
+   - White tiles in light mode; dark tiles in dark mode
+   - Works for BOTH .df-tile (home) and .df-subtile (submenus)
+   - Uses body theme and #app[data-section="..."] hooks from Part 51
+   ========================================================= */
+
+/* Shared typography */
+:where(.df-tile, .df-subtile, .card){
+  font-size:14px !important;
+  font-weight:700 !important;
+  text-decoration:none !important;
+}
+
+/* ---------- LIGHT MODE (or forced light) ---------- */
+@media (prefers-color-scheme: light){
+  body:not([data-theme="dark"]) :where(.df-tile, .df-subtile, .card){
+    background:#ffffff !important;
+    color:#111111 !important;
+    border:1px solid #e6e3d3 !important;
+    box-shadow:0 1px 0 rgba(0,0,0,.04) !important;
+  }
+  body:not([data-theme="dark"]) :where(.df-tile .df-label, .df-subtile span, .card h3){
+    color:#111111 !important;
+  }
+}
+
+/* ---------- DARK MODE (or forced dark) ---------- */
+@media (prefers-color-scheme: dark){
+  body:not([data-theme="light"]) :where(.df-tile, .df-subtile, .card){
+    background:#111315 !important;       /* dark tile */
+    color:#f9f9f2 !important;            /* ivory text */
+    border:1px solid #1f6a33 !important; /* JD-ish green edge */
+    box-shadow:none !important;
+  }
+  body:not([data-theme="light"]) :where(.df-tile .df-label, .df-subtile span, .card h3){
+    color:#f9f9f2 !important;
+  }
+}
+
+/* If you force a theme via <body data-theme="dark|light">, mirror the same */
+body[data-theme="light"] :where(.df-tile, .df-subtile, .card){
+  background:#ffffff !important; color:#111111 !important;
+  border:1px solid #e6e3d3 !important; box-shadow:0 1px 0 rgba(0,0,0,.04) !important;
+}
+body[data-theme="dark"] :where(.df-tile, .df-subtile, .card){
+  background:#111315 !important; color:#f9f9f2 !important;
+  border:1px solid #1f6a33 !important; box-shadow:none !important;
+}
+
+/* Extra belt-and-suspenders: Calculators section inherits the same look */
+#app[data-section="calc"] :where(.df-tile, .df-subtile){
+  background:inherit !important;
+  color:inherit !important;
+  border-color:inherit !important;
+  box-shadow:inherit !important;
+}
+
+/* Kill any lingering “disabled/washed” styles from old code */
+:where(.df-tile, .df-subtile, .card).is-disabled,
+:where(.df-tile, .df-subtile, .card)[aria-disabled]{
+  opacity:1 !important; filter:none !important; pointer-events:auto !important;
+}
+
