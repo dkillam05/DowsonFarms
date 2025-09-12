@@ -242,3 +242,72 @@ a{ color: inherit; }
     color: var(--df-dark-ink) !important;
   }
 }
+/* === v13.x chrome + tiles polish (safe-area, footer, calculators) === */
+
+/* 1) Header: add a little top padding only when running as an installed app */
+@media (display-mode: standalone) {
+  .site-head { padding-top: env(safe-area-inset-top, 6px); }
+}
+
+/* 2) Footer: slightly smaller, keep everything on one line */
+.site-foot .foot-inner{
+  font-size: 12.5px !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+  gap: 12px !important;
+}
+#df-date { font-size: 12.5px !important; }
+
+/* 3) Keep long tile labels inside the box on small screens */
+.df-label { 
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: clamp(16px, 2.9vw, 22px);
+}
+
+/* 4) Calculators screen — normalize tiles to match Equipment/Reports */
+
+/* If your router adds a data-route to <body> (see tiny JS below) */
+body[data-route="calculators"] .calc-grid,
+body[data-route="calculators"] .df-subtiles,
+body[data-route="calculators"] .df-tiles{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Light theme look (calc tiles) */
+body[data-route="calculators"] .calc-grid > *,
+body[data-route="calculators"] .df-subtiles > *,
+body[data-route="calculators"] .df-tiles > *,
+body[data-route="calculators"] main a.card {
+  background: #ffffff !important;
+  color: #111 !important;
+  border: 1.5px solid #e6e3d3 !important;
+  border-radius: 14px !important;
+  padding: 18px 14px !important;
+  text-decoration: none !important;
+  display:flex; align-items:center; gap:10px;
+}
+
+/* Dark theme look (calc tiles) */
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"])[data-route="calculators"] .calc-grid > *,
+  body:not([data-theme="light"])[data-route="calculators"] .df-subtiles > *,
+  body:not([data-theme="light"])[data-route="calculators"] .df-tiles > *,
+  body:not([data-theme="light"])[data-route="calculators"] main a.card {
+    background: #111315 !important;
+    color: #f9f9f2 !important;
+    border: 1px solid #1f6a33 !important;
+  }
+}
+
+/* Kill any “disabled/washed-out” styles the old calc page might apply */
+body[data-route="calculators"] .calc-grid > *[aria-disabled],
+body[data-route="calculators"] .calc-grid > *.is-disabled,
+body[data-route="calculators"] .df-subtiles > *[aria-disabled],
+body[data-route="calculators"] .df-tiles > *[aria-disabled]{
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto !important;
+}
