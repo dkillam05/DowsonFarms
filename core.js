@@ -20,14 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>`;
   }
 
-  // Clock
-  function updateClock() {
-    document.getElementById("clock").textContent =
-      new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-  }
-  setInterval(updateClock, 1000);
-  updateClock();
-
   // Date
   document.getElementById("date").textContent =
     new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
