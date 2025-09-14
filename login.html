@@ -1,91 +1,24 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Dowson Farms — Home</title>
-
-  <!-- PWA basics -->
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0f4d1d">
-  <link rel="icon" href="assets/icons/icon-192.png">
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-
-  <!-- Global theme -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Dowson Farms</title>
   <link rel="stylesheet" href="theme.css">
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
 </head>
 <body>
-
-  <!-- ===== Header ===== -->
-  <header class="site-head">
-    <div class="container head-inner">
-      <a class="brand" href="index.html" aria-label="Dowson Farms">
-        <img class="brand-logo" src="assets/icons/logo.png" alt="Dowson Farms logo" width="26" height="26">
-        <span class="brand-title">Dowson Farms</span>
-      </a>
-      <nav class="head-actions">
-        <span id="df-clock">--:-- --</span>
-        <button id="logoutBtn" class="btn">Logout</button>
-      </nav>
-    </div>
-  </header>
-
-  <!-- ===== Breadcrumbs ===== -->
-  <nav class="breadcrumbs" aria-label="Breadcrumbs">
-    <div class="inner container">
-      <strong>Home</strong>
-    </div>
-  </nav>
-
-  <!-- ===== Main ===== -->
-  <main class="container section">
-    <h1>Welcome to Dowson Farms</h1>
-    <p>This is your home dashboard. Menus and submenus will go here.</p>
+  <header id="site-header"></header>
+  <main>
+    <h1>Login</h1>
+    <form class="login-form">
+      <input type="email" placeholder="Email" required>
+      <input type="password" placeholder="Password" required>
+      <button type="submit">Log In</button>
+      <p class="muted"><a href="#">Forgot Password?</a></p>
+    </form>
   </main>
-
-  <!-- ===== Footer ===== -->
-  <footer class="site-foot">
-    <div class="container foot-inner">
-      <span>© Dowson Farms</span>
-      <span aria-hidden="true">•</span>
-      <span id="df-date">—</span>
-      <span aria-hidden="true">•</span>
-      <span id="version">v0.0.0</span>
-    </div>
-  </footer>
-
-  <!-- Version number -->
-  <script src="version.js"></script>
-
-  <!-- Shared boot: clock, date, version, logout -->
-  <script>
-    (function(){
-      // Long date
-      const dateEl = document.getElementById('df-date');
-      const now = new Date();
-      try{
-        dateEl.textContent = now.toLocaleDateString(undefined,
-          { year:'numeric', month:'long', day:'numeric' });
-      }catch{ dateEl.textContent = now.toDateString(); }
-
-      // Version
-      const v = (window.DF_VERSION || '').trim();
-      if (v) document.getElementById('version').textContent = v;
-
-      // Clock
-      const clk = document.getElementById('df-clock');
-      function tick(){
-        const d = new Date();
-        clk.textContent = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-      }
-      tick(); setInterval(tick, 1000);
-
-      // Logout → return to login.html
-      document.getElementById('logoutBtn').addEventListener('click', ()=>{
-        // (later we can clear auth/session here)
-        location.href = "login.html";
-      });
-    })();
-  </script>
+  <footer id="site-footer"></footer>
 </body>
 </html>
