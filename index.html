@@ -1,1 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dowson Farms</title>
 
+  <!-- PWA basics -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f4d1d">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+
+  <!-- Global theme -->
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <header class="site-head">
+    <div class="container head-inner">
+      <a class="brand" href="index.html" aria-label="Dowson Farms">
+        <img class="brand-logo" src="assets/icons/logo.png" alt="Dowson Farms logo" width="26" height="26">
+        <span class="brand-title">Dowson Farms</span>
+      </a>
+      <nav class="head-actions">
+        <span id="df-clock">--:-- --</span>
+        <a class="btn" href="login.html">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== (optional) breadcrumbs strip ===== -->
+  <nav class="breadcrumbs" aria-label="Breadcrumbs">
+    <div class="inner container">
+      <strong>Home</strong>
+    </div>
+  </nav>
+
+  <!-- ===== Main ===== -->
+  <main>
+    <section class="section container">
+      <h1>Home</h1>
+
+      <div class="df-tiles">
+        <a class="df-tile" href="crop.html">
+          <div class="df-emoji">🌽</div>
+          <div class="df-label">Crop Production</div>
+        </a>
+
+        <a class="df-tile" href="grain.html">
+          <div class="df-emoji">🌾</div>
+          <div class="df-label">Grain Tracking</div>
+        </a>
+
+        <a class="df-tile" href="equip.html">
+          <div class="df-emoji">🚜</div>
+          <div class="df-label">Equipment</div>
+        </a>
+
+        <a class="df-tile" href="calc.html">
+          <div class="df-emoji">🧮</div>
+          <div class="df-label">Calculators</div>
+        </a>
+
+        <a class="df-tile" href="reports.html">
+          <div class="df-emoji">📊</div>
+          <div class="df-label">Reports</div>
+        </a>
+
+        <a class="df-tile" href="team.html">
+          <div class="df-emoji">🤝</div>
+          <div class="df-label">Team / Partners</div>
+        </a>
+
+        <a class="df-tile" href="feedback.html">
+          <div class="df-emoji">💬</div>
+          <div class="df-label">Feedback</div>
+        </a>
+
+        <a class="df-tile" href="settings.html">
+          <div class="df-emoji">⚙️</div>
+          <div class="df-label">Setups / Settings</div>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="site-foot">
+    <div class="container foot-inner">
+      <span>© Dowson Farms</span>
+      <span aria-hidden="true">•</span>
+      <span id="df-date">—</span>
+      <span aria-hidden="true">•</span>
+      <span id="version">v0.0.0</span>
+    </div>
+  </footer>
+
+  <!-- Version number (single source of truth) -->
+  <script src="version.js"></script>
+
+  <!-- Minimal shared boot for clock, date, version, and SW registration -->
+  <script>
+    (function(){
+      // Long date like "September 14, 2025"
+      const dateEl = document.getElementById('df-date');
+      const now = new Date();
+      try{
+        dateEl.textContent = now.toLocaleDateString(undefined,
+          { year:'numeric', month:'long', day:'numeric' });
+      }catch{ dateEl.textContent = now.toDateString(); }
+
+      // Version (from version.js → window.DF_VERSION)
+      const v = (window.DF_VERSION || '').trim();
+      if (v) document.getElementById('version').textContent = v;
+
+      // Simple clock (hh:mm AM/PM)
+      const clk = document.getElementById('df-clock');
+      function tick(){
+        const d = new Date();
+        clk.textContent = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+      }
+      tick(); setInterval(tick, 1000);
+
+      // Service worker (optional)
+      if ('serviceWorker' in navigator){
+        navigator.serviceWorker.register('serviceworker.js').catch(()=>{});
+      }
+    })();
+  </script>
+</body>
+</html>
