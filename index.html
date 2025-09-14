@@ -1,66 +1,109 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Dowson Farms</title>
-  <link rel="stylesheet" href="theme.css">
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+
   <!-- PWA -->
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1B5E20">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1B5E20">
+  <!-- iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 
-<!-- iOS PWA (required for standalone on iPhone/iPad) -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png">
-
-
-<!-- Optional: better icon on iOS with full-bleed maskable -->
-<link rel="apple-touch-icon" sizes="180x180" href="icons/maskable-512.png">
-
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header id="site-header"></header>
-  <main>
-    <h1>Home</h1>
-    <div class="df-tiles">
-      <a href="crop.html" class="df-tile">🌽 Crop Production</a>
-      <a href="grain.html" class="df-tile">🌾 Grain Tracking</a>
-      <a href="equip.html" class="df-tile">🚜 Equipment</a>
-      <a href="calc.html" class="df-tile">🧮 Calculators</a>
-      <a href="reports.html" class="df-tile">📊 Reports</a>
-      <a href="team.html" class="df-tile">🤝 Team / Partners</a>
-      <a href="feedback.html" class="df-tile">💬 Feedback</a>
-      <a href="settings.html" class="df-tile">⚙️ Settings</a>
+
+  <!-- Sticky Header -->
+  <header class="app-header">
+    <div class="app-header__title">Dowson Farms</div>
+    <div class="app-header__right">
+      <span id="clock" class="clock">--:--:--</span>
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
     </div>
+  </header>
+
+  <!-- Sticky Breadcrumb Bar -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="#/home">Home</a></li>
+      <li class="sep">›</li>
+      <li><span id="crumb-current">Dashboard</span></li>
+    </ol>
+  </nav>
+
+  <!-- Page Content -->
+  <main class="content">
+    <!-- your app’s pages go here -->
+    <h1>Welcome</h1>
+    <p>Content scrolls here. Header, breadcrumbs, and footer stay put.</p>
   </main>
-  <footer id="site-footer"></footer>
-  <footer>
-  <p>&copy; 2025 Dowson Farms — <span id="version"></span></p>
-</footer>
-<script src="version.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const versionEl = document.getElementById("version");
-    if (versionEl && typeof APP_VERSION !== "undefined") {
-      versionEl.textContent = APP_VERSION;
-    }
-  });
-</script>
+
+  <!-- Sticky Footer -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">September 14, 2025</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Version source of truth -->
+  <script src="version.js"></script>
+
+  <!-- Inline JS to set clock + version -->
   <script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./service-worker.js")
-        .catch(console.error);
-    });
-  }
-</script>
+    // Central Time clock (updates every second)
+    function updateClock() {
+      const el = document.getElementById('clock');
+      if (!el) return;
+      const now = new Date();
+      el.textContent = now.toLocaleTimeString('en-US', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: true, timeZone: 'America/Chicago'
+      });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
 
-</body>
-</html>
+    // Inject version from version.js if present
+    (function setVersion() {
+      const v = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'v10.14.7';
+      const el = document.getElementById('version');
+      if (el) el.textContent = v;
+    })();
 
+    // Breadcrumbs (optional: call this when route changes)
+    function setBreadcrumbs(parts) {
+      // parts: array of strings, e.g. ["Home","Reports","Soybeans"]
+      const ol = document.querySelector('.breadcrumbs ol');
+      if (!ol) return;
+      ol.innerHTML = '';
+      parts.forEach((p, i) => {
+        const li = document.createElement('li');
+        if (i < parts.length - 1) {
+          const a = document.createElement('a');
+          a.textContent = p;
+          a.href = '#';
+          li.appendChild(a);
+        } else {
+          const span = document.createElement('span');
+          span.textContent = p;
+          li.appendChild(span);
+        }
+        ol.appendChild(li);
+        if (i < parts.length - 1) {
+          const sep = document.createElement('li');
+          sep.className = 'sep';
+          sep.textContent = '›';
+          ol.appendChild(sep);
+        }
+      });
+    }
+    // Example: setBreadcrumbs(["Home","Dashboard"]);
+  </script>
 </body>
 </html>
