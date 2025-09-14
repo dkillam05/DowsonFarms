@@ -171,3 +171,21 @@ body {
   opacity: .9;
   color: var(--gold-text);
 }
+
+
+/* Header layout: logo left, title, clock right */
+.app-header__left{
+  display:flex; align-items:center; gap:10px;
+}
+.app-header__right{
+  display:flex; align-items:center; gap:10px;
+}
+.app-logo{
+  width:32px; height:32px; border-radius:8px; /* keep if you like */
+}
+.clock{
+  font-variant-numeric: tabular-nums;
+  font-weight:600;
+  min-width: 9.5ch;           /* prevents width jitter */
+  text-align:right;
+}
