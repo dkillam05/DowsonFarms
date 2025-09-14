@@ -1,38 +1,57 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Aerial Spray · Dowson Farms</title>
+  <title>Aerial Spray — Dowson Farms</title>
 
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0f4d1d">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/icon-512.png">
+  <!-- Shared styles/scripts -->
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
 
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#1B5E20" />
 
-  <link rel="stylesheet" href="styles.css">
+  <!-- iOS PWA (standalone) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <!-- Optional: full-bleed maskable (if present) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+
+  <!-- Fonts (optional; Montserrat is used in theme.css) -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <header id="header" class="site-head">
-    <div class="container head-inner">
-      <a href="index.html" class="brand" aria-label="Dowson Farms Home">
-        <img src="assets/icons/logo.png" alt="Dowson Farms Logo" class="brand-logo" width="32" height="32">
-        <span class="brand-title">Dowson Farms</span>
-      </a>
-      <nav class="head-actions">
-        <button id="logoutBtn" class="btn">Logout</button>
-      </nav>
+
+  <!-- Header (logo left, clock right) -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Dowson Farms Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right">
+      <span id="clock" class="clock">--:--:-- AM</span>
     </div>
   </header>
 
-  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs"></nav>
+  <!-- Breadcrumbs (fixed under header) -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="crop.html">Crop Production</a></li>
+      <li class="sep">›</li>
+      <li><span>Aerial Spray</span></li>
+    </ol>
+  </nav>
 
-  <main id="app" class="app">
+  <!-- Page content -->
+  <main class="content">
     <section class="section">
       <h1>🚁 Aerial Spray</h1>
       <div class="card">
@@ -44,15 +63,46 @@
     </section>
   </main>
 
-  <footer id="footer" class="site-foot">
-    <div class="container foot-inner">
-      <span>© Dowson Farms</span>
-      <span class="dot" aria-hidden="true">•</span>
-      <span id="version">v0.0.0</span>
-    </div>
+  <!-- Footer (green bg, JD-yellow text, single line) -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">September 14, 2025</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
   </footer>
 
-  <script src="version.js"></script>
-  <script src="core.js"></script>
+  <!-- Inline scripts -->
+  <script>
+    // Ensure only one clock interval exists (if navigating between pages)
+    if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
+
+    function updateClock(){
+      const el = document.getElementById('clock');
+      if(!el) return;
+      el.textContent = new Date().toLocaleTimeString('en-US', {
+        hour:'2-digit', minute:'2-digit', second:'2-digit',
+        hour12:true, timeZone:'America/Chicago'
+      });
+    }
+    updateClock();
+    window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
+
+    // Footer version from version.js
+    (function(){
+      const v = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'v10.14.7';
+      const el = document.getElementById('version');
+      if (el) el.textContent = v;
+    })();
+  </script>
+
+  <!-- Service worker registration (matches your filename) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
 </body>
 </html>
