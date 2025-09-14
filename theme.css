@@ -49,3 +49,81 @@ header, footer {
   background: var(--brand-gold);
   color: var(--brand-green);
 }
+
+:root{
+  --green:#1B5E20;
+  --ivory:#FFFFF0;
+  --header-h:64px;
+  --crumb-h:40px;
+  --footer-h:48px;
+  --z-header:1000;
+  --z-crumbs:900;
+  --z-footer:1000;
+  --pad-x:16px;
+}
+
+/* Prevent content hiding under sticky bars */
+html,body{height:100%;}
+body{
+  /* keep your existing body styles above; these lines can live alongside them */
+  padding-top: calc(var(--header-h) + var(--crumb-h));
+  padding-bottom: var(--footer-h);
+}
+
+/* Sticky Header */
+.app-header{
+  position: fixed; top:0; left:0; right:0;
+  height: var(--header-h);
+  background: var(--green); color:#fff;
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 0 var(--pad-x);
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  z-index: var(--z-header);
+}
+.app-header__title{ font-weight:700; font-size:1.25rem; letter-spacing:.3px; }
+.app-header__right{ display:flex; align-items:center; gap:10px; }
+.clock{ font-variant-numeric: tabular-nums; font-weight:600; }
+.app-logo{ width:32px; height:32px; border-radius:8px; }
+
+/* Sticky Breadcrumbs under header */
+.breadcrumbs{
+  position: sticky; top: var(--header-h);
+  height: var(--crumb-h);
+  display:flex; align-items:center;
+  background:#e9f2eb; /* subtle green tint */
+  padding: 0 var(--pad-x);
+  border-bottom: 1px solid rgba(0,0,0,.08);
+  z-index: var(--z-crumbs);
+}
+.breadcrumbs ol{
+  display:flex; align-items:center; gap:8px;
+  list-style:none; margin:0; padding:0;
+  font-size:.95rem; font-weight:600;
+}
+.breadcrumbs a{ color:#0b5; text-decoration:none; }
+.breadcrumbs a:hover{ text-decoration:underline; }
+.breadcrumbs .sep{ opacity:.6; }
+
+/* Content wrapper between header+footer */
+.content{
+  padding:16px;
+  min-height: calc(100vh - var(--header-h) - var(--crumb-h) - var(--footer-h));
+}
+
+/* Sticky Footer */
+.app-footer{
+  position: fixed; left:0; right:0; bottom:0;
+  height: var(--footer-h);
+  background:#133f16; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  gap:8px; padding:0 var(--pad-x);
+  font-weight:600;
+  z-index: var(--z-footer);
+}
+.app-footer .dot{ opacity:.7; }
+
+/* Touch comfort */
+@media (hover:none){
+  .breadcrumbs a{ padding:6px 2px; }
+}
+
