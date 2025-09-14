@@ -1,1 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dowson Farms — Login</title>
 
+  <!-- PWA basics -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f4d1d">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+
+  <!-- Global theme -->
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <header class="site-head">
+    <div class="container head-inner">
+      <a class="brand" href="index.html" aria-label="Dowson Farms">
+        <img class="brand-logo" src="assets/icons/logo.png" alt="Dowson Farms logo" width="26" height="26">
+        <span class="brand-title">Dowson Farms</span>
+      </a>
+      <nav class="head-actions">
+        <span id="df-clock">--:-- --</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== Breadcrumbs ===== -->
+  <nav class="breadcrumbs" aria-label="Breadcrumbs">
+    <div class="inner container">
+      <strong>Login</strong>
+    </div>
+  </nav>
+
+  <!-- ===== Main ===== -->
+  <main>
+    <section class="section container" style="max-width:400px; margin-top:30px;">
+      <h1>Login</h1>
+      <form id="login-form" style="display:flex; flex-direction:column; gap:12px;">
+        <input type="email" placeholder="Email" required style="padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <input type="password" placeholder="Password" required style="padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <button type="submit" class="btn" style="padding:10px; font-size:16px;">Log In</button>
+      </form>
+      <p style="margin-top:12px; font-size:14px;">
+        <a href="#" class="muted">Forgot password?</a>
+      </p>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="site-foot">
+    <div class="container foot-inner">
+      <span>© Dowson Farms</span>
+      <span aria-hidden="true">•</span>
+      <span id="df-date">—</span>
+      <span aria-hidden="true">•</span>
+      <span id="version">v0.0.0</span>
+    </div>
+  </footer>
+
+  <!-- Version number (single source of truth) -->
+  <script src="version.js"></script>
+
+  <!-- Shared boot: clock, date, version -->
+  <script>
+    (function(){
+      // Long date like "September 14, 2025"
+      const dateEl = document.getElementById('df-date');
+      const now = new Date();
+      try{
+        dateEl.textContent = now.toLocaleDateString(undefined,
+          { year:'numeric', month:'long', day:'numeric' });
+      }catch{ dateEl.textContent = now.toDateString(); }
+
+      // Version (from version.js)
+      const v = (window.DF_VERSION || '').trim();
+      if (v) document.getElementById('version').textContent = v;
+
+      // Simple clock
+      const clk = document.getElementById('df-clock');
+      function tick(){
+        const d = new Date();
+        clk.textContent = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+      }
+      tick(); setInterval(tick, 1000);
+
+      // Dummy login handler
+      document.getElementById('login-form').addEventListener('submit', e=>{
+        e.preventDefault();
+        // For now: just redirect to home
+        location.href = "index.html";
+      });
+    })();
+  </script>
+</body>
+</html>
