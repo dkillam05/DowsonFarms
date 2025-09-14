@@ -1,1 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Crop Production · Dowson Farms</title>
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f4d1d">
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/icon-512.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <header id="header" class="site-head">
+    <div class="container head-inner">
+      <a href="index.html" class="brand" aria-label="Dowson Farms Home">
+        <img src="assets/icons/logo.png" alt="Dowson Farms Logo" class="brand-logo" width="32" height="32">
+        <span class="brand-title">Dowson Farms</span>
+      </a>
+      <nav class="head-actions">
+        <!-- core.js injects clock -->
+        <button id="logoutBtn" class="btn">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== Breadcrumbs ===== -->
+  <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumbs"></nav>
+
+  <!-- ===== Main ===== -->
+  <main id="app" class="app">
+    <section class="section">
+      <h1>🌽 Crop Production</h1>
+
+      <div class="df-subtiles">
+        <a class="df-subtile" href="crop-planting.html" aria-label="Planting">
+          <span class="em">🌱</span>
+          <span class="df-label">Planting</span>
+        </a>
+        <a class="df-subtile" href="crop-spraying.html" aria-label="Spraying">
+          <span class="em">🧪</span>
+          <span class="df-label">Spraying</span>
+        </a>
+        <a class="df-subtile" href="crop-aerial.html" aria-label="Aerial Spray">
+          <span class="em">✈️</span>
+          <span class="df-label">Aerial Spray</span>
+        </a>
+        <a class="df-subtile" href="crop-harvest.html" aria-label="Harvest">
+          <span class="em">🚜</span>
+          <span class="df-label">Harvest</span>
+        </a>
+        <a class="df-subtile" href="crop-maintenance.html" aria-label="Field Maintenance">
+          <span class="em">🧰</span>
+          <span class="df-label">Field Maintenance</span>
+        </a>
+        <a class="df-subtile" href="crop-scouting.html" aria-label="Scouting">
+          <span class="em">🔍</span>
+          <span class="df-label">Scouting</span>
+        </a>
+        <a class="df-subtile" href="crop-trials.html" aria-label="Trials">
+          <span class="em">🧫</span>
+          <span class="df-label">Trials</span>
+        </a>
+      </div>
+
+      <p style="margin-top:12px;">
+        <a class="btn-back" href="index.html">← Back to Home</a>
+      </p>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer id="footer" class="site-foot">
+    <div class="container foot-inner">
+      <span>© Dowson Farms</span>
+      <span class="dot" aria-hidden="true">•</span>
+      <span id="version">v0.0.0</span>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="version.js"></script>
+  <script src="core.js"></script>
+</body>
+</html>
