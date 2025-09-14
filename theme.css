@@ -70,41 +70,6 @@ body {
   border-radius: 8px;
 }
 
-/* ===========================
-   Sticky Breadcrumbs (dark gold)
-   =========================== */
-.breadcrumbs {
-  position: sticky;
-  top: var(--header-h);           /* glued under header */
-  height: var(--crumb-h);
-  display: flex;
-  align-items: center;
-  background: var(--brand-gold-dark);
-  color: var(--gold-text);
-  padding: 0 var(--pad-x);
-  border-bottom: 1px solid rgba(0,0,0,.25);
-  z-index: var(--z-crumbs);
-  box-shadow: 0 1px 0 rgba(0,0,0,.15);
-}
-.breadcrumbs ol {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: .95rem;
-  font-weight: 700;
-}
-.breadcrumbs a {
-  color: var(--gold-text);
-  text-decoration: none;
-}
-.breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep {
-  opacity: .9;
-  color: var(--gold-text);
-}
 
 /* ===========================
    Content Wrapper
