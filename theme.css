@@ -1,111 +1,51 @@
-:root{
-  --green:#1B5E20;
-  --ivory:#FFFFF0;
-  --header-h:64px;
-  --crumb-h:40px;
-  --footer-h:48px;
-  --z-header:1000;
-  --z-crumbs:900;
-  --z-footer:1000;
-  --pad-x:16px;
+:root {
+  --brand-green: #1b5e20;
+  --brand-gold: #f1d565;
+  --paper: #f6f3e4;
+  --ink: #222;
 }
 
-/* Layout fixes so content never hides behind sticky bars */
-html,body{height:100%;}
-body{
-  margin:0;
-  background:var(--ivory);
-  color:#333;
-  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-
-  /* Make room for fixed header + sticky breadcrumbs + fixed footer */
-  padding-top: calc(var(--header-h) + var(--crumb-h));
-  padding-bottom: var(--footer-h);
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
 }
 
-/* Sticky Header */
-.app-header{
-  position: fixed;
-  inset: 0 0 auto 0; /* top:0; left:0; right:0 */
-  height: var(--header-h);
-  background: var(--green);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--pad-x);
-  box-shadow: 0 2px 6px rgba(0,0,0,.18);
-  z-index: var(--z-header);
+header, footer {
+  background: var(--brand-green);
+  color: var(--brand-gold);
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
 }
 
-.app-header__title{
-  font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: .3px;
-}
-
-.app-header__right{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.clock{
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.app-logo{
-  width: 32px; height: 32px;
-  border-radius: 8px; /* looks nice even if icon is square */
-}
-
-/* Sticky Breadcrumb Bar (locked under header) */
-.breadcrumbs{
-  position: sticky;
-  top: var(--header-h);
-  height: var(--crumb-h);
-  display: flex;
-  align-items: center;
-  background: #e9f2eb; /* light green tint */
-  padding: 0 var(--pad-x);
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  z-index: var(--z-crumbs);
-}
-
-.breadcrumbs ol{
-  display: flex; align-items: center;
-  gap: 8px; list-style: none; margin:0; padding:0;
-  font-size: .95rem; font-weight:600;
-}
-.breadcrumbs a{ color:#0b5; text-decoration:none; }
-.breadcrumbs a:hover{ text-decoration:underline; }
-.breadcrumbs .sep{ opacity:.6; }
-
-/* Page content */
-.content{
+.df-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
   padding: 16px;
-  min-height: calc(100vh - var(--header-h) - var(--crumb-h) - var(--footer-h));
 }
 
-/* Sticky Footer */
-.app-footer{
-  position: fixed;
-  inset: auto 0 0 0; /* bottom:0; left:0; right:0 */
-  height: var(--footer-h);
-  background: #133f16;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  padding: 0 var(--pad-x);
-  font-weight:600;
-  z-index: var(--z-footer);
+.df-tile {
+  background: white;
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  text-decoration: none;
+  text-align: center;
+  padding: 20px;
+  font-weight: bold;
+  color: var(--brand-green);
 }
-.app-footer .dot{ opacity:.7; }
 
-/* Make touch targets comfy on mobile */
-@media (hover:none){
-  .breadcrumbs a{ padding:6px 2px; }
+.df-tile:hover {
+  background: var(--brand-gold);
+  color: black;
+}
+
+.breadcrumbs {
+  padding: 6px 12px;
+  font-size: 14px;
+  background: var(--brand-gold);
+  color: var(--brand-green);
 }
