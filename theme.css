@@ -160,3 +160,49 @@ body {
 @media (hover: none) {
   .breadcrumbs a { padding: 6px 2px; }
 }
+
+/* ===========================
+   Override: Breadcrumbs fixed under header with dark JD yellow
+   =========================== */
+:root {
+  --jd-yellow-dark: #C8A800;  /* rich darker John Deere yellow */
+  --gold-text: #1b1b1b;       /* high-contrast text on yellow */
+}
+
+.breadcrumbs {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  height: var(--crumb-h);
+  display: flex;
+  align-items: center;
+  background: var(--jd-yellow-dark);
+  color: var(--gold-text);
+  padding: 0 var(--pad-x);
+  border-bottom: 1px solid rgba(0,0,0,.25);
+  z-index: var(--z-crumbs);
+  box-shadow: 0 1px 0 rgba(0,0,0,.15);
+}
+
+.breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.breadcrumbs a {
+  color: var(--gold-text);
+  text-decoration: none;
+}
+.breadcrumbs a:hover { text-decoration: underline; }
+
+.breadcrumbs .sep {
+  opacity: .9;
+  color: var(--gold-text);
+}
