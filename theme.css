@@ -1,1 +1,162 @@
+/* =========================================================
+   Dowson Farms — Global Theme (theme.css)
+   - Light + Dark with Deere-inspired palette
+   - Shared header, footer, breadcrumbs, tiles, buttons
+   - Mobile-safe (iOS PWA safe areas)
+   ========================================================= */
 
+/* -------- Brand & color tokens -------- */
+:root{
+  --green:        #0f4d1d;      /* JD green */
+  --gold:         #e8c84a;      /* dark golden yellow */
+  --gold-ink:     #0b3513;
+
+  --paper:        #f4f1e6;      /* warm light page */
+  --ink:          #1b1b1b;
+  --muted:        #6a6a6a;
+
+  --tile-bg:      #ffffff;
+  --tile-ink:     #111111;
+  --tile-bd:      #e6e3d3;
+  --tile-shadow:  0 1px 0 rgba(0,0,0,.04);
+
+  --dark-bg:      #0e0f10;
+  --dark-card:    #111315;
+  --dark-ink:     #f9f9f2;
+  --dark-bd:      #1f6a33;
+}
+
+/* -------- Base -------- */
+*{ box-sizing: border-box; }
+html, body { height: 100%; }
+html { color-scheme: light dark; }
+body{
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+a{ color: inherit; }
+.container{ max-width: 980px; margin:0 auto; padding: 0 12px; }
+.section{ padding: 20px 12px; }
+.hide{ display:none !important; }
+.muted{ color: var(--muted); }
+
+/* -------- Header -------- */
+.site-head{
+  position: sticky; top: 0; z-index: 50;
+  background: var(--green);
+  color: var(--gold);
+  box-shadow: 0 1px 0 rgba(0,0,0,.12);
+}
+.site-head .head-inner{
+  padding: calc(6px + env(safe-area-inset-top,0px)) 12px 6px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+.brand-logo{ width:26px; height:26px; border-radius:6px; object-fit:cover; }
+.brand-title{ font-weight:800; letter-spacing:.2px; color:var(--gold); }
+
+.head-actions{ display:flex; align-items:center; gap:10px; }
+#df-clock{ font-variant-numeric: tabular-nums; font-weight:700; color:var(--gold); }
+.btn{
+  appearance:none; border:1px solid rgba(232,200,74,.35);
+  background: transparent; color: var(--gold);
+  border-radius: 10px; padding: 4px 10px; font-weight: 700; cursor:pointer;
+}
+
+/* -------- Breadcrumbs (optional strip) -------- */
+.breadcrumbs{
+  background: var(--gold);
+  color: var(--gold-ink);
+  border-bottom: 1px solid rgba(0,0,0,.10);
+}
+.breadcrumbs .inner{
+  max-width:980px; margin:0 auto; padding: 6px 12px;
+  display:flex; align-items:center; gap:8px;
+  white-space:nowrap; overflow-x:auto;
+}
+.breadcrumbs a{ color: var(--gold-ink); font-weight:700; text-decoration:none; }
+.bc-sep{ opacity:.45; }
+
+/* -------- App area & Footer spacing -------- */
+main{ min-height: 40vh; padding: 16px 0 calc(64px + env(safe-area-inset-bottom,0px)); }
+
+/* -------- Footer -------- */
+.site-foot{
+  position: sticky; bottom: 0; z-index: 40;
+  background: var(--green); color: var(--gold);
+}
+.site-foot .foot-inner{
+  max-width:980px; margin:0 auto;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom,0px));
+  display:flex; align-items:center; justify-content:center; gap:18px;
+  font-size:12px; line-height:1.2; white-space:nowrap;
+}
+
+/* -------- Headings -------- */
+h1{ font-size: clamp(24px, 3.8vw, 36px); margin: 0 0 16px; }
+h2{ font-size: clamp(18px, 2.8vw, 24px); margin: 18px 0 10px; }
+
+/* -------- Tiles (home + all submenus) -------- */
+.df-tiles, .df-subtiles{
+  display:grid; grid-template-columns:1fr; gap:14px;
+  padding: 0 12px;
+}
+@media (min-width:640px){
+  .df-tiles, .df-subtiles{ grid-template-columns: 1fr 1fr; }
+}
+.df-tile, .df-subtile, .card{
+  background: var(--tile-bg);
+  color: var(--tile-ink);
+  border: 1.5px solid var(--tile-bd);
+  border-radius: 14px;
+  box-shadow: var(--tile-shadow);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding: 18px 14px; text-decoration:none;
+  font-size:14px; font-weight:700; text-align:center;
+}
+.df-emoji, .em{ font-size:28px; line-height:1; margin-bottom:6px; }
+.df-label{ font-weight:800; }
+
+/* Back link styled like a small button */
+.back-link{
+  display:inline-block; margin: 10px 12px 0;
+  padding:6px 12px; border-radius:6px;
+  border:1px solid #333; background:#111; color:#f9f9f2;
+  text-decoration:none; font-size:13px; font-weight:700;
+}
+
+/* -------- Forms quick pass (for future calc pages) -------- */
+label{ display:block; }
+input, select, textarea{
+  width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--tile-bd);
+  background:#fff; color:#111; font: inherit;
+}
+@media (prefers-color-scheme: dark){
+  input, select, textarea{
+    background:#101214; color:#f5f5f5; border:1px solid #2a6c34;
+  }
+}
+
+/* -------- Dark Mode -------- */
+@media (prefers-color-scheme: dark){
+  body { background: var(--dark-bg); color: var(--dark-ink); }
+
+  .site-head, .site-foot{ background: var(--green); color: var(--gold); }
+  .brand-title, #df-clock{ color: var(--gold); }
+
+  .breadcrumbs{ background: var(--gold); color: var(--gold-ink); }
+
+  .df-tile, .df-subtile, .card{
+    background: var(--dark-card);
+    color: var(--dark-ink);
+    border: 1px solid var(--dark-bd);
+    box-shadow: none;
+  }
+}
+
+/* -------- Utility (safe area for installed iOS) -------- */
+@media (display-mode: standalone){
+  .site-head .head-inner{ padding-top: max(6px, env(safe-area-inset-top,0px)); }
+}
