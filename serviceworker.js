@@ -1,15 +1,20 @@
-// service-worker.js
-// Minimal cache for GitHub Pages project site: /DowsonFarms/
-const CACHE_VERSION = "v1.0.2"; // <- bump to force updates
-const CACHE_NAME = `dowson-pwa-${CACHE_VERSION}`;
+// servicework.js
+// Single-source version: read APP_VERSION from version.js
+importScripts('./version.js'); // exposes global APP_VERSION
 
+// Name cache with the app version so bumping APP_VERSION invalidates old cache
+const CACHE_NAME = `dowson-pwa-${APP_VERSION}`;
+
+// Core assets to precache (add more pages/assets here if you want them offline)
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
+  "./theme.css",
+  "./core.js",
   "./manifest.webmanifest",
-  "./version.js",                 // keep if you use version-in-footer
-  // Icons (new paths)
+  "./version.js",
+
+  // Icons
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
   "./assets/icons/maskable-512.png"
@@ -19,7 +24,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
-  self.skipWaiting();
+  self.skipWaiting(); // activate updated SW immediately
 });
 
 self.addEventListener("activate", (event) => {
@@ -28,28 +33,38 @@ self.addEventListener("activate", (event) => {
       Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))
     )
   );
-  self.clients.claim();
+  self.clients.claim(); // control open pages ASAP
 });
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  const url = new URL(req.url);
 
-  // Only handle same-origin GET requests
-  if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
+  // Only handle same-origin GETs
+  if (req.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // Don't intercept the worker itself
-  if (req.url.endsWith("service-worker.js")) return;
+  // Never intercept the worker itself
+  if (url.pathname.endsWith("servicework.js")) return;
 
-  // Cache-first with network fallback, then cache the response
+  // Offline-friendly: for navigations, serve index.html from cache as fallback
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req).catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  // Cache-first for static assets; network fallback; then cache the fresh copy
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
-      return fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
-        return res;
-      }).catch(() => cached);
+      return fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => cached);
     })
   );
 });
-
