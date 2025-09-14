@@ -1,2 +1,6 @@
-// version.js
-window.DF_VERSION = "v0.2.0";   // ← only update this
+window.APP_VERSION = "v0.4.0";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const v = document.getElementById("version");
+  if (v) v.textContent = window.APP_VERSION;
+});
