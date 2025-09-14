@@ -189,3 +189,25 @@ body {
   min-width: 9.5ch;           /* prevents width jitter */
   text-align:right;
 }
+
+/* Footer: green background, breadcrumb yellow text, smaller font */
+.app-footer {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: var(--footer-h);
+  background: var(--brand-green);     /* green footer */
+  color: var(--jd-yellow-dark);       /* breadcrumb bar yellow text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 var(--pad-x);
+  font-weight: 600;
+  font-size: 0.85rem;                 /* smaller print for single line */
+  z-index: var(--z-footer);
+}
+
+.app-footer .dot {
+  opacity: .7;
+  color: var(--jd-yellow-dark);       /* ensure separators match text color */
+}
