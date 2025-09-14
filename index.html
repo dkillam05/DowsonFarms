@@ -72,18 +72,25 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Inline helpers -->
-  <script>
-    // Central Time clock
-    function updateClock(){
-      const el = document.getElementById('clock');
-      if(!el) return;
-      el.textContent = new Date().toLocaleTimeString('en-US', {
-        hour:'2-digit', minute:'2-digit', second:'2-digit',
-        hour12:true, timeZone:'America/Chicago'
-      });
-    }
-    updateClock(); setInterval(updateClock, 1000);
+<script>
+  // Make sure only ONE interval runs globally
+  if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
+
+  function updateClock(){
+    const el = document.getElementById('clock');
+    if(!el) return;
+    // Consistent 12-hour time with leading zeros, Central Time
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('en-US', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: true, timeZone: 'America/Chicago'
+    });
+  }
+
+  updateClock();
+  window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
+</script>
+
 
     // Version from version.js (fallback to keep footer populated)
     (function(){
