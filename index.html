@@ -2,10 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dowson Farms</title>
 
   <!-- Styles -->
@@ -24,22 +21,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <!-- Optional: full-bleed maskable (if you have it in assets/icons) -->
+  <!-- Optional: full-bleed maskable (if present) -->
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 </head>
 <body>
 
-<header class="app-header">
-  <div class="app-header__left">
-    <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-    <div class="app-header__title">Dowson Farms</div>
-  </div>
-  <div class="app-header__right">
-    <span id="clock" class="clock">--:--:-- AM</span>
-  </div>
-</header>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right">
+      <span id="clock" class="clock">--:--:-- AM</span>
+    </div>
+  </header>
 
-  <!-- Sticky Breadcrumbs -->
+  <!-- Breadcrumbs (fixed under header) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="#/home">Home</a></li>
@@ -48,7 +46,7 @@
     </ol>
   </nav>
 
-  <!-- Main content (your tiles preserved) -->
+  <!-- Main content -->
   <main class="content">
     <h1>Home</h1>
     <div class="df-tiles">
@@ -63,7 +61,7 @@
     </div>
   </main>
 
-  <!-- Sticky Footer -->
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -72,49 +70,49 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-<script>
-  // Make sure only ONE interval runs globally
-  if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
+  <!-- Inline scripts (wrapped correctly) -->
+  <script>
+    // Prevent multiple timers if this file reloads
+    if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
 
-  function updateClock(){
-    const el = document.getElementById('clock');
-    if(!el) return;
-    // Consistent 12-hour time with leading zeros, Central Time
-    const now = new Date();
-    el.textContent = now.toLocaleTimeString('en-US', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: true, timeZone: 'America/Chicago'
-    });
-  }
+    function updateClock(){
+      const el = document.getElementById('clock');
+      if(!el) return;
+      el.textContent = new Date().toLocaleTimeString('en-US', {
+        hour:'2-digit', minute:'2-digit', second:'2-digit',
+        hour12:true, timeZone:'America/Chicago'
+      });
+    }
+    updateClock();
+    window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
 
-  updateClock();
-  window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
-</script>
-
-
-    // Version from version.js (fallback to keep footer populated)
+    // Footer version from version.js
     (function(){
       const v = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'v10.14.7';
       const el = document.getElementById('version');
       if (el) el.textContent = v;
     })();
 
-    // Optional: call this when your route changes
+    // Breadcrumbs helper (optional)
     function setBreadcrumbs(parts){
-      const ol = document.querySelector('.breadcrumbs ol'); if(!ol) return;
+      const ol = document.querySelector('.breadcrumbs ol');
+      if(!ol) return;
       ol.innerHTML = '';
       parts.forEach((p,i)=>{
         const li = document.createElement('li');
         if(i < parts.length - 1){
-          const a = document.createElement('a'); a.textContent = p; a.href = '#';
+          const a = document.createElement('a');
+          a.textContent = p; a.href = '#';
           li.appendChild(a);
         } else {
-          const span = document.createElement('span'); span.textContent = p;
+          const span = document.createElement('span');
+          span.textContent = p;
           li.appendChild(span);
         }
         ol.appendChild(li);
         if(i < parts.length - 1){
-          const sep = document.createElement('li'); sep.className='sep'; sep.textContent='›';
+          const sep = document.createElement('li');
+          sep.className='sep'; sep.textContent='›';
           ol.appendChild(sep);
         }
       });
@@ -122,11 +120,11 @@
     // Example: setBreadcrumbs(["Home","Reports","Soybeans"]);
   </script>
 
-  <!-- Service worker registration -->
+  <!-- Service worker (filename is servicework.js) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
       });
     }
   </script>
