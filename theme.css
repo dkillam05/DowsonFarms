@@ -1,129 +1,162 @@
+/* ===========================
+   Dowson Farms — theme.css
+   =========================== */
+
 :root {
-  --brand-green: #1b5e20;
-  --brand-gold: #f1d565;
+  /* Brand palette */
+  --brand-green: #1B5E20;
+  --brand-gold:  #f1d565;
+  --brand-gold-dark: #B8860B; /* DarkGoldenRod */
   --paper: #f6f3e4;
-  --ink: #222;
+  --ink:   #222;
+  --gold-text: #2b2b2b; /* readable on gold */
+
+  /* Layout sizing */
+  --header-h: 64px;
+  --crumb-h:  40px;
+  --footer-h: 48px;
+  --pad-x:    16px;
+
+  /* Z-index */
+  --z-header:  1000;
+  --z-crumbs:   900;
+  --z-footer:  1000;
 }
 
+/* Base */
+html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background: var(--paper);
   color: var(--ink);
+
+  /* Ensure content isn’t hidden behind sticky bars */
+  padding-top: calc(var(--header-h) + var(--crumb-h));
+  padding-bottom: var(--footer-h);
 }
 
-header, footer {
+/* ===========================
+   Sticky Header
+   =========================== */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--header-h);
   background: var(--brand-green);
-  color: var(--brand-gold);
-  padding: 10px;
-  text-align: center;
-  font-weight: bold;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--pad-x);
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  z-index: var(--z-header);
+}
+.app-header__title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: .3px;
+}
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.app-logo {
+  width: 32px; height: 32px;
+  border-radius: 8px;
 }
 
+/* ===========================
+   Sticky Breadcrumbs (dark gold)
+   =========================== */
+.breadcrumbs {
+  position: sticky;
+  top: var(--header-h);           /* glued under header */
+  height: var(--crumb-h);
+  display: flex;
+  align-items: center;
+  background: var(--brand-gold-dark);
+  color: var(--gold-text);
+  padding: 0 var(--pad-x);
+  border-bottom: 1px solid rgba(0,0,0,.25);
+  z-index: var(--z-crumbs);
+  box-shadow: 0 1px 0 rgba(0,0,0,.15);
+}
+.breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: .95rem;
+  font-weight: 700;
+}
+.breadcrumbs a {
+  color: var(--gold-text);
+  text-decoration: none;
+}
+.breadcrumbs a:hover { text-decoration: underline; }
+.breadcrumbs .sep {
+  opacity: .9;
+  color: var(--gold-text);
+}
+
+/* ===========================
+   Content Wrapper
+   =========================== */
+.content {
+  padding: 16px;
+  min-height: calc(100vh - var(--header-h) - var(--crumb-h) - var(--footer-h));
+}
+
+/* ===========================
+   Sticky Footer
+   =========================== */
+.app-footer {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: var(--footer-h);
+  background: #133f16; /* darker green so gold pops if used */
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 var(--pad-x);
+  font-weight: 600;
+  z-index: var(--z-footer);
+}
+.app-footer .dot { opacity: .7; }
+
+/* ===========================
+   Tiles (Home)
+   =========================== */
 .df-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   padding: 16px;
 }
-
 .df-tile {
-  background: white;
+  background: #fff;
   border: 2px solid var(--brand-green);
   border-radius: 12px;
   text-decoration: none;
   text-align: center;
   padding: 20px;
-  font-weight: bold;
+  font-weight: 700;
   color: var(--brand-green);
 }
-
 .df-tile:hover {
   background: var(--brand-gold);
-  color: black;
+  color: #000;
 }
 
-.breadcrumbs {
-  padding: 6px 12px;
-  font-size: 14px;
-  background: var(--brand-gold);
-  color: var(--brand-green);
+/* Touch comfort on mobile */
+@media (hover: none) {
+  .breadcrumbs a { padding: 6px 2px; }
 }
-
-:root{
-  --green:#1B5E20;
-  --ivory:#FFFFF0;
-  --header-h:64px;
-  --crumb-h:40px;
-  --footer-h:48px;
-  --z-header:1000;
-  --z-crumbs:900;
-  --z-footer:1000;
-  --pad-x:16px;
-}
-
-/* Prevent content hiding under sticky bars */
-html,body{height:100%;}
-body{
-  /* keep your existing body styles above; these lines can live alongside them */
-  padding-top: calc(var(--header-h) + var(--crumb-h));
-  padding-bottom: var(--footer-h);
-}
-
-/* Sticky Header */
-.app-header{
-  position: fixed; top:0; left:0; right:0;
-  height: var(--header-h);
-  background: var(--green); color:#fff;
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 0 var(--pad-x);
-  box-shadow: 0 2px 6px rgba(0,0,0,.18);
-  z-index: var(--z-header);
-}
-.app-header__title{ font-weight:700; font-size:1.25rem; letter-spacing:.3px; }
-.app-header__right{ display:flex; align-items:center; gap:10px; }
-.clock{ font-variant-numeric: tabular-nums; font-weight:600; }
-.app-logo{ width:32px; height:32px; border-radius:8px; }
-
-/* Sticky Breadcrumbs under header */
-.breadcrumbs{
-  position: sticky; top: var(--header-h);
-  height: var(--crumb-h);
-  display:flex; align-items:center;
-  background:#e9f2eb; /* subtle green tint */
-  padding: 0 var(--pad-x);
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  z-index: var(--z-crumbs);
-}
-.breadcrumbs ol{
-  display:flex; align-items:center; gap:8px;
-  list-style:none; margin:0; padding:0;
-  font-size:.95rem; font-weight:600;
-}
-.breadcrumbs a{ color:#0b5; text-decoration:none; }
-.breadcrumbs a:hover{ text-decoration:underline; }
-.breadcrumbs .sep{ opacity:.6; }
-
-/* Content wrapper between header+footer */
-.content{
-  padding:16px;
-  min-height: calc(100vh - var(--header-h) - var(--crumb-h) - var(--footer-h));
-}
-
-/* Sticky Footer */
-.app-footer{
-  position: fixed; left:0; right:0; bottom:0;
-  height: var(--footer-h);
-  background:#133f16; color:#fff;
-  display:flex; align-items:center; justify-content:center;
-  gap:8px; padding:0 var(--pad-x);
-  font-weight:600;
-  z-index: var(--z-footer);
-}
-.app-footer .dot{ opacity:.7; }
-
-/* Touch comfort */
-@media (hover:none){
-  .breadcrumbs a{ padding:6px 2px; }
-}
-
