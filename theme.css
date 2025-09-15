@@ -348,26 +348,26 @@ body.home-page .content h1 {
   justify-content: center; /* center the whole stack */
   gap: 12px;               /* space between hero and card */
 }
-
-/* Brand hero ABOVE the card, on the page background */
-.auth-hero { text-align: center; }
+/* Brand logo above login card */
 .auth-hero__logo {
-  width: 84px; height: 84px;
-  margin: 0 auto 8px;
+  width: 60px; 
+  height: 60px;
+  margin: 0 auto 6px;
   border-radius: 50%;
   background: #fff;
-  border: 3px solid var(--brand-green);
-  display: grid; place-items: center;
-  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  border: 2px solid var(--brand-green);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
 }
-.auth-hero__logo img { width: 64px; height: 64px; border-radius: 12px; }
-.auth-hero__title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.7rem;
-  line-height: 1.1;
-  margin: 2px 0 4px;
-  color: var(--brand-green);
+
+.auth-hero__logo img {
+  width: 44px; 
+  height: 44px;
+  border-radius: 8px;
+  object-fit: contain;  /* keeps proportions */
 }
+
 .auth-hero__subtitle {
   margin: 0 0 6px;
   color: #5a5a5a;
