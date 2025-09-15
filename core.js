@@ -1,13 +1,13 @@
 /* ===========================
    Dowson Farms — core.js
-   - Global HH:MM clock (Central Time)
+   - Global HH:MM clock (Central Time, minute-synced)
    - Footer version injection
    - Breadcrumbs helper
    - Logout button injection + handler
    =========================== */
 
 // ---- CONFIG: where to send users after logout ----
-const LOGIN_URL = "login.html";      // <--- change to "index.html?login=1" if that's your flow
+const LOGIN_URL = "login.html";      // change to "index.html?login=1" if that's your flow
 const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed page
 
 // ---- Footer version (reads APP_VERSION from version.js) ----
@@ -22,8 +22,9 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
 
 // ---- Global clock (HH:MM only, synced to minute boundary) ----
 (function initClock() {
+  // Prevent multiple timers if navigating page-to-page
   if (window.__DF_CLOCK_INTERVAL) { clearInterval(window.__DF_CLOCK_INTERVAL); window.__DF_CLOCK_INTERVAL = null; }
-  if (window.__DF_CLOCK_TIMEOUT)  { clearTimeout(window.__DF_CLOCK_TIMEOUT);   window.__DF_CLOCK_TIMEOUT = null; }
+  if (window.__DF_CLOCK_TIMEOUT)  { clearTimeout(window.__DF_CLOCK_TIMEOUT);   window.__DF_CLOCK_TIMEOUT  = null; }
 
   const el = document.getElementById('clock');
   if (!el) return;
@@ -60,7 +61,7 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
 })();
 
 // ---- Breadcrumbs helper (optional) ----
-// Usage: setBreadcrumbs(["Home","Reports","Soybeans"]);
+// Usage example: setBreadcrumbs(["Home","Reports","Soybeans"]);
 window.setBreadcrumbs = function setBreadcrumbs(parts) {
   try {
     const ol = document.querySelector('.breadcrumbs ol');
@@ -69,19 +70,15 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     parts.forEach((p, i) => {
       const li = document.createElement('li');
       if (i < parts.length - 1) {
-        const a = document.createElement('a');
-        a.textContent = p; a.href = '#';
+        const a = document.createElement('a'); a.textContent = p; a.href = '#';
         li.appendChild(a);
       } else {
-        const span = document.createElement('span');
-        span.textContent = p;
+        const span = document.createElement('span'); span.textContent = p;
         li.appendChild(span);
       }
       ol.appendChild(li);
       if (i < parts.length - 1) {
-        const sep = document.createElement('li');
-        sep.className = 'sep';
-        sep.textContent = '›';
+        const sep = document.createElement('li'); sep.className = 'sep'; sep.textContent = '›';
         ol.appendChild(sep);
       }
     });
@@ -108,13 +105,9 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
 
 // ---- Global Logout handler ----
 window.handleLogout = async function handleLogout() {
-  try {
-    // Clear any locally stored session artifacts
-    localStorage.clear();
-    sessionStorage.clear();
-  } catch (_) {}
+  try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}
 
-  // Optional: also clear service worker caches (safe no-op if none)
+  // Optional: clear SW caches to avoid stale authed pages
   try {
     if ('caches' in window) {
       const keys = await caches.keys();
@@ -122,11 +115,8 @@ window.handleLogout = async function handleLogout() {
     }
   } catch (_) {}
 
-  // Navigate to login page (cache-bust query helps avoid stale HTML)
+  // Navigate to login page (cache-busted)
   const target = LOGIN_URL + (LOGIN_URL.includes('?') ? '&' : '?') + '_ts=' + Date.now();
-  if (USE_LOCATION_REPLACE) {
-    window.location.replace(target); // no back to protected page
-  } else {
-    window.location.href = target;
-  }
+  if (USE_LOCATION_REPLACE) { window.location.replace(target); }
+  else { window.location.href = target; }
 };
