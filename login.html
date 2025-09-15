@@ -17,15 +17,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
 
-  <!-- Optional elegant heading font -->
+  <!-- Elegant heading font -->
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 </head>
 <body class="auth-page">
 
-  <!-- No sticky header/breadcrumbs on auth -->
-
   <main class="auth-wrap">
-    <!-- Brand on the page background (NOT inside the card) -->
+    <!-- Brand on background -->
     <div class="auth-hero">
       <div class="auth-hero__logo">
         <img src="assets/icons/icon-192.png" alt="Dowson Farms" />
@@ -34,7 +32,7 @@
       <p class="auth-hero__subtitle">Welcome back. Sign in to continue.</p>
     </div>
 
-    <!-- Smaller centered card with the form ONLY -->
+    <!-- Compact login card -->
     <div class="auth-card auth-card--compact">
       <form id="loginForm" class="auth-form" novalidate>
         <div class="field">
@@ -57,7 +55,7 @@
             <input type="checkbox" id="remember" name="remember" />
             <span>Remember me</span>
           </label>
-          <a class="muted-link" href="forgot.html">Forgot password?</a>
+          <a class="muted-link" href="#" id="forgotLink">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn-primary">Log In</button>
@@ -65,14 +63,33 @@
     </div>
   </main>
 
-  <!-- Footer for date/version -->
+  <!-- Footer with date/version (shorter on auth page via CSS) -->
   <footer class="app-footer app-footer--auth">
     <span id="report-date">September 14, 2025</span>
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Page-specific JS -->
+  <!-- Forgot password modal -->
+  <div class="auth-modal__backdrop" id="fpModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle">
+    <div class="auth-modal">
+      <h2 id="fpTitle">Reset your password</h2>
+      <p>Enter the email you use for Dowson Farms. If it matches an account, you’ll get a reset link.</p>
+      <div class="field">
+        <label for="fpEmail">Email</label>
+        <input id="fpEmail" type="email" inputmode="email" placeholder="you@example.com" />
+        <p class="field-hint" id="fpHint" hidden>Please enter a valid email address.</p>
+        <p class="field-hint" id="fpError" hidden style="color:#b00020"></p>
+        <p class="field-hint" id="fpSuccess" hidden style="color:#0a7a28">If the email exists, a reset link has been sent.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-link" id="fpCancel">Cancel</button>
+        <button type="button" class="btn-secondary" id="fpSend">Send reset link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page scripts -->
   <script>
     // Password eye toggle
     (function(){
@@ -86,7 +103,7 @@
       });
     })();
 
-    // Light client-side validation + demo submit
+    // Simple client-side validation + demo redirect
     document.getElementById('loginForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('username');
@@ -99,11 +116,73 @@
 
       if (!emailOK || !passOK) return;
 
-      // TODO: replace with your real auth
+      // TODO: replace with real auth
       window.location.replace('index.html');
     });
 
-    // SW register
+    // Forgot password modal open/close
+    (function(){
+      const openBtn   = document.getElementById('forgotLink');
+      const modal     = document.getElementById('fpModal');
+      const cancelBtn = document.getElementById('fpCancel');
+      openBtn?.addEventListener('click', (e)=>{ e.preventDefault(); modal.style.display='flex'; document.getElementById('fpEmail').focus(); });
+      cancelBtn?.addEventListener('click', ()=>{ modal.style.display='none'; });
+      modal?.addEventListener('click', (e)=>{ if (e.target === modal) modal.style.display='none'; });
+    })();
+
+    // Firebase password reset (swap in your keys when ready)
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script>
+    // TODO: replace with your Firebase project config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID",
+    };
+    if (!firebase.apps?.length) { firebase.initializeApp(firebaseConfig); }
+    const auth = firebase.auth();
+
+    (function forgotFlow(){
+      const sendBtn = document.getElementById('fpSend');
+      const emailIn = document.getElementById('fpEmail');
+      const hint    = document.getElementById('fpHint');
+      const success = document.getElementById('fpSuccess');
+      const err     = document.getElementById('fpError');
+
+      function validEmail(v){ return /\S+@\S+\.\S+/.test(v); }
+
+      async function send(){
+        const email = emailIn.value.trim();
+        const ok = validEmail(email);
+        hint.hidden = ok;
+        success.hidden = true;
+        err.hidden = true;
+        if (!ok) return;
+
+        try {
+          await auth.sendPasswordResetEmail(email);
+          success.hidden = false;
+        } catch (e) {
+          if (e?.code === 'auth/user-not-found') {
+            err.textContent = 'That email is not recognized.';
+          } else if (e?.code === 'auth/invalid-email') {
+            err.textContent = 'Please enter a valid email address.';
+          } else {
+            err.textContent = 'Sorry, we could not send the reset email right now.';
+          }
+          err.hidden = false;
+        }
+      }
+
+      sendBtn?.addEventListener('click', send);
+    })();
+  </script>
+
+  <!-- Service worker -->
+  <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
