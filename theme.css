@@ -219,7 +219,7 @@ body.home-page .content h1 {
   text-align: center;
   padding: 2px 12px 0;
   transform: translateY(-40px);  /* LIFT hero higher above card */
-  margin-bottom: -20px;          /* reclaim spacing so card stays put */
+  margin-bottom: -20px;          /* keep card from moving */
 }
 .auth-hero__logo{
   width: 70px; height: 70px;
@@ -253,30 +253,12 @@ body.home-page .content h1 {
 .auth-card {
   width: min(330px, 88vw);
   margin: 0 auto;
-  padding: 20px 16px 24px;   /* slightly taller card (more padding) */
+  padding: 20px 16px 28px;   /* a touch taller so button can sit lower */
   background: #fff;
   border: 2px solid var(--brand-green);
   border-radius: 14px;
   box-shadow: 0 8px 22px rgba(0,0,0,.10);
 }
-
-/* Primary button – tuned smaller + lower */
-.auth-page .btn-primary {
-  width: 100%;
-  padding: 9px 12px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--brand-green);
-  color: var(--jd-yellow-dark);
-  font-weight: 800;
-  font-size: 0.9rem;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
-  margin-top: 14px;           /* pushes button lower inside the card */
-}
-.auth-page .btn-primary:hover { background:#154a18; }
-
-
 
 /* Inputs (16px prevents iOS zoom) */
 .field label{ display: block; font-weight: 700; color: var(--brand-green); margin: 0 0 6px; }
@@ -312,28 +294,36 @@ body.home-page .content h1 {
 }
 .muted-link:hover{ text-decoration: underline; }
 
-/* Primary button — smaller + softer gold text */
-.auth-page .btn-primary{
+/* Primary button — single, authoritative definition
+   (smaller, lowered, white Playfair text) */
+.auth-page .btn-primary {
   width: 100%;
-  padding: 7px 12px;              /* smaller */
-  border: 0; border-radius: 10px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 12px;
   background: var(--brand-green);
-  color: var(--accent-gold);      /* softer gold */
-  font-weight: 800; font-size: .88rem;
-  cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  color: #fff;                              /* white letters */
+  font-family: 'Playfair Display', serif;   /* match "Dowson Farms" */
+  font-weight: 600;
+  font-size: .95rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  margin-top: 16px;                         /* pushes button lower inside the card */
 }
-.auth-page .btn-primary:hover{ background:#154a18; }
+.auth-page .btn-primary:hover { background:#154a18; }
 
-/* Auth footer — matches darker top edge color */
+/* Auth footer — matches darker top edge color, lighter grey text */
 .app-footer--auth{
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
-  background: var(--auth-edge-bg); color: #2b2b2b;
+  background: var(--auth-edge-bg);
+  color: #666;                      /* subtle grey */
   display: flex; align-items: center; justify-content: center;
   font-size: .85rem; padding: 0 10px;
   border-top: 1px solid rgba(0,0,0,.06);
   z-index: 1000;
 }
+.app-footer--auth .dot{ opacity:.6; }
 
 /* Forgot-password modal (overlay) */
 .auth-modal__backdrop{
