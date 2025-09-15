@@ -6,10 +6,11 @@
   /* Brand palette */
   --brand-green: #1B5E20;
   --brand-gold:  #f1d565;
-  --brand-gold-dark: #B8860B; /* DarkGoldenRod */
+  --brand-gold-dark: #B8860B;     /* DarkGoldenRod */
   --paper: #f6f3e4;
   --ink:   #222;
-  --gold-text: #2b2b2b; /* readable on gold */
+  --gold-text: #1b1b1b;           /* high-contrast text on yellow */
+  --jd-yellow-dark: #C8A800;      /* rich darker John Deere yellow */
 
   /* Layout sizing */
   --header-h: 64px;
@@ -23,8 +24,11 @@
   --z-footer:  1000;
 }
 
-/* Base */
+/* ===========================
+   Base
+   =========================== */
 html, body { height: 100%; }
+
 body {
   margin: 0;
   font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -44,32 +48,62 @@ body {
   height: var(--header-h);
   background: var(--brand-green);
   color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 0 var(--pad-x);
+  padding-top: env(safe-area-inset-top, 8px); /* iPhone notch */
+  padding-bottom: 6px;
+  box-sizing: border-box;
   box-shadow: 0 2px 6px rgba(0,0,0,.18);
   z-index: var(--z-header);
 }
-.app-header__title {
-  font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: .3px;
-}
-.app-header__right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.app-header__left,
+.app-header__right { display: flex; align-items: center; gap: 10px; }
+.app-header__title { font-weight: 700; font-size: 1.25rem; letter-spacing: .3px; }
+.app-logo { width: 32px; height: 32px; border-radius: 8px; }
 .clock {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-}
-.app-logo {
-  width: 32px; height: 32px;
-  border-radius: 8px;
+  min-width: 9.5ch;      /* prevents width jitter */
+  text-align: right;
 }
 
+/* ===========================
+   Breadcrumbs (fixed under header – JD dark yellow)
+   =========================== */
+.breadcrumbs {
+  position: fixed; top: var(--header-h); left: 0; right: 0;
+  height: var(--crumb-h);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--jd-yellow-dark);
+  color: var(--gold-text);
+  padding: 0 var(--pad-x);
+  border-bottom: 1px solid rgba(0,0,0,.25);
+  box-shadow: 0 1px 0 rgba(0,0,0,.15);
+  z-index: var(--z-crumbs);
+}
+.breadcrumbs ol {
+  display: flex; align-items: center; gap: 8px;
+  list-style: none; margin: 0; padding: 0;
+  font-size: .95rem; font-weight: 700;
+}
+.breadcrumbs a { color: var(--gold-text); text-decoration: none; }
+.breadcrumbs a:hover { text-decoration: underline; }
+.breadcrumbs .sep { opacity: .9; color: var(--gold-text); }
+
+/* Logout button in breadcrumbs */
+.breadcrumbs .logout-btn {
+  background: var(--brand-green);
+  color: var(--jd-yellow-dark);
+  border: none; border-radius: 6px;
+  font-size: .85rem; font-weight: 600;
+  padding: 4px 12px; cursor: pointer;
+}
+.breadcrumbs .logout-btn:hover { background: #154a18; }
+
+/* Touch comfort on mobile */
+@media (hover: none) {
+  .breadcrumbs a { padding: 6px 2px; }
+}
 
 /* ===========================
    Content Wrapper
@@ -80,390 +114,171 @@ body {
 }
 
 /* ===========================
-   Sticky Footer
+   Sticky Footer (app pages)
    =========================== */
 .app-footer {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
-  background: #133f16; /* darker green so gold pops if used */
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 var(--pad-x);
-  font-weight: 600;
+  background: var(--brand-green);  /* green footer */
+  color: var(--jd-yellow-dark);    /* breadcrumb yellow text */
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 0 var(--pad-x);
+  font-weight: 600; font-size: .85rem;
   z-index: var(--z-footer);
 }
-.app-footer .dot { opacity: .7; }
+.app-footer .dot { opacity: .7; color: var(--jd-yellow-dark); }
 
 /* ===========================
-   Tiles (Home)
+   Tiles (Home) — uniform rectangles (not squares)
    =========================== */
-.df-tiles {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 16px;
-}
-.df-tile {
-  background: #fff;
-  border: 2px solid var(--brand-green);
-  border-radius: 12px;
-  text-decoration: none;
-  text-align: center;
-  padding: 20px;
-  font-weight: 700;
-  color: var(--brand-green);
-}
-.df-tile:hover {
-  background: var(--brand-gold);
-  color: #000;
-}
-
-/* Touch comfort on mobile */
-@media (hover: none) {
-  .breadcrumbs a { padding: 6px 2px; }
-}
-
-/* ===========================
-   Override: Breadcrumbs fixed under header with dark JD yellow
-   =========================== */
-:root {
-  --jd-yellow-dark: #C8A800;  /* rich darker John Deere yellow */
-  --gold-text: #1b1b1b;       /* high-contrast text on yellow */
-}
-
-.breadcrumbs {
-  position: fixed;
-  top: var(--header-h);
-  left: 0;
-  right: 0;
-  height: var(--crumb-h);
-  display: flex;
-  align-items: center;
-  background: var(--jd-yellow-dark);
-  color: var(--gold-text);
-  padding: 0 var(--pad-x);
-  border-bottom: 1px solid rgba(0,0,0,.25);
-  z-index: var(--z-crumbs);
-  box-shadow: 0 1px 0 rgba(0,0,0,.15);
-}
-
-.breadcrumbs ol {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: .95rem;
-  font-weight: 700;
-}
-
-.breadcrumbs a {
-  color: var(--gold-text);
-  text-decoration: none;
-}
-.breadcrumbs a:hover { text-decoration: underline; }
-
-.breadcrumbs .sep {
-  opacity: .9;
-  color: var(--gold-text);
-}
-
-
-/* Header layout: logo left, title, clock right */
-.app-header__left{
-  display:flex; align-items:center; gap:10px;
-}
-.app-header__right{
-  display:flex; align-items:center; gap:10px;
-}
-.app-logo{
-  width:32px; height:32px; border-radius:8px; /* keep if you like */
-}
-.clock{
-  font-variant-numeric: tabular-nums;
-  font-weight:600;
-  min-width: 9.5ch;           /* prevents width jitter */
-  text-align:right;
-}
-
-/* Footer: green background, breadcrumb yellow text, smaller font */
-.app-footer {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  height: var(--footer-h);
-  background: var(--brand-green);     /* green footer */
-  color: var(--jd-yellow-dark);       /* breadcrumb bar yellow text */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 var(--pad-x);
-  font-weight: 600;
-  font-size: 0.85rem;                 /* smaller print for single line */
-  z-index: var(--z-footer);
-}
-
-.app-footer .dot {
-  opacity: .7;
-  color: var(--jd-yellow-dark);       /* ensure separators match text color */
-}
-
-/* Adjust header spacing so logo/title/clock sit lower */
-.app-header {
-  padding-top: env(safe-area-inset-top, 8px); /* accounts for iPhone notch */
-  padding-bottom: 6px; /* adds breathing room */
-  box-sizing: border-box;
-}
-
-/* Ensure logo and clock are vertically centered */
-.app-header__left,
-.app-header__right {
-  display: flex;
-  align-items: center;
-}
-
-/* --- Uniform tile rectangles (not full square) --- */
 .df-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
   padding: 16px;
 }
-
 .df-tile {
-  aspect-ratio: 4 / 3;                 /* width : height ratio (less tall) */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;              /* emoji above, label below */
-  background: white;
+  aspect-ratio: 4 / 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #fff;
   border: 2px solid var(--brand-green);
   border-radius: 12px;
-  text-decoration: none;
+  text-decoration: none; text-align: center;
   color: var(--brand-green);
   font-weight: 600;
-  text-align: center;
   padding: 10px;
   box-sizing: border-box;
   overflow: hidden;
 }
-
-.df-tile:hover {
-  background: var(--brand-gold);
-  color: black;
-}
-
-/* Label text */
+.df-tile:hover { background: var(--brand-gold); color: #000; }
 .df-tile span {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.9rem;
-  line-height: 1.2;
-  word-break: break-word;
+  display: block; margin-top: 6px;
+  font-size: .9rem; line-height: 1.2; word-break: break-word;
 }
 
-/* Breadcrumbs container with space for actions */
-.breadcrumbs {
-  position: fixed;
-  top: var(--header-h);
-  left: 0; right: 0;
-  height: var(--crumb-h);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;  /* text left, button right */
-  background: var(--jd-yellow-dark);
-  color: var(--ink);
-  padding: 0 var(--pad-x);
-  border-bottom: 1px solid rgba(0,0,0,.25);
-  z-index: var(--z-crumbs);
-  box-shadow: 0 1px 0 rgba(0,0,0,.15);
-}
-
-.breadcrumbs ol {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: .95rem;
-  font-weight: 700;
-}
-
-.breadcrumbs a { color: var(--ink); text-decoration: none; }
-.breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep { opacity: .9; color: var(--ink); }
-
-/* Logout button */
-.breadcrumbs .logout-btn {
-  background: var(--brand-green);
-  color: var(--jd-yellow-dark);
-  border: none;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 4px 12px;
-  cursor: pointer;
-}
-.breadcrumbs .logout-btn:hover {
-  background: #154a18; /* darker green */
-}
-
-/* Default h1 styling for all pages */
+/* ===========================
+   Headings
+   =========================== */
 .content h1 {
   font-family: 'Montserrat', sans-serif;
-  font-size: 1.4rem;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  margin: 0 0 1rem;
-  color: var(--brand-green);
+  font-size: 1.4rem; font-weight: 500; letter-spacing: .3px;
+  margin: 0 0 1rem; color: var(--brand-green);
 }
-
-/* Special style for Home page title only */
+/* Home page title (smaller + elegant) */
 body.home-page .content h1 {
-  font-family: 'Playfair Display', serif; /* fancy font */
-  font-size: 1.2rem;                      /* smaller */
-  font-weight: 400;                       /* lighter */
-  letter-spacing: 0.2px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem; font-weight: 400; letter-spacing: .2px;
   color: var(--brand-green);
 }
 
-/* ===== Auth (polished layout) — REPLACE YOUR LOGIN BLOCK WITH THIS ===== */
+/* ===========================
+   AUTH (Login / Forgot) — polished
+   =========================== */
 
-.auth-page {
-  /* shorter footer only on login */
-  --footer-h: 36px;
+/* shorter footer only on login */
+.auth-page { --footer-h: 36px; }
 
+/* Keep appearance consistent during rubber-band scroll on iOS */
+.auth-page{
   background: linear-gradient(180deg, #f6f3e4 0%, #efe9cf 100%);
-  padding-top: calc(env(safe-area-inset-top, 0px) + 6px);  /* scoot hero up */
+  background-color: #efe9cf;     /* solid fallback for overscroll */
+  background-attachment: fixed;  /* pins gradient for Safari */
+  padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
+}
+/* Fill the notch/pull-down zone with gradient top color */
+.auth-page::before{
+  content:"";
+  position: fixed; top: 0; left: 0; right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #f6f3e4;
+  pointer-events: none; z-index: 0;
 }
 
 .auth-wrap {
   min-height: calc(100vh - var(--footer-h));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;      /* center hero + card stack */
-  gap: 8px;                     /* a touch tighter */
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px;
 }
 
-/* --- Hero (logo, title, subtitle) --- */
-.auth-hero { 
-  text-align: center;
-  padding: 2px 12px 0;
-  transform: translateY(-6px);  /* lift hero a bit higher above card */
-}
+/* Hero (logo, title, subtitle) */
+.auth-hero { text-align: center; padding: 2px 12px 0; transform: translateY(-6px); }
 .auth-hero__logo{
-  width: 70px; height: 70px;
-  margin: 0 auto 6px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--brand-green);
-  display: grid; place-items: center;
-  box-shadow: 0 3px 8px rgba(0,0,0,.08);
+  width: 70px; height: 70px; margin: 0 auto 6px;
+  border-radius: 50%; background: #fff; border: 2px solid var(--brand-green);
+  display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0,0,0,.08);
 }
-.auth-hero__logo img{
-  width: 52px; height: 52px; border-radius: 8px; object-fit: contain;
-}
+.auth-hero__logo img{ width: 52px; height: 52px; border-radius: 8px; object-fit: contain; }
 .auth-hero__title{
   font-family: 'Playfair Display', serif;
-  font-size: 1.28rem;            /* refined size */
-  font-weight: 600;
-  letter-spacing: .2px;
-  margin: 0 0 4px;
-  color: var(--brand-green);
+  font-size: 1.28rem; font-weight: 600; letter-spacing: .2px;
+  margin: 0 0 4px; color: var(--brand-green);
 }
-.auth-hero__subtitle{
-  font-size: .95rem;
-  color: #5b5b5b;
-  margin: 0 0 6px;
-}
+.auth-hero__subtitle{ font-size: .95rem; color: #5b5b5b; margin: 0 0 6px; }
 
-/* --- Card --- */
+/* Card */
 .auth-card{
-  width: min(330px, 88vw);       /* narrower so phone has side padding */
-  margin: 0 auto;
-  padding: 16px 14px;            /* clean inner spacing */
-  background: #fff;
-  border: 2px solid var(--brand-green);
-  border-radius: 14px;
+  width: min(330px, 88vw); margin: 0 auto;
+  padding: 16px 14px; background: #fff;
+  border: 2px solid var(--brand-green); border-radius: 14px;
   box-shadow: 0 8px 22px rgba(0,0,0,.10);
 }
 
-/* Inputs */
-.field label{
-  display: block; font-weight: 700; color: var(--brand-green); margin: 0 0 6px;
-}
+/* Inputs (16px prevents iOS zoom) */
+.field label{ display: block; font-weight: 700; color: var(--brand-green); margin: 0 0 6px; }
 .auth-card input[type="text"],
 .auth-card input[type="email"],
 .auth-card input[type="password"]{
-  width: 100%;
-  padding: 11px 12px;
-  border: 1px solid var(--brand-green);
-  border-radius: 8px;
-  font-size: 1rem;
-  box-sizing: border-box;
-  background: #fff;
+  width: 100%; padding: 11px 12px;
+  border: 1px solid var(--brand-green); border-radius: 8px;
+  font-size: 16px; /* important: no iOS zoom on focus */
+  box-sizing: border-box; background: #fff;
 }
-.field input:focus{
-  border-color: var(--jd-yellow-dark);
-  box-shadow: 0 0 0 3px rgba(200,168,0,.18);
-}
+.field input:focus{ border-color: var(--jd-yellow-dark); box-shadow: 0 0 0 3px rgba(200,168,0,.18); }
 .field-hint{ margin: 6px 2px 0; font-size: .9rem; color: #b00020; }
 
-/* Password eye: use SVG icon (no emoji), sized and centered */
+/* Password eye (SVG icon) */
 .password-wrap{ position: relative; }
 .password-wrap .eye{
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
   display: inline-grid; place-items: center;
-  width: 28px; height: 28px;
-  border: 0; background: transparent; cursor: pointer;
+  width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer;
   color: var(--brand-green);
 }
 .password-wrap .eye svg{ width: 20px; height: 20px; display: block; }
 
-/* Row with remember + forgot */
-.form-row{
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-top: 2px; margin-bottom: 6px;
-}
+/* Remember + Forgot row */
+.form-row{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 6px; }
 .checkbox{ display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .checkbox input{ width: 18px; height: 18px; }
 .muted-link{ color:#2e2e2e; text-decoration:none; font-weight:700; font-size: .95rem; }
 .muted-link:hover{ text-decoration: underline; }
 
-/* Primary button – tuned smaller */
+/* Primary button — smaller as requested */
 .auth-page .btn-primary{
   width: 100%;
-  padding: 10px 14px;
-  border: 0; border-radius: 14px;
+  padding: 8px 12px;             /* was 10px 14px */
+  border: 0; border-radius: 12px;/* was 14px */
   background: var(--brand-green); color: var(--jd-yellow-dark);
-  font-weight: 800; font-size: .95rem; cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  font-weight: 800; font-size: .9rem; /* was .95rem */
+  cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.12);
 }
 .auth-page .btn-primary:hover{ background:#154a18; }
 
-/* Footer – FIXED + solid color so no white shows when scrolling */
+/* Auth footer — fixed & solid to avoid white flashes */
 .app-footer--auth{
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
-  background: #efe9cf;            /* match gradient end color */
-  color: #2b2b2b;
+  background: #efe9cf; color: #2b2b2b;
   display: flex; align-items: center; justify-content: center;
   font-size: .85rem; padding: 0 10px;
   border-top: 1px solid rgba(0,0,0,.06);
   z-index: 1000;
 }
 
-/* --- Reset password modal (true overlay) --- */
+/* Forgot-password modal (true overlay) */
 .auth-modal__backdrop{
-  position: fixed; inset: 0;
-  display: none;                        /* toggled by JS */
+  position: fixed; inset: 0; display: none; /* toggled by JS */
   align-items: center; justify-content: center;
   background: rgba(0,0,0,.38);
   z-index: 2000;
@@ -476,12 +291,8 @@ body.home-page .content h1 {
   box-shadow: 0 18px 40px rgba(0,0,0,.25);
   padding: 16px;
 }
-.auth-modal h2{
-  margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green);
-}
-.auth-modal .modal-actions{
-  display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;
-}
+.auth-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
+.auth-modal .modal-actions{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .btn-link{
   background: transparent; border: none; color: var(--brand-green);
   font-weight: 700; cursor: pointer; padding: 6px 10px;
@@ -492,8 +303,15 @@ body.home-page .content h1 {
 }
 .btn-secondary:hover{ background:#dcebdc; }
 
+/* Inputs in modal also 16px to avoid zoom */
+.auth-modal input[type="text"],
+.auth-modal input[type="email"],
+.auth-modal input[type="password"]{
+  font-size: 16px;
+}
+
 /* Small phones */
 @media (max-width: 360px){
   .auth-hero__title{ font-size: 1.2rem; }
-  .auth-card{ width: 90vw; }   /* ensure side padding on tiny screens */
+  .auth-card{ width: 90vw; } /* ensure side padding on tiny screens */
 }
