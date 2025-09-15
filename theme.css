@@ -226,7 +226,7 @@ body {
   align-items: center;
 }
 
-/* --- Uniform square tiles --- */
+/* --- Uniform tile rectangles (not full square) --- */
 .df-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -235,11 +235,11 @@ body {
 }
 
 .df-tile {
-  aspect-ratio: 1 / 1;                 /* force perfect square */
+  aspect-ratio: 4 / 3;                 /* width : height ratio (less tall) */
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;              /* emoji on top, text below */
+  flex-direction: column;              /* emoji above, label below */
   background: white;
   border: 2px solid var(--brand-green);
   border-radius: 12px;
@@ -249,7 +249,7 @@ body {
   text-align: center;
   padding: 10px;
   box-sizing: border-box;
-  overflow: hidden;                     /* prevent text spillover */
+  overflow: hidden;
 }
 
 .df-tile:hover {
@@ -257,7 +257,7 @@ body {
   color: black;
 }
 
-/* Label text handling */
+/* Label text */
 .df-tile span {
   display: block;
   margin-top: 6px;
