@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
 
-  <!-- Fonts -->
+  <!-- Fonts (elegant headings like “Dowson Farms” / Home) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Styles -->
+  <!-- Theme -->
   <link rel="stylesheet" href="theme.css" />
 
-  <!-- App scripts -->
+  <!-- Global app scripts -->
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
@@ -26,21 +26,22 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 </head>
 <body class="home-page">
-  <!-- Header -->
+  <!-- Header (global) -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right">
+      <!-- HH:MM clock; populated by core.js -->
       <span id="clock" class="clock">--:--</span>
     </div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- Breadcrumbs (global). core.js will inject a Logout button here -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -52,6 +53,7 @@
   <!-- Main content -->
   <main class="content">
     <h1>Home</h1>
+
     <div class="df-tiles">
       <a href="crop.html" class="df-tile">🌽 <span>Crop Production</span></a>
       <a href="grain.html" class="df-tile">🌾 <span>Grain Tracking</span></a>
@@ -64,7 +66,7 @@
     </div>
   </main>
 
-  <!-- Footer -->
+  <!-- Footer (global) -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -73,13 +75,13 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-
-  // Service worker
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
-    });
-  }
-</script>
+  <!-- Service worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
 </body>
 </html>
