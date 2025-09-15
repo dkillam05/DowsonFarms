@@ -7,22 +7,23 @@
   /* Brand palette */
   --brand-green: #1B5E20;
   --brand-gold:  #f1d565;
-  --brand-gold-dark: #B8860B;     /* legacy (not used much now) */
+  --brand-gold-dark: #B8860B; /* legacy */
   --paper: #f6f3e4;
   --ink:   #222;
-  --gold-text: #1b1b1b;           /* high-contrast on yellow */
-  --jd-yellow-dark: #C8A800;      /* John Deere darker yellow (legacy) */
+
+  /* Calm, readable tones */
+  --gold-text: #1b1b1b;
 
   /* Softer gold used elsewhere */
   --accent-gold: #E7CA4A;
 
-  /* Auth overscroll edge color (the subtle tan band) */
+  /* Subtle tan band (auth/footer/breadcrumbs) */
   --auth-edge-bg: #E6DCB8;
 
   /* Layout sizing */
   --header-h: 64px;
   --crumb-h:  40px;
-  --footer-h: 40px;               /* tightened app footer (was 48px) */
+  --footer-h: 40px;     /* tightened app footer */
   --pad-x:    16px;
 
   /* Z-index */
@@ -65,7 +66,7 @@ body {
 .app-header__left,
 .app-header__right { display: flex; align-items: center; gap: 10px; }
 
-/* Header title now matches login font */
+/* Header title matches login font globally */
 .app-header__title {
   font-family: 'Playfair Display', serif;
   font-weight: 600;
@@ -107,7 +108,7 @@ body {
 
 /* ===========================
    Global Logout button (breadcrumbs)
-   - Small, elegant, white Playfair text
+   - Small, elegant, white Playfair text (consistent across sub-pages)
    =========================== */
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
@@ -387,6 +388,29 @@ body.home-page .content h1 {
 .auth-modal input[type="password"]{
   font-size: 16px;
 }
+
+/* ===========================
+   Back button (bottom-left) for form pages
+   - Shown by core.js on sub-pages with forms; designed to sit above footer
+   =========================== */
+.back-fab{
+  position: fixed;
+  left: 10px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  background: #fff;
+  color: var(--brand-green);
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  font: 600 .9rem 'Playfair Display', serif;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  cursor: pointer;
+  z-index: calc(var(--z-footer) + 10);
+}
+.back-fab .chev{ font-size: 1.1rem; line-height: 1; transform: translateY(-1px); }
+.back-fab:hover,
+.back-fab:focus-visible{ background:#fefefe; outline: none; }
 
 /* Small phones */
 @media (max-width: 360px){
