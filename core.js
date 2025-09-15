@@ -5,16 +5,16 @@
    - Breadcrumbs helper
    - Logout button injection + handler
    - Password visibility toggle (SVG eye)
-   - Back button for form pages
+   - Back button (default on all non-Home, non-Auth pages)
    =========================== */
 
 "use strict";
 
-// ---- CONFIG: where to send users after logout ----
-const LOGIN_URL = "login.html";      // change to "index.html?login=1" if that's your flow
+// ---- CONFIG ----
+const LOGIN_URL = "login.html";
 const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed page
 
-// Utility: Central Time date formatter (month name)
+// Utility: Central Time date formatter (Month day, Year)
 function formatCTDate(d = new Date()) {
   return d.toLocaleDateString("en-US", {
     timeZone: "America/Chicago",
@@ -24,7 +24,7 @@ function formatCTDate(d = new Date()) {
   });
 }
 
-// ---- Footer version + date (reads APP_VERSION from version.js) ----
+/* ---------- Footer version + date ---------- */
 (function initFooterMeta() {
   try {
     const verEl = document.getElementById("version");
@@ -36,20 +36,17 @@ function formatCTDate(d = new Date()) {
 
   try {
     const dateEl = document.getElementById("report-date");
-    if (dateEl) {
-      dateEl.textContent = formatCTDate();
-    }
+    if (dateEl) dateEl.textContent = formatCTDate();
   } catch (_) {}
 })();
 
-// ---- Global clock (HH:MM only, synced to minute boundary) ----
+/* ---------- Global clock (HH:MM, minute-synced, Central) ---------- */
 (function initClock() {
-  // Prevent multiple timers if navigating page-to-page
   if (window.__DF_CLOCK_INTERVAL) { clearInterval(window.__DF_CLOCK_INTERVAL); window.__DF_CLOCK_INTERVAL = null; }
   if (window.__DF_CLOCK_TIMEOUT)  { clearTimeout(window.__DF_CLOCK_TIMEOUT);   window.__DF_CLOCK_TIMEOUT  = null; }
 
   const el = document.getElementById("clock");
-  if (!el) return; // no clock on this page (e.g., login)
+  if (!el) return;
 
   function renderClock() {
     el.textContent = new Date().toLocaleTimeString("en-US", {
@@ -82,10 +79,9 @@ function formatCTDate(d = new Date()) {
   });
 })();
 
-// ---- Breadcrumbs helper (array of strings OR {label, href}) ----
-// Usage:
-//   setBreadcrumbs(["Home","Reports","Soybeans"])
-//   setBreadcrumbs([{label:"Home", href:"index.html"}, {label:"Reports", href:"reports.html"}, {label:"Soybeans"}])
+/* ---------- Breadcrumbs helper ---------- */
+// setBreadcrumbs(["Home","Reports","Soybeans"])
+// setBreadcrumbs([{label:"Home",href:"index.html"},{label:"Reports",href:"reports.html"},{label:"Soybeans"}])
 window.setBreadcrumbs = function setBreadcrumbs(parts) {
   try {
     const ol = document.querySelector(".breadcrumbs ol");
@@ -98,15 +94,10 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       const li = document.createElement("li");
       const isLast = i === norm.length - 1;
 
-      if (!isLast && p.href) {
+      if (!isLast) {
         const a = document.createElement("a");
         a.textContent = p.label;
-        a.href = p.href;
-        li.appendChild(a);
-      } else if (!isLast && !p.href) {
-        const a = document.createElement("a");
-        a.textContent = p.label;
-        a.href = "#";
+        a.href = p.href || "#";
         li.appendChild(a);
       } else {
         const span = document.createElement("span");
@@ -126,16 +117,14 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
   } catch (_) {}
 };
 
-// ---- Inject Logout button into breadcrumb bar (skip ONLY login/auth) ----
+/* ---------- Inject Logout into breadcrumbs (everywhere except auth) ---------- */
 (function addLogoutToBreadcrumbs() {
   document.addEventListener("DOMContentLoaded", () => {
-    // Show logout on ALL pages except auth/login
-    if (document.body.classList.contains("auth-page")) return;
+    if (document.body.classList.contains("auth-page")) return; // never on login
 
     const nav = document.querySelector(".breadcrumbs");
     if (!nav) return;
 
-    // Only add once
     if (!nav.querySelector(".logout-btn")) {
       const btn = document.createElement("button");
       btn.className = "logout-btn";
@@ -147,11 +136,10 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
   });
 })();
 
-// ---- Global Logout handler ----
+/* ---------- Global Logout handler ---------- */
 window.handleLogout = async function handleLogout() {
   try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}
 
-  // Optional: clear SW caches to avoid stale authed pages
   try {
     if ("caches" in window) {
       const keys = await caches.keys();
@@ -159,15 +147,13 @@ window.handleLogout = async function handleLogout() {
     }
   } catch (_) {}
 
-  // Navigate to login page (cache-busted)
   const target = LOGIN_URL + (LOGIN_URL.includes("?") ? "&" : "?") + "_ts=" + Date.now();
-  if (USE_LOCATION_REPLACE) { window.location.replace(target); }
-  else { window.location.href = target; }
+  if (USE_LOCATION_REPLACE) window.location.replace(target);
+  else window.location.href = target;
 };
 
-// ---- Password visibility toggle (SVG eye) — global wiring ----
+/* ---------- Password visibility toggles ---------- */
 (function initPasswordEyes() {
-  // SVG icons (outline)
   const ICON_EYE = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/>
@@ -180,12 +166,10 @@ window.handleLogout = async function handleLogout() {
 
   function wire(wrapper) {
     if (!wrapper || wrapper.dataset.eyeInit === "1") return;
-
     const input = wrapper.querySelector('input[type="password"], input[type="text"]#password, input[name="password"]');
     const btn = wrapper.querySelector(".eye");
     if (!input || !btn) return;
 
-    // Initial render
     const showing = input.type === "text";
     btn.innerHTML = showing ? ICON_EYE_OFF : ICON_EYE;
     btn.setAttribute("aria-label", showing ? "Hide password" : "Show password");
@@ -202,17 +186,9 @@ window.handleLogout = async function handleLogout() {
     wrapper.dataset.eyeInit = "1";
   }
 
-  function scan() {
-    document.querySelectorAll(".password-wrap").forEach(wire);
-  }
+  function scan() { document.querySelectorAll(".password-wrap").forEach(wire); }
+  (document.readyState === "loading") ? document.addEventListener("DOMContentLoaded", scan) : scan();
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", scan);
-  } else {
-    scan();
-  }
-
-  // Optional: watch for dynamically added forms (lightweight)
   const mo = new MutationObserver((muts) => {
     for (const m of muts) {
       m.addedNodes?.forEach(node => {
@@ -225,23 +201,23 @@ window.handleLogout = async function handleLogout() {
   mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
 
-// ---- Back button (bottom-left) for form pages ----
-// Shows when <body> has .form-page OR when we detect a major <form>
-(function addFormBackButton() {
-  function needsBack() {
+/* ---------- Back button (bottom-left) — default for all sub-pages ---------- */
+// Appears on every page except: auth/login and the main Home page.
+// Overrides:
+//   - add class="no-back" on <body> to hide on a specific page
+//   - add class="force-back" on <body> to show even on Home
+(function addBackButton() {
+  function shouldShow() {
     const b = document.body;
-    if (b.classList.contains("auth-page")) return false; // never on login
-    if (b.classList.contains("home-page")) return false; // not on main home
-    if (b.classList.contains("form-page")) return true;  // explicit opt-in
-    // auto-detect: big forms or a marker element
-    const firstForm = document.querySelector("form");
-    const bigForm = firstForm && firstForm.offsetHeight > 200;
-    const marker  = document.querySelector("[data-has-form]");
-    return !!(bigForm || marker);
+    if (b.classList.contains("auth-page")) return false;       // never on login
+    if (b.classList.contains("no-back")) return false;         // explicit off
+    if (b.classList.contains("force-back")) return true;       // explicit on
+    if (b.classList.contains("home-page")) return false;       // hide on main home
+    return true;                                               // show on all others
   }
 
-  function ensureBackBtn() {
-    if (!needsBack()) return;
+  function ensure() {
+    if (!shouldShow()) return;
     if (document.querySelector(".back-fab")) return;
 
     const btn = document.createElement("button");
@@ -258,9 +234,7 @@ window.handleLogout = async function handleLogout() {
     document.body.appendChild(btn);
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", ensureBackBtn);
-  } else {
-    ensureBackBtn();
-  }
+  (document.readyState === "loading")
+    ? document.addEventListener("DOMContentLoaded", ensure)
+    : ensure();
 })();
