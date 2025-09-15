@@ -331,3 +331,134 @@ body.home-page .content h1 {
   letter-spacing: 0.2px;
   color: var(--brand-green);
 }
+
+/* ===== Auth page ===== */
+
+.auth-page {
+  /* soft farm-paper background with safe area padding for iPhone notch */
+  background: linear-gradient(180deg, #f6f3e4, #efe9cf);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
+}
+
+.auth-wrap {
+  min-height: calc(100vh - var(--footer-h));
+  display: grid;
+  place-items: start center;
+}
+
+.auth-card {
+  width: min(640px, 92vw);
+  background: #fff;
+  border: 2px solid var(--brand-green);
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.08);
+  padding: 24px 18px 22px;
+  margin-top: 10px; /* sits nicely below iOS top UI */
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.auth-logo {
+  width: 96px; height: 96px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--brand-green);
+  display: grid; place-items: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,.10);
+}
+.auth-logo img { width: 72px; height: 72px; border-radius: 12px; }
+
+.auth-title {
+  font-family: 'Playfair Display', serif; /* elegant */
+  font-size: 2rem;
+  line-height: 1.1;
+  margin: 4px 0 6px;
+  color: var(--brand-green);
+}
+.auth-subtitle {
+  margin: 0;
+  color: #5a5a5a;
+  font-weight: 500;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.field label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--brand-green);
+}
+.field input {
+  width: 100%;
+  padding: 14px 14px;
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+  background: #fff;
+}
+.field input:focus {
+  border-color: var(--jd-yellow-dark); /* your dark JD yellow */
+  box-shadow: 0 0 0 3px rgba(200,168,0,.20);
+}
+.field-hint {
+  margin: 6px 2px 0;
+  font-size: .9rem;
+  color: #b00020;
+}
+
+.password-wrap {
+  position: relative;
+}
+.password-wrap .eye {
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  border: none; background: transparent;
+  font-size: 1.05rem; cursor: pointer;
+  color: var(--brand-green);
+}
+
+.form-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  margin-top: 2px;
+}
+.checkbox { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.checkbox input { width: 18px; height: 18px; }
+.muted-link {
+  color: #2e2e2e; text-decoration: none; font-weight: 700;
+}
+.muted-link:hover { text-decoration: underline; }
+
+/* Primary button (matches theme) */
+.btn-primary {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--brand-green);
+  color: var(--jd-yellow-dark);
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+.btn-primary:hover { background: #154a18; }
+
+/* Footer on auth page sits at the very bottom and uses 1 line */
+.app-footer--auth {
+  background: transparent;            /* blend into gradient */
+  color: #2b2b2b;
+  font-size: 0.9rem;
+}
+
