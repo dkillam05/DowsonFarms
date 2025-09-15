@@ -348,60 +348,61 @@ body.home-page .content h1 {
   justify-content: center; /* center the whole stack */
   gap: 12px;               /* space between hero and card */
 }
-/* Brand logo above login card */
+/* Login hero logo */
 .auth-hero__logo {
-  width: 60px; 
-  height: 60px;
-  margin: 0 auto 6px;
+  width: 72px; 
+  height: 72px;
+  margin: 0 auto 10px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid var(--brand-green);
   display: grid;
   place-items: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+  box-shadow: 0 3px 8px rgba(0,0,0,.08);
 }
 
 .auth-hero__logo img {
-  width: 44px; 
-  height: 44px;
+  width: 54px;
+  height: 54px;
   border-radius: 8px;
-  object-fit: contain;  /* keeps proportions */
+  object-fit: contain;
+}
+
+/* Login title + subtitle */
+.auth-hero__title {
+  font-size: 1.4rem;       /* smaller than before */
+  font-weight: 700;
+  margin-bottom: 4px;
 }
 
 .auth-hero__subtitle {
-  margin: 0 0 6px;
-  color: #5a5a5a;
-  font-weight: 500;
+  font-size: 0.95rem;      /* softer, smaller */
+  color: #555;
+  margin-bottom: 14px;
 }
 
-/* Smaller, tighter card JUST for the form */
+/* Login card */
 .auth-card {
-  width: min(420px, 92vw);
+  max-width: 340px;
+  margin: 0 auto;
+  padding: 20px 18px;      /* add spacing inside */
   background: #fff;
-  border: 2px solid var(--brand-green);
-  border-radius: 16px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.10);
-  padding: 16px 14px 14px;
-}
-.auth-card--compact { width: min(380px, 90vw); } /* make it smaller as requested */
-
-.auth-form { display: grid; gap: 12px; }
-
-/* Inputs stay inside the card */
-.field label {
-  display: block;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: var(--brand-green);
-}
-.field input {
-  width: 100%;
-  padding: 12px 14px;
   border: 2px solid var(--brand-green);
   border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+
+/* Input spacing */
+.auth-card input[type="text"],
+.auth-card input[type="email"],
+.auth-card input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 14px;    /* margin between fields */
+  border: 1px solid var(--brand-green);
+  border-radius: 6px;
   font-size: 1rem;
-  outline: none;
-  background: #fff;
+  box-sizing: border-box;
 }
 .field input:focus {
   border-color: var(--jd-yellow-dark);
