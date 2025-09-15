@@ -21,7 +21,7 @@
   /* Layout sizing */
   --header-h: 64px;
   --crumb-h:  40px;
-  --footer-h: 48px;
+  --footer-h: 40px;               /* tightened app footer (was 48px) */
   --pad-x:    16px;
 
   /* Z-index */
@@ -63,7 +63,15 @@ body {
 }
 .app-header__left,
 .app-header__right { display: flex; align-items: center; gap: 10px; }
-.app-header__title { font-weight: 700; font-size: 1.25rem; letter-spacing: .3px; }
+
+/* Header title now matches login font */
+.app-header__title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: .2px;
+}
+
 .app-logo { width: 32px; height: 32px; border-radius: 8px; }
 .clock {
   font-variant-numeric: tabular-nums;
@@ -74,14 +82,14 @@ body {
 
 /* ===========================
    Breadcrumbs (fixed under header)
-   - App pages use a calm green bar w/ white text
+   - Now uses subtle tan band (same as footer), softer text
    =========================== */
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
   height: var(--crumb-h);
   display: flex; align-items: center; justify-content: space-between;
-  background: #2b6137;             /* muted green to match login vibe */
-  color: #fff;
+  background: var(--auth-edge-bg);   /* match footer color */
+  color: #444;
   padding: 0 var(--pad-x);
   border-bottom: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 1px 0 rgba(0,0,0,.08);
@@ -92,9 +100,9 @@ body {
   list-style: none; margin: 0; padding: 0;
   font-size: .95rem; font-weight: 700;
 }
-.breadcrumbs a { color: #fff; text-decoration: none; }
+.breadcrumbs a { color: #444; text-decoration: none; }
 .breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep { color: rgba(255,255,255,.85); }
+.breadcrumbs .sep { color: #444; opacity: .9; }
 
 /* Logout button in breadcrumbs — styled like the Log In button */
 .breadcrumbs .logout-btn {
@@ -124,16 +132,16 @@ body {
 
 /* ===========================
    Sticky Footer (app pages)
-   - Use the same subtle tan band + grey text as login
+   - Same subtle tan band + grey text as login
    =========================== */
 .app-footer {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
-  background: var(--auth-edge-bg);   /* subtle band to match login footer */
+  background: var(--auth-edge-bg);
   color: #666;                        /* lighter grey */
   display: flex; align-items: center; justify-content: center;
   gap: 8px; padding: 0 var(--pad-x);
-  font-weight: 600; font-size: .85rem;
+  font-weight: 600; font-size: .80rem;   /* a bit smaller */
   z-index: var(--z-footer);
 }
 .app-footer .dot { opacity: .6; color: #666; }
@@ -143,12 +151,12 @@ body {
    =========================== */
 .df-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* smaller */
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* keep compact width */
   gap: 10px;
   padding: 14px;
 }
 .df-tile {
-  aspect-ratio: 5 / 4;                 /* a bit shorter */
+  aspect-ratio: 7 / 4;                 /* shorter height */
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: #fff;
   border: 2px solid var(--brand-green);
@@ -156,14 +164,14 @@ body {
   text-decoration: none; text-align: center;
   color: var(--brand-green);
   font-weight: 600;
-  padding: 10px;
+  padding: 8px;
   box-sizing: border-box;
   overflow: hidden;
 }
 .df-tile:hover { background: var(--brand-gold); color: #000; }
 .df-tile span {
   display: block; margin-top: 6px;
-  font-size: .88rem; line-height: 1.2; word-break: break-word;
+  font-size: .86rem; line-height: 1.2; word-break: break-word;
   color: #3a3a3a;
 }
 
@@ -302,30 +310,29 @@ body.home-page .content h1 {
 }
 .muted-link:hover{ text-decoration: underline; }
 
-/* Primary button — single, authoritative definition
-   (smaller, lowered, white Playfair text) */
+/* Primary button — smaller, lowered, white Playfair text */
 .auth-page .btn-primary {
   width: 100%;
   padding: 9px 12px;
   border: 0;
   border-radius: 12px;
   background: var(--brand-green);
-  color: #fff;                              /* white letters */
-  font-family: 'Playfair Display', serif;   /* match "Dowson Farms" */
+  color: #fff;
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
   font-size: .95rem;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(0,0,0,.12);
-  margin-top: 16px;                         /* pushes button lower inside the card */
+  margin-top: 16px;
 }
 .auth-page .btn-primary:hover { background:#154a18; }
 
-/* Auth footer — matches darker top edge color, lighter grey text */
+/* Auth footer — matches subtle tan, lighter grey text */
 .app-footer--auth{
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
   background: var(--auth-edge-bg);
-  color: #666;                      /* subtle grey */
+  color: #666;
   display: flex; align-items: center; justify-content: center;
   font-size: .85rem; padding: 0 10px;
   border-top: 1px solid rgba(0,0,0,.06);
@@ -333,9 +340,9 @@ body.home-page .content h1 {
 }
 .app-footer--auth .dot{ opacity:.6; }
 
-/* Forgot-password modal (overlay) */
+/* Forgot-password modal */
 .auth-modal__backdrop{
-  position: fixed; inset: 0; display: none; /* toggled by JS */
+  position: fixed; inset: 0; display: none;
   align-items: center; justify-content: center;
   background: rgba(0,0,0,.38);
   z-index: 2000;
@@ -370,5 +377,5 @@ body.home-page .content h1 {
 /* Small phones */
 @media (max-width: 360px){
   .auth-hero__title{ font-size: 1.2rem; }
-  .auth-card{ width: 90vw; } /* ensure side padding on tiny screens */
+  .auth-card{ width: 90vw; }
 }
