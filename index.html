@@ -1,32 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
+
+  <!-- Fonts (for elegant headings like “Dowson Farms” / Home) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="theme.css" />
 
-  <!-- App scripts -->
+  <!-- App scripts (global behaviors: clock, version, breadcrumbs, logout, eye icon) -->
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#1B5E20" />
 
   <!-- iOS PWA (standalone) -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <!-- Optional: full-bleed maskable (if present) -->
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 </head>
-<body>
-
+<body class="home-page">
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
@@ -34,14 +36,15 @@
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right">
-      <span id="clock" class="clock">--:--:-- AM</span>
+      <!-- HH:MM clock; content set by core.js -->
+      <span id="clock" class="clock">--:--</span>
     </div>
   </header>
 
-  <!-- Breadcrumbs (fixed under header) -->
+  <!-- Breadcrumbs (fixed under header). Logout button is injected by core.js -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="#/home">Home</a></li>
+      <li><a href="index.html">Home</a></li>
       <li class="sep">›</li>
       <li><span id="crumb-current">Dashboard</span></li>
     </ol>
@@ -50,78 +53,29 @@
   <!-- Main content -->
   <main class="content">
     <h1>Home</h1>
+
     <div class="df-tiles">
       <a href="crop.html" class="df-tile">🌽 <span>Crop Production</span></a>
-<a href="grain.html" class="df-tile">🌾 <span>Grain Tracking</span></a>
-<a href="equip.html" class="df-tile">🚜 <span>Equipment</span></a>
-<a href="calc.html" class="df-tile">🔢 <span>Calculators</span></a>
-<a href="reports.html" class="df-tile">📖 <span>Reports</span></a>
-<a href="team.html" class="df-tile">🫱🏼‍🫲🏽 <span>Team / Partners</span></a>
-<a href="feedback.html" class="df-tile">💬 <span>Feedback</span></a>
-<a href="settings.html" class="df-tile">⚙️ <span>Setup / Settings</span></a>
+      <a href="grain.html" class="df-tile">🌾 <span>Grain Tracking</span></a>
+      <a href="equip.html" class="df-tile">🚜 <span>Equipment</span></a>
+      <a href="calc.html" class="df-tile">🔢 <span>Calculators</span></a>
+      <a href="reports.html" class="df-tile">📖 <span>Reports</span></a>
+      <a href="team.html" class="df-tile">🫱🏼‍🫲🏽 <span>Team / Partners</span></a>
+      <a href="feedback.html" class="df-tile">💬 <span>Feedback</span></a>
+      <a href="settings.html" class="df-tile">⚙️ <span>Setup / Settings</span></a>
     </div>
   </main>
 
-  <!-- Footer -->
+  <!-- Footer (date + version filled by core.js) -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
-    <span id="report-date">September 14, 2025</span>
+    <span id="report-date">—</span>
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Inline scripts (wrapped correctly) -->
-  <script>
-    // Prevent multiple timers if this file reloads
-    if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
-
-    function updateClock(){
-      const el = document.getElementById('clock');
-      if(!el) return;
-      el.textContent = new Date().toLocaleTimeString('en-US', {
-        hour:'2-digit', minute:'2-digit', second:'2-digit',
-        hour12:true, timeZone:'America/Chicago'
-      });
-    }
-    updateClock();
-    window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
-
-    // Footer version from version.js
-    (function(){
-      const v = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'v10.14.7';
-      const el = document.getElementById('version');
-      if (el) el.textContent = v;
-    })();
-
-    // Breadcrumbs helper (optional)
-    function setBreadcrumbs(parts){
-      const ol = document.querySelector('.breadcrumbs ol');
-      if(!ol) return;
-      ol.innerHTML = '';
-      parts.forEach((p,i)=>{
-        const li = document.createElement('li');
-        if(i < parts.length - 1){
-          const a = document.createElement('a');
-          a.textContent = p; a.href = '#';
-          li.appendChild(a);
-        } else {
-          const span = document.createElement('span');
-          span.textContent = p;
-          li.appendChild(span);
-        }
-        ol.appendChild(li);
-        if(i < parts.length - 1){
-          const sep = document.createElement('li');
-          sep.className='sep'; sep.textContent='›';
-          ol.appendChild(sep);
-        }
-      });
-    }
-    // Example: setBreadcrumbs(["Home","Reports","Soybeans"]);
-  </script>
-
-  <!-- Service worker (filename is servicework.js) -->
+  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
