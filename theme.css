@@ -1,7 +1,7 @@
 /* ===========================
    Dowson Farms — theme.css
    =========================== */
-
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap');
 :root {
   /* Brand palette */
   --brand-green: #1B5E20;
