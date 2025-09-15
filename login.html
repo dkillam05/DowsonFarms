@@ -17,26 +17,25 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
 
-  <!-- Optional font for headings (keeps body on Montserrat) -->
+  <!-- Optional elegant heading font -->
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 </head>
 <body class="auth-page">
 
-  <!-- No sticky header/breadcrumbs on auth for focus and space -->
+  <!-- No sticky header/breadcrumbs on auth -->
 
   <main class="auth-wrap">
-    <div class="auth-card">
-
-      <!-- Brand -->
-      <div class="auth-brand">
-        <div class="auth-logo">
-          <img src="assets/icons/icon-192.png" alt="Dowson Farms" />
-        </div>
-        <h1 class="auth-title">Dowson Farms</h1>
-        <p class="auth-subtitle">Welcome back. Sign in to continue.</p>
+    <!-- Brand on the page background (NOT inside the card) -->
+    <div class="auth-hero">
+      <div class="auth-hero__logo">
+        <img src="assets/icons/icon-192.png" alt="Dowson Farms" />
       </div>
+      <h1 class="auth-hero__title">Dowson Farms</h1>
+      <p class="auth-hero__subtitle">Welcome back. Sign in to continue.</p>
+    </div>
 
-      <!-- Form -->
+    <!-- Smaller centered card with the form ONLY -->
+    <div class="auth-card auth-card--compact">
       <form id="loginForm" class="auth-form" novalidate>
         <div class="field">
           <label for="username">Username</label>
@@ -63,11 +62,10 @@
 
         <button type="submit" class="btn-primary">Log In</button>
       </form>
-
     </div>
   </main>
 
-  <!-- Keep the same app footer for date/version -->
+  <!-- Footer for date/version -->
   <footer class="app-footer app-footer--auth">
     <span id="report-date">September 14, 2025</span>
     <span class="dot">•</span>
@@ -76,7 +74,7 @@
 
   <!-- Page-specific JS -->
   <script>
-    // password eye toggle
+    // Password eye toggle
     (function(){
       const input = document.getElementById('password');
       const btn = document.getElementById('togglePw');
@@ -88,7 +86,7 @@
       });
     })();
 
-    // light client-side validation + demo submit
+    // Light client-side validation + demo submit
     document.getElementById('loginForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('username');
@@ -102,16 +100,10 @@
       if (!emailOK || !passOK) return;
 
       // TODO: replace with your real auth
-      // For now, simulate success and go to home:
       window.location.replace('index.html');
     });
 
-    // Prevent core.js from trying to inject a Logout button (no breadcrumbs here)
-    // Nothing needed; core.js only injects if .breadcrumbs exists.
-  </script>
-
-  <!-- SW registration -->
-  <script>
+    // SW register
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
