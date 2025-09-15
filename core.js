@@ -4,6 +4,7 @@
    - Footer version + date injection
    - Breadcrumbs helper
    - Logout button injection + handler
+   - Password visibility toggle (SVG eye)
    =========================== */
 
 "use strict";
@@ -162,3 +163,63 @@ window.handleLogout = async function handleLogout() {
   if (USE_LOCATION_REPLACE) { window.location.replace(target); }
   else { window.location.href = target; }
 };
+
+// ---- Password visibility toggle (SVG eye) — global wiring ----
+(function initPasswordEyes() {
+  // SVG icons (outline)
+  const ICON_EYE = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/>
+      <circle cx="12" cy="12" r="3.5"/>
+    </svg>`;
+  const ICON_EYE_OFF = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 3l18 18M10.6 10.6A3.5 3.5 0 0115 12m6-0c0 0-4 7-11 7-2.1 0-3.9-.6-5.4-1.5M4.3 7.7C6.2 6 8.8 5 12 5c7 0 11 7 11 7"/>
+    </svg>`;
+
+  function wire(wrapper) {
+    if (!wrapper || wrapper.dataset.eyeInit === "1") return;
+
+    const input = wrapper.querySelector('input[type="password"], input[type="text"]#password, input[name="password"]');
+    const btn = wrapper.querySelector(".eye");
+    if (!input || !btn) return;
+
+    // Initial render
+    const showing = input.type === "text";
+    btn.innerHTML = showing ? ICON_EYE_OFF : ICON_EYE;
+    btn.setAttribute("aria-label", showing ? "Hide password" : "Show password");
+    btn.setAttribute("aria-pressed", String(showing));
+
+    btn.addEventListener("click", () => {
+      const nowShow = input.type !== "text";
+      input.type = nowShow ? "text" : "password";
+      btn.innerHTML = nowShow ? ICON_EYE_OFF : ICON_EYE;
+      btn.setAttribute("aria-label", nowShow ? "Hide password" : "Show password");
+      btn.setAttribute("aria-pressed", String(nowShow));
+    });
+
+    wrapper.dataset.eyeInit = "1";
+  }
+
+  function scan() {
+    document.querySelectorAll(".password-wrap").forEach(wire);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", scan);
+  } else {
+    scan();
+  }
+
+  // Optional: watch for dynamically added forms (lightweight)
+  const mo = new MutationObserver((muts) => {
+    for (const m of muts) {
+      m.addedNodes?.forEach(node => {
+        if (!(node instanceof HTMLElement)) return;
+        if (node.matches?.(".password-wrap")) wire(node);
+        node.querySelectorAll?.(".password-wrap").forEach(wire);
+      });
+    }
+  });
+  mo.observe(document.documentElement, { childList: true, subtree: true });
+})();
