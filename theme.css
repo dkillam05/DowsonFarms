@@ -2,6 +2,7 @@
    Dowson Farms — theme.css
    =========================== */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap');
+
 :root {
   /* Brand palette */
   --brand-green: #1B5E20;
@@ -104,15 +105,15 @@ body {
 .breadcrumbs a:hover { text-decoration: underline; }
 .breadcrumbs .sep { color: #444; opacity: .9; }
 
-/* Logout button in breadcrumbs — styled like the Log In button */
+/* Logout button in breadcrumbs — match submenu look */
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
-  color: #fff;                                /* white letters */
-  font-family: 'Playfair Display', serif;     /* same vibe as login */
+  color: var(--accent-gold);              /* softer gold text */
+  font-family: 'Montserrat', sans-serif;  /* clean sans */
   font-weight: 600;
-  border: none; border-radius: 12px;
-  font-size: .9rem;
-  padding: 6px 14px; cursor: pointer;
+  font-size: .85rem;
+  border: none; border-radius: 6px;
+  padding: 4px 12px; cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
 }
 .breadcrumbs .logout-btn:hover { background: #154a18; }
