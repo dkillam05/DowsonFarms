@@ -13,10 +13,10 @@
   --gold-text: #1b1b1b;           /* high-contrast on yellow */
   --jd-yellow-dark: #C8A800;      /* John Deere darker yellow (legacy) */
 
-  /* New, softer gold used for button/footers text “across the board” */
+  /* Softer gold used elsewhere */
   --accent-gold: #E7CA4A;
 
-  /* Auth overscroll edge color (match the darker band you like) */
+  /* Auth overscroll edge color (the subtle tan band) */
   --auth-edge-bg: #E6DCB8;
 
   /* Layout sizing */
@@ -83,7 +83,7 @@ body {
 
 /* ===========================
    Breadcrumbs (fixed under header)
-   - Now uses subtle tan band (same as footer), softer text
+   - Calm tan bar (same as footer), soft text
    =========================== */
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
@@ -105,18 +105,31 @@ body {
 .breadcrumbs a:hover { text-decoration: underline; }
 .breadcrumbs .sep { color: #444; opacity: .9; }
 
-/* Logout button in breadcrumbs — match submenu look */
+/* ===========================
+   Global Logout button (breadcrumbs)
+   - Small, elegant, white Playfair text
+   =========================== */
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
-  color: var(--accent-gold);              /* softer gold text */
-  font-family: 'Montserrat', sans-serif;  /* clean sans */
+  color: #fff;                               /* pure white text */
+  font-family: 'Playfair Display', serif;    /* subtle, fancy scroll */
   font-weight: 600;
-  font-size: .85rem;
-  border: none; border-radius: 6px;
-  padding: 4px 12px; cursor: pointer;
+  font-size: .88rem;                         /* small */
+  letter-spacing: .2px;
+  line-height: 1.15;
+  padding: 4px 12px;                         /* compact */
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-.breadcrumbs .logout-btn:hover { background: #154a18; }
+.breadcrumbs .logout-btn:hover,
+.breadcrumbs .logout-btn:focus-visible {
+  background: #154a18;                       /* slightly darker on hover/focus */
+  outline: none;
+}
 
 /* Touch comfort on mobile */
 @media (hover: none) {
@@ -152,7 +165,7 @@ body {
    =========================== */
 .df-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* keep compact width */
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* compact width */
   gap: 10px;
   padding: 14px;
 }
@@ -235,7 +248,7 @@ body.home-page .content h1 {
 .auth-hero { 
   text-align: center;
   padding: 2px 12px 0;
-  transform: translateY(-40px);  /* LIFT hero higher above card */
+  transform: translateY(-40px);  /* lift hero higher above card */
   margin-bottom: -20px;          /* keep card from moving */
 }
 .auth-hero__logo{
