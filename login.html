@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <meta name="format-detection" content="telephone=no" />
   <title>Sign in — Dowson Farms</title>
 
   <!-- Theme + core -->
@@ -17,8 +21,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
 
-  <!-- Elegant heading font -->
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <!-- Elegant heading font (faster with preconnects) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
 </head>
 <body class="auth-page">
 
@@ -37,14 +43,34 @@
       <form id="loginForm" class="auth-form" novalidate>
         <div class="field">
           <label for="username">Username</label>
-          <input id="username" name="username" type="email" inputmode="email" autocomplete="username" placeholder="Email" required />
+          <input
+            id="username"
+            name="username"
+            type="email"
+            inputmode="email"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            placeholder="Email"
+            required
+          />
           <p class="field-hint" id="usernameHint" hidden>Please enter a valid email.</p>
         </div>
 
         <div class="field">
           <label for="password">Password</label>
           <div class="password-wrap">
-            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required minlength="6" />
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="Password"
+              required
+              minlength="6"
+            />
             <button type="button" class="eye" aria-label="Show password" aria-pressed="false" id="togglePw">👁️</button>
           </div>
           <p class="field-hint" id="passwordHint" hidden>Password must be at least 6 characters.</p>
@@ -70,14 +96,14 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Forgot password modal -->
+  <!-- Forgot password modal (overlay) -->
   <div class="auth-modal__backdrop" id="fpModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle">
     <div class="auth-modal">
       <h2 id="fpTitle">Reset your password</h2>
       <p>Enter the email you use for Dowson Farms. If it matches an account, you’ll get a reset link.</p>
       <div class="field">
         <label for="fpEmail">Email</label>
-        <input id="fpEmail" type="email" inputmode="email" placeholder="you@example.com" />
+        <input id="fpEmail" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" />
         <p class="field-hint" id="fpHint" hidden>Please enter a valid email address.</p>
         <p class="field-hint" id="fpError" hidden style="color:#b00020"></p>
         <p class="field-hint" id="fpSuccess" hidden style="color:#0a7a28">If the email exists, a reset link has been sent.</p>
@@ -125,13 +151,15 @@
       const openBtn   = document.getElementById('forgotLink');
       const modal     = document.getElementById('fpModal');
       const cancelBtn = document.getElementById('fpCancel');
-      openBtn?.addEventListener('click', (e)=>{ e.preventDefault(); modal.style.display='flex'; document.getElementById('fpEmail').focus(); });
+      const emailIn   = document.getElementById('fpEmail');
+
+      openBtn?.addEventListener('click', (e)=>{ e.preventDefault(); modal.style.display='flex'; emailIn.focus(); });
       cancelBtn?.addEventListener('click', ()=>{ modal.style.display='none'; });
       modal?.addEventListener('click', (e)=>{ if (e.target === modal) modal.style.display='none'; });
     })();
-
-    // Firebase password reset (swap in your keys when ready)
   </script>
+
+  <!-- Firebase App + Auth (swap config with your real keys) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
   <script>
