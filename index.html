@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
 
-  <!-- Fonts (for elegant headings like “Dowson Farms” / Home) -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet" />
@@ -14,14 +14,14 @@
   <!-- Styles -->
   <link rel="stylesheet" href="theme.css" />
 
-  <!-- App scripts (global behaviors: clock, version, breadcrumbs, logout, eye icon) -->
+  <!-- App scripts -->
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
 
-  <!-- iOS PWA (standalone) -->
+  <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
@@ -36,12 +36,11 @@
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right">
-      <!-- HH:MM clock; content set by core.js -->
       <span id="clock" class="clock">--:--</span>
     </div>
   </header>
 
-  <!-- Breadcrumbs (fixed under header). Logout button is injected by core.js -->
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -53,7 +52,6 @@
   <!-- Main content -->
   <main class="content">
     <h1>Home</h1>
-
     <div class="df-tiles">
       <a href="crop.html" class="df-tile">🌽 <span>Crop Production</span></a>
       <a href="grain.html" class="df-tile">🌾 <span>Grain Tracking</span></a>
@@ -66,7 +64,7 @@
     </div>
   </main>
 
-  <!-- Footer (date + version filled by core.js) -->
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -75,8 +73,32 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker -->
+  <!-- Helpers -->
   <script>
+    // Clock (core.js also updates if included)
+    function updateClock() {
+      const el = document.getElementById("clock");
+      if (!el) return;
+      el.textContent = new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+        timeZone: "America/Chicago"
+      });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Report date (auto-fill with today)
+    const d = new Date();
+    document.getElementById("report-date").textContent = d.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    });
+
+    // Service worker
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
