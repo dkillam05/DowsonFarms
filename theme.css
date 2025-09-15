@@ -332,14 +332,14 @@ body.home-page .content h1 {
   color: var(--brand-green);
 }
 
-//* ===== Auth (refined layout) ===== */
+/* ===== Auth (polished layout) ===== */
 
 .auth-page {
-  /* shorter footer just for auth screens */
+  /* shorter footer only on login */
   --footer-h: 36px;
 
   background: linear-gradient(180deg, #f6f3e4 0%, #efe9cf 100%);
-  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
 }
 
@@ -348,127 +348,143 @@ body.home-page .content h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* center the whole stack */
-  gap: 12px;               /* space between hero and card */
+  justify-content: center;      /* center hero + card stack */
+  gap: 10px;
 }
 
-/* Login hero logo */
-.auth-hero__logo {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 10px;
+/* --- Hero (logo, title, subtitle) --- */
+.auth-hero { 
+  text-align: center;
+  padding: 4px 12px 0;
+}
+.auth-hero__logo{
+  width: 70px; height: 70px;
+  margin: 0 auto 8px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid var(--brand-green);
-  display: grid;
-  place-items: center;
+  display: grid; place-items: center;
   box-shadow: 0 3px 8px rgba(0,0,0,.08);
 }
-.auth-hero__logo img {
-  width: 54px;
-  height: 54px;
-  border-radius: 8px;
-  object-fit: contain;
+.auth-hero__logo img{
+  width: 52px; height: 52px; border-radius: 8px; object-fit: contain;
 }
-
-/* Login title + subtitle */
-.auth-hero { text-align: center; }
-.auth-hero__title {
-  font-family: 'Playfair Display', serif;  /* elegant look */
-  font-size: 1.35rem;                      /* slightly smaller */
+.auth-hero__title{
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;             /* refined size */
   font-weight: 600;
-  letter-spacing: 0.2px;
+  letter-spacing: .2px;
   margin: 2px 0 6px;
   color: var(--brand-green);
 }
-.auth-hero__subtitle {
-  font-size: 0.95rem;      /* softer, smaller */
-  color: #575757;
-  margin-bottom: 12px;
+.auth-hero__subtitle{
+  font-size: .95rem;
+  color: #5b5b5b;
+  margin: 0 0 8px;
 }
 
-/* Login card */
-.auth-card {
-  max-width: 340px;
+/* --- Card --- */
+.auth-card{
+  width: min(360px, 92vw);
   margin: 0 auto;
-  padding: 18px 16px;      /* inner spacing so fields breathe */
+  padding: 16px 14px;           /* clean inner spacing */
   background: #fff;
   border: 2px solid var(--brand-green);
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.10);
 }
 
-/* Input spacing */
+/* Inputs */
+.field label{
+  display: block; font-weight: 700; color: var(--brand-green); margin: 0 0 6px;
+}
 .auth-card input[type="text"],
 .auth-card input[type="email"],
-.auth-card input[type="password"] {
+.auth-card input[type="password"]{
   width: 100%;
   padding: 11px 12px;
-  margin-bottom: 12px;     /* space between fields */
   border: 1px solid var(--brand-green);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 1rem;
   box-sizing: border-box;
+  background: #fff;
 }
-.field input:focus {
+.field input:focus{
   border-color: var(--jd-yellow-dark);
-  box-shadow: 0 0 0 3px rgba(200,168,0,.20);
+  box-shadow: 0 0 0 3px rgba(200,168,0,.18);
 }
-.field-hint { margin: 6px 2px 0; font-size: .9rem; color: #b00020; }
+.field-hint{ margin: 6px 2px 0; font-size: .9rem; color: #b00020; }
 
-.password-wrap { position: relative; }
-.password-wrap .eye {
-  position: absolute;
-  right: 10px; top: 50%;
-  transform: translateY(-50%);
-  border: none; background: transparent;
-  font-size: 1.05rem; cursor: pointer;
-  color: var(--brand-green);
+/* Eye button in password */
+.password-wrap{ position: relative; }
+.password-wrap .eye{
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; font-size: 1.05rem; color: var(--brand-green); cursor: pointer;
 }
 
-.form-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+/* Row with remember + forgot */
+.form-row{
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 2px; margin-bottom: 6px;
 }
-.checkbox { display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
-.checkbox input { width:18px; height:18px; }
-.muted-link { color:#2e2e2e; text-decoration:none; font-weight:700; }
-.muted-link:hover { text-decoration: underline; }
+.checkbox{ display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.checkbox input{ width: 18px; height: 18px; }
+.muted-link{ color:#2e2e2e; text-decoration:none; font-weight:700; font-size: .95rem; }
+.muted-link:hover{ text-decoration: underline; }
 
-/* Primary button – slightly smaller on auth page */
-.auth-page .btn-primary {
+/* Primary button – tuned smaller */
+.auth-page .btn-primary{
   width: 100%;
   padding: 10px 14px;
-  border: none;
-  border-radius: 14px;
-  background: var(--brand-green);
-  color: var(--jd-yellow-dark);
-  font-weight: 800;
-  font-size: 0.95rem;
-  cursor: pointer;
+  border: 0; border-radius: 14px;
+  background: var(--brand-green); color: var(--jd-yellow-dark);
+  font-weight: 800; font-size: .95rem; cursor: pointer;
   box-shadow: 0 6px 18px rgba(0,0,0,.12);
 }
-.auth-page .btn-primary:hover { background: #154a18; }
+.auth-page .btn-primary:hover{ background:#154a18; }
 
-/* Forgot password link a touch smaller too */
-.auth-page .muted-link { font-size: 0.95rem; }
-
-/* Footer on auth: shorter & centered */
-.app-footer--auth {
-  background: transparent;
-  color: #2b2b2b;
+/* Footer – shorter, centered */
+.app-footer--auth{
+  background: transparent; color: #2b2b2b;
   height: var(--footer-h);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  padding: 0 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; padding: 0 10px;
 }
 
-/* Slightly tighter on very small phones */
-@media (max-width: 360px) {
-  .auth-hero__title { font-size: 1.25rem; }
-  .auth-card--compact { width: 92vw; }
+/* --- Reset password modal (true overlay) --- */
+.auth-modal__backdrop{
+  position: fixed; inset: 0;
+  display: none;                        /* toggled by JS */
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,.38);
+  z-index: 2000;
+}
+.auth-modal{
+  width: min(420px, 92vw);
+  background: #fff;
+  border: 2px solid var(--brand-green);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.25);
+  padding: 16px;
+}
+.auth-modal h2{
+  margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green);
+}
+.auth-modal .modal-actions{
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;
+}
+.btn-link{
+  background: transparent; border: none; color: var(--brand-green);
+  font-weight: 700; cursor: pointer; padding: 6px 10px;
+}
+.btn-secondary{
+  background: #e9f2eb; border: 1px solid var(--brand-green);
+  border-radius: 10px; padding: 8px 12px; cursor: pointer; font-weight: 700;
+}
+.btn-secondary:hover{ background:#dcebdc; }
+
+/* Small phones */
+@media (max-width: 360px){
+  .auth-hero__title{ font-size: 1.2rem; }
+  .auth-card{ width: 92vw; }
 }
