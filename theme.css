@@ -214,20 +214,40 @@ body.home-page .content h1 {
   gap: 8px;
 }
 
-/* Hero (logo, title, subtitle) */
-.auth-hero { text-align: center; padding: 2px 12px 0; transform: translateY(-6px); }
-.auth-hero__logo{
-  width: 70px; height: 70px; margin: 0 auto 6px;
-  border-radius: 50%; background: #fff; border: 2px solid var(--brand-green);
-  display: grid; place-items: center; box-shadow: 0 3px 8px rgba(0,0,0,.08);
+/* --- Hero (logo, title, subtitle) --- */
+.auth-hero { 
+  text-align: center;
+  padding: 2px 12px 0;
+  transform: translateY(-40px);  /* LIFT hero higher above card */
+  margin-bottom: -20px;          /* reclaim spacing so card stays put */
 }
-.auth-hero__logo img{ width: 52px; height: 52px; border-radius: 8px; object-fit: contain; }
+.auth-hero__logo{
+  width: 70px; height: 70px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--brand-green);
+  display: grid; place-items: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,.08);
+}
+.auth-hero__logo img{
+  width: 52px; height: 52px;
+  border-radius: 8px;
+  object-fit: contain;
+}
 .auth-hero__title{
   font-family: 'Playfair Display', serif;
-  font-size: 1.28rem; font-weight: 600; letter-spacing: .2px;
-  margin: 0 0 4px; color: var(--brand-green);
+  font-size: 1.28rem;
+  font-weight: 600;
+  letter-spacing: .2px;
+  margin: 0 0 4px;
+  color: var(--brand-green);
 }
-.auth-hero__subtitle{ font-size: .95rem; color: #5b5b5b; margin: 0 0 6px; }
+.auth-hero__subtitle{
+  font-size: .95rem;
+  color: #5b5b5b;
+  margin: 0 0 6px;
+}
 
 /* Card */
 .auth-card{
