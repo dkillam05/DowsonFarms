@@ -74,36 +74,35 @@
   </footer>
 
   <!-- Helpers -->
-  <script>
-    // Clock (core.js also updates if included)
-    function updateClock() {
-      const el = document.getElementById("clock");
-      if (!el) return;
-      el.textContent = new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-        timeZone: "America/Chicago"
-      });
-    }
-    updateClock();
-    setInterval(updateClock, 1000);
-
-    // Report date (auto-fill with today)
-    const d = new Date();
-    document.getElementById("report-date").textContent = d.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric"
+<script>
+  // Clock (HH:MM only, no seconds)
+  function updateClock() {
+    const el = document.getElementById("clock");
+    if (!el) return;
+    el.textContent = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "America/Chicago"
     });
+  }
+  updateClock();
+  setInterval(updateClock, 60000); // update every minute on the minute
 
-    // Service worker
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
-      });
-    }
-  </script>
+  // Report date (auto-fill with today)
+  const d = new Date();
+  document.getElementById("report-date").textContent = d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+
+  // Service worker
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+    });
+  }
+</script>
 </body>
 </html>
