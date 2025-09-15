@@ -265,3 +265,50 @@ body {
   line-height: 1.2;
   word-break: break-word;
 }
+
+/* Breadcrumbs container with space for actions */
+.breadcrumbs {
+  position: fixed;
+  top: var(--header-h);
+  left: 0; right: 0;
+  height: var(--crumb-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;  /* text left, button right */
+  background: var(--jd-yellow-dark);
+  color: var(--ink);
+  padding: 0 var(--pad-x);
+  border-bottom: 1px solid rgba(0,0,0,.25);
+  z-index: var(--z-crumbs);
+  box-shadow: 0 1px 0 rgba(0,0,0,.15);
+}
+
+.breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.breadcrumbs a { color: var(--ink); text-decoration: none; }
+.breadcrumbs a:hover { text-decoration: underline; }
+.breadcrumbs .sep { opacity: .9; color: var(--ink); }
+
+/* Logout button */
+.breadcrumbs .logout-btn {
+  background: var(--brand-green);
+  color: var(--jd-yellow-dark);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.breadcrumbs .logout-btn:hover {
+  background: #154a18; /* darker green */
+}
