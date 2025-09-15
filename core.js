@@ -97,3 +97,14 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     });
   } catch (_) {}
 };
+
+// Simple global logout handler
+window.handleLogout = function handleLogout() {
+  // Clear local/session storage if you’re tracking login
+  localStorage.clear();
+  sessionStorage.clear();
+
+  // Redirect to login page (adjust file name if needed)
+  window.location.href = "index.html?login=1";
+};
+
