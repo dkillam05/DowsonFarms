@@ -312,3 +312,22 @@ body {
 .breadcrumbs .logout-btn:hover {
   background: #154a18; /* darker green */
 }
+
+/* Default h1 styling for all pages */
+.content h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  margin: 0 0 1rem;
+  color: var(--brand-green);
+}
+
+/* Special style for Home page title only */
+body.home-page .content h1 {
+  font-family: 'Playfair Display', serif; /* fancy font */
+  font-size: 1.2rem;                      /* smaller */
+  font-weight: 400;                       /* lighter */
+  letter-spacing: 0.2px;
+  color: var(--brand-green);
+}
