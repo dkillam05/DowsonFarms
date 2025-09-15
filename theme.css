@@ -226,3 +226,42 @@ body {
   align-items: center;
 }
 
+/* --- Uniform square tiles --- */
+.df-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.df-tile {
+  aspect-ratio: 1 / 1;                 /* force perfect square */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;              /* emoji on top, text below */
+  background: white;
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--brand-green);
+  font-weight: 600;
+  text-align: center;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow: hidden;                     /* prevent text spillover */
+}
+
+.df-tile:hover {
+  background: var(--brand-gold);
+  color: black;
+}
+
+/* Label text handling */
+.df-tile span {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
