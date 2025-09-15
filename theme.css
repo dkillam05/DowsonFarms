@@ -6,11 +6,17 @@
   /* Brand palette */
   --brand-green: #1B5E20;
   --brand-gold:  #f1d565;
-  --brand-gold-dark: #B8860B;     /* DarkGoldenRod */
+  --brand-gold-dark: #B8860B;     /* legacy (not used much now) */
   --paper: #f6f3e4;
   --ink:   #222;
-  --gold-text: #1b1b1b;           /* high-contrast text on yellow */
-  --jd-yellow-dark: #C8A800;      /* rich darker John Deere yellow */
+  --gold-text: #1b1b1b;           /* high-contrast on yellow */
+  --jd-yellow-dark: #C8A800;      /* John Deere darker yellow (legacy) */
+
+  /* New, softer gold used for button/footers text “across the board” */
+  --accent-gold: #E7CA4A;
+
+  /* Auth overscroll edge color (match the darker band you like) */
+  --auth-edge-bg: #E6DCB8;
 
   /* Layout sizing */
   --header-h: 64px;
@@ -28,7 +34,6 @@
    Base
    =========================== */
 html, body { height: 100%; }
-
 body {
   margin: 0;
   font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -93,7 +98,7 @@ body {
 /* Logout button in breadcrumbs */
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
-  color: var(--jd-yellow-dark);
+  color: var(--accent-gold);
   border: none; border-radius: 6px;
   font-size: .85rem; font-weight: 600;
   padding: 4px 12px; cursor: pointer;
@@ -119,14 +124,14 @@ body {
 .app-footer {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
-  background: var(--brand-green);  /* green footer */
-  color: var(--jd-yellow-dark);    /* breadcrumb yellow text */
+  background: var(--brand-green);
+  color: var(--accent-gold);           /* softer gold text */
   display: flex; align-items: center; justify-content: center;
   gap: 8px; padding: 0 var(--pad-x);
   font-weight: 600; font-size: .85rem;
   z-index: var(--z-footer);
 }
-.app-footer .dot { opacity: .7; color: var(--jd-yellow-dark); }
+.app-footer .dot { opacity: .7; color: var(--accent-gold); }
 
 /* ===========================
    Tiles (Home) — uniform rectangles (not squares)
@@ -178,20 +183,28 @@ body.home-page .content h1 {
 /* shorter footer only on login */
 .auth-page { --footer-h: 36px; }
 
-/* Keep appearance consistent during rubber-band scroll on iOS */
+/* Consistent look during rubber-band scroll on iOS */
 .auth-page{
   background: linear-gradient(180deg, #f6f3e4 0%, #efe9cf 100%);
-  background-color: #efe9cf;     /* solid fallback for overscroll */
-  background-attachment: fixed;  /* pins gradient for Safari */
+  background-color: #efe9cf;      /* solid fallback */
+  background-attachment: fixed;   /* pins gradient for Safari */
   padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
 }
-/* Fill the notch/pull-down zone with gradient top color */
+/* Fill the notch/pull-down zone with a darker, matching band */
 .auth-page::before{
   content:"";
   position: fixed; top: 0; left: 0; right: 0;
   height: env(safe-area-inset-top, 0px);
-  background: #f6f3e4;
+  background: var(--auth-edge-bg);
+  pointer-events: none; z-index: 0;
+}
+/* Fill the bottom safe area to match footer color as well */
+.auth-page::after{
+  content:"";
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: var(--auth-edge-bg);
   pointer-events: none; z-index: 0;
 }
 
@@ -251,32 +264,37 @@ body.home-page .content h1 {
 .form-row{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 6px; }
 .checkbox{ display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .checkbox input{ width: 18px; height: 18px; }
-.muted-link{ color:#2e2e2e; text-decoration:none; font-weight:700; font-size: .95rem; }
+
+/* Less prominent Forgot link */
+.muted-link{
+  color:#3a3a3a; text-decoration:none; font-weight:600; font-size: .88rem;
+}
 .muted-link:hover{ text-decoration: underline; }
 
-/* Primary button — smaller as requested */
+/* Primary button — smaller + softer gold text */
 .auth-page .btn-primary{
   width: 100%;
-  padding: 8px 12px;             /* was 10px 14px */
-  border: 0; border-radius: 12px;/* was 14px */
-  background: var(--brand-green); color: var(--jd-yellow-dark);
-  font-weight: 800; font-size: .9rem; /* was .95rem */
+  padding: 7px 12px;              /* smaller */
+  border: 0; border-radius: 10px;
+  background: var(--brand-green);
+  color: var(--accent-gold);      /* softer gold */
+  font-weight: 800; font-size: .88rem;
   cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.12);
 }
 .auth-page .btn-primary:hover{ background:#154a18; }
 
-/* Auth footer — fixed & solid to avoid white flashes */
+/* Auth footer — matches darker top edge color */
 .app-footer--auth{
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
-  background: #efe9cf; color: #2b2b2b;
+  background: var(--auth-edge-bg); color: #2b2b2b;
   display: flex; align-items: center; justify-content: center;
   font-size: .85rem; padding: 0 10px;
   border-top: 1px solid rgba(0,0,0,.06);
   z-index: 1000;
 }
 
-/* Forgot-password modal (true overlay) */
+/* Forgot-password modal (overlay) */
 .auth-modal__backdrop{
   position: fixed; inset: 0; display: none; /* toggled by JS */
   align-items: center; justify-content: center;
