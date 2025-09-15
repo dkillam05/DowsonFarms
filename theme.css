@@ -332,9 +332,12 @@ body.home-page .content h1 {
   color: var(--brand-green);
 }
 
-/* ===== Auth (refined layout) ===== */
+//* ===== Auth (refined layout) ===== */
 
 .auth-page {
+  /* shorter footer just for auth screens */
+  --footer-h: 36px;
+
   background: linear-gradient(180deg, #f6f3e4 0%, #efe9cf 100%);
   padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
@@ -348,9 +351,10 @@ body.home-page .content h1 {
   justify-content: center; /* center the whole stack */
   gap: 12px;               /* space between hero and card */
 }
+
 /* Login hero logo */
 .auth-hero__logo {
-  width: 72px; 
+  width: 72px;
   height: 72px;
   margin: 0 auto 10px;
   border-radius: 50%;
@@ -360,7 +364,6 @@ body.home-page .content h1 {
   place-items: center;
   box-shadow: 0 3px 8px rgba(0,0,0,.08);
 }
-
 .auth-hero__logo img {
   width: 54px;
   height: 54px;
@@ -369,23 +372,26 @@ body.home-page .content h1 {
 }
 
 /* Login title + subtitle */
+.auth-hero { text-align: center; }
 .auth-hero__title {
-  font-size: 1.4rem;       /* smaller than before */
-  font-weight: 700;
-  margin-bottom: 4px;
+  font-family: 'Playfair Display', serif;  /* elegant look */
+  font-size: 1.35rem;                      /* slightly smaller */
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  margin: 2px 0 6px;
+  color: var(--brand-green);
 }
-
 .auth-hero__subtitle {
   font-size: 0.95rem;      /* softer, smaller */
-  color: #555;
-  margin-bottom: 14px;
+  color: #575757;
+  margin-bottom: 12px;
 }
 
 /* Login card */
 .auth-card {
   max-width: 340px;
   margin: 0 auto;
-  padding: 20px 18px;      /* add spacing inside */
+  padding: 18px 16px;      /* inner spacing so fields breathe */
   background: #fff;
   border: 2px solid var(--brand-green);
   border-radius: 12px;
@@ -397,8 +403,8 @@ body.home-page .content h1 {
 .auth-card input[type="email"],
 .auth-card input[type="password"] {
   width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 14px;    /* margin between fields */
+  padding: 11px 12px;
+  margin-bottom: 12px;     /* space between fields */
   border: 1px solid var(--brand-green);
   border-radius: 6px;
   font-size: 1rem;
@@ -420,32 +426,49 @@ body.home-page .content h1 {
   color: var(--brand-green);
 }
 
-.form-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
 .checkbox { display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
 .checkbox input { width:18px; height:18px; }
 .muted-link { color:#2e2e2e; text-decoration:none; font-weight:700; }
 .muted-link:hover { text-decoration: underline; }
 
-/* Primary button */
-.btn-primary {
+/* Primary button – slightly smaller on auth page */
+.auth-page .btn-primary {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: none;
   border-radius: 14px;
   background: var(--brand-green);
   color: var(--jd-yellow-dark);
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(0,0,0,.12);
 }
-.btn-primary:hover { background: #154a18; }
+.auth-page .btn-primary:hover { background: #154a18; }
 
-/* Footer on auth blends with bg */
-.app-footer--auth { background: transparent; color: #2b2b2b; font-size: 0.9rem; }
+/* Forgot password link a touch smaller too */
+.auth-page .muted-link { font-size: 0.95rem; }
+
+/* Footer on auth: shorter & centered */
+.app-footer--auth {
+  background: transparent;
+  color: #2b2b2b;
+  height: var(--footer-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  padding: 0 10px;
+}
 
 /* Slightly tighter on very small phones */
 @media (max-width: 360px) {
-  .auth-hero__title { font-size: 1.5rem; }
+  .auth-hero__title { font-size: 1.25rem; }
   .auth-card--compact { width: 92vw; }
 }
