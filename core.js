@@ -126,13 +126,11 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
   } catch (_) {}
 };
 
-// ---- Inject Logout button into breadcrumb bar (skip login + home) ----
+// ---- Inject Logout button into breadcrumb bar (skip ONLY login/auth) ----
 (function addLogoutToBreadcrumbs() {
   document.addEventListener("DOMContentLoaded", () => {
-    const body = document.body;
-
-    // Skip on auth/login and on the main homepage
-    if (body.classList.contains("auth-page") || body.classList.contains("home-page")) return;
+    // Show logout on ALL pages except auth/login
+    if (document.body.classList.contains("auth-page")) return;
 
     const nav = document.querySelector(".breadcrumbs");
     if (!nav) return;
@@ -236,7 +234,8 @@ window.handleLogout = async function handleLogout() {
     if (b.classList.contains("home-page")) return false; // not on main home
     if (b.classList.contains("form-page")) return true;  // explicit opt-in
     // auto-detect: big forms or a marker element
-    const bigForm = document.querySelector("form") && document.querySelector("form").offsetHeight > 200;
+    const firstForm = document.querySelector("form");
+    const bigForm = firstForm && firstForm.offsetHeight > 200;
     const marker  = document.querySelector("[data-has-form]");
     return !!(bigForm || marker);
   }
