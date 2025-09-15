@@ -5,6 +5,7 @@
    - Breadcrumbs helper
    - Logout button injection + handler
    - Password visibility toggle (SVG eye)
+   - Back button for form pages
    =========================== */
 
 "use strict";
@@ -125,11 +126,13 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
   } catch (_) {}
 };
 
-// ---- Inject Logout button into breadcrumb bar globally ----
+// ---- Inject Logout button into breadcrumb bar (skip login + home) ----
 (function addLogoutToBreadcrumbs() {
   document.addEventListener("DOMContentLoaded", () => {
-    // Skip on auth/login page
-    if (document.body.classList.contains("auth-page")) return;
+    const body = document.body;
+
+    // Skip on auth/login and on the main homepage
+    if (body.classList.contains("auth-page") || body.classList.contains("home-page")) return;
 
     const nav = document.querySelector(".breadcrumbs");
     if (!nav) return;
@@ -222,4 +225,43 @@ window.handleLogout = async function handleLogout() {
     }
   });
   mo.observe(document.documentElement, { childList: true, subtree: true });
+})();
+
+// ---- Back button (bottom-left) for form pages ----
+// Shows when <body> has .form-page OR when we detect a major <form>
+(function addFormBackButton() {
+  function needsBack() {
+    const b = document.body;
+    if (b.classList.contains("auth-page")) return false; // never on login
+    if (b.classList.contains("home-page")) return false; // not on main home
+    if (b.classList.contains("form-page")) return true;  // explicit opt-in
+    // auto-detect: big forms or a marker element
+    const bigForm = document.querySelector("form") && document.querySelector("form").offsetHeight > 200;
+    const marker  = document.querySelector("[data-has-form]");
+    return !!(bigForm || marker);
+  }
+
+  function ensureBackBtn() {
+    if (!needsBack()) return;
+    if (document.querySelector(".back-fab")) return;
+
+    const btn = document.createElement("button");
+    btn.className = "back-fab";
+    btn.type = "button";
+    btn.setAttribute("aria-label", "Go back");
+    btn.innerHTML = '<span class="chev" aria-hidden="true">‹</span><span>Back</span>';
+
+    btn.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else window.location.href = "index.html";
+    });
+
+    document.body.appendChild(btn);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", ensureBackBtn);
+  } else {
+    ensureBackBtn();
+  }
 })();
