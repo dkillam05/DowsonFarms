@@ -332,14 +332,14 @@ body.home-page .content h1 {
   color: var(--brand-green);
 }
 
-/* ===== Auth (polished layout) ===== */
+/* ===== Auth (polished layout) — REPLACE YOUR LOGIN BLOCK WITH THIS ===== */
 
 .auth-page {
   /* shorter footer only on login */
   --footer-h: 36px;
 
   background: linear-gradient(180deg, #f6f3e4 0%, #efe9cf 100%);
-  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 6px);  /* scoot hero up */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
 }
 
@@ -349,17 +349,18 @@ body.home-page .content h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;      /* center hero + card stack */
-  gap: 10px;
+  gap: 8px;                     /* a touch tighter */
 }
 
 /* --- Hero (logo, title, subtitle) --- */
 .auth-hero { 
   text-align: center;
-  padding: 4px 12px 0;
+  padding: 2px 12px 0;
+  transform: translateY(-6px);  /* lift hero a bit higher above card */
 }
 .auth-hero__logo{
   width: 70px; height: 70px;
-  margin: 0 auto 8px;
+  margin: 0 auto 6px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid var(--brand-green);
@@ -371,23 +372,23 @@ body.home-page .content h1 {
 }
 .auth-hero__title{
   font-family: 'Playfair Display', serif;
-  font-size: 1.3rem;             /* refined size */
+  font-size: 1.28rem;            /* refined size */
   font-weight: 600;
   letter-spacing: .2px;
-  margin: 2px 0 6px;
+  margin: 0 0 4px;
   color: var(--brand-green);
 }
 .auth-hero__subtitle{
   font-size: .95rem;
   color: #5b5b5b;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 /* --- Card --- */
 .auth-card{
-  width: min(360px, 92vw);
+  width: min(330px, 88vw);       /* narrower so phone has side padding */
   margin: 0 auto;
-  padding: 16px 14px;           /* clean inner spacing */
+  padding: 16px 14px;            /* clean inner spacing */
   background: #fff;
   border: 2px solid var(--brand-green);
   border-radius: 14px;
@@ -415,12 +416,16 @@ body.home-page .content h1 {
 }
 .field-hint{ margin: 6px 2px 0; font-size: .9rem; color: #b00020; }
 
-/* Eye button in password */
+/* Password eye: use SVG icon (no emoji), sized and centered */
 .password-wrap{ position: relative; }
 .password-wrap .eye{
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  border: 0; background: transparent; font-size: 1.05rem; color: var(--brand-green); cursor: pointer;
+  display: inline-grid; place-items: center;
+  width: 28px; height: 28px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--brand-green);
 }
+.password-wrap .eye svg{ width: 20px; height: 20px; display: block; }
 
 /* Row with remember + forgot */
 .form-row{
@@ -443,12 +448,16 @@ body.home-page .content h1 {
 }
 .auth-page .btn-primary:hover{ background:#154a18; }
 
-/* Footer – shorter, centered */
+/* Footer – FIXED + solid color so no white shows when scrolling */
 .app-footer--auth{
-  background: transparent; color: #2b2b2b;
+  position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
+  background: #efe9cf;            /* match gradient end color */
+  color: #2b2b2b;
   display: flex; align-items: center; justify-content: center;
   font-size: .85rem; padding: 0 10px;
+  border-top: 1px solid rgba(0,0,0,.06);
+  z-index: 1000;
 }
 
 /* --- Reset password modal (true overlay) --- */
@@ -486,5 +495,5 @@ body.home-page .content h1 {
 /* Small phones */
 @media (max-width: 360px){
   .auth-hero__title{ font-size: 1.2rem; }
-  .auth-card{ width: 92vw; }
+  .auth-card{ width: 90vw; }   /* ensure side padding on tiny screens */
 }
