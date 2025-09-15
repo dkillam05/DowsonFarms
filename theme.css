@@ -211,3 +211,18 @@ body {
   opacity: .7;
   color: var(--jd-yellow-dark);       /* ensure separators match text color */
 }
+
+/* Adjust header spacing so logo/title/clock sit lower */
+.app-header {
+  padding-top: env(safe-area-inset-top, 8px); /* accounts for iPhone notch */
+  padding-bottom: 6px; /* adds breathing room */
+  box-sizing: border-box;
+}
+
+/* Ensure logo and clock are vertically centered */
+.app-header__left,
+.app-header__right {
+  display: flex;
+  align-items: center;
+}
+
