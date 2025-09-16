@@ -91,7 +91,7 @@ body {
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
   height: var(--crumb-h);
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; /* no space-between */
   background: var(--auth-edge-bg);
   color: var(--crumb-fg);
   padding: 0 var(--pad-x);
@@ -111,13 +111,20 @@ body {
   font-size: .85rem;
   font-weight: 500;
 
-  flex: 1 1 auto;      /* let it shrink beside the Logout button */
-  min-width: 0;        /* allow ellipsis to actually apply */
+  flex: 1 1 auto;      /* take remaining space next to Logout */
+  min-width: 0;        /* allow shrinking */
   white-space: nowrap; /* prevent wrapping */
-  overflow: hidden;    /* hide overflow */
-  text-overflow: ellipsis;
+  overflow: hidden;    /* clip overflow */
 }
-.breadcrumbs ol li { white-space: nowrap; }
+
+/* Ellipsis only for middle crumbs; first & last stay readable */
+.breadcrumbs ol li:not(:first-child):not(:last-child) a,
+.breadcrumbs ol li:not(:first-child):not(:last-child) span {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .breadcrumbs a {
   color: var(--crumb-fg);
@@ -144,7 +151,8 @@ body {
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
-  flex-shrink: 0; /* never let this squish */
+  flex: 0 0 auto;     /* never shrink */
+  margin-left: 8px;   /* small gap from crumbs */
 }
 .breadcrumbs .logout-btn:hover,
 .breadcrumbs .logout-btn:focus-visible {
@@ -279,7 +287,7 @@ body.home-page .content h1 {
 
 /* Keep fields in a row sharing space evenly, and allow shrink on small screens */
 .row { display:flex; gap:12px; flex-wrap:wrap; }
-.row > .field { flex: 1 1 0; min-width: 0; }  /* << allow true 50/50 and no overflow */
+.row > .field { flex: 1 1 0; min-width: 0; }  /* true 50/50 and no overflow */
 
 /* ===== Single asterisk policy =====
    We removed the old CSS-based asterisk to avoid duplicates.
