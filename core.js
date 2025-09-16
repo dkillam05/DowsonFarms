@@ -124,6 +124,9 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     const norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
 
     norm.forEach((p, i) => {
+      // On home-page, skip "Dashboard" so only "Home" shows
+      if (document.body.classList.contains("home-page") && p.label === "Dashboard") return;
+
       const li = document.createElement("li");
       const isLast = i === norm.length - 1;
 
