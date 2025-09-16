@@ -569,3 +569,97 @@ window.handleLogout = async function handleLogout() {
   });
   mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+
+/* ---------- Breadcrumbs: auto-shrink middle items (static or scripted) ---------- */
+(function () {
+  function widthOf(el){ return el ? el.getBoundingClientRect().width : 0; }
+
+  function shrinkBreadcrumbs() {
+    var nav = document.querySelector('.breadcrumbs');
+    if (!nav) return;
+
+    var ol = nav.querySelector('ol');
+    if (!ol) return;
+
+    // Collect crumb <li> items, excluding separators (li.sep)
+    var allLis = Array.prototype.slice.call(ol.querySelectorAll('li'));
+    var crumbLis = allLis.filter(function(li){ return !li.classList.contains('sep'); });
+
+    if (crumbLis.length < 3) {
+      // Nothing to shrink (0, 1 or 2 crumbs)
+      return;
+    }
+
+    // Reset any previous styles on the middle crumbs
+    var middleLis = crumbLis.slice(1, crumbLis.length - 1);
+    middleLis.forEach(function(li){
+      var a = li.querySelector('a, span');
+      if (!a) return;
+      a.style.maxWidth = '';
+      a.style.overflow = '';
+      a.style.textOverflow = '';
+      a.style.whiteSpace = '';
+    });
+
+    // Available width = nav width - logout button - horizontal padding
+    var navW = nav.clientWidth;
+    var logoutBtn = nav.querySelector('.logout-btn');
+    var logoutW = logoutBtn ? (logoutBtn.offsetWidth + 12) : 0;
+
+    // Your global pad-x is 16px each side; keep a little extra breathing room.
+    var horizontalPad = 32 + 8;
+
+    // Width used by first + last + all separators
+    var firstW = widthOf(crumbLis[0]);
+    var lastW  = widthOf(crumbLis[crumbLis.length - 1]);
+
+    var sepW = 0;
+    ol.querySelectorAll('.sep').forEach(function(sep){ sepW += widthOf(sep); });
+
+    // Room left for the middle crumbs
+    var middleRoom = navW - logoutW - horizontalPad - firstW - lastW - sepW;
+
+    if (middleRoom <= 0) {
+      // No room: hard-cap each middle to a minimum (still readable)
+      middleLis.forEach(function(li){
+        var a = li.querySelector('a, span'); if (!a) return;
+        a.style.maxWidth = '60px';
+        a.style.overflow = 'hidden';
+        a.style.textOverflow = 'ellipsis';
+        a.style.whiteSpace = 'nowrap';
+        a.title = a.textContent;
+      });
+      return;
+    }
+
+    // Distribute remaining room across the middle crumbs, but cap each at 120px
+    var per = Math.min(120, Math.floor(middleRoom / middleLis.length));
+    middleLis.forEach(function(li){
+      var a = li.querySelector('a, span'); if (!a) return;
+      a.style.maxWidth = per + 'px';
+      a.style.overflow = 'hidden';
+      a.style.textOverflow = 'ellipsis';
+      a.style.whiteSpace = 'nowrap';
+      a.title = a.textContent; // tooltip shows full text
+    });
+  }
+
+  function init() {
+    shrinkBreadcrumbs();
+    window.addEventListener('resize', shrinkBreadcrumbs);
+
+    // Re-run after core.js injects the Logout button
+    var nav = document.querySelector('.breadcrumbs');
+    if (nav) {
+      var mo = new MutationObserver(function(){ shrinkBreadcrumbs(); });
+      mo.observe(nav, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
