@@ -217,7 +217,7 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
   try {
     const nav = document.querySelector(".breadcrumbs");
     const ol  = nav?.querySelector("ol");
-    if (!ol || !Array.isArray(parts)) return;
+    if (!nav || !ol || !Array.isArray(parts)) return;
 
     // Normalize input
     let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
@@ -236,19 +236,19 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       el.textContent = obj.label;
       if (!isLast) el.href = obj.href || "#";
 
-      // Truncate middle crumbs only (keep first & last full)
-      const isMiddle = index !== 0 && index !== count - 1;
-      if (isMiddle) {
-        el.style.maxWidth = "120px";
-        el.style.overflow = "hidden";
-        el.style.textOverflow = "ellipsis";
-        el.style.whiteSpace = "nowrap";
-        el.title = obj.label; // tooltip with full text
-      }
+      // Title tooltip always shows full text
+      el.title = obj.label;
+
+      // We clamp widths later based on available space; let natural first
+      el.style.maxWidth = "none";
+      el.style.overflow = "visible";
+      el.style.textOverflow = "clip";
+      el.style.whiteSpace = "nowrap";
+
       return el;
     }
 
-    // Render
+    // Render fresh
     ol.innerHTML = "";
     norm.forEach((p, i) => {
       const li = document.createElement("li");
@@ -264,13 +264,97 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       }
     });
 
-    // Defensive: ensure crumbs never wrap beneath Logout
-    // (let the list take remaining space and clip from the middle crumbs)
-    nav.style.display = "flex";
-    nav.style.alignItems = "center";
+    // Ensure the layout can shrink without wrapping under the Logout button
     ol.style.flex = "1 1 auto";
-    ol.style.overflow = "hidden";
+    ol.style.minWidth = "0";       // critical for shrinking flex items
     ol.style.whiteSpace = "nowrap";
+    ol.style.overflow = "hidden";
+
+    // Smart clamp: ellipsize only middle crumbs; keep first & last readable.
+    function clampBreadcrumbs() {
+      try {
+        const logoutBtn = nav.querySelector(".logout-btn");
+        const logoutSpace = logoutBtn ? (logoutBtn.offsetWidth + 12) : 0;
+
+        // Available width for the <ol>
+        const style = getComputedStyle(nav);
+        const padLeft  = parseFloat(style.paddingLeft) || 0;
+        const padRight = parseFloat(style.paddingRight) || 0;
+        const available = nav.clientWidth - padLeft - padRight - logoutSpace;
+
+        if (available <= 0) return; // nothing to show, bail
+
+        // Reset all crumb widths to natural, then progressively clamp middle ones
+        const items = Array.from(ol.querySelectorAll("li"));
+        const crumbEls = items
+          .map(li => li.firstElementChild)
+          .filter(Boolean);
+
+        // Identify first & last crumb elements (skip separators)
+        const crumbOnly = crumbEls.filter(el => el.tagName === "A" || el.tagName === "SPAN");
+        const firstCrumb = crumbOnly[0];
+        const lastCrumb  = crumbOnly[crumbOnly.length - 1];
+
+        // Reset widths
+        crumbOnly.forEach(el => {
+          el.style.maxWidth = "none";
+          el.style.overflow = "visible";
+          el.style.textOverflow = "clip";
+        });
+
+        // If it already fits, done.
+        if (ol.scrollWidth <= available) return;
+
+        // Candidate middle crumbs to clamp (exclude first & last)
+        const middle = crumbOnly.filter(el => el !== firstCrumb && el !== lastCrumb);
+
+        // Step down middle widths until we fit: 14ch → 12ch → 10ch → 8ch → 6ch
+        const steps = ["14ch", "12ch", "10ch", "8ch", "6ch"];
+        for (const w of steps) {
+          middle.forEach(el => {
+            el.style.maxWidth = w;
+            el.style.overflow = "hidden";
+            el.style.textOverflow = "ellipsis";
+            el.style.whiteSpace = "nowrap";
+          });
+          if (ol.scrollWidth <= available) return;
+        }
+
+        // If still overflowing, also clamp the FIRST and LAST a bit (least preferred).
+        const edgeSteps = ["20ch", "16ch", "12ch"];
+        for (const w of edgeSteps) {
+          if (firstCrumb) {
+            firstCrumb.style.maxWidth = w;
+            firstCrumb.style.overflow = "hidden";
+            firstCrumb.style.textOverflow = "ellipsis";
+          }
+          if (lastCrumb) {
+            lastCrumb.style.maxWidth = w;
+            lastCrumb.style.overflow = "hidden";
+            lastCrumb.style.textOverflow = "ellipsis";
+          }
+          if (ol.scrollWidth <= available) return;
+        }
+      } catch(_) {}
+    }
+
+    // Clamp on next frame (after layout), and whenever size/theme/logout changes
+    const rafClamp = () => requestAnimationFrame(clampBreadcrumbs);
+    rafClamp();
+
+    // ResizeObserver on the bar
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => rafClamp());
+      ro.observe(nav);
+      ro.observe(ol);
+    } else {
+      window.addEventListener("resize", rafClamp);
+    }
+
+    // Re-clamp when Logout button is injected later
+    const mo = new MutationObserver(() => rafClamp());
+    mo.observe(nav, { childList: true, subtree: true });
+
   } catch (_) {}
 };
 
@@ -288,6 +372,7 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       const a = document.createElement("a");
       a.href = "index.html";
       a.textContent = "Home";
+      a.title = "Home";
       li.appendChild(a);
       ol.appendChild(li);
     }
