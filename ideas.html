@@ -22,29 +22,34 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Give a bit more room so fixed back button never overlaps */
+    /* Keep extra room so actions never collide with Back button */
     .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Rows: make two equal columns that line up perfectly */
+    /* Two equal columns, even on phones (only collapse on super-narrow screens) */
     .row {
       display: grid;
-      grid-template-columns: 1fr 1fr;  /* equal widths */
-      gap: 10px 12px;                  /* tighter vertical (10px) & horizontal (12px) */
+      grid-template-columns: 1fr 1fr;  /* Submitted by | Date  — same width */
+      gap: 10px 12px;                  /* tight vertical spacing */
       align-items: start;
     }
-    @media (max-width: 720px){
-      .row { grid-template-columns: 1fr; }
+    @media (max-width: 420px){
+      .row { grid-template-columns: 1fr; } /* only stack on very small screens */
     }
 
     /* Fields */
-    .field { margin: 8px 0; } /* tightened from 10px */
+    .field { margin: 8px 0; }
     .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
 
     /* Controls */
     select, input[type="text"], input[type="date"], textarea{
-      width:100%; padding:10px; border:1px solid var(--tile-border);
-      border-radius:8px; background: var(--tile-bg); color: var(--ink);
-      font-size:16px; box-sizing:border-box;
+      width:100%;
+      padding:10px;
+      border:1px solid var(--tile-border);
+      border-radius:8px;
+      background: var(--tile-bg);
+      color: var(--ink);
+      font-size:16px;
+      box-sizing:border-box;
     }
     textarea{ min-height:110px; }
 
@@ -54,10 +59,8 @@
 
     .muted { color:#666; font-size:.9rem; }
 
-    /* “+ Add” mini buttons beside selects without breaking alignment */
-    .inline-select {
-      display:flex; align-items:center; gap:8px;
-    }
+    /* “+ Add” mini buttons beside selects, without affecting column widths */
+    .inline-select { display:flex; align-items:center; gap:8px; }
     .inline-select select{ flex:1 1 auto; min-width:0; }
     .mini-add button{
       background:#fff; color: var(--brand-green);
@@ -69,18 +72,18 @@
     :root[data-theme="auto"] .mini-add button{ background: var(--tile-bg); color: var(--ink); border-color: var(--tile-border); }
     .mini-add button:hover{ background:#fefefe; }
 
-    /* Submit centered, Clear on right */
+    /* Actions row: center Submit, right side has Clear + Quick View */
     .form-actions{
-      margin-top: 12px;                 /* tightened */
+      margin-top: 12px;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
       gap: 8px;
     }
     .form-actions .center { justify-self: center; }
-    .form-actions .right  { justify-self: end; }
+    .form-actions .right  { justify-self: end; display:flex; gap:8px; }
 
-    /* Buttons */
+    /* Buttons (reuse global look) */
     .btn-solid{
       background: var(--brand-green); color:#fff; border:0; border-radius:12px;
       padding:9px 14px; cursor:pointer; font: 600 .95rem 'Playfair Display', serif;
@@ -96,28 +99,8 @@
     :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
     .btn-outline:hover{ background:#fefefe; }
 
-    /* Quick View button (same look as Back FAB) */
-    .quick-fab{
-      position: fixed; right: 10px;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 10px; background: var(--tile-bg);
-      color: var(--brand-green); border: 2px solid var(--brand-green);
-      border-radius: 12px; font: 600 .9rem 'Playfair Display', serif;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12); cursor: pointer;
-      z-index: calc(var(--z-footer) + 10);
-    }
-    :root[data-theme="dark"] .quick-fab,
-    :root[data-theme="auto"] .quick-fab{ color: var(--ink); border-color: var(--tile-border); }
-    .quick-fab:hover, .quick-fab:focus-visible { background:#fefefe; outline: none; }
-
-    /* Quick View modal */
-    .qv-backdrop{ position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.38); z-index: 2000; }
-    .qv-modal{ width: min(560px, 92vw); background: var(--tile-bg); border: 2px solid var(--tile-border, var(--brand-green)); border-radius: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.25); padding: 14px; }
-    .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
-    .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
-    .qv-item{ border: 1px solid var(--tile-border, var(--brand-green)); border-radius: 10px; padding: 8px 10px; margin: 8px 0; background: var(--tile-bg); color: var(--ink); }
-    .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+    /* Quick View styles now just button-look; NOT fixed to viewport */
+    .quick-btn { /* share the outline style, but keep a hook if we need it later */ }
   </style>
 
   <!-- Apply saved theme ASAP before paint -->
@@ -192,7 +175,7 @@
         <textarea id="message" required placeholder="Describe your idea…"></textarea>
       </div>
 
-      <!-- Centered Submit, Clear on right -->
+      <!-- Actions -->
       <div class="form-actions">
         <div></div>
         <div class="center">
@@ -200,6 +183,7 @@
         </div>
         <div class="right">
           <button class="btn-outline" type="reset">Clear</button>
+          <button type="button" class="btn-outline quick-btn" id="quickViewBtn">Quick View</button>
         </div>
       </div>
     </form>
@@ -214,11 +198,8 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View button -->
-  <button type="button" class="quick-fab" id="quickViewBtn">Quick View</button>
-
   <!-- Quick View modal -->
-  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="qv-modal">
       <h2 id="qvTitle">Open Ideas</h2>
       <ul class="qv-list" id="qvList"></ul>
@@ -232,6 +213,7 @@
     (function IdeasPage(){
       const getCurrentUser = (window.getCurrentUser) ? window.getCurrentUser : () => localStorage.getItem('df_current_user') || '';
 
+      // Seed people if missing
       const EMPLOYEES = JSON.parse(localStorage.getItem('df_people') || '[]');
       if (!EMPLOYEES.length) {
         localStorage.setItem('df_people', JSON.stringify([
