@@ -24,14 +24,14 @@
   <style>
     .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Two equal columns, tighter spacing */
+    /* Two equal columns, even on phones; stack only on very narrow screens */
     .row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px 12px;
       align-items: start;
     }
-    @media (max-width: 720px){
+    @media (max-width: 420px){
       .row { grid-template-columns: 1fr; }
     }
 
@@ -51,7 +51,7 @@
 
     .muted { color:#666; font-size:.9rem; }
 
-    /* Form actions */
+    /* Actions row */
     .form-actions{
       margin-top: 12px;
       display: grid;
@@ -60,7 +60,7 @@
       gap: 8px;
     }
     .form-actions .center { justify-self: center; }
-    .form-actions .right  { justify-self: end; }
+    .form-actions .right  { justify-self: end; display:flex; gap:8px; }
 
     .btn-solid{
       background: var(--brand-green); color:#fff; border:0; border-radius:12px;
@@ -77,28 +77,8 @@
     :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
     .btn-outline:hover{ background:#fefefe; }
 
-    /* Quick View button */
-    .quick-fab{
-      position: fixed; right: 10px;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 10px; background: var(--tile-bg);
-      color: var(--brand-green); border: 2px solid var(--brand-green);
-      border-radius: 12px; font: 600 .9rem 'Playfair Display', serif;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12); cursor: pointer;
-      z-index: calc(var(--z-footer) + 10);
-    }
-    :root[data-theme="dark"] .quick-fab,
-    :root[data-theme="auto"] .quick-fab{ color: var(--ink); border-color: var(--tile-border); }
-    .quick-fab:hover, .quick-fab:focus-visible { background:#fefefe; outline: none; }
-
-    /* Quick View modal */
-    .qv-backdrop{ position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.38); z-index: 2000; }
-    .qv-modal{ width: min(560px, 92vw); background: var(--tile-bg); border: 2px solid var(--tile-border, var(--brand-green)); border-radius: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.25); padding: 14px; }
-    .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
-    .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
-    .qv-item{ border: 1px solid var(--tile-border, var(--brand-green)); border-radius: 10px; padding: 8px 10px; margin: 8px 0; background: var(--tile-bg); color: var(--ink); }
-    .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+    /* Quick View now just a normal button that scrolls with the form */
+    .quick-btn { }
   </style>
 
   <!-- Apply saved theme ASAP before paint -->
@@ -174,6 +154,7 @@
         </div>
         <div class="right">
           <button class="btn-outline" type="reset">Clear</button>
+          <button type="button" class="btn-outline quick-btn" id="quickViewBtn">Quick View</button>
         </div>
       </div>
     </form>
@@ -188,11 +169,8 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View button -->
-  <button type="button" class="quick-fab" id="quickViewBtn">Quick View</button>
-
   <!-- Quick View modal -->
-  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="qv-modal">
       <h2 id="qvTitle">Open Issues</h2>
       <ul class="qv-list" id="qvList"></ul>
@@ -314,6 +292,7 @@
       }
       function closeQuickView(){ qvBackdrop.style.display = 'none'; }
 
+      // Init
       renderPeople();
       dateEl.value = todayCT();
       renderMenus();
