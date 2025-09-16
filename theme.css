@@ -20,6 +20,13 @@
   /* Subtle tan band (auth/footer/breadcrumbs) */
   --auth-edge-bg: #E6DCB8;
 
+  /* Breadcrumb foreground (matches footer tone by default) */
+  --crumb-fg: #666;
+
+  /* Optional tile theming hooks (light defaults) */
+  --tile-bg: #fff;
+  --tile-border: var(--brand-green);
+
   /* Layout sizing */
   --header-h: 64px;
   --crumb-h:  40px;
@@ -91,7 +98,7 @@ body {
   height: var(--crumb-h);
   display: flex; align-items: center; justify-content: space-between;
   background: var(--auth-edge-bg);   /* match footer color */
-  color: #444;
+  color: var(--crumb-fg);
   padding: 0 var(--pad-x);
   border-bottom: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 1px 0 rgba(0,0,0,.08);
@@ -102,9 +109,9 @@ body {
   list-style: none; margin: 0; padding: 0;
   font-size: .95rem; font-weight: 700;
 }
-.breadcrumbs a { color: #444; text-decoration: none; }
+.breadcrumbs a { color: var(--crumb-fg); text-decoration: none; }
 .breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep { color: #444; opacity: .9; }
+.breadcrumbs .sep { color: var(--crumb-fg); opacity: .95; }
 
 /* ===========================
    Global Logout button (breadcrumbs)
@@ -173,8 +180,8 @@ body {
 .df-tile {
   aspect-ratio: 7 / 4;                 /* shorter height */
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: #fff;
-  border: 2px solid var(--brand-green);
+  background: var(--tile-bg);
+  border: 2px solid var(--tile-border);
   border-radius: 12px;
   text-decoration: none; text-align: center;
   color: var(--brand-green);
@@ -417,6 +424,7 @@ body.home-page .content h1 {
   .auth-hero__title{ font-size: 1.2rem; }
   .auth-card{ width: 90vw; }
 }
+
 /* ===========================
    Dark / Auto Theme overrides
    =========================== */
@@ -432,8 +440,11 @@ body.home-page .content h1 {
 
     --tile-bg: #1c1f18;
     --tile-border: #2d6a31;
+
+    --crumb-fg: #cfcfcf; /* readable breadcrumb text in dark auto */
   }
 }
+
 :root[data-theme="dark"] {
   --paper: #141612;
   --ink:   #e8e6df;
@@ -445,7 +456,10 @@ body.home-page .content h1 {
 
   --tile-bg: #1c1f18;
   --tile-border: #2d6a31;
+
+  --crumb-fg: #cfcfcf; /* readable breadcrumb text in dark */
 }
+
 :root[data-theme="light"] {
   /* no overrides — uses your defaults */
 }
