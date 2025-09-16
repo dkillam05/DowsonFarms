@@ -6,6 +6,8 @@
    - Logout button injection + handler
    - Password visibility toggle (SVG eye)
    - Back button (default on all non-Home, non-Auth pages)
+   - Global capitalization (inputs on blur)
+   - Safe CRUD helpers (localStorage) + delete-vs-archive policy
    =========================== */
 
 "use strict";
@@ -13,6 +15,10 @@
 // ---- CONFIG ----
 const LOGIN_URL = "login.html";
 const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed page
+
+// ============================
+// Utilities
+// ============================
 
 // Utility: Central Time date formatter (Month day, Year)
 function formatCTDate(d = new Date()) {
@@ -23,6 +29,39 @@ function formatCTDate(d = new Date()) {
     day: "numeric"
   });
 }
+
+// Capitalization helpers (global)
+window.capitalizeFirst = function (str) {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+window.capitalizeWords = function (str) {
+  if (!str) return "";
+  return str
+    .trim()
+    .split(/\s+/)
+    .map(w => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : "")
+    .join(" ");
+};
+
+// Auto-enforce capitalization on blur (emails stay lowercase)
+(function enforceCapitalization() {
+  document.addEventListener("blur", (e) => {
+    const el = e.target;
+    if (!el || !(el.matches("input[type=text], input[type=search], input[type=password], input:not([type]), textarea, input[type=email]"))) return;
+
+    let v = (el.value || "").trim();
+    if (!v) return;
+
+    if (el.type === "email") {
+      el.value = v.toLowerCase();
+      return;
+    }
+
+    // Default = Capitalize Each Word (covers first/last names, towns, crops, etc.)
+    el.value = window.capitalizeWords(v);
+  }, true);
+})();
 
 /* ---------- Footer version + date ---------- */
 (function initFooterMeta() {
@@ -238,3 +277,86 @@ window.handleLogout = async function handleLogout() {
     ? document.addEventListener("DOMContentLoaded", ensure)
     : ensure();
 })();
+
+/* ============================
+   Data Store + Safe CRUD helpers (localStorage-backed)
+   ============================
+
+Structure:
+  df_data = {
+    crops:  [{id, name, archived: false, createdAt, updatedAt}],
+    farms:  [...],
+    fields: [...],
+    roles:  [...]
+  }
+
+Use from pages:
+  const items = DFStore.getAll("crops");
+  DFStore.upsert("crops", { id?, name, archived:false });
+  DFStore.archive("crops", id, true/false);
+  DFStore.delete("crops", id);
+
+Guard actions with:
+  const {canEdit, canDelete, canArchive} = CRUDPolicy.decideActions("crops", id, resolveUsageCount);
+*/
+const STORE_KEY = "df_data";
+
+function loadStore() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; }
+}
+function saveStore(data) { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+function ensureCollection(data, key) { if (!Array.isArray(data[key])) data[key] = []; }
+function uid() { return Math.random().toString(36).slice(2, 9); }
+
+window.DFStore = {
+  getAll(entity) {
+    const data = loadStore(); ensureCollection(data, entity);
+    return data[entity];
+  },
+  upsert(entity, record) {
+    const data = loadStore(); ensureCollection(data, entity);
+    const now = Date.now();
+    if (!record.id) {
+      record.id = uid();
+      record.createdAt = now;
+      record.updatedAt = now;
+      if (typeof record.archived !== "boolean") record.archived = false;
+      data[entity].push(record);
+    } else {
+      const i = data[entity].findIndex(r => r.id === record.id);
+      if (i >= 0) { data[entity][i] = { ...data[entity][i], ...record, updatedAt: now }; }
+      else { data[entity].push({ ...record, createdAt: now, updatedAt: now }); }
+    }
+    saveStore(data);
+    return record;
+  },
+  archive(entity, id, archived = true) {
+    const data = loadStore(); ensureCollection(data, entity);
+    const rec = data[entity].find(r => r.id === id);
+    if (rec) { rec.archived = archived; rec.updatedAt = Date.now(); saveStore(data); }
+    return !!rec;
+  },
+  delete(entity, id) {
+    const data = loadStore(); ensureCollection(data, entity);
+    const before = data[entity].length;
+    data[entity] = data[entity].filter(r => r.id !== id);
+    saveStore(data);
+    return data[entity].length < before;
+  }
+};
+
+// Policy wrapper with usage checks (page provides a resolver(entity, id) -> count)
+window.CRUDPolicy = {
+  canDelete(entity, id, resolver) {
+    const count = typeof resolver === "function" ? (resolver(entity, id) || 0) : 0;
+    return count === 0;
+  },
+  decideActions(entity, id, resolver) {
+    const canDel = this.canDelete(entity, id, resolver);
+    return {
+      canEdit: true,
+      canDelete: canDel,
+      canArchive: !canDel
+    };
+  }
+};
