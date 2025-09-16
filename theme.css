@@ -331,6 +331,12 @@ body.home-page .content h1 {
 .back-fab .chev{ font-size: 1.1rem; line-height: 1; transform: translateY(-1px); }
 .back-fab:hover, .back-fab:focus-visible{ background:#fefefe; outline: none; }
 
+/* *** NEW: Back button text is white in dark/auto (keep same button) *** */
+:root[data-theme="dark"] .back-fab,
+:root[data-theme="auto"] .back-fab {
+  color: #fff; /* text only */
+}
+
 /* Small phones */
 @media (max-width: 360px){
   .auth-hero__title{ font-size: 1.2rem; }
