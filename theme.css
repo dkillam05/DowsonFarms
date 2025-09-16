@@ -417,3 +417,35 @@ body.home-page .content h1 {
   .auth-hero__title{ font-size: 1.2rem; }
   .auth-card{ width: 90vw; }
 }
+/* ===========================
+   Dark / Auto Theme overrides
+   =========================== */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --paper: #141612;
+    --ink:   #e8e6df;
+    --brand-green: #184a1b;
+    --auth-edge-bg: #2a2d24;
+    --accent-gold: #d9c767;
+    --gold-text: #e9e5cc;
+    --jd-yellow-dark: #bfa100;
+
+    --tile-bg: #1c1f18;
+    --tile-border: #2d6a31;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141612;
+  --ink:   #e8e6df;
+  --brand-green: #184a1b;
+  --auth-edge-bg: #2a2d24;
+  --accent-gold: #d9c767;
+  --gold-text: #e9e5cc;
+  --jd-yellow-dark: #bfa100;
+
+  --tile-bg: #1c1f18;
+  --tile-border: #2d6a31;
+}
+:root[data-theme="light"] {
+  /* no overrides — uses your defaults */
+}
