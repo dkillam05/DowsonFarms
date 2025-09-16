@@ -91,14 +91,14 @@ body {
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
   height: var(--crumb-h);
-  display: flex; align-items: center; /* no space-between */
+  display: flex; align-items: center;        /* key: flex container */
   background: var(--auth-edge-bg);
   color: var(--crumb-fg);
   padding: 0 var(--pad-x);
   border-bottom: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 1px 0 rgba(0,0,0,.08);
   z-index: var(--z-crumbs);
-  overflow: hidden; /* guardrail for long labels */
+  overflow: hidden; /* guardrail */
 }
 
 .breadcrumbs ol {
@@ -111,33 +111,45 @@ body {
   font-size: .85rem;
   font-weight: 500;
 
-  flex: 1 1 auto;      /* take remaining space next to Logout */
-  min-width: 0;        /* allow shrinking */
-  white-space: nowrap; /* prevent wrapping */
-  overflow: hidden;    /* clip overflow */
+  /* key: let the list shrink to make room for Logout */
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-/* Ellipsis only for middle crumbs; first & last stay readable */
-.breadcrumbs ol li:not(:first-child):not(:last-child) a,
-.breadcrumbs ol li:not(:first-child):not(:last-child) span {
+.breadcrumbs a { color: var(--crumb-fg); text-decoration: none; }
+.breadcrumbs a:hover { text-decoration: underline; }
+
+.breadcrumbs .sep { color: var(--crumb-fg); opacity: .9; font-size: .85rem; }
+
+/* Ellipsis rules */
+.breadcrumbs ol li > a,
+.breadcrumbs ol li > span {
+  display: inline-block;           /* required for text-overflow */
+  max-width: 100%;
+  vertical-align: bottom;
+}
+
+/* Middle crumbs: short label */
+.breadcrumbs ol li:not(:first-child):not(:last-child) > a,
+.breadcrumbs ol li:not(:first-child):not(:last-child) > span {
   max-width: 14ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.breadcrumbs a {
-  color: var(--crumb-fg);
-  text-decoration: none;
-}
-.breadcrumbs a:hover { text-decoration: underline; }
-
-.breadcrumbs .sep {
-  color: var(--crumb-fg);
-  opacity: .9;
-  font-size: .85rem;
+/* Last crumb: allow a lot, but still truncate before colliding */
+.breadcrumbs ol li:last-child > a,
+.breadcrumbs ol li:last-child > span {
+  max-width: 50vw;                 /* ~half the viewport on phones */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Logout: pin right, never shrink */
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
   color: #fff;
@@ -151,8 +163,8 @@ body {
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
-  flex: 0 0 auto;     /* never shrink */
-  margin-left: 8px;   /* small gap from crumbs */
+  flex: 0 0 auto;
+  margin-left: auto;               /* key: push to edge */
 }
 .breadcrumbs .logout-btn:hover,
 .breadcrumbs .logout-btn:focus-visible {
@@ -160,9 +172,7 @@ body {
   outline: none;
 }
 
-@media (hover: none) {
-  .breadcrumbs a { padding: 6px 2px; }
-}
+@media (hover: none) { .breadcrumbs a { padding: 6px 2px; } }
 
 /* ===========================
    Content Wrapper
@@ -237,9 +247,7 @@ body.home-page .content h1 {
 /* ===========================
    Forms (global look)
    =========================== */
-.field label{
-  display:block; font-weight:700; color: var(--brand-green); margin:0 0 6px;
-}
+.field label{ display:block; font-weight:700; color: var(--brand-green); margin:0 0 6px; }
 .field-hint{ margin:6px 2px 0; font-size:.9rem; color:#b00020; }
 
 /* Controls follow tile colors (light & dark) */
@@ -271,26 +279,16 @@ body.home-page .content h1 {
 
 /* --- iOS/Safari normalization so DATE matches SELECT width --- */
 .field select,
-.field input[type="date"] {
-  -webkit-appearance: none;
-  appearance: none;
-}
-.field input[type="date"] {
-  padding-right: 12px;                    /* match select’s right inset */
-}
-.field input[type="date"]::-webkit-calendar-picker-indicator {
-  margin: 0; padding: 0;                  /* avoid hidden extra space on the right */
-}
-.field input[type="date"]::-webkit-datetime-edit {
-  padding: 0;                             /* prevent internal padding differences */
-}
+.field input[type="date"] { -webkit-appearance: none; appearance: none; }
+.field input[type="date"] { padding-right: 12px; }
+.field input[type="date"]::-webkit-calendar-picker-indicator { margin: 0; padding: 0; }
+.field input[type="date"]::-webkit-datetime-edit { padding: 0; }
 
 /* Keep fields in a row sharing space evenly, and allow shrink on small screens */
 .row { display:flex; gap:12px; flex-wrap:wrap; }
 .row > .field { flex: 1 1 0; min-width: 0; }  /* true 50/50 and no overflow */
 
 /* ===== Single asterisk policy =====
-   We removed the old CSS-based asterisk to avoid duplicates.
    The asterisk now comes ONLY from core.js (.req-star).   */
 
 /* Form actions: center primary, keep gaps, safe from Back button */
@@ -302,14 +300,9 @@ body.home-page .content h1 {
   margin: 18px 0;
   padding-bottom: calc(var(--footer-h) + 28px);
 }
-.form-actions > .btn-primary {
-  grid-column: 2;
-  justify-self: center;
-}
+.form-actions > .btn-primary { grid-column: 2; justify-self: center; }
 .form-actions > .btn-secondary,
-.form-actions > .btn-outline {
-  justify-self: end;
-}
+.form-actions > .btn-outline { justify-self: end; }
 
 /* Buttons, matching Back button look */
 .btn-primary {
@@ -337,9 +330,7 @@ body.home-page .content h1 {
 :root[data-theme="dark"] .btn-secondary,
 :root[data-theme="auto"] .btn-secondary,
 :root[data-theme="dark"] .btn-outline,
-:root[data-theme="auto"] .btn-outline {
-  background: var(--tile-bg);
-}
+:root[data-theme="auto"] .btn-outline { background: var(--tile-bg); }
 
 /* Quick View floating button (bottom-right) */
 .quick-view-fab{
@@ -370,7 +361,7 @@ body.home-page .content h1 {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 10px;
   background: #fff;
-  color: var(--brand-green);           /* LIGHT DEFAULT (and AUTO when system is light) */
+  color: var(--brand-green);
   border: 2px solid var(--brand-green);
   border-radius: 12px;
   font: 600 .9rem 'Playfair Display', serif;
