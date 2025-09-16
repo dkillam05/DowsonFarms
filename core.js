@@ -212,177 +212,57 @@ function formatCTDate(d = new Date()) {
   });
 })();
 
-/* ---------- Breadcrumbs: render + smart truncation (safe; no layout overrides) ---------- */
-(function () {
-  function clampBreadcrumbs() {
-    try {
-      const nav = document.querySelector(".breadcrumbs");
-      if (!nav) return;
-      const ol = nav.querySelector("ol");
-      if (!ol) return;
+/* ---------- Breadcrumbs: render + smart truncation (never collide with Logout) ---------- */
+window.setBreadcrumbs = function setBreadcrumbs(parts) {
+  try {
+    const nav = document.querySelector(".breadcrumbs");
+    const ol  = nav?.querySelector("ol");
+    if (!ol || !Array.isArray(parts)) return;
 
-      // Ensure crumbs can shrink inside the flex row
-      ol.style.minWidth = "0";
-      ol.querySelectorAll("li").forEach(li => (li.style.minWidth = "0"));
+    // Normalize input
+    let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
 
-      // How much horizontal space can crumbs use (excluding Logout)?
-      const logoutBtn = nav.querySelector(".logout-btn");
-      const logoutW = logoutBtn ? logoutBtn.getBoundingClientRect().width : 0;
-      const totalW  = nav.clientWidth || window.innerWidth;
-      const gutter  = 24; // small safety pad between crumbs and Logout
-      const usableW = Math.max(120, totalW - logoutW - gutter);
+    // Home-page scrub
+    if (document.body.classList.contains("home-page")) {
+      norm = [{ label: "Home", href: "index.html" }];
+    } else {
+      // Drop any accidental "Dashboard"
+      norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
+    }
 
-      // Only clamp the *middle* crumbs; first and last stay full
-      const crumbLis = [...ol.querySelectorAll("li")].filter(li => !li.classList.contains("sep"));
-      const n = crumbLis.length;
-      if (n <= 2) return;
+    // Helper: create crumb (link for non-last; span for last)
+    function makeCrumb(obj, isLast, index, count) {
+      const el = document.createElement(isLast ? "span" : "a");
+      el.textContent = obj.label;
+      if (!isLast) el.href = obj.href || "#";
 
-      const share = Math.max(90, Math.floor(usableW * 0.33)); // each middle crumb allowance
-
-      crumbLis.forEach((li, idx) => {
-        const el = li.querySelector("a, span");
-        if (!el) return;
-
-        // reset first
-        el.style.maxWidth = "";
-        el.style.overflow = "";
-        el.style.textOverflow = "";
-        el.style.whiteSpace = "";
-        el.style.display = "";
-
-        const isMiddle = idx > 0 && idx < n - 1;
-        if (isMiddle) {
-          el.style.display = "inline-block";
-          el.style.whiteSpace = "nowrap";
-          el.style.overflow = "hidden";
-          el.style.textOverflow = "ellipsis";
-          el.style.maxWidth = share + "px";
-          if (!el.title) el.title = el.textContent.trim(); // full text on hover
-        }
-      });
-    } catch (_) { /* no-op */ }
-  }
-
-  // Public renderer that also clamps after rendering
-  window.setBreadcrumbs = function setBreadcrumbs(parts) {
-    try {
-      const nav = document.querySelector(".breadcrumbs");
-      const ol  = nav?.querySelector("ol");
-      if (!ol || !Array.isArray(parts)) return;
-
-      // Normalize
-      let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
-
-      // Home-page scrub
-      if (document.body.classList.contains("home-page")) {
-        norm = [{ label: "Home", href: "index.html" }];
-      } else {
-        norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
+      // Truncate middle crumbs only (keep first & last full)
+      const isMiddle = index !== 0 && index !== count - 1;
+      if (isMiddle) {
+        el.style.maxWidth = "120px";
+        el.style.overflow = "hidden";
+        el.style.textOverflow = "ellipsis";
+        el.style.whiteSpace = "nowrap";
+        el.title = obj.label; // tooltip with full text
       }
+      return el;
+    }
 
-      // Render
-      ol.innerHTML = "";
-      norm.forEach((p, i) => {
-        const isLast = i === norm.length - 1;
-        const li = document.createElement("li");
-        const el = document.createElement(isLast ? "span" : "a");
-        el.textContent = p.label;
-        if (!isLast) el.href = p.href || "#";
-        li.appendChild(el);
-        ol.appendChild(li);
+    // Render
+    ol.innerHTML = "";
+    norm.forEach((p, i) => {
+      const li = document.createElement("li");
+      const isLast = i === norm.length - 1;
+      li.appendChild(makeCrumb(p, isLast, i, norm.length));
+      ol.appendChild(li);
 
-        if (!isLast) {
-          const sep = document.createElement("li");
-          sep.className = "sep";
-          sep.textContent = "›";
-          ol.appendChild(sep);
-        }
-      });
-
-      clampBreadcrumbs();
-    } catch (_) { /* no-op */ }
-  };
-
-  // Support hard-coded breadcrumbs (no call to setBreadcrumbs)
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", clampBreadcrumbs);
-  } else {
-    clampBreadcrumbs();
-  }
-  window.addEventListener("resize", clampBreadcrumbs);
-
-  // Keep things clamped if the DOM under .breadcrumbs changes
-  const nav = document.querySelector(".breadcrumbs");
-  if (nav) new MutationObserver(clampBreadcrumbs).observe(nav, { childList: true, subtree: true });
-})();
-
-  // Public renderer that also clamps after rendering
-  window.setBreadcrumbs = function setBreadcrumbs(parts) {
-    try {
-      const nav = document.querySelector(".breadcrumbs");
-      const ol  = nav?.querySelector("ol");
-      if (!ol || !Array.isArray(parts)) return;
-
-      // Normalize input
-      let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
-
-      // Home-page scrub
-      if (document.body.classList.contains("home-page")) {
-        norm = [{ label: "Home", href: "index.html" }];
-      } else {
-        // Drop any accidental "Dashboard"
-        norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
+      if (!isLast) {
+        const sep = document.createElement("li");
+        sep.className = "sep";
+        sep.textContent = "›";
+        ol.appendChild(sep);
       }
-
-      // Helper: create crumb (link for non-last; span for last)
-      function makeCrumb(obj, isLast, index, count) {
-        const el = document.createElement(isLast ? "span" : "a");
-        el.textContent = obj.label;
-        if (!isLast) el.href = obj.href || "#";
-
-        // Truncate middle crumbs only (keep first & last full)
-        const isMiddle = index !== 0 && index !== count - 1;
-        if (isMiddle) {
-          el.style.maxWidth = "120px";
-          el.style.overflow = "hidden";
-          el.style.textOverflow = "ellipsis";
-          el.style.whiteSpace = "nowrap";
-          el.title = obj.label; // tooltip with full text
-        }
-        return el;
-      }
-
-      // Render
-      ol.innerHTML = "";
-      norm.forEach((p, i) => {
-        const li = document.createElement("li");
-        const isLast = i === norm.length - 1;
-        li.appendChild(makeCrumb(p, isLast, i, norm.length));
-        ol.appendChild(li);
-
-        if (!isLast) {
-          const sep = document.createElement("li");
-          sep.className = "sep";
-          sep.textContent = "›";
-          ol.appendChild(sep);
-        }
-      });
-
-      // Ensure layout + clamp after rendering
-      clampBreadcrumbs();
-    } catch (_) {}
-  };
-
-  // Run clamp for static breadcrumbs on load and keep it fresh
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", clampBreadcrumbs);
-  } else {
-    clampBreadcrumbs();
-  }
-  window.addEventListener("resize", clampBreadcrumbs);
-  const nav = document.querySelector(".breadcrumbs");
-  if (nav) new MutationObserver(clampBreadcrumbs).observe(nav, { childList: true, subtree: true });
-})();
+    });
 
     // Defensive: ensure crumbs never wrap beneath Logout
     // (let the list take remaining space and clip from the middle crumbs)
