@@ -1,4 +1,4 @@
-window.APP_VERSION = "v2.4.23";
+window.APP_VERSION = "v2.4.24";
 
 document.addEventListener("DOMContentLoaded", () => {
   const v = document.getElementById("version");
