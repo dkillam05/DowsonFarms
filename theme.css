@@ -134,7 +134,7 @@ body {
    =========================== */
 .content {
   padding: 16px;
-  /* breathing room so fixed buttons never overlap */
+  /* extra breathing room so fixed buttons never overlap */
   min-height: calc(100vh - var(--header-h) - var(--crumb-h) - var(--footer-h));
   padding-bottom: calc(var(--footer-h) + 80px);
 }
@@ -234,13 +234,14 @@ body.home-page .content h1 {
   border-color: var(--brand-green);
 }
 
-/* NOTE: The old .field.is-required::after rule was removed
-   to avoid double asterisks. The single red star is injected
-   by core.js as <span class="req-star">*</span>. */
+/* Required asterisk (core.js adds .is-required to .field) */
+.field.is-required > label::after {
+  content: " *";
+  color: #b00020;
+  font-weight: 700;
+}
 
-/* ===========================
-   Form actions / buttons
-   =========================== */
+/* Form actions: center primary, keep gaps, safe from Back button */
 .form-actions {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -258,10 +259,10 @@ body.home-page .content h1 {
   justify-self: end;
 }
 
-/* Primary button */
+/* Buttons, matching Back button look */
 .btn-primary {
   background: var(--brand-green);
-  color: #fff; /* stays readable in all themes */
+  color: #fff;
   border: 2px solid var(--brand-green);
   border-radius: 12px;
   padding: 10px 18px;
@@ -271,7 +272,6 @@ body.home-page .content h1 {
 }
 .btn-primary:hover { background:#154a18; }
 
-/* Secondary / Outline */
 .btn-secondary, .btn-outline {
   background: #fff;
   color: var(--brand-green);
@@ -289,9 +289,7 @@ body.home-page .content h1 {
   background: var(--tile-bg);
 }
 
-/* ===========================
-   Quick View floating button (bottom-right)
-   =========================== */
+/* Quick View floating button (bottom-right) */
 .quick-view-fab{
   position: fixed;
   right: 10px;
@@ -320,7 +318,7 @@ body.home-page .content h1 {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 10px;
   background: #fff;
-  color: var(--brand-green);
+  color: var(--brand-green);           /* LIGHT DEFAULT (and AUTO when system is light) */
   border: 2px solid var(--brand-green);
   border-radius: 12px;
   font: 600 .9rem 'Playfair Display', serif;
@@ -333,9 +331,17 @@ body.home-page .content h1 {
 .back-fab .chev{ font-size: 1.1rem; line-height: 1; transform: translateY(-1px); }
 .back-fab:hover, .back-fab:focus-visible{ background:#fefefe; outline: none; }
 
-/* Back button text is white in dark/auto (light stays green text) */
-:root[data-theme="dark"] .back-fab,
-:root[data-theme="auto"] .back-fab { color: #fff; }
+/* Back button: WHITE TEXT in true dark, and in AUTO only when system is dark */
+:root[data-theme="dark"] .back-fab { color: #fff; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .back-fab { color: #fff; }
+}
+
+/* Small phones */
+@media (max-width: 360px){
+  .auth-hero__title{ font-size: 1.2rem; }
+  .auth-card{ width: 90vw; }
+}
 
 /* ===========================
    AUTH (Login / Forgot)
