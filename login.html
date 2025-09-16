@@ -9,6 +9,18 @@
   <meta name="format-detection" content="telephone=no" />
   <title>Sign in — Dowson Farms</title>
 
+  <!-- Apply saved theme (or default to AUTO) before CSS paints -->
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('df_theme') || 'auto';
+        document.documentElement.setAttribute('data-theme', mode);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'auto');
+      }
+    })();
+  </script>
+
   <!-- Theme + core -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
