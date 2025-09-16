@@ -412,55 +412,49 @@ window.handleLogout = async function handleLogout() {
     : ensure();
 })();
 
-/* ---------- REQUIRED ASTERISK helper (auto-add * to required field labels) ---------- */
+/* ---------- REQUIRED ASTERISK helper (global, CSS-only) ---------- */
+/*
+  Goal: exactly one asterisk, globally, with no per-page HTML.
+  How: mark each .field that contains a required control with .is-required,
+       and let theme.css render the asterisk via:
+         .field.is-required > label::after { content:" *"; ... }
+
+  Also: if older spans (.req-star) exist from previous builds, we remove them.
+*/
 (function markRequiredAsterisks(){
-  // Inject a tiny style once (keeps theme.css clean if you prefer)
-  if (!document.getElementById("df-required-style")) {
-    const st = document.createElement("style");
-    st.id = "df-required-style";
-    st.textContent = `.req-star{color:#b00020;margin-left:4px;font-weight:700}`;
-    document.head.appendChild(st);
-  }
+  function mark(root = document){
+    // Remove any legacy req-star spans so we don't double up
+    root.querySelectorAll('.req-star').forEach(n => n.remove());
 
-  function findLabel(ctrl){
-    // 1) <label for="id">
-    if (ctrl.id) {
-      try {
-        const esc = (window.CSS && CSS.escape) ? CSS.escape(ctrl.id) : ctrl.id;
-        const byFor = document.querySelector(`label[for="${esc}"]`);
-        if (byFor) return byFor;
-      } catch(_) {}
-    }
-    // 2) Within a .field wrapper
-    const wrap = ctrl.closest(".field");
-    if (wrap) {
-      const inWrap = wrap.querySelector("label");
-      if (inWrap) return inWrap;
-    }
-    // 3) Immediate previous sibling label (fallback)
-    let n = ctrl.previousElementSibling;
-    if (n?.tagName?.toLowerCase() === "label") return n;
-    return null;
-  }
-
-  function process(root = document){
-    const controls = root.querySelectorAll('input[required], select[required], textarea[required], [aria-required="true"]');
-    controls.forEach(ctrl => {
-      const label = findLabel(ctrl);
-      if (!label) return;
-      if (label.querySelector(".req-star")) return; // already marked
-      const star = document.createElement("span");
-      star.className = "req-star";
-      star.textContent = "*";
-      label.appendChild(star);
+    // Add .is-required to any .field containing a required control
+    const fields = root.querySelectorAll('.field');
+    fields.forEach(f => {
+      const hasRequired =
+        f.querySelector('input[required], select[required], textarea[required], [aria-required="true"]');
+      if (hasRequired) f.classList.add('is-required');
+      else f.classList.remove('is-required');
     });
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => process());
+    document.addEventListener("DOMContentLoaded", () => mark());
   } else {
-    process();
+    mark();
   }
+
+  // Watch for forms/fields added later (Ideas/Bugs etc.)
+  const mo = new MutationObserver((muts) => {
+    muts.forEach(m => {
+      m.addedNodes?.forEach(node => {
+        if (!(node instanceof HTMLElement)) return;
+        mark(node);
+      });
+      // Also re-evaluate if attributes like [required] toggle later
+      if (m.type === 'attributes') mark(document);
+    });
+  });
+  mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['required','aria-required'] });
+})();
 
   // Watch for forms/fields added later (Ideas/Bugs etc.)
   const mo = new MutationObserver((muts) => {
