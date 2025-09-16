@@ -234,12 +234,9 @@ body.home-page .content h1 {
   border-color: var(--brand-green);
 }
 
-/* Required asterisk (core.js adds .is-required to .field) */
-.field.is-required > label::after {
-  content: " *";
-  color: #b00020;
-  font-weight: 700;
-}
+/* NOTE: Required asterisk is now handled globally by core.js via a <span class="req-star"> it injects.
+   We intentionally removed the old CSS rule that added a star using `.field.is-required > label::after`
+   to prevent double-asterisks. */
 
 /* Form actions: center primary, keep gaps, safe from Back button */
 .form-actions {
