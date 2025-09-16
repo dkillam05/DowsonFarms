@@ -134,7 +134,7 @@ body {
    =========================== */
 .content {
   padding: 16px;
-  /* extra breathing room so fixed buttons never overlap */
+  /* breathing room so fixed buttons never overlap */
   min-height: calc(100vh - var(--header-h) - var(--crumb-h) - var(--footer-h));
   padding-bottom: calc(var(--footer-h) + 80px);
 }
@@ -234,11 +234,13 @@ body.home-page .content h1 {
   border-color: var(--brand-green);
 }
 
-/* NOTE: Required asterisk is now handled globally by core.js via a <span class="req-star"> it injects.
-   We intentionally removed the old CSS rule that added a star using `.field.is-required > label::after`
-   to prevent double-asterisks. */
+/* NOTE: The old .field.is-required::after rule was removed
+   to avoid double asterisks. The single red star is injected
+   by core.js as <span class="req-star">*</span>. */
 
-/* Form actions: center primary, keep gaps, safe from Back button */
+/* ===========================
+   Form actions / buttons
+   =========================== */
 .form-actions {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -256,10 +258,10 @@ body.home-page .content h1 {
   justify-self: end;
 }
 
-/* Buttons, matching Back button look */
+/* Primary button */
 .btn-primary {
   background: var(--brand-green);
-  color: #fff;
+  color: #fff; /* stays readable in all themes */
   border: 2px solid var(--brand-green);
   border-radius: 12px;
   padding: 10px 18px;
@@ -269,6 +271,7 @@ body.home-page .content h1 {
 }
 .btn-primary:hover { background:#154a18; }
 
+/* Secondary / Outline */
 .btn-secondary, .btn-outline {
   background: #fff;
   color: var(--brand-green);
@@ -286,7 +289,9 @@ body.home-page .content h1 {
   background: var(--tile-bg);
 }
 
-/* Quick View floating button (bottom-right) */
+/* ===========================
+   Quick View floating button (bottom-right)
+   =========================== */
 .quick-view-fab{
   position: fixed;
   right: 10px;
@@ -328,17 +333,9 @@ body.home-page .content h1 {
 .back-fab .chev{ font-size: 1.1rem; line-height: 1; transform: translateY(-1px); }
 .back-fab:hover, .back-fab:focus-visible{ background:#fefefe; outline: none; }
 
-/* *** NEW: Back button text is white in dark/auto (keep same button) *** */
+/* Back button text is white in dark/auto (light stays green text) */
 :root[data-theme="dark"] .back-fab,
-:root[data-theme="auto"] .back-fab {
-  color: #fff; /* text only */
-}
-
-/* Small phones */
-@media (max-width: 360px){
-  .auth-hero__title{ font-size: 1.2rem; }
-  .auth-card{ width: 90vw; }
-}
+:root[data-theme="auto"] .back-fab { color: #fff; }
 
 /* ===========================
    AUTH (Login / Forgot)
