@@ -542,3 +542,6 @@ body.home-page .content h1 {
 :root[data-theme="dark"] .auth-modal .field input:focus{
   border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30); outline: none;
 }
+/* Keep controls in a row the same visual width */
+.row > .field { flex: 1 1 0; min-width: 260px; }
+
