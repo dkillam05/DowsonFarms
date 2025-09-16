@@ -458,3 +458,24 @@ body.home-page .content h1 {
 :root[data-theme="light"] {
   /* no overrides — uses your defaults */
 }
+
+/* ===========================
+   Auth (Login) — dark/auto visuals to match app
+   =========================== */
+
+/* Auto (when the OS is dark) */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .auth-page {
+    /* slightly textured dark background (matches app vibe) */
+    background: linear-gradient(180deg, #1a1c17 0%, #12140f 100%);
+    background-color: #12140f;     /* solid fallback */
+  }
+}
+
+/* Forced dark */
+:root[data-theme="dark"] .auth-page {
+  background: linear-gradient(180deg, #1a1c17 0%, #12140f 100%);
+  background-color: #12140f;
+}
+
+/* Keep the notch/bottom bands using your dark vars (already set via --auth-edge-bg) */
