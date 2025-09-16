@@ -22,104 +22,82 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Give more breathing room at bottom so buttons never collide with Back FAB */
     .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Form fields – match tile styling in light + dark/auto */
-    .field { margin: 10px 0; }
+    /* Two equal columns, tighter spacing */
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 12px;
+      align-items: start;
+    }
+    @media (max-width: 720px){
+      .row { grid-template-columns: 1fr; }
+    }
+
+    .field { margin: 8px 0; }
     .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
-    select,
-    input[type="text"],
-    input[type="date"],
-    textarea{
-      width:100%;
-      padding:10px;
-      border:1px solid var(--tile-border);
-      border-radius:8px;
-      background: var(--tile-bg);
-      color: var(--ink);
-      font-size:16px;
-      box-sizing:border-box;
+
+    select, input[type="text"], input[type="date"], textarea{
+      width:100%; padding:10px; border:1px solid var(--tile-border);
+      border-radius:8px; background: var(--tile-bg); color: var(--ink);
+      font-size:16px; box-sizing:border-box;
     }
     textarea{ min-height:110px; }
 
-    /* Focus ring consistent with app */
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus{
-      outline:none;
-      border-color: var(--tile-border);
-      box-shadow: 0 0 0 3px rgba(45,106,49,.30);
+    .field input:focus, .field select:focus, .field textarea:focus{
+      outline:none; border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30);
     }
 
-    /* Tiny hint text */
     .muted { color:#666; font-size:.9rem; }
 
-    /* Row layout */
-    .row { display:flex; gap:12px; flex-wrap:wrap; }
-    .row > .field { flex:1 1 220px; }
-
-    /* Actions: Quick View (left), Submit (center), Clear (right) */
+    /* Form actions */
     .form-actions{
-      margin-top: 16px;
+      margin-top: 12px;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
       gap: 8px;
     }
-    .form-actions .left   { justify-self: start; }
     .form-actions .center { justify-self: center; }
     .form-actions .right  { justify-self: end; }
 
-    /* Buttons – reuse app visual language */
     .btn-solid{
-      background: var(--brand-green);
-      color:#fff;
-      border:0; border-radius:12px;
-      padding:9px 14px; cursor:pointer;
-      font: 600 .95rem 'Playfair Display', serif;
+      background: var(--brand-green); color:#fff; border:0; border-radius:12px;
+      padding:9px 14px; cursor:pointer; font: 600 .95rem 'Playfair Display', serif;
       box-shadow: 0 6px 18px rgba(0,0,0,.12);
     }
     .btn-solid:hover{ background:#154a18; }
-
     .btn-outline{
-      background: var(--tile-bg);
-      color: var(--brand-green);
-      border:2px solid var(--brand-green);
-      border-radius:10px;
+      background: var(--tile-bg); color: var(--brand-green);
+      border:2px solid var(--brand-green); border-radius:10px;
       padding:6px 10px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
     }
     :root[data-theme="dark"] .btn-outline,
-    :root[data-theme="auto"] .btn-outline{
-      color: var(--ink);
-      border-color: var(--tile-border);
-    }
+    :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
     .btn-outline:hover{ background:#fefefe; }
 
+    /* Quick View button */
+    .quick-fab{
+      position: fixed; right: 10px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; background: var(--tile-bg);
+      color: var(--brand-green); border: 2px solid var(--brand-green);
+      border-radius: 12px; font: 600 .9rem 'Playfair Display', serif;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12); cursor: pointer;
+      z-index: calc(var(--z-footer) + 10);
+    }
+    :root[data-theme="dark"] .quick-fab,
+    :root[data-theme="auto"] .quick-fab{ color: var(--ink); border-color: var(--tile-border); }
+    .quick-fab:hover, .quick-fab:focus-visible { background:#fefefe; outline: none; }
+
     /* Quick View modal */
-    .qv-backdrop{
-      position: fixed; inset: 0; display: none;
-      align-items: center; justify-content: center;
-      background: rgba(0,0,0,.38);
-      z-index: 2000;
-    }
-    .qv-modal{
-      width: min(560px, 92vw);
-      background: var(--tile-bg);
-      border: 2px solid var(--tile-border, var(--brand-green));
-      border-radius: 14px;
-      box-shadow: 0 18px 40px rgba(0,0,0,.25);
-      padding: 14px;
-    }
+    .qv-backdrop{ position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.38); z-index: 2000; }
+    .qv-modal{ width: min(560px, 92vw); background: var(--tile-bg); border: 2px solid var(--tile-border, var(--brand-green)); border-radius: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.25); padding: 14px; }
     .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
     .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
-    .qv-item{
-      border: 1px solid var(--tile-border, var(--brand-green));
-      border-radius: 10px;
-      padding: 8px 10px; margin: 8px 0;
-      background: var(--tile-bg);
-      color: var(--ink);
-    }
+    .qv-item{ border: 1px solid var(--tile-border, var(--brand-green)); border-radius: 10px; padding: 8px 10px; margin: 8px 0; background: var(--tile-bg); color: var(--ink); }
     .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
   </style>
 
@@ -162,38 +140,35 @@
 
     <form id="bug-form" novalidate>
       <div class="row">
-        <div class="field is-required">
+        <div class="field">
           <label for="submittedBy">Submitted by</label>
           <select id="submittedBy" required></select>
           <small id="whoHint" class="muted"></small>
         </div>
-        <div class="field is-required">
+        <div class="field">
           <label for="submittedDate">Date submitted</label>
           <input id="submittedDate" type="date" required />
         </div>
       </div>
 
       <div class="row">
-        <div class="field is-required">
+        <div class="field">
           <label for="menuSel">Menu</label>
           <select id="menuSel" required></select>
         </div>
-        <div class="field is-required">
+        <div class="field">
           <label for="submenuSel">Submenu</label>
           <select id="submenuSel" required></select>
         </div>
       </div>
 
-      <div class="field is-required">
+      <div class="field">
         <label for="message">Message</label>
         <textarea id="message" required placeholder="Describe the bug or issue…"></textarea>
       </div>
 
-      <!-- Actions row: Quick View (left), Submit (center), Clear (right) -->
       <div class="form-actions">
-        <div class="left">
-          <button type="button" class="btn-outline" id="quickViewBtn">Quick View</button>
-        </div>
+        <div></div>
         <div class="center">
           <button class="btn-solid" type="submit">Submit Issue</button>
         </div>
@@ -212,6 +187,9 @@
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
+
+  <!-- Quick View button -->
+  <button type="button" class="quick-fab" id="quickViewBtn">Quick View</button>
 
   <!-- Quick View modal -->
   <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
@@ -336,7 +314,6 @@
       }
       function closeQuickView(){ qvBackdrop.style.display = 'none'; }
 
-      // Init
       renderPeople();
       dateEl.value = todayCT();
       renderMenus();
@@ -369,7 +346,6 @@
         alert('Issue submitted!');
       });
 
-      // Breadcrumbs
       window.setBreadcrumbs?.([
         {label:'Home', href:'index.html'},
         {label:'Feedback', href:'feedback.html'},
