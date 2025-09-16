@@ -22,10 +22,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Page-specific: give more breathing room at bottom so Submit doesn't collide with Back FAB */
+    /* Page-specific: extra bottom room so actions never collide with Back FAB */
     .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Form fields – match tile styling in light + dark/auto */
+    /* Form fields – match tile styling (light + dark/auto) */
     .field { margin: 10px 0; }
     .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
     select,
@@ -70,14 +70,15 @@
     :root[data-theme="auto"] .mini-add button{ background: var(--tile-bg); color: var(--ink); border-color: var(--tile-border); }
     .mini-add button:hover{ background:#fefefe; }
 
-    /* Submit centered, Clear on right – away from Back FAB */
+    /* Actions row: Quick View (left), Submit (center), Clear (right) */
     .form-actions{
       margin-top: 16px;
       display: grid;
-      grid-template-columns: 1fr auto 1fr;   /* center lane + right lane */
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
       gap: 8px;
     }
+    .form-actions .left   { justify-self: start; }
     .form-actions .center { justify-self: center; }
     .form-actions .right  { justify-self: end; }
 
@@ -102,29 +103,6 @@
     :root[data-theme="dark"] .btn-outline,
     :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
     .btn-outline:hover{ background:#fefefe; }
-
-    /* Quick View button (mirrors Back FAB look) */
-    .quick-fab{
-      position: fixed;
-      right: 10px;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 10px;
-      background: var(--tile-bg);
-      color: var(--brand-green);
-      border: 2px solid var(--brand-green);
-      border-radius: 12px;
-      font: 600 .9rem 'Playfair Display', serif;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12);
-      cursor: pointer;
-      z-index: calc(var(--z-footer) + 10);
-    }
-    :root[data-theme="dark"] .quick-fab,
-    :root[data-theme="auto"] .quick-fab{
-      color: var(--ink);
-      border-color: var(--tile-border);
-    }
-    .quick-fab:hover, .quick-fab:focus-visible { background:#fefefe; outline: none; }
 
     /* Quick View modal */
     .qv-backdrop{
@@ -192,26 +170,26 @@
 
     <form id="idea-form" novalidate>
       <div class="row">
-        <div class="field">
+        <div class="field is-required">
           <label for="submittedBy">Submitted by</label>
           <select id="submittedBy" required></select>
           <small id="whoHint" class="muted"></small>
         </div>
-        <div class="field">
+        <div class="field is-required">
           <label for="submittedDate">Date submitted</label>
           <input id="submittedDate" type="date" required />
         </div>
       </div>
 
       <div class="row">
-        <div class="field">
+        <div class="field is-required">
           <label for="menuSel">Menu</label>
           <div style="display:flex; align-items:center;">
             <select id="menuSel" required></select>
             <span class="mini-add"><button type="button" id="addMenuBtn">+ Add</button></span>
           </div>
         </div>
-        <div class="field">
+        <div class="field is-required">
           <label for="submenuSel">Submenu</label>
           <div style="display:flex; align-items:center;">
             <select id="submenuSel" required></select>
@@ -220,14 +198,16 @@
         </div>
       </div>
 
-      <div class="field">
+      <div class="field is-required">
         <label for="message">Message</label>
         <textarea id="message" required placeholder="Describe your idea…"></textarea>
       </div>
 
-      <!-- Centered Submit, Clear on right -->
+      <!-- Actions row: Quick View (left), Submit (center), Clear (right) -->
       <div class="form-actions">
-        <div></div>
+        <div class="left">
+          <button type="button" class="btn-outline" id="quickViewBtn">Quick View</button>
+        </div>
         <div class="center">
           <button class="btn-solid" type="submit">Submit Idea</button>
         </div>
@@ -246,9 +226,6 @@
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
-
-  <!-- Quick View button -->
-  <button type="button" class="quick-fab" id="quickViewBtn">Quick View</button>
 
   <!-- Quick View modal -->
   <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
