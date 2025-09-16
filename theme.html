@@ -20,17 +20,6 @@
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
-
-  <!-- Apply saved theme ASAP before paint -->
-  <script>
-    (function bootTheme() {
-      try {
-        const saved = localStorage.getItem('df_theme'); // 'light' | 'dark' | 'auto'
-        const mode = saved || 'auto';
-        document.documentElement.setAttribute('data-theme', mode);
-      } catch (_) {}
-    })();
-  </script>
 </head>
 <body>
   <!-- Header -->
@@ -57,7 +46,7 @@
 
   <!-- Main content -->
   <main class="content">
-    <h1>✏️ Theme</h1>
+    <h1>🎨 Theme</h1>
 
     <div class="seg" role="tablist" aria-label="Theme mode">
       <input type="radio" id="t-light" name="theme" value="light" />
@@ -71,15 +60,6 @@
     </div>
 
     <div id="theme-status" class="muted" style="margin-top:8px;">—</div>
-
-    <div class="preview" id="theme-panel" aria-live="polite">
-      <strong>Live preview</strong>
-      <p class="muted">This reflects your selection immediately.</p>
-      <div class="df-tiles" style="margin-top:8px;">
-        <a href="#" class="df-tile">🌽 <span>Example Tile</span></a>
-        <a href="#" class="df-tile">🌾 <span>Looks Consistent</span></a>
-      </div>
-    </div>
   </main>
 
   <!-- Footer -->
@@ -91,40 +71,39 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Theme switching script -->
+  <!-- Theme switching (calls global setTheme from core.js) -->
   <script>
     (function themeUI(){
-      const root = document.documentElement;
-      const radios = Array.from(document.querySelectorAll('input[name="theme"]'));
       const statusEl = document.getElementById('theme-status');
       const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const radios = Array.from(document.querySelectorAll('input[name="theme"]'));
 
       const saved = localStorage.getItem('df_theme') || 'auto';
       const current = (['light','dark','auto'].includes(saved)) ? saved : 'auto';
       (document.getElementById('t-' + current) || document.getElementById('t-auto')).checked = true;
-      apply(current);
+      updateStatus(current);
 
       radios.forEach(r => {
         r.addEventListener('change', () => {
           if (!r.checked) return;
-          const val = r.value;
-          localStorage.setItem('df_theme', val);
-          apply(val);
+          const val = r.value;               // light / dark / auto
+          window.setTheme?.(val);            // update root + localStorage (core.js)
+          updateStatus(val);
         });
       });
 
       media.addEventListener?.('change', () => {
         const mode = localStorage.getItem('df_theme') || 'auto';
-        if (mode === 'auto') apply('auto');
+        if (mode === 'auto') updateStatus('auto');
       });
 
-      function apply(mode){
-        root.setAttribute('data-theme', mode);
+      function cap(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
+      function updateStatus(mode){
         if (mode === 'auto') {
           const sys = media.matches ? 'dark' : 'light';
-          statusEl.textContent = `Following device: ${sys[0].toUpperCase() + sys.slice(1)}`;
+          statusEl.textContent = `Following device: ${cap(sys)}`;
         } else {
-          statusEl.textContent = `Forced: ${mode[0].toUpperCase() + mode.slice(1)}`;
+          statusEl.textContent = `Forced: ${cap(mode)}`;
         }
       }
     })();
