@@ -20,9 +20,6 @@
   /* Subtle tan band (auth/footer/breadcrumbs) */
   --auth-edge-bg: #E6DCB8;
 
-  /* Breadcrumb foreground (matches footer tone by default) */
-  --crumb-fg: #666;
-
   /* Optional tile theming hooks (light defaults) */
   --tile-bg: #fff;
   --tile-border: var(--brand-green);
@@ -91,14 +88,14 @@ body {
 
 /* ===========================
    Breadcrumbs (fixed under header)
-   - Calm tan bar (same as footer), soft text
+   - Calm tan bar (same as footer), text follows --ink
    =========================== */
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
   height: var(--crumb-h);
   display: flex; align-items: center; justify-content: space-between;
-  background: var(--auth-edge-bg);   /* match footer color */
-  color: var(--crumb-fg);
+  background: var(--auth-edge-bg);
+  color: var(--ink);
   padding: 0 var(--pad-x);
   border-bottom: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 1px 0 rgba(0,0,0,.08);
@@ -109,23 +106,23 @@ body {
   list-style: none; margin: 0; padding: 0;
   font-size: .95rem; font-weight: 700;
 }
-.breadcrumbs a { color: var(--crumb-fg); text-decoration: none; }
+.breadcrumbs a { color: var(--ink); text-decoration: none; }
 .breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep { color: var(--crumb-fg); opacity: .95; }
+.breadcrumbs .sep { color: var(--ink); opacity: .95; }
 
 /* ===========================
    Global Logout button (breadcrumbs)
-   - Small, elegant, white Playfair text (consistent across sub-pages)
+   - Small, elegant, white Playfair text
    =========================== */
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
-  color: #fff;                               /* pure white text */
-  font-family: 'Playfair Display', serif;    /* subtle, fancy scroll */
+  color: #fff;
+  font-family: 'Playfair Display', serif;
   font-weight: 600;
-  font-size: .88rem;                         /* small */
+  font-size: .88rem;
   letter-spacing: .2px;
   line-height: 1.15;
-  padding: 4px 12px;                         /* compact */
+  padding: 4px 12px;
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -135,7 +132,7 @@ body {
 }
 .breadcrumbs .logout-btn:hover,
 .breadcrumbs .logout-btn:focus-visible {
-  background: #154a18;                       /* slightly darker on hover/focus */
+  background: #154a18;
   outline: none;
 }
 
@@ -154,16 +151,15 @@ body {
 
 /* ===========================
    Sticky Footer (app pages)
-   - Same subtle tan band + grey text as login
    =========================== */
 .app-footer {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: var(--footer-h);
   background: var(--auth-edge-bg);
-  color: #666;                        /* lighter grey */
+  color: #666;
   display: flex; align-items: center; justify-content: center;
   gap: 8px; padding: 0 var(--pad-x);
-  font-weight: 600; font-size: .80rem;   /* a bit smaller */
+  font-weight: 600; font-size: .80rem;
   z-index: var(--z-footer);
 }
 .app-footer .dot { opacity: .6; color: #666; }
@@ -184,7 +180,7 @@ body {
   border: 2px solid var(--tile-border);
   border-radius: 12px;
   text-decoration: none; text-align: center;
-  color: var(--brand-green);
+  color: var(--ink);                    /* follow theme text color */
   font-weight: 600;
   padding: 8px;
   box-sizing: border-box;
@@ -194,7 +190,7 @@ body {
 .df-tile span {
   display: block; margin-top: 6px;
   font-size: .86rem; line-height: 1.2; word-break: break-word;
-  color: #3a3a3a;
+  color: var(--ink);                    /* follow theme text color */
 }
 
 /* ===========================
@@ -203,15 +199,15 @@ body {
 .content h1 {
   font-family: 'Montserrat', sans-serif;
   font-size: 1.4rem; font-weight: 500; letter-spacing: .3px;
-  margin: 0 0 1rem; color: var(--brand-green);
+  margin: 0 0 1rem; color: var(--ink);  /* follow theme text color */
 }
-/* Home page title — match login look */
+/* Home page title — same look, themed color */
 body.home-page .content h1 {
   font-family: 'Playfair Display', serif;
-  font-size: 1.35rem;                 /* slightly larger, elegant */
+  font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: .2px;
-  color: var(--brand-green);
+  color: var(--ink);                    /* follow theme text color */
 }
 
 /* ===========================
@@ -440,8 +436,6 @@ body.home-page .content h1 {
 
     --tile-bg: #1c1f18;
     --tile-border: #2d6a31;
-
-    --crumb-fg: #cfcfcf; /* readable breadcrumb text in dark auto */
   }
 }
 
@@ -456,8 +450,6 @@ body.home-page .content h1 {
 
   --tile-bg: #1c1f18;
   --tile-border: #2d6a31;
-
-  --crumb-fg: #cfcfcf; /* readable breadcrumb text in dark */
 }
 
 :root[data-theme="light"] {
