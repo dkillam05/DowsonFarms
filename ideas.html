@@ -22,85 +22,106 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Keep extra room so actions never collide with Back button */
+    /* Extra breathing room at bottom so buttons never collide with Back FAB */
     .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Two equal columns, even on phones (only collapse on super-narrow screens) */
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;  /* Submitted by | Date  — same width */
-      gap: 10px 12px;                  /* tight vertical spacing */
-      align-items: start;
-    }
-    @media (max-width: 420px){
-      .row { grid-template-columns: 1fr; } /* only stack on very small screens */
+    /* Keep all full-width fields the SAME width by constraining the form */
+    .form-inner{
+      width: 100%;
+      max-width: 720px;   /* <- controls align to this width */
+      margin: 0 auto;
     }
 
-    /* Fields */
-    .field { margin: 8px 0; }
+    /* Spacing + field look (matches tile styling) */
+    .field { margin: 10px 0; }
     .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
-
-    /* Controls */
     select, input[type="text"], input[type="date"], textarea{
-      width:100%;
-      padding:10px;
+      width:100%; padding:10px;
       border:1px solid var(--tile-border);
       border-radius:8px;
-      background: var(--tile-bg);
-      color: var(--ink);
-      font-size:16px;
-      box-sizing:border-box;
+      background: var(--tile-bg); color: var(--ink);
+      font-size:16px; box-sizing:border-box;
     }
     textarea{ min-height:110px; }
 
+    /* Focus ring */
     .field input:focus, .field select:focus, .field textarea:focus{
-      outline:none; border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30);
+      outline:none; border-color: var(--tile-border);
+      box-shadow: 0 0 0 3px rgba(45,106,49,.30);
     }
 
-    .muted { color:#666; font-size:.9rem; }
+    /* Rows */
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > .field { flex:1 1 320px; }
 
-    /* “+ Add” mini buttons beside selects, without affecting column widths */
-    .inline-select { display:flex; align-items:center; gap:8px; }
-    .inline-select select{ flex:1 1 auto; min-width:0; }
+    /* Mini “+ Add” beside selects */
+    .mini-add { margin-left: 8px; }
     .mini-add button{
       background:#fff; color: var(--brand-green);
       border:1px solid var(--brand-green); border-radius:8px;
       padding:4px 8px; cursor:pointer; font-weight:700; font-size:.85rem;
-      white-space: nowrap;
     }
     :root[data-theme="dark"] .mini-add button,
-    :root[data-theme="auto"] .mini-add button{ background: var(--tile-bg); color: var(--ink); border-color: var(--tile-border); }
+    :root[data-theme="auto"] .mini-add button{
+      background: var(--tile-bg); color: var(--ink); border-color: var(--tile-border);
+    }
     .mini-add button:hover{ background:#fefefe; }
 
-    /* Actions row: center Submit, right side has Clear + Quick View */
+    /* Button row: submit centered; Clear + Quick View on the right together */
     .form-actions{
-      margin-top: 12px;
+      margin-top: 16px;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 8px;
+      align-items: center; gap: 10px;
     }
     .form-actions .center { justify-self: center; }
     .form-actions .right  { justify-self: end; display:flex; gap:8px; }
 
-    /* Buttons (reuse global look) */
     .btn-solid{
-      background: var(--brand-green); color:#fff; border:0; border-radius:12px;
-      padding:9px 14px; cursor:pointer; font: 600 .95rem 'Playfair Display', serif;
+      background: var(--brand-green); color:#fff;
+      border:0; border-radius:12px;
+      padding:9px 14px; cursor:pointer;
+      font: 600 .95rem 'Playfair Display', serif;
       box-shadow: 0 6px 18px rgba(0,0,0,.12);
     }
     .btn-solid:hover{ background:#154a18; }
+
     .btn-outline{
       background: var(--tile-bg); color: var(--brand-green);
-      border:2px solid var(--brand-green); border-radius:10px;
-      padding:6px 10px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
+      border:2px solid var(--brand-green);
+      border-radius:10px; padding:6px 10px; cursor:pointer;
+      font: 600 .9rem 'Playfair Display', serif;
     }
     :root[data-theme="dark"] .btn-outline,
-    :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
+    :root[data-theme="auto"] .btn-outline{
+      color: var(--ink); border-color: var(--tile-border);
+    }
     .btn-outline:hover{ background:#fefefe; }
 
-    /* Quick View styles now just button-look; NOT fixed to viewport */
-    .quick-btn { /* share the outline style, but keep a hook if we need it later */ }
+    /* Quick View modal */
+    .qv-backdrop{
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,.38);
+      z-index: 2000;
+    }
+    .qv-modal{
+      width: min(560px, 92vw);
+      background: var(--tile-bg);
+      border: 2px solid var(--tile-border, var(--brand-green));
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
+      padding: 14px;
+    }
+    .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
+    .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
+    .qv-item{
+      border: 1px solid var(--tile-border, var(--brand-green));
+      border-radius: 10px;
+      padding: 8px 10px; margin: 8px 0;
+      background: var(--tile-bg); color: var(--ink);
+    }
+    .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
   </style>
 
   <!-- Apply saved theme ASAP before paint -->
@@ -140,7 +161,7 @@
   <main class="content" data-has-form>
     <h1>💡 Ideas</h1>
 
-    <form id="idea-form" novalidate>
+    <form id="idea-form" novalidate class="form-inner">
       <div class="row">
         <div class="field">
           <label for="submittedBy">Submitted by</label>
@@ -154,16 +175,16 @@
       </div>
 
       <div class="row">
-        <div class="field">
+        <div class="field" style="min-width:280px;">
           <label for="menuSel">Menu</label>
-          <div class="inline-select">
+          <div style="display:flex; align-items:center;">
             <select id="menuSel" required></select>
             <span class="mini-add"><button type="button" id="addMenuBtn">+ Add</button></span>
           </div>
         </div>
-        <div class="field">
+        <div class="field" style="min-width:280px;">
           <label for="submenuSel">Submenu</label>
-          <div class="inline-select">
+          <div style="display:flex; align-items:center;">
             <select id="submenuSel" required></select>
             <span class="mini-add"><button type="button" id="addSubmenuBtn">+ Add</button></span>
           </div>
@@ -175,15 +196,15 @@
         <textarea id="message" required placeholder="Describe your idea…"></textarea>
       </div>
 
-      <!-- Actions -->
+      <!-- Buttons: Submit (center) + Clear & Quick View (right) -->
       <div class="form-actions">
         <div></div>
         <div class="center">
           <button class="btn-solid" type="submit">Submit Idea</button>
         </div>
         <div class="right">
+          <button class="btn-outline" type="button" id="quickViewBtn">Quick View</button>
           <button class="btn-outline" type="reset">Clear</button>
-          <button type="button" class="btn-outline quick-btn" id="quickViewBtn">Quick View</button>
         </div>
       </div>
     </form>
@@ -199,7 +220,7 @@
   </footer>
 
   <!-- Quick View modal -->
-  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
     <div class="qv-modal">
       <h2 id="qvTitle">Open Ideas</h2>
       <ul class="qv-list" id="qvList"></ul>
@@ -221,6 +242,7 @@
         ]));
       }
 
+      // Menus/Submenus (seed if missing)
       const DEFAULT_MENUS = {
         "Home": ["—"],
         "Crop Production": ["Planting","Spraying","Harvest"],
@@ -234,6 +256,7 @@
       };
       const MENUS = JSON.parse(localStorage.getItem('df_menus') || 'null') || DEFAULT_MENUS;
 
+      // DOM
       const bySel = document.getElementById('submittedBy');
       const dateEl = document.getElementById('submittedDate');
       const whoHint = document.getElementById('whoHint');
@@ -249,6 +272,7 @@
       const qvList = document.getElementById('qvList');
       const qvClose = document.getElementById('qvClose');
 
+      // Populate "Submitted by"
       function renderPeople(){
         const people = JSON.parse(localStorage.getItem('df_people'));
         const you = getCurrentUser();
@@ -266,6 +290,7 @@
         whoHint.textContent = bySel.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
       }
 
+      // Menus/Submenus
       function renderMenus(){
         menuSel.innerHTML = '';
         Object.keys(MENUS).forEach(name => {
@@ -286,6 +311,7 @@
         });
       }
 
+      // Date (Central) -> yyyy-mm-dd
       function todayCT(){
         const now = new Date();
         const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
@@ -295,6 +321,7 @@
         return `${y}-${m}-${d}`;
       }
 
+      // Add new menu/submenu
       function capFirst(s){ return (s||'').trim().replace(/^./, c => c.toUpperCase()); }
       function addMenu(){
         const raw = prompt('New menu name:');
@@ -319,12 +346,14 @@
         submenuSel.value = name;
       }
 
+      // Save Idea
       function saveIdea(data){
         const list = JSON.parse(localStorage.getItem('df_ideas') || '[]');
         list.push(data);
         localStorage.setItem('df_ideas', JSON.stringify(list));
       }
 
+      // Quick View (open items)
       function openQuickView(){
         qvList.innerHTML = '';
         const list = JSON.parse(localStorage.getItem('df_ideas') || '[]')
@@ -361,7 +390,7 @@
       qvClose.addEventListener('click', closeQuickView);
       qvBackdrop.addEventListener('click', (e)=>{ if(e.target===qvBackdrop) closeQuickView(); });
 
-      form.addEventListener('submit', (e) => {
+      document.getElementById('idea-form').addEventListener('submit', (e) => {
         e.preventDefault();
         if (!bySel.value || !dateEl.value || !menuSel.value || !submenuSel.value || !msgEl.value.trim()) {
           alert('Please complete all required fields.');
@@ -377,7 +406,7 @@
           ts: Date.now()
         };
         saveIdea(record);
-        form.reset();
+        e.target.reset();
         renderPeople();
         dateEl.value = todayCT();
         renderMenus();
