@@ -234,12 +234,29 @@ body.home-page .content h1 {
   border-color: var(--brand-green);
 }
 
-/* Required asterisk (core.js adds .is-required to .field) */
-.field.is-required > label::after {
-  content: " *";
-  color: #b00020;
-  font-weight: 700;
+/* --- iOS/Safari normalization so DATE matches SELECT width --- */
+.field select,
+.field input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
 }
+.field input[type="date"] {
+  padding-right: 12px;                    /* match select’s right inset */
+}
+.field input[type="date"]::-webkit-calendar-picker-indicator {
+  margin: 0; padding: 0;                  /* avoid hidden extra space on the right */
+}
+.field input[type="date"]::-webkit-datetime-edit {
+  padding: 0;                             /* prevent internal padding differences */
+}
+
+/* Keep fields in a row sharing space evenly, and allow shrink on small screens */
+.row { display:flex; gap:12px; flex-wrap:wrap; }
+.row > .field { flex: 1 1 0; min-width: 0; }  /* << allow true 50/50 and no overflow */
+
+/* ===== Single asterisk policy =====
+   We removed the old CSS-based asterisk to avoid duplicates.
+   The asterisk now comes ONLY from core.js (.req-star).   */
 
 /* Form actions: center primary, keep gaps, safe from Back button */
 .form-actions {
@@ -542,6 +559,3 @@ body.home-page .content h1 {
 :root[data-theme="dark"] .auth-modal .field input:focus{
   border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30); outline: none;
 }
-/* Keep controls in a row the same visual width */
-.row > .field { flex: 1 1 0; min-width: 260px; }
-
