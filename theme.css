@@ -98,15 +98,38 @@ body {
   border-bottom: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 1px 0 rgba(0,0,0,.08);
   z-index: var(--z-crumbs);
+  overflow: hidden; /* guardrail for long labels */
 }
+
 .breadcrumbs ol {
-  display: flex; align-items: center; gap: 6px;
-  list-style: none; margin: 0; padding: 0;
-  font-size: .85rem; font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: .85rem;
+  font-weight: 500;
+
+  flex: 1 1 auto;      /* let it shrink beside the Logout button */
+  min-width: 0;        /* allow ellipsis to actually apply */
+  white-space: nowrap; /* prevent wrapping */
+  overflow: hidden;    /* hide overflow */
+  text-overflow: ellipsis;
 }
-.breadcrumbs a { color: var(--crumb-fg); text-decoration: none; }
+.breadcrumbs ol li { white-space: nowrap; }
+
+.breadcrumbs a {
+  color: var(--crumb-fg);
+  text-decoration: none;
+}
 .breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep { color: var(--crumb-fg); opacity: .9; font-size: .85rem; }
+
+.breadcrumbs .sep {
+  color: var(--crumb-fg);
+  opacity: .9;
+  font-size: .85rem;
+}
 
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
@@ -121,13 +144,17 @@ body {
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  flex-shrink: 0; /* never let this squish */
 }
 .breadcrumbs .logout-btn:hover,
 .breadcrumbs .logout-btn:focus-visible {
   background: #154a18;
   outline: none;
 }
-@media (hover: none) { .breadcrumbs a { padding: 6px 2px; } }
+
+@media (hover: none) {
+  .breadcrumbs a { padding: 6px 2px; }
+}
 
 /* ===========================
    Content Wrapper
