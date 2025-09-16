@@ -7,6 +7,7 @@
    - Password visibility toggle (SVG eye)
    - Back button (default on all non-Home, non-Auth pages)
    - GLOBAL THEME (light/dark/auto) apply + listeners
+   - USER MANAGER (long-term): set/get/clear current user
    =========================== */
 
 "use strict";
@@ -47,6 +48,112 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
       if (e.key === "df_theme") apply(e.newValue || "auto");
     });
   } catch (_) {}
+})();
+
+/* ---------- USER MANAGER (long-term) ---------- */
+/*
+  Keys:
+    - df_current_user: plain string (e.g., "Jane Doe")
+    - df_profile: JSON string (optional) with { firstName, lastName, displayName }
+  Public API:
+    - window.setCurrentUser(nameOrObj)
+    - window.getCurrentUser()
+    - window.clearCurrentUser()
+*/
+(function bootUserManager(){
+  const USER_KEY = "df_current_user";
+  const PROFILE_KEY = "df_profile";
+
+  // Capitalize first letter; leaves the rest as-is
+  function capFirst(s){
+    if (!s || typeof s !== "string") return "";
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Build a nice display name from various shapes
+  function makeDisplayName(input){
+    try {
+      if (!input) return "";
+      if (typeof input === "string") {
+        // Allow "john doe" -> "John Doe"
+        return input.split(/\s+/).filter(Boolean).map(capFirst).join(" ").trim();
+      }
+      if (typeof input === "object") {
+        const dn = input.displayName && String(input.displayName).trim();
+        if (dn) return dn.split(/\s+/).map(capFirst).join(" ");
+        const fn = input.firstName ? capFirst(String(input.firstName).trim()) : "";
+        const ln = input.lastName  ? capFirst(String(input.lastName).trim())  : "";
+        return [fn, ln].filter(Boolean).join(" ").trim();
+      }
+      return "";
+    } catch(_) { return ""; }
+  }
+
+  function setCurrentUser(nameOrObj){
+    try {
+      const display = makeDisplayName(nameOrObj) || "Admin";
+      localStorage.setItem(USER_KEY, display);
+      // If object, persist a lightweight profile for future boots
+      if (nameOrObj && typeof nameOrObj === "object") {
+        const profile = {
+          firstName: nameOrObj.firstName ? capFirst(String(nameOrObj.firstName)) : undefined,
+          lastName:  nameOrObj.lastName  ? capFirst(String(nameOrObj.lastName))  : undefined,
+          displayName: display
+        };
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      }
+    } catch(_) {}
+    return getCurrentUser();
+  }
+
+  function getCurrentUser(){
+    try {
+      const s = localStorage.getItem(USER_KEY);
+      if (s && s.trim()) return s;
+    } catch(_) {}
+    return "Admin"; // safe fallback
+  }
+
+  function clearCurrentUser(){
+    try {
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(PROFILE_KEY);
+    } catch(_) {}
+  }
+
+  // Seed on first load (without overwriting an explicit login)
+  (function seedIfMissing(){
+    try {
+      const existing = localStorage.getItem(USER_KEY);
+      if (existing && existing.trim()) return; // already set by login/previous session
+
+      // Prefer a saved profile if present
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if (raw) {
+        try {
+          const obj = JSON.parse(raw);
+          const display = makeDisplayName(obj) || "Admin";
+          localStorage.setItem(USER_KEY, display);
+          return;
+        } catch(_) {}
+      }
+
+      // Final fallback
+      localStorage.setItem(USER_KEY, "Admin");
+    } catch(_) {}
+  })();
+
+  // Expose helpers app-wide
+  window.setCurrentUser = setCurrentUser;
+  window.getCurrentUser = getCurrentUser;
+  window.clearCurrentUser = clearCurrentUser;
+
+  // Keep other tabs in sync if user changes elsewhere
+  window.addEventListener("storage", (e) => {
+    if (e.key === USER_KEY || e.key === PROFILE_KEY) {
+      // No UI repaint needed here; pages read on demand.
+    }
+  });
 })();
 
 /* ---------- Utility: Central Time date ---------- */
@@ -175,6 +282,12 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
 /* ---------- Global Logout handler ---------- */
 window.handleLogout = async function handleLogout() {
   try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}
+
+  // Also clear current user and profile (explicit)
+  try {
+    localStorage.removeItem("df_current_user");
+    localStorage.removeItem("df_profile");
+  } catch(_) {}
 
   try {
     if ("caches" in window) {
