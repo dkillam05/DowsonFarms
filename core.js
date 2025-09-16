@@ -2,7 +2,7 @@
    Dowson Farms — core.js
    - Global HH:MM clock (Central Time, minute-synced)
    - Footer version + date injection
-   - Breadcrumbs helper (+ home-page scrub)
+   - Breadcrumbs helper (smart truncation)
    - Logout button injection + handler
    - Password visibility toggle (SVG eye)
    - Back button (default on all non-Home, non-Auth pages)
@@ -212,21 +212,40 @@ function formatCTDate(d = new Date()) {
   });
 })();
 
-/* ---------- Breadcrumbs helper (with home-page scrub) ---------- */
+/* ---------- Breadcrumbs: render + smart truncation (never collide with Logout) ---------- */
 window.setBreadcrumbs = function setBreadcrumbs(parts) {
   try {
-    const ol = document.querySelector(".breadcrumbs ol");
+    const nav = document.querySelector(".breadcrumbs");
+    const ol  = nav?.querySelector("ol");
     if (!ol || !Array.isArray(parts)) return;
 
     // Normalize input
     let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
 
-    // If we're on the main home page, force crumbs to just "Home"
+    // Home-page scrub
     if (document.body.classList.contains("home-page")) {
       norm = [{ label: "Home", href: "index.html" }];
     } else {
-      // On other pages, drop any accidental "Dashboard" entries
+      // Drop any accidental "Dashboard"
       norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
+    }
+
+    // Helper: create crumb (link for non-last; span for last)
+    function makeCrumb(obj, isLast, index, count) {
+      const el = document.createElement(isLast ? "span" : "a");
+      el.textContent = obj.label;
+      if (!isLast) el.href = obj.href || "#";
+
+      // Truncate middle crumbs only (keep first & last full)
+      const isMiddle = index !== 0 && index !== count - 1;
+      if (isMiddle) {
+        el.style.maxWidth = "120px";
+        el.style.overflow = "hidden";
+        el.style.textOverflow = "ellipsis";
+        el.style.whiteSpace = "nowrap";
+        el.title = obj.label; // tooltip with full text
+      }
+      return el;
     }
 
     // Render
@@ -234,18 +253,7 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     norm.forEach((p, i) => {
       const li = document.createElement("li");
       const isLast = i === norm.length - 1;
-
-      if (!isLast) {
-        const a = document.createElement("a");
-        a.textContent = p.label;
-        a.href = p.href || "#";
-        li.appendChild(a);
-      } else {
-        const span = document.createElement("span");
-        span.textContent = p.label;
-        li.appendChild(span);
-      }
-
+      li.appendChild(makeCrumb(p, isLast, i, norm.length));
       ol.appendChild(li);
 
       if (!isLast) {
@@ -255,19 +263,23 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
         ol.appendChild(sep);
       }
     });
+
+    // Defensive: ensure crumbs never wrap beneath Logout
+    // (let the list take remaining space and clip from the middle crumbs)
+    nav.style.display = "flex";
+    nav.style.alignItems = "center";
+    ol.style.flex = "1 1 auto";
+    ol.style.overflow = "hidden";
+    ol.style.whiteSpace = "nowrap";
   } catch (_) {}
 };
 
 /* ---------- Home-page breadcrumb scrub (defensive) ---------- */
-/* If the page is marked as the home page, rewrite the breadcrumb
-   to only "Home" even if the HTML was hard-coded or someone called
-   setBreadcrumbs with extra parts like "Dashboard". */
 (function scrubHomeBreadcrumb() {
   function apply() {
     if (!document.body.classList.contains("home-page")) return;
     const ol = document.querySelector(".breadcrumbs ol");
     if (!ol) return;
-    // If anything other than a single "Home" is present, fix it
     const text = (ol.textContent || "").toLowerCase();
     const looksWrong = text.includes("dashboard") || text.includes("›") || ol.children.length !== 1;
     if (looksWrong) {
@@ -292,7 +304,6 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
 (function addLogoutToBreadcrumbs() {
   document.addEventListener("DOMContentLoaded", () => {
     if (document.body.classList.contains("auth-page")) return; // never on login
-
     const nav = document.querySelector(".breadcrumbs");
     if (!nav) return;
 
