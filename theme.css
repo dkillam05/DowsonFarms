@@ -479,3 +479,85 @@ body.home-page .content h1 {
 }
 
 /* Keep the notch/bottom bands using your dark vars (already set via --auth-edge-bg) */
+
+/* ========== Dark-mode: make login card + form fields match tiles ========== */
+/* Auto → dark */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .auth-card,
+  :root[data-theme="auto"] .auth-modal,
+  :root[data-theme="auto"] .auth-card input[type="text"],
+  :root[data-theme="auto"] .auth-card input[type="email"],
+  :root[data-theme="auto"] .auth-card input[type="password"],
+  :root[data-theme="auto"] .auth-modal input[type="text"],
+  :root[data-theme="auto"] .auth-modal input[type="email"],
+  :root[data-theme="auto"] .auth-modal input[type="password"]{
+    background: var(--tile-bg);
+    border-color: var(--tile-border);
+    color: var(--ink);
+  }
+
+  :root[data-theme="auto"] .auth-card,
+  :root[data-theme="auto"] .auth-modal{
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(0,0,0,.25);
+  }
+
+  :root[data-theme="auto"] .auth-card .field label,
+  :root[data-theme="auto"] .auth-modal .field label{
+    color: var(--ink); /* readable label in dark */
+  }
+
+  :root[data-theme="auto"] .auth-card ::placeholder,
+  :root[data-theme="auto"] .auth-modal ::placeholder{
+    color: rgba(232,230,223,.65); /* subtle light placeholder */
+  }
+
+  :root[data-theme="auto"] .auth-card .field input:focus,
+  :root[data-theme="auto"] .auth-modal .field input:focus{
+    border-color: var(--tile-border);
+    box-shadow: 0 0 0 3px rgba(45,106,49,.30); /* soft green glow */
+    outline: none;
+  }
+}
+
+/* Forced dark */
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .auth-modal,
+:root[data-theme="dark"] .auth-card input[type="text"],
+:root[data-theme="dark"] .auth-card input[type="email"],
+:root[data-theme="dark"] .auth-card input[type="password"],
+:root[data-theme="dark"] .auth-modal input[type="text"],
+:root[data-theme="dark"] .auth-modal input[type="email"],
+:root[data-theme="dark"] .auth-modal input[type="password"]{
+  background: var(--tile-bg);
+  border-color: var(--tile-border);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .auth-modal{
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.25);
+}
+
+:root[data-theme="dark"] .auth-card .field label,
+:root[data-theme="dark"] .auth-modal .field label{
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .auth-card ::placeholder,
+:root[data-theme="dark"] .auth-modal ::placeholder{
+  color: rgba(232,230,223,.65);
+}
+
+:root[data-theme="dark"] .auth-card .field input:focus,
+:root[data-theme="dark"] .auth-modal .field input:focus{
+  border-color: var(--tile-border);
+  box-shadow: 0 0 0 3px rgba(45,106,49,.30);
+  outline: none;
+}
+
