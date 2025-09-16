@@ -2,7 +2,7 @@
    Dowson Farms — core.js
    - Global HH:MM clock (Central Time, minute-synced)
    - Footer version + date injection
-   - Breadcrumbs helper
+   - Breadcrumbs helper (+ home-page scrub)
    - Logout button injection + handler
    - Password visibility toggle (SVG eye)
    - Back button (default on all non-Home, non-Auth pages)
@@ -212,21 +212,25 @@ function formatCTDate(d = new Date()) {
   });
 })();
 
-/* ---------- Breadcrumbs helper ---------- */
+/* ---------- Breadcrumbs helper (with home-page scrub) ---------- */
 window.setBreadcrumbs = function setBreadcrumbs(parts) {
   try {
     const ol = document.querySelector(".breadcrumbs ol");
     if (!ol || !Array.isArray(parts)) return;
-    ol.innerHTML = "";
 
     // Normalize input
     let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
 
-    // On home-page, drop "Dashboard" entirely so only "Home" shows
+    // If we're on the main home page, force crumbs to just "Home"
     if (document.body.classList.contains("home-page")) {
-      norm = norm.filter(p => p.label !== "Dashboard");
+      norm = [{ label: "Home", href: "index.html" }];
+    } else {
+      // On other pages, drop any accidental "Dashboard" entries
+      norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
     }
 
+    // Render
+    ol.innerHTML = "";
     norm.forEach((p, i) => {
       const li = document.createElement("li");
       const isLast = i === norm.length - 1;
@@ -253,6 +257,36 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     });
   } catch (_) {}
 };
+
+/* ---------- Home-page breadcrumb scrub (defensive) ---------- */
+/* If the page is marked as the home page, rewrite the breadcrumb
+   to only "Home" even if the HTML was hard-coded or someone called
+   setBreadcrumbs with extra parts like "Dashboard". */
+(function scrubHomeBreadcrumb() {
+  function apply() {
+    if (!document.body.classList.contains("home-page")) return;
+    const ol = document.querySelector(".breadcrumbs ol");
+    if (!ol) return;
+    // If anything other than a single "Home" is present, fix it
+    const text = (ol.textContent || "").toLowerCase();
+    const looksWrong = text.includes("dashboard") || text.includes("›") || ol.children.length !== 1;
+    if (looksWrong) {
+      ol.innerHTML = "";
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = "index.html";
+      a.textContent = "Home";
+      li.appendChild(a);
+      ol.appendChild(li);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", apply);
+  } else {
+    apply();
+  }
+})();
 
 /* ---------- Inject Logout into breadcrumbs (everywhere except auth) ---------- */
 (function addLogoutToBreadcrumbs() {
