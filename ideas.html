@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Ideas — Dowson Farms</title>
+
+  <!-- Styles / App -->
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+
+  <style>
+    /* Quick View button (mirrors Back button theme) */
+    .quick-fab{
+      position: fixed;
+      right: 10px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px;
+      background: #fff;
+      color: var(--brand-green);
+      border: 2px solid var(--brand-green);
+      border-radius: 12px;
+      font: 600 .9rem 'Playfair Display', serif;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+      cursor: pointer;
+      z-index: calc(var(--z-footer) + 10);
+    }
+    .quick-fab:hover, .quick-fab:focus-visible { background:#fefefe; outline: none; }
+
+    /* Simple modal for Quick View */
+    .qv-backdrop{
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,.38);
+      z-index: 2000;
+    }
+    .qv-modal{
+      width: min(560px, 92vw);
+      background: var(--tile-bg, #fff);
+      border: 2px solid var(--brand-green);
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
+      padding: 14px;
+    }
+    .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
+    .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
+    .qv-item{
+      border: 1px solid var(--brand-green);
+      border-radius: 10px;
+      padding: 8px 10px; margin: 8px 0;
+      background: #fff;
+    }
+    :root[data-theme="dark"] .qv-item,
+    :root[data-theme="auto"] .qv-item { background: var(--tile-bg, #1c1f18); }
+    .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+    .btn-outline{
+      background:#fff;
+      color: var(--brand-green);
+      border:2px solid var(--brand-green);
+      border-radius:10px;
+      padding:6px 10px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
+    }
+    .btn-outline:hover{ background:#fefefe; }
+    .field { margin: 10px 0; }
+    .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > .field { flex: 1 1 220px; }
+
+    .actions { margin-top: 14px; display:flex; gap:8px; }
+    .btn-solid{
+      background: var(--brand-green);
+      color:#fff;
+      border:0; border-radius:12px;
+      padding:9px 14px; cursor:pointer;
+      font: 600 .95rem 'Playfair Display', serif;
+      box-shadow: 0 6px 18px rgba(0,0,0,.12);
+    }
+    .btn-solid:hover{ background:#154a18; }
+
+    .mini-add { margin-left: 8px; }
+    .mini-add button{
+      background:#fff; color: var(--brand-green);
+      border:1px solid var(--brand-green); border-radius:8px;
+      padding:4px 8px; cursor:pointer; font-weight:700; font-size:.85rem;
+    }
+    .mini-add button:hover{ background:#fefefe; }
+
+    textarea{ width:100%; min-height:110px; box-sizing:border-box; padding:10px; border:1px solid var(--brand-green); border-radius:8px; font-size:16px; }
+    select, input[type="text"], input[type="date"]{ width:100%; padding:10px; border:1px solid var(--brand-green); border-radius:8px; font-size:16px; }
+  </style>
+
+  <!-- Apply saved theme ASAP before paint -->
+  <script>
+    (function bootTheme(){
+      try {
+        const saved = localStorage.getItem('df_theme') || 'auto';
+        document.documentElement.setAttribute('data-theme', saved);
+      } catch(_) {}
+    })();
+  </script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right">
+      <span id="clock" class="clock">--:--</span>
+    </div>
+  </header>
+
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="feedback.html">Feedback</a></li>
+      <li class="sep">›</li>
+      <li><span>Ideas</span></li>
+    </ol>
+  </nav>
+
+  <!-- Content -->
+  <main class="content" data-has-form>
+    <h1>💡 Ideas</h1>
+
+    <form id="idea-form" novalidate>
+      <div class="row">
+        <div class="field">
+          <label for="submittedBy">Submitted by</label>
+          <select id="submittedBy" required></select>
+          <small id="whoHint" class="muted"></small>
+        </div>
+        <div class="field">
+          <label for="submittedDate">Date submitted</label>
+          <input id="submittedDate" type="date" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="menuSel">Menu</label>
+          <div style="display:flex; align-items:center;">
+            <select id="menuSel" required></select>
+            <span class="mini-add"><button type="button" id="addMenuBtn">+ Add</button></span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="submenuSel">Submenu</label>
+          <div style="display:flex; align-items:center;">
+            <select id="submenuSel" required></select>
+            <span class="mini-add"><button type="button" id="addSubmenuBtn">+ Add</button></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" required placeholder="Describe your idea…"></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn-solid" type="submit">Submit Idea</button>
+        <button class="btn-outline" type="reset">Clear</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Quick View button -->
+  <button type="button" class="quick-fab" id="quickViewBtn">Quick View</button>
+
+  <!-- Quick View modal -->
+  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+    <div class="qv-modal">
+      <h2 id="qvTitle">Open Ideas</h2>
+      <ul class="qv-list" id="qvList"></ul>
+      <div class="qv-actions">
+        <button class="btn-outline" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function IdeasPage(){
+      // --- Mock/current user helpers ---
+      function getCurrentUser(){
+        // If you save a name somewhere (e.g., after login), read it here:
+        // localStorage.setItem('df_current_user', 'John Doe');
+        return localStorage.getItem('df_current_user') || '';
+      }
+      function capFirst(s){ return (s||'').trim().replace(/^./, c => c.toUpperCase()); }
+
+      // --- Employees/Subcontractors list (can be replaced by real data) ---
+      const EMPLOYEES = JSON.parse(localStorage.getItem('df_people') || '[]');
+      // If none saved yet, seed a small demo set:
+      if (!EMPLOYEES.length) {
+        const seed = [
+          {name:'John Doe'}, {name:'Jane Smith'}, {name:'Sam Operator'}, {name:'Vendor Co.'}
+        ];
+        localStorage.setItem('df_people', JSON.stringify(seed));
+      }
+
+      // --- Menus/Submenus (seed from your app structure; editable in Ideas) ---
+      const DEFAULT_MENUS = {
+        "Home": ["—"],
+        "Crop Production": ["Planting","Spraying","Harvest"],
+        "Grain Tracking": ["Bins","Tickets","Contracts"],
+        "Equipment": ["Maintenance","Repairs","Assignments"],
+        "Calculators": ["Seed Rate","Fertilizer","ROI"],
+        "Reports": ["Crops","Equipment","Financial"],
+        "Team / Partners": ["Employees","Vendors"],
+        "Feedback": ["Ideas","Bugs / Issues"],
+        "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+      };
+      const MENUS = JSON.parse(localStorage.getItem('df_menus') || 'null') || DEFAULT_MENUS;
+
+      // --- DOM ---
+      const bySel = document.getElementById('submittedBy');
+      const dateEl = document.getElementById('submittedDate');
+      const whoHint = document.getElementById('whoHint');
+      const menuSel = document.getElementById('menuSel');
+      const submenuSel = document.getElementById('submenuSel');
+      const msgEl = document.getElementById('message');
+      const addMenuBtn = document.getElementById('addMenuBtn');
+      const addSubmenuBtn = document.getElementById('addSubmenuBtn');
+      const form = document.getElementById('idea-form');
+
+      const qvBtn = document.getElementById('quickViewBtn');
+      const qvBackdrop = document.getElementById('qvBackdrop');
+      const qvList = document.getElementById('qvList');
+      const qvClose = document.getElementById('qvClose');
+
+      // --- Populate "Submitted by" ---
+      function renderPeople(){
+        const people = JSON.parse(localStorage.getItem('df_people'));
+        const you = getCurrentUser();
+        bySel.innerHTML = '';
+        people.forEach((p, idx) => {
+          const opt = document.createElement('option');
+          opt.value = p.name;
+          opt.textContent = p.name + (you && you === p.name ? ' (You)' : '');
+          bySel.appendChild(opt);
+        });
+        if (you) {
+          const found = [...bySel.options].find(o => o.value === you);
+          if (found) bySel.value = you;
+        }
+        whoHint.textContent = bySel.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
+      }
+
+      // --- Populate Menus/Submenus ---
+      function renderMenus(){
+        menuSel.innerHTML = '';
+        Object.keys(MENUS).forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          menuSel.appendChild(opt);
+        });
+        renderSubmenus(menuSel.value);
+      }
+      function renderSubmenus(menu){
+        submenuSel.innerHTML = '';
+        (MENUS[menu] || []).forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          submenuSel.appendChild(opt);
+        });
+      }
+
+      // Date (Central)
+      function todayCT(){
+        const now = new Date();
+        const tz = 'America/Chicago';
+        // get yyyy-mm-dd in CT
+        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
+        const y = parts.find(p=>p.type==='year').value;
+        const m = parts.find(p=>p.type==='month').value;
+        const d = parts.find(p=>p.type==='day').value;
+        return `${y}-${m}-${d}`;
+      }
+
+      // Add new menu/submenu (Ideas only)
+      function addMenu(){
+        const raw = prompt('New menu name:');
+        if (!raw) return;
+        const name = capFirst(raw);
+        if (!MENUS[name]) MENUS[name] = ['—'];
+        localStorage.setItem('df_menus', JSON.stringify(MENUS));
+        renderMenus();
+        menuSel.value = name;
+        renderSubmenus(name);
+      }
+      function addSubmenu(){
+        const menu = menuSel.value;
+        if (!menu) return alert('Choose a menu first.');
+        const raw = prompt(`New submenu for "${menu}":`);
+        if (!raw) return;
+        const name = capFirst(raw);
+        if (!MENUS[menu]) MENUS[menu] = [];
+        if (!MENUS[menu].includes(name)) MENUS[menu].push(name);
+        localStorage.setItem('df_menus', JSON.stringify(MENUS));
+        renderSubmenus(menu);
+        submenuSel.value = name;
+      }
+
+      // Save Idea
+      function saveIdea(data){
+        const list = JSON.parse(localStorage.getItem('df_ideas') || '[]');
+        list.push(data);
+        localStorage.setItem('df_ideas', JSON.stringify(list));
+      }
+
+      // Quick View (open items)
+      function openQuickView(){
+        qvList.innerHTML = '';
+        const list = JSON.parse(localStorage.getItem('df_ideas') || '[]')
+          .filter(i => i.status !== 'closed' && i.status !== 'archived');
+        if (!list.length) {
+          const li = document.createElement('li');
+          li.className = 'qv-item';
+          li.textContent = 'No open ideas.';
+          qvList.appendChild(li);
+        } else {
+          list.forEach(i => {
+            const li = document.createElement('li');
+            li.className = 'qv-item';
+            li.innerHTML = `<strong>${i.menu} › ${i.submenu}</strong><br>
+                            <em>${i.submittedBy}</em> • ${i.date}<br>
+                            ${i.message}`;
+            qvList.appendChild(li);
+          });
+        }
+        qvBackdrop.style.display = 'flex';
+      }
+      function closeQuickView(){ qvBackdrop.style.display = 'none'; }
+
+      // Init
+      renderPeople();
+      dateEl.value = todayCT();
+      renderMenus();
+
+      menuSel.addEventListener('change', () => renderSubmenus(menuSel.value));
+      addMenuBtn.addEventListener('click', addMenu);
+      addSubmenuBtn.addEventListener('click', addSubmenu);
+
+      qvBtn.addEventListener('click', openQuickView);
+      qvClose.addEventListener('click', closeQuickView);
+      qvBackdrop.addEventListener('click', (e)=>{ if(e.target===qvBackdrop) closeQuickView(); });
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!bySel.value || !dateEl.value || !menuSel.value || !submenuSel.value || !msgEl.value.trim()) {
+          alert('Please complete all required fields.');
+          return;
+        }
+        const record = {
+          submittedBy: bySel.value.replace(/\s+\(You\)$/,''),
+          date: dateEl.value,
+          menu: menuSel.value,
+          submenu: submenuSel.value,
+          message: msgEl.value.trim(),
+          status: 'open',
+          ts: Date.now()
+        };
+        saveIdea(record);
+        form.reset();
+        renderPeople();            // keeps Submitted by options, clears selection
+        dateEl.value = todayCT();  // reset date to today
+        renderMenus();             // refresh dropdowns
+        alert('Idea submitted!');
+      });
+
+      // Breadcrumbs (make sure it’s Home › Feedback › Ideas)
+      window.setBreadcrumbs?.([
+        {label:'Home', href:'index.html'},
+        {label:'Feedback', href:'feedback.html'},
+        {label:'Ideas'}
+      ]);
+    })();
+  </script>
+
+  <!-- Service worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
