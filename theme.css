@@ -88,27 +88,30 @@ body {
 
 /* ===========================
    Breadcrumbs (fixed under header)
-   - Calm tan bar (same as footer), text follows --ink
+   - Calm tan bar (same as footer), smaller + softer text
    =========================== */
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
   height: var(--crumb-h);
   display: flex; align-items: center; justify-content: space-between;
-  background: var(--auth-edge-bg);
-  color: var(--ink);
+  background: var(--auth-edge-bg);   /* match footer color */
+  color: var(--crumb-fg);
   padding: 0 var(--pad-x);
   border-bottom: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 1px 0 rgba(0,0,0,.08);
   z-index: var(--z-crumbs);
 }
+
 .breadcrumbs ol {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 6px;
   list-style: none; margin: 0; padding: 0;
-  font-size: .95rem; font-weight: 700;
+  font-size: .85rem; font-weight: 500;   /* smaller + softer */
 }
-.breadcrumbs a { color: var(--ink); text-decoration: none; }
+
+.breadcrumbs a { color: var(--crumb-fg); text-decoration: none; }
 .breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep { color: var(--ink); opacity: .95; }
+.breadcrumbs .sep { color: var(--crumb-fg); opacity: .9; font-size: .85rem; }
+
 
 /* ===========================
    Global Logout button (breadcrumbs)
