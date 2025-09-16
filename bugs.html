@@ -24,43 +24,51 @@
   <style>
     .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Match Ideas page: force identical control width by constraining form */
-    .form-inner{
-      width:100%;
-      max-width: 600px;
-      margin: 0 auto;
-    }
+    /* Uniform rows */
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > .field { flex:1 1 0; min-width:260px; }
 
     .field { margin: 10px 0; }
     .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
-    select, input[type="text"], input[type="date"], textarea{
-      width:100%; padding:10px;
+
+    select,
+    input[type="text"],
+    input[type="date"],
+    textarea{
+      width:100%;
+      padding:10px;
       border:1px solid var(--tile-border);
       border-radius:8px;
-      background: var(--tile-bg); color: var(--ink);
-      font-size:16px; box-sizing:border-box;
+      background: var(--tile-bg);
+      color: var(--ink);
+      font-size:16px;
+      box-sizing:border-box;
     }
     textarea{ min-height:110px; }
 
-    .field input:focus, .field select:focus, .field textarea:focus{
-      outline:none; border-color: var(--tile-border);
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus{
+      outline:none;
+      border-color: var(--tile-border);
       box-shadow: 0 0 0 3px rgba(45,106,49,.30);
     }
 
-    .row { display:flex; gap:12px; flex-wrap:wrap; }
-    .row > .field { flex:1 1 320px; }
+    .muted { color:#666; font-size:.9rem; }
 
     .form-actions{
       margin-top: 16px;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
-      align-items: center; gap: 10px;
+      align-items: center;
+      gap: 8px;
     }
     .form-actions .center { justify-self: center; }
-    .form-actions .right  { justify-self: end; display:flex; gap:8px; }
+    .form-actions .right  { justify-self: end; }
 
     .btn-solid{
-      background: var(--brand-green); color:#fff;
+      background: var(--brand-green);
+      color:#fff;
       border:0; border-radius:12px;
       padding:9px 14px; cursor:pointer;
       font: 600 .95rem 'Playfair Display', serif;
@@ -69,41 +77,15 @@
     .btn-solid:hover{ background:#154a18; }
 
     .btn-outline{
-      background: var(--tile-bg); color: var(--brand-green);
+      background: var(--tile-bg);
+      color: var(--brand-green);
       border:2px solid var(--brand-green);
-      border-radius:10px; padding:6px 10px; cursor:pointer;
-      font: 600 .9rem 'Playfair Display', serif;
+      border-radius:10px;
+      padding:6px 10px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
     }
     :root[data-theme="dark"] .btn-outline,
-    :root[data-theme="auto"] .btn-outline{
-      color: var(--ink); border-color: var(--tile-border);
-    }
+    :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
     .btn-outline:hover{ background:#fefefe; }
-
-    /* Quick View modal */
-    .qv-backdrop{
-      position: fixed; inset: 0; display: none;
-      align-items: center; justify-content: center;
-      background: rgba(0,0,0,.38);
-      z-index: 2000;
-    }
-    .qv-modal{
-      width: min(560px, 92vw);
-      background: var(--tile-bg);
-      border: 2px solid var(--tile-border, var(--brand-green));
-      border-radius: 14px;
-      box-shadow: 0 18px 40px rgba(0,0,0,.25);
-      padding: 14px;
-    }
-    .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
-    .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
-    .qv-item{
-      border: 1px solid var(--tile-border, var(--brand-green));
-      border-radius: 10px;
-      padding: 8px 10px; margin: 8px 0;
-      background: var(--tile-bg); color: var(--ink);
-    }
-    .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
   </style>
 
   <!-- Apply saved theme ASAP before paint -->
@@ -143,7 +125,7 @@
   <main class="content" data-has-form>
     <h1>🛠️ Bugs / Issues</h1>
 
-    <form id="bug-form" novalidate class="form-inner">
+    <form id="bug-form" novalidate>
       <div class="row">
         <div class="field">
           <label for="submittedBy">Submitted by</label>
@@ -178,7 +160,6 @@
           <button class="btn-solid" type="submit">Submit Issue</button>
         </div>
         <div class="right">
-          <button class="btn-outline" type="button" id="quickViewBtn">Quick View</button>
           <button class="btn-outline" type="reset">Clear</button>
         </div>
       </div>
@@ -194,22 +175,13 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View modal -->
-  <div class="qv-backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
-    <div class="qv-modal">
-      <h2 id="qvTitle">Open Issues</h2>
-      <ul class="qv-list" id="qvList"></ul>
-      <div class="qv-actions">
-        <button class="btn-outline" id="qvClose">Close</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     (function BugsPage(){
+      const ADD_VALUE = "__ADD_NEW__";
+      const ADD_LABEL = "Add New";
+
       const getCurrentUser = (window.getCurrentUser) ? window.getCurrentUser : () => localStorage.getItem('df_current_user') || '';
 
-      // Seed people if missing
       const EMPLOYEES = JSON.parse(localStorage.getItem('df_people') || '[]');
       if (!EMPLOYEES.length) {
         localStorage.setItem('df_people', JSON.stringify([
@@ -217,7 +189,6 @@
         ]));
       }
 
-      // Menus/Submenus
       const DEFAULT_MENUS = {
         "Home": ["—"],
         "Crop Production": ["Planting","Spraying","Harvest"],
@@ -237,11 +208,7 @@
       const menuSel = document.getElementById('menuSel');
       const submenuSel = document.getElementById('submenuSel');
       const msgEl = document.getElementById('message');
-
-      const qvBtn = document.getElementById('quickViewBtn');
-      const qvBackdrop = document.getElementById('qvBackdrop');
-      const qvList = document.getElementById('qvList');
-      const qvClose = document.getElementById('qvClose');
+      const form = document.getElementById('bug-form');
 
       function renderPeople(){
         const people = JSON.parse(localStorage.getItem('df_people'));
@@ -260,6 +227,14 @@
         whoHint.textContent = bySel.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
       }
 
+      function addSpecialAddOption(selectEl){
+        const opt = document.createElement('option');
+        opt.value = ADD_VALUE;
+        opt.textContent = ADD_LABEL;
+        opt.dataset.add = "1";
+        selectEl.appendChild(opt);
+      }
+
       function renderMenus(){
         menuSel.innerHTML = '';
         Object.keys(MENUS).forEach(name => {
@@ -268,8 +243,10 @@
           opt.textContent = name;
           menuSel.appendChild(opt);
         });
+        addSpecialAddOption(menuSel);
         renderSubmenus(menuSel.value);
       }
+
       function renderSubmenus(menu){
         submenuSel.innerHTML = '';
         (MENUS[menu] || []).forEach(name => {
@@ -278,6 +255,7 @@
           opt.textContent = name;
           submenuSel.appendChild(opt);
         });
+        addSpecialAddOption(submenuSel);
       }
 
       function todayCT(){
@@ -295,39 +273,41 @@
         localStorage.setItem('df_bugs', JSON.stringify(list));
       }
 
-      function openQuickView(){
-        qvList.innerHTML = '';
-        const list = JSON.parse(localStorage.getItem('df_bugs') || '[]')
-          .filter(i => i.status !== 'closed' && i.status !== 'archived');
-        if (!list.length) {
-          const li = document.createElement('li');
-          li.className = 'qv-item';
-          li.textContent = 'No open issues.';
-          qvList.appendChild(li);
-        } else {
-          list.forEach(i => {
-            const li = document.createElement('li');
-            li.className = 'qv-item';
-            li.innerHTML = `<strong>${i.menu} › ${i.submenu}</strong><br>
-                            <em>${i.submittedBy}</em> • ${i.date}<br>
-                            ${i.message}`;
-            qvList.appendChild(li);
-          });
-        }
-        qvBackdrop.style.display = 'flex';
+      function promptCap(msg){
+        const raw = prompt(msg);
+        if (!raw) return null;
+        return raw.trim().replace(/^./, c => c.toUpperCase());
       }
-      function closeQuickView(){ qvBackdrop.style.display = 'none'; }
+
+      menuSel.addEventListener('change', () => {
+        if (menuSel.value !== ADD_VALUE) { renderSubmenus(menuSel.value); return; }
+        const name = promptCap('New menu name:');
+        if (!name) { renderMenus(); return; }
+        if (!MENUS[name]) MENUS[name] = ['—'];
+        localStorage.setItem('df_menus', JSON.stringify(MENUS));
+        renderMenus();
+        menuSel.value = name;
+        renderSubmenus(name);
+      });
+
+      submenuSel.addEventListener('change', () => {
+        if (submenuSel.value !== ADD_VALUE) return;
+        const menu = menuSel.value;
+        const name = promptCap(`New submenu for "${menu}":`);
+        if (!name) { renderSubmenus(menu); return; }
+        if (!MENUS[menu]) MENUS[menu] = [];
+        if (!MENUS[menu].includes(name)) MENUS[menu].push(name);
+        localStorage.setItem('df_menus', JSON.stringify(MENUS));
+        renderSubmenus(menu);
+        submenuSel.value = name;
+      });
 
       // Init
       renderPeople();
       dateEl.value = todayCT();
       renderMenus();
 
-      qvBtn.addEventListener('click', openQuickView);
-      qvClose.addEventListener('click', closeQuickView);
-      qvBackdrop.addEventListener('click', (e)=>{ if(e.target===qvBackdrop) closeQuickView(); });
-
-      document.getElementById('bug-form').addEventListener('submit', (e) => {
+      form.addEventListener('submit', (e) => {
         e.preventDefault();
         if (!bySel.value || !dateEl.value || !menuSel.value || !submenuSel.value || !msgEl.value.trim()) {
           alert('Please complete all required fields.');
@@ -343,14 +323,13 @@
           ts: Date.now()
         };
         saveIssue(record);
-        e.target.reset();
+        form.reset();
         renderPeople();
         dateEl.value = todayCT();
         renderMenus();
         alert('Issue submitted!');
       });
 
-      // Breadcrumbs
       window.setBreadcrumbs?.([
         {label:'Home', href:'index.html'},
         {label:'Feedback', href:'feedback.html'},
