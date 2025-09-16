@@ -213,56 +213,117 @@ function formatCTDate(d = new Date()) {
 })();
 
 /* ---------- Breadcrumbs: render + smart truncation (never collide with Logout) ---------- */
-window.setBreadcrumbs = function setBreadcrumbs(parts) {
-  try {
+(function () {
+  // Clamp any existing breadcrumbs in the DOM (works even if page never calls setBreadcrumbs)
+  function clampBreadcrumbs() {
     const nav = document.querySelector(".breadcrumbs");
-    const ol  = nav?.querySelector("ol");
-    if (!ol || !Array.isArray(parts)) return;
+    if (!nav) return;
+    const ol = nav.querySelector("ol");
+    if (!ol) return;
 
-    // Normalize input
-    let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
+    // Ensure the nav/ol lay out correctly next to the Logout button
+    nav.style.display = "flex";
+    nav.style.alignItems = "center";
+    ol.style.flex = "1 1 auto";
+    ol.style.overflow = "hidden";
+    ol.style.whiteSpace = "nowrap";
 
-    // Home-page scrub
-    if (document.body.classList.contains("home-page")) {
-      norm = [{ label: "Home", href: "index.html" }];
-    } else {
-      // Drop any accidental "Dashboard"
-      norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
-    }
+    // Only clamp the "middle" crumbs. First and last stay full.
+    const items = [...ol.querySelectorAll("li")].filter(li => !li.classList.contains("sep"));
+    if (items.length <= 2) return;
 
-    // Helper: create crumb (link for non-last; span for last)
-    function makeCrumb(obj, isLast, index, count) {
-      const el = document.createElement(isLast ? "span" : "a");
-      el.textContent = obj.label;
-      if (!isLast) el.href = obj.href || "#";
+    items.forEach((li, idx) => {
+      const el = li.querySelector("a, span");
+      if (!el) return;
 
-      // Truncate middle crumbs only (keep first & last full)
-      const isMiddle = index !== 0 && index !== count - 1;
+      // reset (in case this re-runs)
+      Object.assign(el.style, {
+        maxWidth: "",
+        overflow: "",
+        textOverflow: "",
+        whiteSpace: "",
+        display: ""
+      });
+
+      const isMiddle = idx !== 0 && idx !== items.length - 1;
       if (isMiddle) {
-        el.style.maxWidth = "120px";
+        el.style.display = "inline-block";
+        el.style.maxWidth = "120px";       // <— tweak if you want more/less text shown
         el.style.overflow = "hidden";
         el.style.textOverflow = "ellipsis";
         el.style.whiteSpace = "nowrap";
-        el.title = obj.label; // tooltip with full text
-      }
-      return el;
-    }
-
-    // Render
-    ol.innerHTML = "";
-    norm.forEach((p, i) => {
-      const li = document.createElement("li");
-      const isLast = i === norm.length - 1;
-      li.appendChild(makeCrumb(p, isLast, i, norm.length));
-      ol.appendChild(li);
-
-      if (!isLast) {
-        const sep = document.createElement("li");
-        sep.className = "sep";
-        sep.textContent = "›";
-        ol.appendChild(sep);
+        if (!el.title) el.title = el.textContent.trim(); // full text on hover
       }
     });
+  }
+
+  // Public renderer that also clamps after rendering
+  window.setBreadcrumbs = function setBreadcrumbs(parts) {
+    try {
+      const nav = document.querySelector(".breadcrumbs");
+      const ol  = nav?.querySelector("ol");
+      if (!ol || !Array.isArray(parts)) return;
+
+      // Normalize input
+      let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
+
+      // Home-page scrub
+      if (document.body.classList.contains("home-page")) {
+        norm = [{ label: "Home", href: "index.html" }];
+      } else {
+        // Drop any accidental "Dashboard"
+        norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
+      }
+
+      // Helper: create crumb (link for non-last; span for last)
+      function makeCrumb(obj, isLast, index, count) {
+        const el = document.createElement(isLast ? "span" : "a");
+        el.textContent = obj.label;
+        if (!isLast) el.href = obj.href || "#";
+
+        // Truncate middle crumbs only (keep first & last full)
+        const isMiddle = index !== 0 && index !== count - 1;
+        if (isMiddle) {
+          el.style.maxWidth = "120px";
+          el.style.overflow = "hidden";
+          el.style.textOverflow = "ellipsis";
+          el.style.whiteSpace = "nowrap";
+          el.title = obj.label; // tooltip with full text
+        }
+        return el;
+      }
+
+      // Render
+      ol.innerHTML = "";
+      norm.forEach((p, i) => {
+        const li = document.createElement("li");
+        const isLast = i === norm.length - 1;
+        li.appendChild(makeCrumb(p, isLast, i, norm.length));
+        ol.appendChild(li);
+
+        if (!isLast) {
+          const sep = document.createElement("li");
+          sep.className = "sep";
+          sep.textContent = "›";
+          ol.appendChild(sep);
+        }
+      });
+
+      // Ensure layout + clamp after rendering
+      clampBreadcrumbs();
+    } catch (_) {}
+  };
+
+  // Run clamp for static breadcrumbs on load and keep it fresh
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", clampBreadcrumbs);
+  } else {
+    clampBreadcrumbs();
+  }
+  window.addEventListener("resize", clampBreadcrumbs);
+  const nav = document.querySelector(".breadcrumbs");
+  if (nav) new MutationObserver(clampBreadcrumbs).observe(nav, { childList: true, subtree: true });
+})();
 
     // Defensive: ensure crumbs never wrap beneath Logout
     // (let the list take remaining space and clip from the middle crumbs)
