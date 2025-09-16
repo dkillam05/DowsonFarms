@@ -22,63 +22,62 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Extra breathing room at bottom so buttons never collide with Back FAB */
+    /* a little extra room so footer / back button never overlaps */
     .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Keep all full-width fields the SAME width by constraining the form */
-    .form-inner{
-      width: 100%;
-      max-width: 650px;   /* <- controls align to this width */
-      margin: 0 auto;
-    }
-
-    /* Spacing + field look (matches tile styling) */
+    /* Form fields – match tile styling in light + dark/auto */
     .field { margin: 10px 0; }
     .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
     select, input[type="text"], input[type="date"], textarea{
-      width:100%; padding:10px;
-      border:1px solid var(--tile-border);
-      border-radius:8px;
-      background: var(--tile-bg); color: var(--ink);
-      font-size:16px; box-sizing:border-box;
+      width:100%;
+      padding:10px 12px;
+      border:2px solid var(--tile-border);
+      border-radius:12px;
+      background: var(--tile-bg);
+      color: var(--ink);
+      font-size:16px;
+      box-sizing:border-box;
     }
     textarea{ min-height:110px; }
 
-    /* Focus ring */
     .field input:focus, .field select:focus, .field textarea:focus{
-      outline:none; border-color: var(--tile-border);
+      outline:none;
+      border-color: var(--tile-border);
       box-shadow: 0 0 0 3px rgba(45,106,49,.30);
     }
+    .muted { color:#666; font-size:.9rem; }
 
-    /* Rows */
+    /* Row layout */
     .row { display:flex; gap:12px; flex-wrap:wrap; }
-    .row > .field { flex:1 1 320px; }
+    .row > .field { flex:1 1 320px; } /* BOTH columns same horizontal width */
 
-    /* Mini “+ Add” beside selects */
-    .mini-add { margin-left: 8px; }
+    /* “+ Add” beside selects — keep inputs full-width, float the button on top */
+    .with-add { position: relative; }
+    .with-add .mini-add { position:absolute; right:0; top:50%; transform:translateY(-50%); }
+    .with-add select { padding-right: 92px; }   /* space for the + Add button */
     .mini-add button{
       background:#fff; color: var(--brand-green);
-      border:1px solid var(--brand-green); border-radius:8px;
-      padding:4px 8px; cursor:pointer; font-weight:700; font-size:.85rem;
+      border:2px solid var(--brand-green); border-radius:12px;
+      padding:6px 12px; cursor:pointer; font-weight:700; font-size:.95rem;
     }
     :root[data-theme="dark"] .mini-add button,
-    :root[data-theme="auto"] .mini-add button{
-      background: var(--tile-bg); color: var(--ink); border-color: var(--tile-border);
-    }
+    :root[data-theme="auto"] .mini-add button{ background: var(--tile-bg); color: var(--ink); border-color: var(--tile-border); }
     .mini-add button:hover{ background:#fefefe; }
 
-    /* Button row: submit centered; Clear + Quick View on the right together */
+    /* Form actions: Submit (primary) centered, Quick View + Clear on the right */
     .form-actions{
       margin-top: 16px;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
-      align-items: center; gap: 10px;
+      align-items: center;
+      gap: 8px;
     }
     .form-actions .center { justify-self: center; }
     .form-actions .right  { justify-self: end; display:flex; gap:8px; }
 
     .btn-solid{
-      background: var(--brand-green); color:#fff;
+      background: var(--brand-green);
+      color:#fff;
       border:0; border-radius:12px;
       padding:9px 14px; cursor:pointer;
       font: 600 .95rem 'Playfair Display', serif;
@@ -87,15 +86,15 @@
     .btn-solid:hover{ background:#154a18; }
 
     .btn-outline{
-      background: var(--tile-bg); color: var(--brand-green);
+      background: var(--tile-bg);
+      color: var(--brand-green);
       border:2px solid var(--brand-green);
-      border-radius:10px; padding:6px 10px; cursor:pointer;
-      font: 600 .9rem 'Playfair Display', serif;
+      border-radius:12px;
+      padding:8px 12px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
     }
     :root[data-theme="dark"] .btn-outline,
-    :root[data-theme="auto"] .btn-outline{
-      color: var(--ink); border-color: var(--tile-border);
-    }
+    :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
     .btn-outline:hover{ background:#fefefe; }
 
     /* Quick View modal */
@@ -119,7 +118,8 @@
       border: 1px solid var(--tile-border, var(--brand-green));
       border-radius: 10px;
       padding: 8px 10px; margin: 8px 0;
-      background: var(--tile-bg); color: var(--ink);
+      background: var(--tile-bg);
+      color: var(--ink);
     }
     .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
   </style>
@@ -155,13 +155,14 @@
       <li class="sep">›</li>
       <li><span>Ideas</span></li>
     </ol>
+    <!-- Logout injected by core.js -->
   </nav>
 
   <!-- Content -->
   <main class="content" data-has-form>
     <h1>💡 Ideas</h1>
 
-    <form id="idea-form" novalidate class="form-inner">
+    <form id="idea-form" novalidate>
       <div class="row">
         <div class="field">
           <label for="submittedBy">Submitted by</label>
@@ -175,16 +176,16 @@
       </div>
 
       <div class="row">
-        <div class="field" style="min-width:280px;">
+        <div class="field">
           <label for="menuSel">Menu</label>
-          <div style="display:flex; align-items:center;">
+          <div class="with-add">
             <select id="menuSel" required></select>
             <span class="mini-add"><button type="button" id="addMenuBtn">+ Add</button></span>
           </div>
         </div>
-        <div class="field" style="min-width:280px;">
+        <div class="field">
           <label for="submenuSel">Submenu</label>
-          <div style="display:flex; align-items:center;">
+          <div class="with-add">
             <select id="submenuSel" required></select>
             <span class="mini-add"><button type="button" id="addSubmenuBtn">+ Add</button></span>
           </div>
@@ -196,7 +197,7 @@
         <textarea id="message" required placeholder="Describe your idea…"></textarea>
       </div>
 
-      <!-- Buttons: Submit (center) + Clear & Quick View (right) -->
+      <!-- Actions -->
       <div class="form-actions">
         <div></div>
         <div class="center">
@@ -242,7 +243,6 @@
         ]));
       }
 
-      // Menus/Submenus (seed if missing)
       const DEFAULT_MENUS = {
         "Home": ["—"],
         "Crop Production": ["Planting","Spraying","Harvest"],
@@ -256,7 +256,6 @@
       };
       const MENUS = JSON.parse(localStorage.getItem('df_menus') || 'null') || DEFAULT_MENUS;
 
-      // DOM
       const bySel = document.getElementById('submittedBy');
       const dateEl = document.getElementById('submittedDate');
       const whoHint = document.getElementById('whoHint');
@@ -272,7 +271,6 @@
       const qvList = document.getElementById('qvList');
       const qvClose = document.getElementById('qvClose');
 
-      // Populate "Submitted by"
       function renderPeople(){
         const people = JSON.parse(localStorage.getItem('df_people'));
         const you = getCurrentUser();
@@ -290,7 +288,6 @@
         whoHint.textContent = bySel.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
       }
 
-      // Menus/Submenus
       function renderMenus(){
         menuSel.innerHTML = '';
         Object.keys(MENUS).forEach(name => {
@@ -311,7 +308,6 @@
         });
       }
 
-      // Date (Central) -> yyyy-mm-dd
       function todayCT(){
         const now = new Date();
         const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
@@ -321,39 +317,30 @@
         return `${y}-${m}-${d}`;
       }
 
-      // Add new menu/submenu
       function capFirst(s){ return (s||'').trim().replace(/^./, c => c.toUpperCase()); }
       function addMenu(){
-        const raw = prompt('New menu name:');
-        if (!raw) return;
+        const raw = prompt('New menu name:'); if (!raw) return;
         const name = capFirst(raw);
         if (!MENUS[name]) MENUS[name] = ['—'];
         localStorage.setItem('df_menus', JSON.stringify(MENUS));
-        renderMenus();
-        menuSel.value = name;
-        renderSubmenus(name);
+        renderMenus(); menuSel.value = name; renderSubmenus(name);
       }
       function addSubmenu(){
-        const menu = menuSel.value;
-        if (!menu) return alert('Choose a menu first.');
-        const raw = prompt(`New submenu for "${menu}":`);
-        if (!raw) return;
+        const menu = menuSel.value; if (!menu) return alert('Choose a menu first.');
+        const raw = prompt(`New submenu for "${menu}":`); if (!raw) return;
         const name = capFirst(raw);
         if (!MENUS[menu]) MENUS[menu] = [];
         if (!MENUS[menu].includes(name)) MENUS[menu].push(name);
         localStorage.setItem('df_menus', JSON.stringify(MENUS));
-        renderSubmenus(menu);
-        submenuSel.value = name;
+        renderSubmenus(menu); submenuSel.value = name;
       }
 
-      // Save Idea
       function saveIdea(data){
         const list = JSON.parse(localStorage.getItem('df_ideas') || '[]');
         list.push(data);
         localStorage.setItem('df_ideas', JSON.stringify(list));
       }
 
-      // Quick View (open items)
       function openQuickView(){
         qvList.innerHTML = '';
         const list = JSON.parse(localStorage.getItem('df_ideas') || '[]')
@@ -390,7 +377,7 @@
       qvClose.addEventListener('click', closeQuickView);
       qvBackdrop.addEventListener('click', (e)=>{ if(e.target===qvBackdrop) closeQuickView(); });
 
-      document.getElementById('idea-form').addEventListener('submit', (e) => {
+      form.addEventListener('submit', (e) => {
         e.preventDefault();
         if (!bySel.value || !dateEl.value || !menuSel.value || !submenuSel.value || !msgEl.value.trim()) {
           alert('Please complete all required fields.');
@@ -406,14 +393,13 @@
           ts: Date.now()
         };
         saveIdea(record);
-        e.target.reset();
+        form.reset();
         renderPeople();
         dateEl.value = todayCT();
         renderMenus();
         alert('Idea submitted!');
       });
 
-      // Breadcrumbs
       window.setBreadcrumbs?.([
         {label:'Home', href:'index.html'},
         {label:'Feedback', href:'feedback.html'},
