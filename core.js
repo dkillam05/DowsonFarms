@@ -27,7 +27,7 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
       root.setAttribute("data-theme", m);
     }
 
-    // Public setter for pages (Theme screen uses this)
+    // Public setter (Theme screen uses this)
     window.setTheme = function setTheme(mode) {
       try { localStorage.setItem("df_theme", mode); } catch (_) {}
       apply(mode);
@@ -64,18 +64,15 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
   const USER_KEY = "df_current_user";
   const PROFILE_KEY = "df_profile";
 
-  // Capitalize first letter; leaves the rest as-is
   function capFirst(s){
     if (!s || typeof s !== "string") return "";
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  // Build a nice display name from various shapes
   function makeDisplayName(input){
     try {
       if (!input) return "";
       if (typeof input === "string") {
-        // Allow "john doe" -> "John Doe"
         return input.split(/\s+/).filter(Boolean).map(capFirst).join(" ").trim();
       }
       if (typeof input === "object") {
@@ -93,7 +90,6 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
     try {
       const display = makeDisplayName(nameOrObj) || "Admin";
       localStorage.setItem(USER_KEY, display);
-      // If object, persist a lightweight profile for future boots
       if (nameOrObj && typeof nameOrObj === "object") {
         const profile = {
           firstName: nameOrObj.firstName ? capFirst(String(nameOrObj.firstName)) : undefined,
@@ -111,7 +107,7 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
       const s = localStorage.getItem(USER_KEY);
       if (s && s.trim()) return s;
     } catch(_) {}
-    return "Admin"; // safe fallback
+    return "Admin";
   }
 
   function clearCurrentUser(){
@@ -121,13 +117,11 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
     } catch(_) {}
   }
 
-  // Seed on first load (without overwriting an explicit login)
   (function seedIfMissing(){
     try {
       const existing = localStorage.getItem(USER_KEY);
-      if (existing && existing.trim()) return; // already set by login/previous session
+      if (existing && existing.trim()) return;
 
-      // Prefer a saved profile if present
       const raw = localStorage.getItem(PROFILE_KEY);
       if (raw) {
         try {
@@ -137,21 +131,17 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
           return;
         } catch(_) {}
       }
-
-      // Final fallback
       localStorage.setItem(USER_KEY, "Admin");
     } catch(_) {}
   })();
 
-  // Expose helpers app-wide
   window.setCurrentUser = setCurrentUser;
   window.getCurrentUser = getCurrentUser;
   window.clearCurrentUser = clearCurrentUser;
 
-  // Keep other tabs in sync if user changes elsewhere
   window.addEventListener("storage", (e) => {
     if (e.key === USER_KEY || e.key === PROFILE_KEY) {
-      // No UI repaint needed here; pages read on demand.
+      // no-op; consumers read as needed
     }
   });
 })();
@@ -228,12 +218,15 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     if (!ol || !Array.isArray(parts)) return;
     ol.innerHTML = "";
 
-    const norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
+    // Normalize input
+    let norm = parts.map(p => (typeof p === "string" ? { label: p } : p));
+
+    // On home-page, drop "Dashboard" entirely so only "Home" shows
+    if (document.body.classList.contains("home-page")) {
+      norm = norm.filter(p => p.label !== "Dashboard");
+    }
 
     norm.forEach((p, i) => {
-      // On home-page, skip "Dashboard" so only "Home" shows
-      if (document.body.classList.contains("home-page") && p.label === "Dashboard") return;
-
       const li = document.createElement("li");
       const isLast = i === norm.length - 1;
 
