@@ -22,64 +22,66 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Quick View button (mirrors Back button theme) */
-    .quick-fab{
-      position: fixed;
-      right: 10px;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 10px;
-      background: #fff;
-      color: var(--brand-green);
-      border: 2px solid var(--brand-green);
-      border-radius: 12px;
-      font: 600 .9rem 'Playfair Display', serif;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12);
-      cursor: pointer;
-      z-index: calc(var(--z-footer) + 10);
-    }
-    .quick-fab:hover, .quick-fab:focus-visible { background:#fefefe; outline: none; }
+    /* Page-specific: give more breathing room at bottom so Submit doesn't collide with Back FAB */
+    .content { padding-bottom: calc(var(--footer-h) + 120px); }
 
-    /* Simple modal for Quick View */
-    .qv-backdrop{
-      position: fixed; inset: 0; display: none;
-      align-items: center; justify-content: center;
-      background: rgba(0,0,0,.38);
-      z-index: 2000;
-    }
-    .qv-modal{
-      width: min(560px, 92vw);
-      background: var(--tile-bg, #fff);
-      border: 2px solid var(--brand-green);
-      border-radius: 14px;
-      box-shadow: 0 18px 40px rgba(0,0,0,.25);
-      padding: 14px;
-    }
-    .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
-    .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
-    .qv-item{
-      border: 1px solid var(--brand-green);
-      border-radius: 10px;
-      padding: 8px 10px; margin: 8px 0;
-      background: #fff;
-    }
-    :root[data-theme="dark"] .qv-item,
-    :root[data-theme="auto"] .qv-item { background: var(--tile-bg, #1c1f18); }
-    .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
-    .btn-outline{
-      background:#fff;
-      color: var(--brand-green);
-      border:2px solid var(--brand-green);
-      border-radius:10px;
-      padding:6px 10px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
-    }
-    .btn-outline:hover{ background:#fefefe; }
+    /* Form fields – match tile styling in light + dark/auto */
     .field { margin: 10px 0; }
     .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
-    .row { display:flex; gap:12px; flex-wrap:wrap; }
-    .row > .field { flex: 1 1 220px; }
+    select,
+    input[type="text"],
+    input[type="date"],
+    textarea{
+      width:100%;
+      padding:10px;
+      border:1px solid var(--tile-border);
+      border-radius:8px;
+      background: var(--tile-bg);
+      color: var(--ink);
+      font-size:16px;
+      box-sizing:border-box;
+    }
+    textarea{ min-height:110px; }
 
-    .actions { margin-top: 14px; display:flex; gap:8px; }
+    /* Focus ring consistent with app */
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus{
+      outline:none;
+      border-color: var(--tile-border);
+      box-shadow: 0 0 0 3px rgba(45,106,49,.30);
+    }
+
+    /* Tiny hint text */
+    .muted { color:#666; font-size:.9rem; }
+
+    /* Row layout */
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > .field { flex:1 1 220px; }
+
+    /* “+ Add” mini buttons beside selects */
+    .mini-add { margin-left: 8px; }
+    .mini-add button{
+      background:#fff; color: var(--brand-green);
+      border:1px solid var(--brand-green); border-radius:8px;
+      padding:4px 8px; cursor:pointer; font-weight:700; font-size:.85rem;
+    }
+    :root[data-theme="dark"] .mini-add button,
+    :root[data-theme="auto"] .mini-add button{ background: var(--tile-bg); color: var(--ink); border-color: var(--tile-border); }
+    .mini-add button:hover{ background:#fefefe; }
+
+    /* Submit centered, Clear on right – away from Back FAB */
+    .form-actions{
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;   /* center lane + right lane */
+      align-items: center;
+      gap: 8px;
+    }
+    .form-actions .center { justify-self: center; }
+    .form-actions .right  { justify-self: end; }
+
+    /* Buttons – reuse app visual language */
     .btn-solid{
       background: var(--brand-green);
       color:#fff;
@@ -90,16 +92,65 @@
     }
     .btn-solid:hover{ background:#154a18; }
 
-    .mini-add { margin-left: 8px; }
-    .mini-add button{
-      background:#fff; color: var(--brand-green);
-      border:1px solid var(--brand-green); border-radius:8px;
-      padding:4px 8px; cursor:pointer; font-weight:700; font-size:.85rem;
+    .btn-outline{
+      background: var(--tile-bg);
+      color: var(--brand-green);
+      border:2px solid var(--brand-green);
+      border-radius:10px;
+      padding:6px 10px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
     }
-    .mini-add button:hover{ background:#fefefe; }
+    :root[data-theme="dark"] .btn-outline,
+    :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
+    .btn-outline:hover{ background:#fefefe; }
 
-    textarea{ width:100%; min-height:110px; box-sizing:border-box; padding:10px; border:1px solid var(--brand-green); border-radius:8px; font-size:16px; }
-    select, input[type="text"], input[type="date"]{ width:100%; padding:10px; border:1px solid var(--brand-green); border-radius:8px; font-size:16px; }
+    /* Quick View button (mirrors Back FAB look) */
+    .quick-fab{
+      position: fixed;
+      right: 10px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px;
+      background: var(--tile-bg);
+      color: var(--brand-green);
+      border: 2px solid var(--brand-green);
+      border-radius: 12px;
+      font: 600 .9rem 'Playfair Display', serif;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+      cursor: pointer;
+      z-index: calc(var(--z-footer) + 10);
+    }
+    :root[data-theme="dark"] .quick-fab,
+    :root[data-theme="auto"] .quick-fab{
+      color: var(--ink);
+      border-color: var(--tile-border);
+    }
+    .quick-fab:hover, .quick-fab:focus-visible { background:#fefefe; outline: none; }
+
+    /* Quick View modal */
+    .qv-backdrop{
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,.38);
+      z-index: 2000;
+    }
+    .qv-modal{
+      width: min(560px, 92vw);
+      background: var(--tile-bg);
+      border: 2px solid var(--tile-border, var(--brand-green));
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
+      padding: 14px;
+    }
+    .qv-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
+    .qv-list{ margin: 8px 0 0; padding: 0; list-style: none; }
+    .qv-item{
+      border: 1px solid var(--tile-border, var(--brand-green));
+      border-radius: 10px;
+      padding: 8px 10px; margin: 8px 0;
+      background: var(--tile-bg);
+      color: var(--ink);
+    }
+    .qv-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
   </style>
 
   <!-- Apply saved theme ASAP before paint -->
@@ -174,9 +225,15 @@
         <textarea id="message" required placeholder="Describe your idea…"></textarea>
       </div>
 
-      <div class="actions">
-        <button class="btn-solid" type="submit">Submit Idea</button>
-        <button class="btn-outline" type="reset">Clear</button>
+      <!-- Centered Submit, Clear on right -->
+      <div class="form-actions">
+        <div></div>
+        <div class="center">
+          <button class="btn-solid" type="submit">Submit Idea</button>
+        </div>
+        <div class="right">
+          <button class="btn-outline" type="reset">Clear</button>
+        </div>
       </div>
     </form>
   </main>
@@ -206,25 +263,18 @@
 
   <script>
     (function IdeasPage(){
-      // --- Mock/current user helpers ---
-      function getCurrentUser(){
-        // If you save a name somewhere (e.g., after login), read it here:
-        // localStorage.setItem('df_current_user', 'John Doe');
-        return localStorage.getItem('df_current_user') || '';
-      }
-      function capFirst(s){ return (s||'').trim().replace(/^./, c => c.toUpperCase()); }
+      // Use global user helpers if present; fallback to local
+      const getCurrentUser = (window.getCurrentUser) ? window.getCurrentUser : () => localStorage.getItem('df_current_user') || '';
 
-      // --- Employees/Subcontractors list (can be replaced by real data) ---
+      // Employees/Subcontractors list (seed if missing)
       const EMPLOYEES = JSON.parse(localStorage.getItem('df_people') || '[]');
-      // If none saved yet, seed a small demo set:
       if (!EMPLOYEES.length) {
-        const seed = [
+        localStorage.setItem('df_people', JSON.stringify([
           {name:'John Doe'}, {name:'Jane Smith'}, {name:'Sam Operator'}, {name:'Vendor Co.'}
-        ];
-        localStorage.setItem('df_people', JSON.stringify(seed));
+        ]));
       }
 
-      // --- Menus/Submenus (seed from your app structure; editable in Ideas) ---
+      // Menus/Submenus (seed from your app structure; editable here)
       const DEFAULT_MENUS = {
         "Home": ["—"],
         "Crop Production": ["Planting","Spraying","Harvest"],
@@ -238,7 +288,7 @@
       };
       const MENUS = JSON.parse(localStorage.getItem('df_menus') || 'null') || DEFAULT_MENUS;
 
-      // --- DOM ---
+      // DOM
       const bySel = document.getElementById('submittedBy');
       const dateEl = document.getElementById('submittedDate');
       const whoHint = document.getElementById('whoHint');
@@ -254,12 +304,12 @@
       const qvList = document.getElementById('qvList');
       const qvClose = document.getElementById('qvClose');
 
-      // --- Populate "Submitted by" ---
+      // Populate "Submitted by"
       function renderPeople(){
         const people = JSON.parse(localStorage.getItem('df_people'));
         const you = getCurrentUser();
         bySel.innerHTML = '';
-        people.forEach((p, idx) => {
+        people.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.name;
           opt.textContent = p.name + (you && you === p.name ? ' (You)' : '');
@@ -272,7 +322,7 @@
         whoHint.textContent = bySel.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
       }
 
-      // --- Populate Menus/Submenus ---
+      // Menus/Submenus
       function renderMenus(){
         menuSel.innerHTML = '';
         Object.keys(MENUS).forEach(name => {
@@ -293,12 +343,10 @@
         });
       }
 
-      // Date (Central)
+      // Date (Central) -> yyyy-mm-dd
       function todayCT(){
         const now = new Date();
-        const tz = 'America/Chicago';
-        // get yyyy-mm-dd in CT
-        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
+        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
         const y = parts.find(p=>p.type==='year').value;
         const m = parts.find(p=>p.type==='month').value;
         const d = parts.find(p=>p.type==='day').value;
@@ -306,6 +354,7 @@
       }
 
       // Add new menu/submenu (Ideas only)
+      function capFirst(s){ return (s||'').trim().replace(/^./, c => c.toUpperCase()); }
       function addMenu(){
         const raw = prompt('New menu name:');
         if (!raw) return;
@@ -390,13 +439,13 @@
         };
         saveIdea(record);
         form.reset();
-        renderPeople();            // keeps Submitted by options, clears selection
-        dateEl.value = todayCT();  // reset date to today
-        renderMenus();             // refresh dropdowns
+        renderPeople();
+        dateEl.value = todayCT();
+        renderMenus();
         alert('Idea submitted!');
       });
 
-      // Breadcrumbs (make sure it’s Home › Feedback › Ideas)
+      // Breadcrumbs
       window.setBreadcrumbs?.([
         {label:'Home', href:'index.html'},
         {label:'Feedback', href:'feedback.html'},
