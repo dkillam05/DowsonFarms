@@ -8,6 +8,7 @@
    - Back button (default on all non-Home, non-Auth pages)
    - GLOBAL THEME (light/dark/auto) apply + listeners
    - USER MANAGER (long-term): set/get/clear current user
+   - REQUIRED ASTERISK helper (auto-adds * to labels)
    =========================== */
 
 "use strict";
@@ -375,4 +376,66 @@ window.handleLogout = async function handleLogout() {
   (document.readyState === "loading")
     ? document.addEventListener("DOMContentLoaded", ensure)
     : ensure();
+})();
+
+/* ---------- REQUIRED ASTERISK helper (auto-add * to required field labels) ---------- */
+(function markRequiredAsterisks(){
+  // Inject a tiny style once (keeps theme.css clean if you prefer)
+  if (!document.getElementById("df-required-style")) {
+    const st = document.createElement("style");
+    st.id = "df-required-style";
+    st.textContent = `.req-star{color:#b00020;margin-left:4px;font-weight:700}`;
+    document.head.appendChild(st);
+  }
+
+  function findLabel(ctrl){
+    // 1) <label for="id">
+    if (ctrl.id) {
+      try {
+        const esc = (window.CSS && CSS.escape) ? CSS.escape(ctrl.id) : ctrl.id;
+        const byFor = document.querySelector(`label[for="${esc}"]`);
+        if (byFor) return byFor;
+      } catch(_) {}
+    }
+    // 2) Within a .field wrapper
+    const wrap = ctrl.closest(".field");
+    if (wrap) {
+      const inWrap = wrap.querySelector("label");
+      if (inWrap) return inWrap;
+    }
+    // 3) Immediate previous sibling label (fallback)
+    let n = ctrl.previousElementSibling;
+    if (n?.tagName?.toLowerCase() === "label") return n;
+    return null;
+  }
+
+  function process(root = document){
+    const controls = root.querySelectorAll('input[required], select[required], textarea[required], [aria-required="true"]');
+    controls.forEach(ctrl => {
+      const label = findLabel(ctrl);
+      if (!label) return;
+      if (label.querySelector(".req-star")) return; // already marked
+      const star = document.createElement("span");
+      star.className = "req-star";
+      star.textContent = "*";
+      label.appendChild(star);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => process());
+  } else {
+    process();
+  }
+
+  // Watch for forms/fields added later (Ideas/Bugs etc.)
+  const mo = new MutationObserver((muts) => {
+    muts.forEach(m => {
+      m.addedNodes?.forEach(node => {
+        if (!(node instanceof HTMLElement)) return;
+        process(node);
+      });
+    });
+  });
+  mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
