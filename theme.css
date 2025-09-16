@@ -20,14 +20,17 @@
   /* Subtle tan band (auth/footer/breadcrumbs) */
   --auth-edge-bg: #E6DCB8;
 
-  /* Optional tile theming hooks (light defaults) */
+  /* Breadcrumb foreground */
+  --crumb-fg: #666;
+
+  /* Tile hooks (light defaults) */
   --tile-bg: #fff;
   --tile-border: var(--brand-green);
 
   /* Layout sizing */
   --header-h: 64px;
   --crumb-h:  40px;
-  --footer-h: 40px;     /* tightened app footer */
+  --footer-h: 40px;
   --pad-x:    16px;
 
   /* Z-index */
@@ -45,8 +48,6 @@ body {
   font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background: var(--paper);
   color: var(--ink);
-
-  /* Ensure content isn’t hidden behind sticky bars */
   padding-top: calc(var(--header-h) + var(--crumb-h));
   padding-bottom: var(--footer-h);
 }
@@ -61,7 +62,7 @@ body {
   color: #fff;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 var(--pad-x);
-  padding-top: env(safe-area-inset-top, 8px); /* iPhone notch */
+  padding-top: env(safe-area-inset-top, 8px);
   padding-bottom: 6px;
   box-sizing: border-box;
   box-shadow: 0 2px 6px rgba(0,0,0,.18);
@@ -70,53 +71,43 @@ body {
 .app-header__left,
 .app-header__right { display: flex; align-items: center; gap: 10px; }
 
-/* Header title matches login font globally */
 .app-header__title {
   font-family: 'Playfair Display', serif;
   font-weight: 600;
   font-size: 1.25rem;
   letter-spacing: .2px;
 }
-
 .app-logo { width: 32px; height: 32px; border-radius: 8px; }
 .clock {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  min-width: 9.5ch;      /* prevents width jitter */
+  min-width: 9.5ch;
   text-align: right;
 }
 
 /* ===========================
-   Breadcrumbs (fixed under header)
-   - Calm tan bar (same as footer), smaller + softer text
+   Breadcrumbs
    =========================== */
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
   height: var(--crumb-h);
   display: flex; align-items: center; justify-content: space-between;
-  background: var(--auth-edge-bg);   /* match footer color */
+  background: var(--auth-edge-bg);
   color: var(--crumb-fg);
   padding: 0 var(--pad-x);
   border-bottom: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 1px 0 rgba(0,0,0,.08);
   z-index: var(--z-crumbs);
 }
-
 .breadcrumbs ol {
   display: flex; align-items: center; gap: 6px;
   list-style: none; margin: 0; padding: 0;
-  font-size: .85rem; font-weight: 500;   /* smaller + softer */
+  font-size: .85rem; font-weight: 500;
 }
-
 .breadcrumbs a { color: var(--crumb-fg); text-decoration: none; }
 .breadcrumbs a:hover { text-decoration: underline; }
 .breadcrumbs .sep { color: var(--crumb-fg); opacity: .9; font-size: .85rem; }
 
-
-/* ===========================
-   Global Logout button (breadcrumbs)
-   - Small, elegant, white Playfair text
-   =========================== */
 .breadcrumbs .logout-btn {
   background: var(--brand-green);
   color: #fff;
@@ -130,30 +121,26 @@ body {
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 .breadcrumbs .logout-btn:hover,
 .breadcrumbs .logout-btn:focus-visible {
   background: #154a18;
   outline: none;
 }
-
-/* Touch comfort on mobile */
-@media (hover: none) {
-  .breadcrumbs a { padding: 6px 2px; }
-}
+@media (hover: none) { .breadcrumbs a { padding: 6px 2px; } }
 
 /* ===========================
    Content Wrapper
    =========================== */
 .content {
   padding: 16px;
+  /* extra breathing room so fixed buttons never overlap */
   min-height: calc(100vh - var(--header-h) - var(--crumb-h) - var(--footer-h));
+  padding-bottom: calc(var(--footer-h) + 80px);
 }
 
 /* ===========================
-   Sticky Footer (app pages)
+   Footer
    =========================== */
 .app-footer {
   position: fixed; left: 0; right: 0; bottom: 0;
@@ -168,22 +155,22 @@ body {
 .app-footer .dot { opacity: .6; color: #666; }
 
 /* ===========================
-   Tiles (Home) — smaller, neat rectangles
+   Tiles
    =========================== */
 .df-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* compact width */
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
   padding: 14px;
 }
 .df-tile {
-  aspect-ratio: 7 / 4;                 /* shorter height */
+  aspect-ratio: 7 / 4;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: var(--tile-bg);
   border: 2px solid var(--tile-border);
   border-radius: 12px;
   text-decoration: none; text-align: center;
-  color: var(--ink);                    /* follow theme text color */
+  color: var(--ink);
   font-weight: 600;
   padding: 8px;
   box-sizing: border-box;
@@ -193,7 +180,7 @@ body {
 .df-tile span {
   display: block; margin-top: 6px;
   font-size: .86rem; line-height: 1.2; word-break: break-word;
-  color: var(--ink);                    /* follow theme text color */
+  color: var(--ink);
 }
 
 /* ===========================
@@ -202,202 +189,127 @@ body {
 .content h1 {
   font-family: 'Montserrat', sans-serif;
   font-size: 1.4rem; font-weight: 500; letter-spacing: .3px;
-  margin: 0 0 1rem; color: var(--ink);  /* follow theme text color */
+  margin: 0 0 1rem; color: var(--ink);
 }
-/* Home page title — same look, themed color */
 body.home-page .content h1 {
   font-family: 'Playfair Display', serif;
   font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: .2px;
-  color: var(--ink);                    /* follow theme text color */
+  color: var(--ink);
 }
 
 /* ===========================
-   AUTH (Login / Forgot) — polished
+   Forms (global look)
    =========================== */
+.field label{
+  display:block; font-weight:700; color: var(--brand-green); margin:0 0 6px;
+}
+.field-hint{ margin:6px 2px 0; font-size:.9rem; color:#b00020; }
 
-/* shorter footer only on login */
-.auth-page { --footer-h: 36px; }
-
-/* Consistent look during rubber-band scroll on iOS */
-.auth-page{
-  background: linear-gradient(180deg, #f6f3e4 0%, #efe9cf 100%);
-  background-color: #efe9cf;      /* solid fallback */
-  background-attachment: fixed;   /* pins gradient for Safari */
-  padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
-}
-/* Fill the notch/pull-down zone with a darker, matching band */
-.auth-page::before{
-  content:"";
-  position: fixed; top: 0; left: 0; right: 0;
-  height: env(safe-area-inset-top, 0px);
-  background: var(--auth-edge-bg);
-  pointer-events: none; z-index: 0;
-}
-/* Fill the bottom safe area to match footer color as well */
-.auth-page::after{
-  content:"";
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: env(safe-area-inset-bottom, 0px);
-  background: var(--auth-edge-bg);
-  pointer-events: none; z-index: 0;
-}
-
-.auth-wrap {
-  min-height: calc(100vh - var(--footer-h));
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px;
-}
-
-/* --- Hero (logo, title, subtitle) --- */
-.auth-hero { 
-  text-align: center;
-  padding: 2px 12px 0;
-  transform: translateY(-40px);  /* lift hero higher above card */
-  margin-bottom: -20px;          /* keep card from moving */
-}
-.auth-hero__logo{
-  width: 70px; height: 70px;
-  margin: 0 auto 6px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--brand-green);
-  display: grid; place-items: center;
-  box-shadow: 0 3px 8px rgba(0,0,0,.08);
-}
-.auth-hero__logo img{
-  width: 52px; height: 52px;
-  border-radius: 8px;
-  object-fit: contain;
-}
-.auth-hero__title{
-  font-family: 'Playfair Display', serif;
-  font-size: 1.28rem;
-  font-weight: 600;
-  letter-spacing: .2px;
-  margin: 0 0 4px;
-  color: var(--brand-green);
-}
-.auth-hero__subtitle{
-  font-size: .95rem;
-  color: #5b5b5b;
-  margin: 0 0 6px;
-}
-
-/* --- Card --- */
-.auth-card {
-  width: min(330px, 88vw);
-  margin: 0 auto;
-  padding: 20px 16px 28px;   /* a touch taller so button can sit lower */
-  background: #fff;
-  border: 2px solid var(--brand-green);
-  border-radius: 14px;
-  box-shadow: 0 8px 22px rgba(0,0,0,.10);
-}
-
-/* Inputs (16px prevents iOS zoom) */
-.field label{ display: block; font-weight: 700; color: var(--brand-green); margin: 0 0 6px; }
-.auth-card input[type="text"],
-.auth-card input[type="email"],
-.auth-card input[type="password"]{
-  width: 100%; padding: 11px 12px;
-  border: 1px solid var(--brand-green); border-radius: 8px;
-  font-size: 16px; /* important: no iOS zoom on focus */
-  box-sizing: border-box; background: #fff;
-}
-.field input:focus{ border-color: var(--jd-yellow-dark); box-shadow: 0 0 0 3px rgba(200,168,0,.18); }
-.field-hint{ margin: 6px 2px 0; font-size: .9rem; color: #b00020; }
-
-/* Password eye (SVG icon) */
-.password-wrap{ position: relative; }
-.password-wrap .eye{
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  display: inline-grid; place-items: center;
-  width: 28px; height: 28px; border: 0; background: transparent; cursor: pointer;
-  color: var(--brand-green);
-}
-.password-wrap .eye svg{ width: 20px; height: 20px; display: block; }
-
-/* Remember + Forgot row */
-.form-row{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 6px; }
-.checkbox{ display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
-.checkbox input{ width: 18px; height: 18px; }
-
-/* Less prominent Forgot link */
-.muted-link{
-  color:#3a3a3a; text-decoration:none; font-weight:600; font-size: .88rem;
-}
-.muted-link:hover{ text-decoration: underline; }
-
-/* Primary button — smaller, lowered, white Playfair text */
-.auth-page .btn-primary {
+/* Controls follow tile colors (light & dark) */
+.field input[type="text"],
+.field input[type="email"],
+.field input[type="password"],
+.field input[type="date"],
+.field select,
+.field textarea {
   width: 100%;
-  padding: 9px 12px;
-  border: 0;
+  padding: 11px 12px;
+  border: 2px solid var(--tile-border);
   border-radius: 12px;
+  background: var(--tile-bg);
+  color: var(--ink);
+  font-size: 16px; /* no iOS zoom */
+  box-sizing: border-box;
+  outline: none;
+}
+.field input::placeholder,
+.field textarea::placeholder { color: rgba(127,127,127,.9); }
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  box-shadow: 0 0 0 3px rgba(40,120,50,.22);
+  border-color: var(--brand-green);
+}
+
+/* Required asterisk (core.js adds .is-required to .field) */
+.field.is-required > label::after {
+  content: " *";
+  color: #b00020;
+  font-weight: 700;
+}
+
+/* Form actions: center primary, keep gaps, safe from Back button */
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  padding-bottom: calc(var(--footer-h) + 28px);
+}
+.form-actions > .btn-primary {
+  grid-column: 2;
+  justify-self: center;
+}
+.form-actions > .btn-secondary,
+.form-actions > .btn-outline {
+  justify-self: end;
+}
+
+/* Buttons, matching Back button look */
+.btn-primary {
   background: var(--brand-green);
   color: #fff;
-  font-family: 'Playfair Display', serif;
-  font-weight: 600;
-  font-size: .95rem;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
-  margin-top: 16px;
-}
-.auth-page .btn-primary:hover { background:#154a18; }
-
-/* Auth footer — matches subtle tan, lighter grey text */
-.app-footer--auth{
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: var(--footer-h);
-  background: var(--auth-edge-bg);
-  color: #666;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .85rem; padding: 0 10px;
-  border-top: 1px solid rgba(0,0,0,.06);
-  z-index: 1000;
-}
-.app-footer--auth .dot{ opacity:.6; }
-
-/* Forgot-password modal */
-.auth-modal__backdrop{
-  position: fixed; inset: 0; display: none;
-  align-items: center; justify-content: center;
-  background: rgba(0,0,0,.38);
-  z-index: 2000;
-}
-.auth-modal{
-  width: min(420px, 92vw);
-  background: #fff;
   border: 2px solid var(--brand-green);
-  border-radius: 14px;
-  box-shadow: 0 18px 40px rgba(0,0,0,.25);
-  padding: 16px;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font: 600 1rem 'Playfair Display', serif;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12);
 }
-.auth-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
-.auth-modal .modal-actions{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
-.btn-link{
-  background: transparent; border: none; color: var(--brand-green);
-  font-weight: 700; cursor: pointer; padding: 6px 10px;
-}
-.btn-secondary{
-  background: #e9f2eb; border: 1px solid var(--brand-green);
-  border-radius: 10px; padding: 8px 12px; cursor: pointer; font-weight: 700;
-}
-.btn-secondary:hover{ background:#dcebdc; }
+.btn-primary:hover { background:#154a18; }
 
-/* Inputs in modal also 16px to avoid zoom */
-.auth-modal input[type="text"],
-.auth-modal input[type="email"],
-.auth-modal input[type="password"]{
-  font-size: 16px;
+.btn-secondary, .btn-outline {
+  background: #fff;
+  color: var(--brand-green);
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font: 600 .95rem 'Playfair Display', serif;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12);
 }
+:root[data-theme="dark"] .btn-secondary,
+:root[data-theme="auto"] .btn-secondary,
+:root[data-theme="dark"] .btn-outline,
+:root[data-theme="auto"] .btn-outline {
+  background: var(--tile-bg);
+}
+
+/* Quick View floating button (bottom-right) */
+.quick-view-fab{
+  position: fixed;
+  right: 10px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h) + 8px);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  background: #fff;
+  color: var(--brand-green);
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  font: 600 .95rem 'Playfair Display', serif;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  cursor: pointer;
+  z-index: calc(var(--z-footer) + 12);
+}
+:root[data-theme="dark"] .quick-view-fab,
+:root[data-theme="auto"] .quick-view-fab { background: var(--tile-bg); }
 
 /* ===========================
-   Back button (bottom-left) for form pages
-   - Shown by core.js on sub-pages with forms; designed to sit above footer
+   Back button (bottom-left)
    =========================== */
 .back-fab{
   position: fixed;
@@ -414,15 +326,119 @@ body.home-page .content h1 {
   cursor: pointer;
   z-index: calc(var(--z-footer) + 10);
 }
+:root[data-theme="dark"] .back-fab,
+:root[data-theme="auto"] .back-fab { background: var(--tile-bg); }
 .back-fab .chev{ font-size: 1.1rem; line-height: 1; transform: translateY(-1px); }
-.back-fab:hover,
-.back-fab:focus-visible{ background:#fefefe; outline: none; }
+.back-fab:hover, .back-fab:focus-visible{ background:#fefefe; outline: none; }
 
 /* Small phones */
 @media (max-width: 360px){
   .auth-hero__title{ font-size: 1.2rem; }
   .auth-card{ width: 90vw; }
 }
+
+/* ===========================
+   AUTH (Login / Forgot)
+   =========================== */
+.auth-page { --footer-h: 36px; }
+.auth-page{
+  background: linear-gradient(180deg, #f6f3e4 0%, #efe9cf 100%);
+  background-color: #efe9cf;
+  background-attachment: fixed;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--footer-h));
+}
+.auth-page::before{
+  content:""; position: fixed; top:0; left:0; right:0;
+  height: env(safe-area-inset-top, 0px); background: var(--auth-edge-bg);
+  pointer-events:none; z-index:0;
+}
+.auth-page::after{
+  content:""; position: fixed; left:0; right:0; bottom:0;
+  height: env(safe-area-inset-bottom, 0px); background: var(--auth-edge-bg);
+  pointer-events:none; z-index:0;
+}
+.auth-wrap { min-height: calc(100vh - var(--footer-h)); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
+
+/* Hero */
+.auth-hero{ text-align:center; padding:2px 12px 0; transform:translateY(-40px); margin-bottom:-20px; }
+.auth-hero__logo{ width:70px; height:70px; margin:0 auto 6px; border-radius:50%; background:#fff; border:2px solid var(--brand-green); display:grid; place-items:center; box-shadow:0 3px 8px rgba(0,0,0,.08); }
+.auth-hero__logo img{ width:52px; height:52px; border-radius:8px; object-fit:contain; }
+.auth-hero__title{ font-family:'Playfair Display', serif; font-size:1.28rem; font-weight:600; letter-spacing:.2px; margin:0 0 4px; color: var(--brand-green); }
+.auth-hero__subtitle{ font-size:.95rem; color:#5b5b5b; margin:0 0 6px; }
+
+/* Card */
+.auth-card {
+  width: min(330px, 88vw);
+  margin: 0 auto;
+  padding: 20px 16px 28px;
+  background: #fff;
+  border: 2px solid var(--brand-green);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.10);
+}
+
+/* Login inputs (use global .field control styles) */
+.password-wrap{ position:relative; }
+.password-wrap .eye{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  display:inline-grid; place-items:center;
+  width:28px; height:28px; border:0; background:transparent; cursor:pointer; color:var(--brand-green);
+}
+.password-wrap .eye svg{ width:20px; height:20px; display:block; }
+
+.form-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 6px; }
+.checkbox{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
+.checkbox input{ width:18px; height:18px; }
+
+.muted-link{ color:#3a3a3a; text-decoration:none; font-weight:600; font-size:.88rem; }
+.muted-link:hover{ text-decoration: underline; }
+
+.auth-page .btn-primary {
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--brand-green);
+  color: #fff;
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  font-size: .95rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  margin-top: 16px;
+}
+.auth-page .btn-primary:hover { background:#154a18; }
+
+.app-footer--auth{
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: var(--footer-h);
+  background: var(--auth-edge-bg);
+  color: #666;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; padding: 0 10px;
+  border-top: 1px solid rgba(0,0,0,.06);
+  z-index: 1000;
+}
+.app-footer--auth .dot{ opacity:.6; }
+
+.auth-modal__backdrop{
+  position: fixed; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,.38);
+  z-index: 2000;
+}
+.auth-modal{
+  width: min(420px, 92vw);
+  background: #fff;
+  border: 2px solid var(--brand-green);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.25);
+  padding: 16px;
+}
+.auth-modal h2{ margin: 0 0 8px; font-size: 1.1rem; color: var(--brand-green); }
+.auth-modal .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+.btn-link{ background:transparent; border:none; color:var(--brand-green); font-weight:700; cursor:pointer; padding:6px 10px; }
 
 /* ===========================
    Dark / Auto Theme overrides
@@ -436,12 +452,11 @@ body.home-page .content h1 {
     --accent-gold: #d9c767;
     --gold-text: #e9e5cc;
     --jd-yellow-dark: #bfa100;
-
     --tile-bg: #1c1f18;
     --tile-border: #2d6a31;
+    --crumb-fg: #cfcfcf;
   }
 }
-
 :root[data-theme="dark"] {
   --paper: #141612;
   --ink:   #e8e6df;
@@ -450,38 +465,25 @@ body.home-page .content h1 {
   --accent-gold: #d9c767;
   --gold-text: #e9e5cc;
   --jd-yellow-dark: #bfa100;
-
   --tile-bg: #1c1f18;
   --tile-border: #2d6a31;
+  --crumb-fg: #cfcfcf;
 }
+:root[data-theme="light"] { /* defaults */ }
 
-:root[data-theme="light"] {
-  /* no overrides — uses your defaults */
-}
-
-/* ===========================
-   Auth (Login) — dark/auto visuals to match app
-   =========================== */
-
-/* Auto (when the OS is dark) */
+/* Auth background in dark/auto (to match app) */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] .auth-page {
-    /* slightly textured dark background (matches app vibe) */
     background: linear-gradient(180deg, #1a1c17 0%, #12140f 100%);
-    background-color: #12140f;     /* solid fallback */
+    background-color: #12140f;
   }
 }
-
-/* Forced dark */
 :root[data-theme="dark"] .auth-page {
   background: linear-gradient(180deg, #1a1c17 0%, #12140f 100%);
   background-color: #12140f;
 }
 
-/* Keep the notch/bottom bands using your dark vars (already set via --auth-edge-bg) */
-
-/* ========== Dark-mode: make login card + form fields match tiles ========== */
-/* Auto → dark */
+/* Auth controls match tiles in dark/auto */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] .auth-card,
   :root[data-theme="auto"] .auth-modal,
@@ -495,34 +497,20 @@ body.home-page .content h1 {
     border-color: var(--tile-border);
     color: var(--ink);
   }
-
   :root[data-theme="auto"] .auth-card,
   :root[data-theme="auto"] .auth-modal{
-    border-width: 2px;
-    border-style: solid;
-    border-radius: 14px;
+    border-width: 2px; border-style: solid; border-radius: 14px;
     box-shadow: 0 8px 22px rgba(0,0,0,.25);
   }
-
   :root[data-theme="auto"] .auth-card .field label,
-  :root[data-theme="auto"] .auth-modal .field label{
-    color: var(--ink); /* readable label in dark */
-  }
-
+  :root[data-theme="auto"] .auth-modal .field label{ color: var(--ink); }
   :root[data-theme="auto"] .auth-card ::placeholder,
-  :root[data-theme="auto"] .auth-modal ::placeholder{
-    color: rgba(232,230,223,.65); /* subtle light placeholder */
-  }
-
+  :root[data-theme="auto"] .auth-modal ::placeholder{ color: rgba(232,230,223,.65); }
   :root[data-theme="auto"] .auth-card .field input:focus,
   :root[data-theme="auto"] .auth-modal .field input:focus{
-    border-color: var(--tile-border);
-    box-shadow: 0 0 0 3px rgba(45,106,49,.30); /* soft green glow */
-    outline: none;
+    border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30); outline: none;
   }
 }
-
-/* Forced dark */
 :root[data-theme="dark"] .auth-card,
 :root[data-theme="dark"] .auth-modal,
 :root[data-theme="dark"] .auth-card input[type="text"],
@@ -535,29 +523,16 @@ body.home-page .content h1 {
   border-color: var(--tile-border);
   color: var(--ink);
 }
-
 :root[data-theme="dark"] .auth-card,
 :root[data-theme="dark"] .auth-modal{
-  border-width: 2px;
-  border-style: solid;
-  border-radius: 14px;
+  border-width: 2px; border-style: solid; border-radius: 14px;
   box-shadow: 0 8px 22px rgba(0,0,0,.25);
 }
-
 :root[data-theme="dark"] .auth-card .field label,
-:root[data-theme="dark"] .auth-modal .field label{
-  color: var(--ink);
-}
-
+:root[data-theme="dark"] .auth-modal .field label{ color: var(--ink); }
 :root[data-theme="dark"] .auth-card ::placeholder,
-:root[data-theme="dark"] .auth-modal ::placeholder{
-  color: rgba(232,230,223,.65);
-}
-
+:root[data-theme="dark"] .auth-modal ::placeholder{ color: rgba(232,230,223,.65); }
 :root[data-theme="dark"] .auth-card .field input:focus,
 :root[data-theme="dark"] .auth-modal .field input:focus{
-  border-color: var(--tile-border);
-  box-shadow: 0 0 0 3px rgba(45,106,49,.30);
-  outline: none;
+  border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30); outline: none;
 }
-
