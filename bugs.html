@@ -20,83 +20,6 @@
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
-
-  <style>
-    .content { padding-bottom: calc(var(--footer-h) + 120px); }
-
-    /* Uniform rows */
-    .row { display:flex; gap:12px; flex-wrap:wrap; }
-    .row > .field { flex:1 1 0; min-width:260px; }
-
-    .field { margin: 10px 0; }
-    .field label { display:block; font-weight:700; color: var(--brand-green); margin-bottom:6px; }
-
-    select,
-    input[type="text"],
-    input[type="date"],
-    textarea{
-      width:100%;
-      padding:10px;
-      border:1px solid var(--tile-border);
-      border-radius:8px;
-      background: var(--tile-bg);
-      color: var(--ink);
-      font-size:16px;
-      box-sizing:border-box;
-    }
-    textarea{ min-height:110px; }
-
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus{
-      outline:none;
-      border-color: var(--tile-border);
-      box-shadow: 0 0 0 3px rgba(45,106,49,.30);
-    }
-
-    .muted { color:#666; font-size:.9rem; }
-
-    .form-actions{
-      margin-top: 16px;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 8px;
-    }
-    .form-actions .center { justify-self: center; }
-    .form-actions .right  { justify-self: end; }
-
-    .btn-solid{
-      background: var(--brand-green);
-      color:#fff;
-      border:0; border-radius:12px;
-      padding:9px 14px; cursor:pointer;
-      font: 600 .95rem 'Playfair Display', serif;
-      box-shadow: 0 6px 18px rgba(0,0,0,.12);
-    }
-    .btn-solid:hover{ background:#154a18; }
-
-    .btn-outline{
-      background: var(--tile-bg);
-      color: var(--brand-green);
-      border:2px solid var(--brand-green);
-      border-radius:10px;
-      padding:6px 10px; cursor:pointer; font: 600 .9rem 'Playfair Display', serif;
-    }
-    :root[data-theme="dark"] .btn-outline,
-    :root[data-theme="auto"] .btn-outline{ color: var(--ink); border-color: var(--tile-border); }
-    .btn-outline:hover{ background:#fefefe; }
-  </style>
-
-  <!-- Apply saved theme ASAP before paint -->
-  <script>
-    (function bootTheme(){
-      try {
-        const saved = localStorage.getItem('df_theme') || 'auto';
-        document.documentElement.setAttribute('data-theme', saved);
-      } catch(_) {}
-    })();
-  </script>
 </head>
 <body>
   <!-- Header -->
@@ -130,7 +53,7 @@
         <div class="field">
           <label for="submittedBy">Submitted by</label>
           <select id="submittedBy" required></select>
-          <small id="whoHint" class="muted"></small>
+          <small id="whoHint" class="field-hint" style="color:#666;"></small>
         </div>
         <div class="field">
           <label for="submittedDate">Date submitted</label>
@@ -154,13 +77,13 @@
         <textarea id="message" required placeholder="Describe the bug or issue…"></textarea>
       </div>
 
+      <!-- Actions -->
       <div class="form-actions">
         <div></div>
-        <div class="center">
-          <button class="btn-solid" type="submit">Submit Issue</button>
-        </div>
-        <div class="right">
-          <button class="btn-outline" type="reset">Clear</button>
+        <button class="btn-primary" type="submit">Submit Issue</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
+          <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
         </div>
       </div>
     </form>
@@ -175,15 +98,22 @@
     <span id="version">v0.0.0</span>
   </footer>
 
+  <!-- Quick View modal -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Open Issues</h2>
+      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function BugsPage(){
-      const ADD_VALUE = "__ADD_NEW__";
-      const ADD_LABEL = "Add New";
+      const getCurrentUser = (window.getCurrentUser) ? window.getCurrentUser : () => localStorage.getItem('df_current_user') || 'Admin';
 
-      const getCurrentUser = (window.getCurrentUser) ? window.getCurrentUser : () => localStorage.getItem('df_current_user') || '';
-
-      const EMPLOYEES = JSON.parse(localStorage.getItem('df_people') || '[]');
-      if (!EMPLOYEES.length) {
+      if (!localStorage.getItem('df_people')) {
         localStorage.setItem('df_people', JSON.stringify([
           {name:'John Doe'}, {name:'Jane Smith'}, {name:'Sam Operator'}, {name:'Vendor Co.'}
         ]));
@@ -200,6 +130,7 @@
         "Feedback": ["Ideas","Bugs / Issues"],
         "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
       };
+      const ADD_VALUE = "__ADD__";
       const MENUS = JSON.parse(localStorage.getItem('df_menus') || 'null') || DEFAULT_MENUS;
 
       const bySel = document.getElementById('submittedBy');
@@ -209,6 +140,20 @@
       const submenuSel = document.getElementById('submenuSel');
       const msgEl = document.getElementById('message');
       const form = document.getElementById('bug-form');
+
+      const qvBtn = document.getElementById('quickViewBtn');
+      const qvBackdrop = document.getElementById('qvBackdrop');
+      const qvList = document.getElementById('qvList');
+      const qvClose = document.getElementById('qvClose');
+
+      function todayCT(){
+        const now = new Date();
+        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
+        const y = parts.find(p=>p.type==='year').value;
+        const m = parts.find(p=>p.type==='month').value;
+        const d = parts.find(p=>p.type==='day').value;
+        return `${y}-${m}-${d}`;
+      }
 
       function renderPeople(){
         const people = JSON.parse(localStorage.getItem('df_people'));
@@ -227,15 +172,15 @@
         whoHint.textContent = bySel.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
       }
 
-      function addSpecialAddOption(selectEl){
+      function addAddOption(selectEl, label){
         const opt = document.createElement('option');
-        opt.value = ADD_VALUE;
-        opt.textContent = ADD_LABEL;
-        opt.dataset.add = "1";
+        opt.value = "__ADD__";
+        opt.textContent = label;
+        opt.setAttribute('data-add','1');
         selectEl.appendChild(opt);
       }
 
-      function renderMenus(){
+      function renderMenus(selectFirst = true){
         menuSel.innerHTML = '';
         Object.keys(MENUS).forEach(name => {
           const opt = document.createElement('option');
@@ -243,11 +188,12 @@
           opt.textContent = name;
           menuSel.appendChild(opt);
         });
-        addSpecialAddOption(menuSel);
-        renderSubmenus(menuSel.value);
+        addAddOption(menuSel, '➕ Add New Menu…');
+        if (selectFirst && menuSel.options.length) menuSel.selectedIndex = 0;
+        renderSubmenus(menuSel.value, true);
       }
 
-      function renderSubmenus(menu){
+      function renderSubmenus(menu, selectFirst = false){
         submenuSel.innerHTML = '';
         (MENUS[menu] || []).forEach(name => {
           const opt = document.createElement('option');
@@ -255,16 +201,36 @@
           opt.textContent = name;
           submenuSel.appendChild(opt);
         });
-        addSpecialAddOption(submenuSel);
+        addAddOption(submenuSel, '➕ Add New Submenu…');
+        if (selectFirst && submenuSel.options.length) submenuSel.selectedIndex = 0;
       }
 
-      function todayCT(){
-        const now = new Date();
-        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
-        const y = parts.find(p=>p.type==='year').value;
-        const m = parts.find(p=>p.type==='month').value;
-        const d = parts.find(p=>p.type==='day').value;
-        return `${y}-${m}-${d}`;
+      function saveMenus(){
+        localStorage.setItem('df_menus', JSON.stringify(MENUS));
+      }
+
+      function handleMaybeAdd(selectEl, type){
+        if (selectEl.value !== "__ADD__") return;
+        const currentMenu = menuSel.value;
+        const label = (type === 'menu') ? 'New menu name:' : `New submenu for "${currentMenu}":`;
+        const raw = prompt(label);
+        if (!raw) { renderMenus(false); renderSubmenus(currentMenu,false); return; }
+        const name = raw.trim().replace(/^./, c => c.toUpperCase());
+        if (!name) return;
+
+        if (type === 'menu') {
+          if (!MENUS[name]) MENUS[name] = ['—'];
+          saveMenus();
+          renderMenus(false);
+          menuSel.value = name;
+          renderSubmenus(name, true);
+        } else {
+          if (!MENUS[currentMenu]) MENUS[currentMenu] = [];
+          if (!MENUS[currentMenu].includes(name)) MENUS[currentMenu].push(name);
+          saveMenus();
+          renderSubmenus(currentMenu, false);
+          submenuSel.value = name;
+        }
       }
 
       function saveIssue(data){
@@ -273,39 +239,46 @@
         localStorage.setItem('df_bugs', JSON.stringify(list));
       }
 
-      function promptCap(msg){
-        const raw = prompt(msg);
-        if (!raw) return null;
-        return raw.trim().replace(/^./, c => c.toUpperCase());
+      function openQuickView(){
+        qvList.innerHTML = '';
+        const list = JSON.parse(localStorage.getItem('df_bugs') || '[]')
+          .filter(i => i.status !== 'closed' && i.status !== 'archived')
+          .sort((a,b)=>b.ts-a.ts);
+        if (!list.length) {
+          const li = document.createElement('li');
+          li.textContent = 'No open issues.';
+          qvList.appendChild(li);
+        } else {
+          list.forEach(i => {
+            const li = document.createElement('li');
+            li.style.border='1px solid var(--tile-border)';
+            li.style.borderRadius='10px';
+            li.style.padding='8px 10px';
+            li.style.margin='8px 0';
+            li.innerHTML = `<strong>${i.menu} › ${i.submenu}</strong><br>
+                            <em>${i.submittedBy}</em> • ${i.date}<br>
+                            ${i.message}`;
+            qvList.appendChild(li);
+          });
+        }
+        qvBackdrop.style.display = 'flex';
       }
-
-      menuSel.addEventListener('change', () => {
-        if (menuSel.value !== ADD_VALUE) { renderSubmenus(menuSel.value); return; }
-        const name = promptCap('New menu name:');
-        if (!name) { renderMenus(); return; }
-        if (!MENUS[name]) MENUS[name] = ['—'];
-        localStorage.setItem('df_menus', JSON.stringify(MENUS));
-        renderMenus();
-        menuSel.value = name;
-        renderSubmenus(name);
-      });
-
-      submenuSel.addEventListener('change', () => {
-        if (submenuSel.value !== ADD_VALUE) return;
-        const menu = menuSel.value;
-        const name = promptCap(`New submenu for "${menu}":`);
-        if (!name) { renderSubmenus(menu); return; }
-        if (!MENUS[menu]) MENUS[menu] = [];
-        if (!MENUS[menu].includes(name)) MENUS[menu].push(name);
-        localStorage.setItem('df_menus', JSON.stringify(MENUS));
-        renderSubmenus(menu);
-        submenuSel.value = name;
-      });
+      function closeQuickView(){ qvBackdrop.style.display = 'none'; }
 
       // Init
       renderPeople();
       dateEl.value = todayCT();
-      renderMenus();
+      renderMenus(true);
+
+      menuSel.addEventListener('change', (e) => {
+        if (e.target.value === "__ADD__") { handleMaybeAdd(menuSel, 'menu'); return; }
+        renderSubmenus(menuSel.value, true);
+      });
+      submenuSel.addEventListener('change', () => handleMaybeAdd(submenuSel, 'submenu'));
+
+      qvBtn.addEventListener('click', openQuickView);
+      qvClose.addEventListener('click', closeQuickView);
+      qvBackdrop.addEventListener('click', (e)=>{ if(e.target===qvBackdrop) closeQuickView(); });
 
       form.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -326,7 +299,7 @@
         form.reset();
         renderPeople();
         dateEl.value = todayCT();
-        renderMenus();
+        renderMenus(true);
         alert('Issue submitted!');
       });
 
