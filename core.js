@@ -231,7 +231,7 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     }
 
     // Helper: create crumb (link for non-last; span for last)
-    function makeCrumb(obj, isLast, index, count) {
+    function makeCrumb(obj, isLast) {
       const el = document.createElement(isLast ? "span" : "a");
       el.textContent = obj.label;
       if (!isLast) el.href = obj.href || "#";
@@ -245,7 +245,7 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
     norm.forEach((p, i) => {
       const li = document.createElement("li");
       const isLast = i === norm.length - 1;
-      li.appendChild(makeCrumb(p, isLast, i, norm.length));
+      li.appendChild(makeCrumb(p, isLast));
       ol.appendChild(li);
 
       if (!isLast) {
@@ -278,20 +278,21 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
 
       // Grab anchors/spans only (skip separators)
       const crumbEls = Array.from(ol.querySelectorAll("a, span"));
+      if (crumbEls.length === 0) return;
 
-      // Reset
+      const first = crumbEls[0];
+      const last  = crumbEls[crumbEls.length - 1];
+      const middle = crumbEls.slice(1, -1);
+
+      // Reset to natural widths first (so we don't keep stale clamps = no weird gaps)
       crumbEls.forEach(el => {
         el.style.maxWidth = "none";
         el.style.overflow = "visible";
         el.style.textOverflow = "clip";
       });
 
-      // Already fits?
+      // If everything fits naturally, stop here (no gaps, no truncation).
       if (ol.scrollWidth <= available) return;
-
-      const first = crumbEls[0];
-      const last  = crumbEls[crumbEls.length - 1];
-      const middle = crumbEls.slice(1, -1);
 
       // Step down middle widths first
       const midSteps = ["14ch", "12ch", "10ch", "8ch", "6ch"];
@@ -300,16 +301,18 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
           el.style.maxWidth = w;
           el.style.overflow = "hidden";
           el.style.textOverflow = "ellipsis";
+          el.style.whiteSpace = "nowrap";
         });
         if (ol.scrollWidth <= available) return;
       }
 
-      // Cap last crumb so it can't hug Logout (allow up to ~55% of room)
+      // Cap last crumb so it can't crowd Logout (allow up to ~55% of room)
       const lastCap = Math.max(100, Math.floor(available * 0.55));
       if (last) {
         last.style.maxWidth = lastCap + "px";
         last.style.overflow = "hidden";
         last.style.textOverflow = "ellipsis";
+        last.style.whiteSpace = "nowrap";
       }
       if (ol.scrollWidth <= available) return;
 
@@ -320,6 +323,7 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
           first.style.maxWidth = w;
           first.style.overflow = "hidden";
           first.style.textOverflow = "ellipsis";
+          first.style.whiteSpace = "nowrap";
         }
         if (ol.scrollWidth <= available) return;
       }
