@@ -778,3 +778,37 @@ body.home-page .content h1 {
 .breadcrumbs ol span {
   max-width: initial;           /* resets stale inline max-width */
 }
+
+/* === Breadcrumb overflow fix === */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;            /* critical: allows shrinking */
+  overflow: hidden;        /* keeps text inside */
+}
+
+.breadcrumbs ol li {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
+  flex: 1 1 auto;          /* middle crumbs shrink */
+  min-width: 0;            /* required for ellipsis */
+}
+
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
