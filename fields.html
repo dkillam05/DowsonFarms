@@ -17,6 +17,14 @@
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
+
+  <style>
+    /* iOS no-zoom + roomy search */
+    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    /* tiny helper layout for the “searchable county” mode */
+    .inline-grow{display:flex;gap:10px;align-items:center}
+    .inline-grow > input{flex:1}
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -48,9 +56,31 @@
 
     <!-- FORM -->
     <form id="field-form" novalidate>
+      <!-- Field name (required) -->
       <div class="field">
         <label for="fieldName">Field <span class="req-star">*</span></label>
         <input id="fieldName" type="text" required placeholder="Type field name…" />
+      </div>
+
+      <!-- Tillable acres (required, up to 2 decimals) -->
+      <div class="field">
+        <label for="acres">Tillable acres <span class="req-star">*</span></label>
+        <input id="acres" type="text" inputmode="decimal" placeholder="e.g., 80 or 80.25" required />
+      </div>
+
+      <!-- County (dropdown; becomes searchable when >10) -->
+      <div class="field" id="countyField">
+        <label for="countySel">County <span class="req-star">*</span></label>
+
+        <!-- Mode A: simple select (≤10 counties) -->
+        <select id="countySel" style="display:none"></select>
+
+        <!-- Mode B: searchable with datalist (>10 counties) -->
+        <div id="countySearchWrap" class="inline-grow" style="display:none">
+          <input id="countySearch" list="countyList" placeholder="Search counties…" />
+          <datalist id="countyList"></datalist>
+          <button type="button" class="btn-outline" id="countyAddBtn" title="Add county">+ Add</button>
+        </div>
       </div>
 
       <section class="card" style="padding:12px; margin-top:8px;">
@@ -59,14 +89,15 @@
           <button class="btn-outline" type="reset" id="clearBtn" style="width:92px; height:92px;">Clear</button>
         </div>
       </section>
+
+      <input type="hidden" id="editingId" />
     </form>
 
     <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Fields</h2>
       <div class="row" style="align-items:center; gap:12px;">
-        <input id="searchInput" class="search" type="search" placeholder="Search fields…"
-               style="font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%;" />
+        <input id="searchInput" class="search" type="search" placeholder="Search fields…" />
         <label class="muted" for="toggleShowArchived">
           <input type="checkbox" id="toggleShowArchived" /> Show archived
         </label>
@@ -96,49 +127,206 @@
 
   <script>
   (function FieldsPage(){
-    const KEY='df.fields';
+    const FIELD_KEY='df.fields';
+    const COUNTY_KEY='df.counties';
+    const ADD_VALUE='__ADD__';
+
     const $=s=>document.querySelector(s);
-    const $name=$('#fieldName'), $saved=$('#savedList');
+    const $name=$('#fieldName');
+    const $acres=$('#acres');
+    const $id=$('#editingId');
+    const $saved=$('#savedList');
 
+    const $countySel=$('#countySel');
+    const $countySearchWrap=$('#countySearchWrap');
+    const $countySearch=$('#countySearch');
+    const $countyList=$('#countyList');
+    const $countyAddBtn=$('#countyAddBtn');
+
+    /* ---------- helpers ---------- */
     function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
-    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
-    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
-    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
+    function load(key){ try{return JSON.parse(localStorage.getItem(key)||'[]')}catch(_){return[]} }
+    function save(key,list){ localStorage.setItem(key, JSON.stringify(list)) }
 
+    function upsertField(item){
+      const list=load(FIELD_KEY);
+      const i=list.findIndex(x=>x.id===item.id);
+      if(i>=0) list[i]=item; else list.push(item);
+      save(FIELD_KEY,list);
+    }
+    function getField(id){ return load(FIELD_KEY).find(x=>x.id===id); }
+
+    function listCounties(){ return load(COUNTY_KEY).sort((a,b)=>a.localeCompare(b)); }
+    function addCountyRaw(name){
+      const val=titleCase((name||'').trim());
+      if(!val) return null;
+      const list=listCounties();
+      if(!list.includes(val)){ list.push(val); save(COUNTY_KEY,list); }
+      return val;
+    }
+
+    /* ---------- acres: enforce up to 2 decimals ---------- */
+    function wireAcres(el){
+      el.addEventListener('keydown',(e)=>{
+        const bad=['e','E','+','-']; if(bad.includes(e.key)) return e.preventDefault();
+        if(['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter'].includes(e.key)) return;
+        if(e.key==='.' && el.value.includes('.')) return e.preventDefault();
+        if(!/^\d$/.test(e.key) && e.key!=='.') e.preventDefault();
+      });
+      el.addEventListener('input',()=>{
+        let v=el.value.replace(/[^0-9.]/g,'');
+        const i=v.indexOf('.');
+        if(i!==-1){ v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,''); v=v.replace(/^(\d+\.\d{0,2}).*$/,'$1'); }
+        el.value=v;
+        el.selectionStart=el.selectionEnd=el.value.length;
+      });
+    }
+    wireAcres($acres);
+
+    /* ---------- county control (auto select vs searchable) ---------- */
+    function renderCountyControl(selected){
+      const counties=listCounties();
+      const many = counties.length>10;
+
+      if(!many){
+        // SELECT MODE
+        $countySearchWrap.style.display='none';
+        $countySel.style.display='block';
+        $countySel.innerHTML='';
+        // Options
+        counties.forEach(c=>{
+          const o=document.createElement('option'); o.value=c; o.textContent=c; $countySel.appendChild(o);
+        });
+        // Add option
+        const add=document.createElement('option'); add.value=ADD_VALUE; add.textContent='➕ Add New County…'; $countySel.appendChild(add);
+        // Select
+        if(selected && counties.includes(selected)) $countySel.value=selected; else if(counties.length) $countySel.selectedIndex=0;
+      }else{
+        // SEARCH MODE (datalist + Add button)
+        $countySel.style.display='none';
+        $countySearchWrap.style.display='flex';
+        $countyList.innerHTML=counties.map(c=>`<option value="${c}">`).join('');
+        if(selected) $countySearch.value=selected; else $countySearch.value='';
+      }
+    }
+
+    // Handle Add from select
+    $countySel.addEventListener('change',()=>{
+      if($countySel.value!==ADD_VALUE) return;
+      const raw=prompt('New county name:'); if(!raw){ renderCountyControl(); return; }
+      const val=addCountyRaw(raw);
+      renderCountyControl(val);
+    });
+    // Handle Add button in search mode
+    $countyAddBtn.addEventListener('click',()=>{
+      const raw = $countySearch.value || prompt('New county name:');
+      const val=addCountyRaw(raw);
+      renderCountyControl(val);
+    });
+
+    /* ---------- saved list ---------- */
     function renderSaved(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      const rows=load()
+      const rows=load(FIELD_KEY)
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || x.name.toLowerCase().includes(q))
         .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-      $saved.innerHTML = rows.length
-        ? rows.map(r=>`<li style="margin:6px 0;"><strong>${r.name}</strong>${r.archived?' <em class="muted">• Archived</em>':''}</li>`).join('')
-        : '<li class="muted">No fields yet.</li>';
+
+      $saved.innerHTML = rows.length ? rows.map(r=>`
+        <li>
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.name}</strong>
+            • ${Number(r.acres).toFixed( r.acres%1? 2:0 )} ac
+            ${r.county?`• ${r.county}`:''}
+            ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
+          </button>
+        </li>`).join('') : '<li class="muted">No fields yet.</li>';
+
+      $saved.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
+      });
     }
 
+    function openForEdit(id){
+      const f=getField(id); if(!f) return;
+      $id.value=f.id;
+      $name.value=f.name;
+      $acres.value=String(f.acres);
+      renderCountyControl(f.county);
+      if($countySel.style.display==='block') $countySel.value=f.county||'';
+      else $countySearch.value=f.county||'';
+      window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
+    }
+
+    /* ---------- form actions ---------- */
     $('#field-form').addEventListener('submit',(e)=>{
       e.preventDefault();
-      const pretty=titleCase(($name.value||'').trim());
-      if(!pretty){$name.focus();return;}
-      upsert({id:pretty.toLowerCase(), name:pretty, archived:false, createdAt:Date.now(), updatedAt:Date.now()});
-      $('#field-form').reset(); renderSaved();
+
+      const name=titleCase(($name.value||'').trim());
+      const acresRaw=($acres.value||'').trim();
+      // finalize acres to 2-dec number
+      const acres = acresRaw ? Number(Number(acresRaw).toFixed(2)) : NaN;
+
+      // county pick
+      let county='';
+      if($countySel.style.display==='block'){ county = $countySel.value===ADD_VALUE ? '' : ($countySel.value||''); }
+      else { county = $countySearch.value||''; if(county) county = titleCase(county); }
+
+      if(!name){ alert('Field name is required.'); $name.focus(); return; }
+      if(!acresRaw || isNaN(acres)){ alert('Enter tillable acres (up to 2 decimals).'); $acres.focus(); return; }
+      if(!county){ alert('Pick a county (or add one).'); ($countySel.style.display==='block' ? $countySel : $countySearch).focus(); return; }
+
+      // make sure county exists in storage (covers search mode typing)
+      addCountyRaw(county);
+
+      const id = $id.value || name.toLowerCase();
+      const prev = getField(id);
+      upsertField({
+        id, name, acres, county,
+        archived: prev ? !!prev.archived : false,
+        createdAt: prev?.createdAt || Date.now(),
+        updatedAt: Date.now()
+      });
+
+      // reset + refresh
+      $('#field-form').reset(); $id.value='';
+      renderCountyControl();   // re-render county control (might switch mode if counts change)
+      renderSaved();
+      $('#savedCard').scrollIntoView({behavior:'smooth', block:'start'});
     });
 
-    $('#clearBtn').addEventListener('click', ()=>$('#field-form').reset());
+    $('#clearBtn').addEventListener('click', ()=>{
+      $('#field-form').reset(); $id.value='';
+      renderCountyControl();
+      $name.focus();
+    });
+
+    // search/filter & quick view
     $('#searchInput').addEventListener('input', renderSaved);
     $('#toggleShowArchived').addEventListener('change', renderSaved);
 
-    // Quick View
     $('#quickViewBtn').addEventListener('click', ()=>{
-      const list=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-      const L=$('#qvList'); const B=$('#qvBackdrop');
-      L.innerHTML = list.length ? list.map(r=>`<li class="card" style="padding:10px; margin:8px 0;"><strong>${r.name}</strong></li>`).join('') : '<li>No fields.</li>';
+      const list=load(FIELD_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = list.length ? list.map(r=>`
+        <li>
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.name}</strong> • ${Number(r.acres).toFixed(r.acres%1?2:0)} ac • ${r.county||'—'}
+          </button>
+        </li>`).join('') : '<li>No fields.</li>';
       B.style.display='flex';
+      L.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=>{ B.style.display='none'; openForEdit(b.getAttribute('data-id')); });
+      });
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
+    // Initial renders
+    renderCountyControl();   // start with current counties (none by default)
     renderSaved();
 
     window.setBreadcrumbs && window.setBreadcrumbs([
