@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Team — Dowson Farms</title>
+  <title>Teams & Partners — Dowson Farms</title>
 
   <!-- Shared styles/scripts -->
   <link rel="stylesheet" href="theme.css" />
@@ -19,12 +19,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <!-- Optional: maskable if present -->
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 </head>
 <body>
 
-  <!-- Header (logo left, clock right) -->
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -35,35 +34,60 @@
     </div>
   </header>
 
-  <!-- Breadcrumbs (fixed under header) -->
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><span>Team / Partners</span></li>
+      <li><span>Teams &amp; Partners</span></li>
     </ol>
   </nav>
 
-  <!-- Page content -->
+  <!-- Page content with tile cards -->
   <main class="content">
-    <h1>🫱🏼‍🫲🏽 Team / Partners</h1>
-    <p>🚧 Coming soon…</p>
+    <h1>🫱🏼‍🫲🏽 Teams &amp; Partners</h1>
+
+    <ul class="hub-grid">
+      <li>
+        <a class="hub-card" href="teams-employees.html">
+          <div class="hub-card__title">Employees</div>
+          <div class="hub-card__sub">Directory &amp; roles (coming soon)</div>
+        </a>
+      </li>
+      <li>
+        <a class="hub-card" href="teams-sub-contractors.html">
+          <div class="hub-card__title">Sub-Contractors</div>
+          <div class="hub-card__sub">Crews &amp; contacts (coming soon)</div>
+        </a>
+      </li>
+      <li>
+        <a class="hub-card" href="teams-vendors.html">
+          <div class="hub-card__title">Vendors</div>
+          <div class="hub-card__sub">Seed, chem, equipment (coming soon)</div>
+        </a>
+      </li>
+      <li>
+        <a class="hub-card" href="teams-dictionary.html">
+          <div class="hub-card__title">Dictionary</div>
+          <div class="hub-card__sub">Unified index (coming soon)</div>
+        </a>
+      </li>
+    </ul>
   </main>
 
-  <!-- Footer (green bg, JD-yellow text, single line) -->
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
-    <span id="report-date">September 14, 2025</span>
+    <span id="report-date">—</span>
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Inline scripts -->
+  <!-- Scripts -->
   <script>
-    // Ensure only one clock interval exists when navigating between pages
+    // Clock
     if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
-
     function updateClock(){
       const el = document.getElementById('clock');
       if(!el) return;
@@ -75,6 +99,14 @@
     updateClock();
     window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
 
+    // Footer date
+    (function(){
+      const el = document.getElementById('report-date');
+      if (el) el.textContent = new Date().toLocaleDateString('en-US', {
+        year:'numeric', month:'long', day:'numeric', timeZone:'America/Chicago'
+      });
+    })();
+
     // Footer version from version.js
     (function(){
       const v = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'v10.14.7';
@@ -83,7 +115,7 @@
     })();
   </script>
 
-  <!-- Service worker registration (matches your filename) -->
+  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
