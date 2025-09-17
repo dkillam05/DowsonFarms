@@ -599,4 +599,56 @@ body.home-page .content h1 {
   margin-left: 10px;
 }
 
+/* ===========================
+   Teams & Partners hub tiles
+   =========================== */
+
+:root {
+  /* fallbacks if not already defined */
+  --tile-bg: var(--tile-bg, #fff);
+  --tile-border: var(--tile-border, var(--brand-green, #1B5E20));
+  --ink: var(--ink, #222);
+}
+
+.hub-grid {
+  list-style: none;
+  padding: 0; margin: 12px 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.hub-card {
+  display: block;
+  text-decoration: none;
+  background: var(--tile-bg);
+  color: var(--ink);
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
+  padding: 14px;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.hub-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.hub-card__title {
+  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.hub-card__sub {
+  opacity: .75;
+  font-size: .92rem;
+}
+
+/* Dark mode */
+[data-theme="dark"] .hub-card {
+  background: #121417;
+  color: #e8e8e8;
+  border-color: rgba(255,255,255,0.12);
+}
+
 
