@@ -745,3 +745,36 @@ body.home-page .content h1 {
   color: #e8e8e8;
   border-color: rgba(255,255,255,0.12);
 }
+
+/* Breadcrumbs: CSS-only safety so middle crumbs flex and never leave a gap */
+.breadcrumbs ol { display:flex; align-items:center; gap:6px; }
+.breadcrumbs ol li { margin:0; flex:0 0 auto; white-space:nowrap; }
+.breadcrumbs ol li.sep { flex:0 0 auto; }
+
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span {
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Cap the LAST crumb so it never crowds Logout, but only as needed */
+.breadcrumbs ol li:last-child { flex: 0 1 55%; min-width: 0; }
+.breadcrumbs ol li:last-child > a,
+.breadcrumbs ol li:last-child > span {
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* If some old script injected fixed widths, neutralize them when not needed */
+.breadcrumbs ol a,
+.breadcrumbs ol span {
+  max-width: initial;           /* resets stale inline max-width */
+}
