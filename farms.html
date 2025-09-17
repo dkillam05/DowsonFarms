@@ -5,182 +5,129 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Farms — Dowson Farms</title>
-  <script>(function(){var p=localStorage.getItem('df_theme')||'auto';var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',p==='auto'?(d?'dark':'light'):p);document.documentElement.style.colorScheme=(p==='auto'?(d?'dark':'light'):p)==='dark'?'dark':'light';})();</script>
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
+
+  <!-- Styles / App -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
-  <style>
-    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%;max-width:640px}
-  </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">
-    <div class="app-header__left"><img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" /><div class="app-header__title">Dowson Farms</div></div>
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li><li class="sep">›</li>
-      <li><a href="settings.html">Setup / Settings</a></li><li class="sep">›</li>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="settings.html">Setup / Settings</a></li>
+      <li class="sep">›</li>
       <li><span>Farms</span></li>
     </ol>
   </nav>
 
   <main class="content" data-has-form>
-    <div class="row" style="align-items:center;justify-content:space-between;gap:12px;">
-      <h1 style="margin:0;">🏡 Farms</h1>
-      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+    <!-- Title row with Quick View top-right -->
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🌳 Farms</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
     </div>
-    
 
+    <!-- Spacer (removed text, but keep layout) -->
+    <div style="margin-top:12px;"></div>
+
+    <!-- FORM -->
     <form id="farm-form" novalidate>
-      <!-- Single control: dropdown that can switch to an input when adding -->
       <div class="field">
-        <label for="farmSelect">Farm</label>
-        <div id="farmControl">
-          <select id="farmSelect" required></select>
-          <input id="farmInput" type="text" placeholder="Type farm name…" style="display:none;" />
-        </div>
+        <label for="farmName">Farm <span style="color:red">*</span></label>
+        <input id="farmName" type="text" required placeholder="Type farm name…" />
       </div>
 
-      <section class="card" style="padding:12px;margin-top:8px;">
-        <div style="--w:92px;display:grid;gap:10px;grid-template-columns:var(--w) var(--w);justify-content:center;">
-          <button class="btn-primary" type="submit" id="saveBtn"  style="width:var(--w);height:var(--w);font-size:1.02rem;">Save</button>
-          <button class="btn-outline"  type="button" id="clearBtn" style="width:var(--w);height:var(--w);font-size:1.02rem;">Clear</button>
-          <button class="btn-outline"  type="button" id="archiveBtn" style="width:var(--w);height:var(--w);font-size:1.02rem;display:none;">Archive</button>
-          <button class="btn-outline"  type="button" id="deleteBtn"  style="width:var(--w);height:var(--w);font-size:1.02rem;display:none;">Delete</button>
+      <!-- Buttons -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div style="display:grid; gap:10px; grid-template-columns:92px 92px; justify-content:center;">
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px; height:92px;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px; height:92px;">Clear</button>
         </div>
       </section>
-
-      <input type="hidden" id="editingId" />
     </form>
 
+    <!-- Saved -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Farms</h2>
-      <div class="row" style="align-items:center;gap:12px;">
-        <input id="searchInput" class="search" type="search" placeholder="Search farms…" />
-        <div style="flex:1"></div>
-        <label class="muted" for="toggleShowArchived"><input type="checkbox" id="toggleShowArchived" /> Show archived</label>
+      <div class="row" style="align-items:center; gap:12px;">
+        <input id="searchInput" class="search" type="search" placeholder="Search farms…" style="font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%;" />
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
       </div>
-      <ul id="savedList" style="list-style:none;padding:0;margin:12px 0 0;"></ul>
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
     </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
-    <span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span>
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
   </footer>
-
-  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
-      <h2 id="qvTitle">Farms</h2>
-      <ul id="qvList" style="list-style:none;padding:0;margin:8px 0 0;"></ul>
-      <div class="modal-actions"><button class="btn-secondary" id="qvClose">Close</button></div>
-    </div>
-  </div>
-
-  <div id="dfToast" style="display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg,rgba(0,0,0,.03));box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999;">
-    <span id="dfToastText">Saved</span>
-  </div>
 
   <script>
   (function FarmsPage(){
-    const KEY='df.farms', ADD='__ADD__';
+    const KEY='df.farms';
     const $=s=>document.querySelector(s);
-    const $sel=$('#farmSelect'), $input=$('#farmInput'), $id=$('#editingId');
-    const $arch=$('#archiveBtn'), $del=$('#deleteBtn'), $saved=$('#savedList'), $savedCard=$('#savedCard');
 
-    function titleCase(s){return(s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());}
-    function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]}}
-    function save(list){localStorage.setItem(KEY,JSON.stringify(list))}
-    function get(id){return load().find(x=>x.id===id)}
-    function upsert(item){const list=load();const i=list.findIndex(x=>x.id===item.id);if(i>=0)list[i]=item;else list.push(item);save(list)}
-    function remove(id){save(load().filter(x=>x.id!==id))}
-    function slug(s){return(s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-')}
-    function toast(m){const b=$('#dfToast'),t=$('#dfToastText');t.textContent=m||'Saved';b.style.display='block';clearTimeout(window.__t);window.__t=setTimeout(()=>b.style.display='none',2000);}
+    const $name=$('#farmName'), $saved=$('#savedList');
 
-    function showAddMode(on){
-      $sel.style.display = on ? 'none' : '';
-      $input.style.display = on ? '' : 'none';
-      if(on){ $id.value=''; $input.value=''; $input.focus(); }
-      showEditButtons(false,false);
-    }
-    function renderSelect(keepVal){
-      const list=load().sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
-      const prev = keepVal ? $sel.value : null;
-      $sel.innerHTML = list.map(r=>`<option value="${r.id}">${r.name}${r.archived?' (Archived)':''}</option>`).join('');
-      const add = document.createElement('option'); add.value=ADD; add.textContent='➕ Add New Farm…'; add.dataset.add='1';
-      $sel.appendChild(add);
-      if(prev && [...$sel.options].some(o=>o.value===prev)) $sel.value=prev;
-      if(!$sel.options.length || $sel.value===ADD) showAddMode(true); else showAddMode(false);
-    }
-    function showEditButtons(show, archived){ $arch.style.display=show?'inline-block':'none'; $del.style.display=show?'inline-block':'none'; $arch.textContent=archived?'Unarchive':'Archive'; }
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
+    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
+    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
+    function remove(id){ save(load().filter(x=>x.id!==id)) }
 
     function renderSaved(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      const rows=load().filter(x=>showA?true:!x.archived).filter(x=>!q||x.name.toLowerCase().includes(q))
-        .sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
+      const rows=load()
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>!q || x.name.toLowerCase().includes(q))
+        .sort((a,b)=>a.name.localeCompare(b.name));
       $saved.innerHTML = rows.length ? rows.map(r=>`
-        <li><button type="button" class="btn-secondary" data-id="${r.id}" style="width:100%;text-align:left;display:block;margin:8px 0;">
-          <strong>${r.name}</strong>${r.archived?'<em style="opacity:.7"> • Archived</em>':''}
-        </button></li>`).join('') : '<li class="muted" style="margin-top:8px;">No farms yet.</li>';
-      $saved.querySelectorAll('button[data-id]').forEach(b=>{
-        b.addEventListener('click',()=>{ renderSelect(true); $sel.value=b.dataset.id; showAddMode(false); $id.value=b.dataset.id; showEditButtons(true, get(b.dataset.id)?.archived); window.scrollTo({top:0,behavior:'smooth'}); });
-      });
+        <li>
+          <strong>${r.name}</strong> ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
+        </li>`).join('') : '<li class="muted">No farms yet.</li>';
     }
 
-    // events
-    $sel.addEventListener('change',()=>{ ($sel.value===ADD)?showAddMode(true):(showAddMode(false),$id.value=$sel.value,showEditButtons(true,get($sel.value)?.archived)); });
-    $('#clearBtn').addEventListener('click',()=>{ renderSelect(false); showAddMode($sel.options.length?false:true); $id.value=''; });
-    $('#archiveBtn').addEventListener('click',()=>{ const id=$id.value;if(!id)return;const it=get(id);it.archived=!it.archived;it.updatedAt=Date.now();upsert(it);showEditButtons(true,it.archived);renderSelect(true);renderSaved();toast(it.archived?'Archived':'Unarchived'); });
-    $('#deleteBtn').addEventListener('click',()=>{ const id=$id.value;if(!id)return;if(confirm('Delete this farm permanently?')){ remove(id); renderSelect(false); renderSaved(); showAddMode(true); toast('Deleted'); }});
-    document.getElementById('farm-form').addEventListener('submit',(e)=>{
+    $('#farm-form').addEventListener('submit',(e)=>{
       e.preventDefault();
-      const isAdd = $input.style.display !== 'none';
-      const nameRaw = isAdd ? $input.value : ($sel.selectedOptions[0]?.textContent||'');
-      const pretty = titleCase((nameRaw||'').replace(/\s+\(Archived\)$/,'').trim());
-      if(!pretty){ (isAdd?$input:$sel).focus(); return; }
-
-      const list=load();
-      const dup=list.find(x=>x.name.toLowerCase()===pretty.toLowerCase());
-      if(isAdd){
-        if(dup){ alert('That farm already exists.'); return; }
-        const id=slug(pretty);
-        upsert({id,name:pretty,archived:false,createdAt:Date.now(),updatedAt:Date.now()});
-      }else{
-        const id=$id.value||$sel.value; if(!id) return;
-        if(dup && dup.id!==id){ alert('That farm already exists.'); return; }
-        const prev=get(id);
-        upsert({id,name:pretty,archived:!!prev?.archived,createdAt:prev?.createdAt||Date.now(),updatedAt:Date.now()});
-      }
-      renderSelect(false); renderSaved(); $savedCard.scrollIntoView({behavior:'smooth',block:'start'}); toast('Save successful');
+      const pretty=titleCase(($name.value||'').trim());
+      if(!pretty){$name.focus();return;}
+      upsert({id:pretty.toLowerCase(), name:pretty, archived:false, createdAt:Date.now()});
+      $('#farm-form').reset(); renderSaved();
     });
 
-    // search & quick view
-    $('#searchInput').addEventListener('input',renderSaved);
-    $('#toggleShowArchived').addEventListener('change',renderSaved);
-    $('#quickViewBtn').addEventListener('click',()=>{
-      const list=load().sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
-      const $l=$('#qvList'),$b=$('#qvBackdrop');
-      $l.innerHTML = list.length ? list.map(r=>`<li><button type="button" class="btn-secondary" data-id="${r.id}" style="width:100%;text-align:left;display:block;margin:8px 0;"><strong>${r.name}</strong>${r.archived?'<em style="opacity:.7"> • Archived</em>':''}</button></li>`).join('') : '<li>No farms yet.</li>';
-      $b.style.display='flex';
-      $l.querySelectorAll('button[data-id]').forEach(btn=>btn.addEventListener('click',()=>{ $b.style.display='none'; renderSelect(true); $sel.value=btn.dataset.id; showAddMode(false); $id.value=btn.dataset.id; showEditButtons(true,get(btn.dataset.id)?.archived); window.scrollTo({top:0,behavior:'smooth'}); }));
-      $('#qvClose').addEventListener('click',()=> $b.style.display='none',{once:true});
-      $b.addEventListener('click',e=>{ if(e.target===$b) $b.style.display='none'; },{once:true});
-    });
+    $('#clearBtn').addEventListener('click', ()=>$('#farm-form').reset());
+    $('#searchInput').addEventListener('input', renderSaved);
+    $('#toggleShowArchived').addEventListener('change', renderSaved);
 
-    renderSelect(false); renderSaved();
-    window.setBreadcrumbs&&window.setBreadcrumbs([{label:'Home',href:'index.html'},{label:'Setup / Settings',href:'settings.html'},{label:'Farms'}]);
+    renderSaved();
   })();
   </script>
-
-  <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("./serviceworker.js").catch(console.error);});}</script>
 </body>
 </html>
