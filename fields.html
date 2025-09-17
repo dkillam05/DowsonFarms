@@ -4,20 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Fields — Dowson Farms</title>
+  <title>Farms — Dowson Farms</title>
+
+  <!-- Theme boot (same as other pages) -->
   <script>
-(function () {
-  var pref = localStorage.getItem('df_theme') || 'auto';
-  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-  document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-})();
-</script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+    document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
 
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
+  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -26,6 +30,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
 </head>
 <body>
+  <!-- Header (unchanged) -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -34,21 +39,72 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs (same pattern) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
       <li class="sep">›</li>
       <li><a href="settings.html">Setup / Settings</a></li>
       <li class="sep">›</li>
-      <li><span>Fields</span></li>
+      <li><span>Farms</span></li>
     </ol>
   </nav>
 
   <main class="content">
-    <h1>🌱 Fields</h1>
-    <p>🚧 Coming soon…</p>
+    <!-- Page header row with Quick View action -->
+    <section class="card card-header-row">
+      <div class="card-title">🏷️ Farms</div>
+      <div class="card-actions">
+        <button id="quickviewBtn" type="button" class="btn-secondary">Quick View</button>
+      </div>
+    </section>
+
+    <!-- Add Farm (same card form look as Bugs/Issues) -->
+    <form id="farm-form" class="form-card card">
+      <div class="form-row">
+        <label for="farmName">Farm Name</label>
+        <input
+          type="text"
+          id="farmName"
+          name="farmName"
+          placeholder="Enter farm name (e.g., Chatham)"
+          required
+          autocomplete="off"
+          inputmode="text"
+        />
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Add Farm</button>
+      </div>
+
+      <p class="form-help">We auto-capitalize every word (e.g., “dowson farms” → “Dowson Farms”).</p>
+    </form>
+
+    <!-- Existing list/dropdown (same card container) -->
+    <section class="card" aria-labelledby="existing-farms-title" style="margin-top:16px">
+      <h2 id="existing-farms-title" class="card-title">Existing Farms</h2>
+      <div class="form-row">
+        <label for="farmSelect">Select a farm</label>
+        <select id="farmSelect" name="farmSelect">
+          <option disabled selected value="">Loading…</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- (Optional) Quick View panel slot (same component pattern if you use it elsewhere) -->
+    <aside id="quickviewPanel" class="quickview-panel" hidden>
+      <header class="quickview-header">
+        <h3>Farms — Quick View</h3>
+        <button type="button" class="btn-link" id="quickviewClose">Close</button>
+      </header>
+      <div class="quickview-body">
+        <ul id="quickviewList" class="list-unstyled" style="margin:0"></ul>
+      </div>
+    </aside>
   </main>
 
+  <!-- Footer (unchanged) -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -58,9 +114,139 @@
   </footer>
 
   <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+    // === DB autodetect (no config decisions needed) ===
+    const db =
+      window.db ||
+      (window.DF && window.DF.db) ||
+      (window.firebase && firebase.firestore ? firebase.firestore() : null);
+
+    // === Title Case ===
+    function toTitleCase(str) {
+      return str
+        .toLowerCase()
+        .replace(/\b([a-z])/g, (m, c) => c.toUpperCase())
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    const farmInput = document.getElementById('farmName');
+    farmInput.addEventListener('input', (e) => {
+      const before = e.target.value;
+      const after = toTitleCase(before);
+      if (before !== after) {
+        const pos = e.target.selectionStart;
+        e.target.value = after;
+        e.target.selectionStart = e.target.selectionEnd = Math.min(pos, after.length);
+      }
+    });
+
+    // === Add Farm ===
+    const form = document.getElementById('farm-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        if (!db) {
+          alert('Database not initialized. Make sure core.js sets it up.');
+          return;
+        }
+        const name = toTitleCase(farmInput.value || '');
+        if (!name) return;
+
+        const lower = name.toLowerCase();
+        // de-dupe (case-insensitive)
+        const dup = await db.collection('farms')
+          .where('farmNameLower', '==', lower)
+          .limit(1).get();
+        if (!dup.empty) {
+          alert('That farm already exists.');
+          form.reset(); farmInput.focus();
+          return;
+        }
+
+        // lightweight audit if auth present
+        let createdBy = null, createdByEmail = null;
+        try {
+          const u = window.firebase?.auth?.().currentUser || window.firebase?.auth?.currentUser || null;
+          if (u) { createdBy = u.uid; createdByEmail = u.email || null; }
+        } catch {}
+
+        await db.collection('farms').add({
+          farmName: name,
+          farmNameLower: lower,
+          createdAt: new Date().toISOString(),
+          createdBy,
+          createdByEmail
+        });
+
+        form.reset();
+        await loadFarms();
+        farmInput.focus();
+      } catch (err) {
+        console.error(err);
+        alert('Failed to add farm. Check console for details.');
+      }
+    });
+
+    // === Load Farms (for dropdown + quick view) ===
+    async function loadFarms() {
+      const sel = document.getElementById('farmSelect');
+      sel.innerHTML = '<option disabled selected value="">Select a farm…</option>';
+
+      const qvList = document.getElementById('quickviewList');
+      if (qvList) qvList.innerHTML = '';
+
+      if (!db) {
+        sel.innerHTML = '<option disabled selected value="">Database not ready</option>';
+        return;
+      }
+
+      const snap = await db.collection('farms').orderBy('farmName').get();
+      if (snap.empty) {
+        sel.innerHTML = '<option disabled selected value="">No farms yet</option>';
+        return;
+      }
+
+      snap.forEach(doc => {
+        const d = doc.data();
+        const name = d.farmName || '(Unnamed)';
+        // dropdown
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.textContent = name;
+        sel.appendChild(opt);
+        // quick view
+        if (qvList) {
+          const li = document.createElement('li');
+          li.textContent = name;
+          qvList.appendChild(li);
+        }
+      });
+    }
+
+    // === Quick View toggles (same pattern) ===
+    const qvBtn = document.getElementById('quickviewBtn');
+    const qvPanel = document.getElementById('quickviewPanel');
+    const qvClose = document.getElementById('quickviewClose');
+
+    function openQuickView() {
+      if (qvPanel) { qvPanel.hidden = false; }
+    }
+    function closeQuickView() {
+      if (qvPanel) { qvPanel.hidden = true; }
+    }
+
+    qvBtn?.addEventListener('click', openQuickView);
+    qvClose?.addEventListener('click', closeQuickView);
+
+    // Initial load
+    (async function init() {
+      try { await loadFarms(); } catch (e) { console.error(e); }
+    })();
+
+    // SW (same as other pages)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./serviceworker.js').catch(console.error);
       });
     }
   </script>
