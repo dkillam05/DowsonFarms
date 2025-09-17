@@ -6,31 +6,27 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Types — Dowson Farms</title>
 
-  <!-- Theme & app -->
+  <!-- Prepaint theme -->
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme =
+      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
+
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
-  <link rel="manifest" href="manifest.webmanifest" />
 
-  <!-- iOS PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-
-  <style>
-    /* Bigger search bar + prevent iOS zoom-on-focus */
-    #searchInput{
-      font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%;
-      max-width:640px;
-    }
-    /* Compact centered 2×2 (or 1×2) action tiles */
-    .btn-grid{ display:grid; grid-template-columns:repeat(2, 92px); gap:10px; justify-content:center; }
-    .btn-grid button{ width:92px; height:92px; font-size:1.02rem; border-radius:12px; }
-    /* Tiny toast */
-    #dfToast{ display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
-  </style>
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 </head>
 <body>
   <!-- Header -->
@@ -54,46 +50,60 @@
   </nav>
 
   <main class="content" data-has-form>
-    <!-- Title row with Quick View (NOT in breadcrumbs) -->
+    <!-- Title row with Quick View top-right -->
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">🌾 Crop Types</h1>
-      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
     </div>
     <p class="muted" style="margin-top:8px;">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
 
-    <!-- Form (stacked) -->
+    <!-- FORM (stacked fields) -->
     <form id="crop-form" novalidate>
       <div class="field">
         <label for="cropName">Crop name</label>
         <input id="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
       </div>
+
       <div class="field">
         <label for="standardMoisture">Standard moisture (%)</label>
         <input id="standardMoisture" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
       </div>
+
       <div class="field">
         <label for="testWeight">Standard test weight (lb/bu)</label>
         <input id="testWeight" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
       </div>
+
       <div class="field">
         <label for="unitReadonly">Unit of measure</label>
         <input id="unitReadonly" type="text" value="Bushels (bu)" readonly />
       </div>
 
-      <!-- Action tiles -->
+      <!-- Compact centered button grid -->
       <section class="card" style="padding:12px; margin-top:8px;">
-        <div class="btn-grid">
-          <button class="btn-primary" type="submit" id="saveBtn">Save</button>
-          <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
-          <button class="btn-outline" type="button" id="archiveBtn" style="display:none;">Archive</button>
-          <button class="btn-outline" type="button" id="deleteBtn" style="display:none;">Delete</button>
+        <div id="btnGrid" style="
+          --w: 92px;                    /* square size (half-ish of previous) */
+          display:grid; gap:10px;
+          grid-template-columns: var(--w) var(--w);
+          justify-content:center;      /* center the 2 columns */
+        ">
+          <!-- Row 1 -->
+          <button class="btn-primary" type="submit" id="saveBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Clear</button>
+          <!-- Row 2 (hidden when adding new) -->
+          <button class="btn-outline" type="button" id="archiveBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Archive</button>
+          <button class="btn-outline" type="button" id="deleteBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Delete</button>
         </div>
       </section>
 
       <input type="hidden" id="editingId" />
     </form>
 
-    <!-- Saved list -->
+    <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Crops</h2>
       <div class="row" style="align-items:center; gap:12px;">
@@ -103,6 +113,7 @@
           <input type="checkbox" id="toggleShowArchived" /> Show archived
         </label>
       </div>
+
       <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
     </section>
   </main>
@@ -121,36 +132,52 @@
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Crop Type Records</h2>
       <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
-      <div class="modal-actions"><button class="btn-secondary" id="qvClose">Close</button></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
     </div>
   </div>
 
   <!-- Toast -->
-  <div id="dfToast"><span id="dfToastText">Saved</span></div>
+  <div id="dfToast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+    background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;">
+    <span id="dfToastText">Saved</span>
+  </div>
 
   <script>
   (function CropTypesPage(){
-    const KEY='df.crops';                  // ✅ consistent key
+    const KEY='df.crops';
     const $=s=>document.querySelector(s);
 
     const $name=$('#cropName'), $tw=$('#testWeight'), $mo=$('#standardMoisture'), $id=$('#editingId');
     const $saved=$('#savedList'), $savedCard=$('#savedCard');
     const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
 
-    // iOS-safe decimal input: digits + one dot
+    // Robust decimal-only input (iOS-safe). Allows digits and one dot.
     function wireDecimal(el){
+      // Block obvious invalid keys
       el.addEventListener('keydown', (e)=>{
-        const bad=['e','E','+','-'];
+        const bad = ['e','E','+','-'];
         if (bad.includes(e.key)) return e.preventDefault();
+        // allow navigation, backspace, delete, tab, enter
         if (['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter'].includes(e.key)) return;
-        if (e.key==='.' && el.value.includes('.')) return e.preventDefault();
+        // Only one dot
+        if (e.key === '.' && el.value.includes('.')) return e.preventDefault();
+        // Digits OK
         if (/^\d$/.test(e.key)) return;
-        if (e.key!=='.') e.preventDefault();
+        // Everything else -> block
+        if (e.key !== '.') e.preventDefault();
       });
+      // Clean pasted text without jumping the caret
       el.addEventListener('input', ()=>{
-        let v=el.value.replace(/[^0-9.]/g,'');
-        const i=v.indexOf('.'); if(i!==-1) v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'');
-        el.value=v;
+        const start = el.selectionStart;
+        let v = el.value.replace(/[^0-9.]/g,'');
+        const i = v.indexOf('.');
+        if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g,'');
+        el.value = v;
+        // keep caret at end (simplest, reliable on iOS)
+        el.selectionStart = el.selectionEnd = el.value.length;
       });
     }
     wireDecimal($tw); wireDecimal($mo);
@@ -176,7 +203,7 @@
       $saved.innerHTML = rows.length ? rows.map(r=>`
         <li>
           <button type="button" class="btn-secondary" data-id="${r.id}"
-            style="width:100%; text-align:left; display:block; margin:8px 0;">
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
             <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}% ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
           </button>
         </li>`).join('') : '<li class="muted" style="margin-top:8px;">No records.</li>';
@@ -189,7 +216,7 @@
     function showEditButtons(show, archived=false){
       $archBtn.style.display = show ? 'inline-block' : 'none';
       $delBtn.style.display  = show ? 'inline-block' : 'none';
-      $archBtn.textContent   = archived ? 'Unarchive' : 'Archive';
+      $archBtn.textContent = archived ? 'Unarchive' : 'Archive';
     }
 
     function openForEdit(id){
@@ -220,8 +247,9 @@
         updatedAt: Date.now()
       });
 
+      // Exit edit, clear, scroll, toast
       $('#crop-form').reset(); $id.value='';
-      showEditButtons(false,false);
+      showEditButtons(false, false);
       renderSaved();
       $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
       toast('Save successful');
@@ -266,7 +294,7 @@
       $qvL.innerHTML=list.length ? list.map(r=>`
         <li>
           <button type="button" class="btn-secondary" data-id="${r.id}"
-            style="width:100%; text-align:left; display:block; margin:8px 0;">
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
             <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}%<br>
             <em>${r.archived?'Archived':'Active'}</em>
           </button>
@@ -292,8 +320,7 @@
       renderSaved();
     })();
 
-    // Consistent breadcrumbs (in case core.js wants to reflow)
-    window.setBreadcrumbs?.([
+    window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Setup / Settings', href:'settings.html'},
       {label:'Crop Types'}
