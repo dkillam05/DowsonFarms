@@ -29,12 +29,12 @@
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right">
-      <!-- Clock text is set by core.js (HH:MM, Central) -->
+      <!-- Clock text is set by core.js -->
       <span id="clock" class="clock">--:--</span>
     </div>
   </header>
 
-  <!-- Breadcrumbs (Logout button is injected by core.js) -->
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -47,13 +47,14 @@
   <main class="content">
     <h1>⚙️ Setup / Settings</h1>
 
-    <!-- Same tile look/feel as Home -->
+    <!-- Tile menu -->
     <div class="df-tiles">
       <a href="farms.html" class="df-tile">🏡 <span>Farms</span></a>
       <a href="fields.html" class="df-tile">🗺️ <span>Fields</span></a>
       <a href="crop-types.html" class="df-tile">🌾 <span>Crop Types</span></a>
       <a href="theme.html" class="df-tile">✏️ <span>Theme</span></a>
       <a href="roles.html" class="df-tile">🛡️ <span>Account Roles</span></a>
+      <a href="products.html" class="df-tile">📦 <span>Products</span></a>
     </div>
   </main>
 
@@ -66,7 +67,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker -->
+  <!-- SW -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
