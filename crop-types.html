@@ -6,12 +6,10 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Types — Dowson Farms</title>
 
-  <!-- Theme -->
+  <!-- Theme & app -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
-
-  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
 
   <!-- iOS PWA -->
@@ -21,48 +19,17 @@
 
   <style>
     /* Bigger search bar + prevent iOS zoom-on-focus */
-    #searchInput {
-      font-size: 16px;
-      height: 44px;
-      padding: 10px 14px;
-      border-radius: 12px;
-      width: 100%;
+    #searchInput{
+      font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%;
+      max-width:640px;
     }
-
-    .btn-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .btn-grid button {
-      height: 56px;
-      font-size: 15px;
-      border-radius: 12px;
-      width: 100%;
-    }
-
-    .btn-primary {
-      background: var(--btn-bg, #1B5E20);
-      color: #fff;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 70px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1B5E20;
-      color: #fff;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity .3s;
-      z-index: 2000;
-    }
-    .toast.show { opacity: 1; }
+    /* Compact centered 2×2 (or 1×2) action tiles */
+    .btn-grid{ display:grid; grid-template-columns:repeat(2, 92px); gap:10px; justify-content:center; }
+    .btn-grid button{ width:92px; height:92px; font-size:1.02rem; border-radius:12px; }
+    /* Tiny toast */
+    #dfToast{ display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
   </style>
 </head>
 <body>
@@ -72,9 +39,7 @@
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
-    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
   <!-- Breadcrumbs -->
@@ -86,56 +51,59 @@
       <li class="sep">›</li>
       <li><span>Crop Types</span></li>
     </ol>
-    <button class="btn-outline" id="quickViewBtn" style="margin-left:auto;">Quick View</button>
   </nav>
 
-  <!-- Content -->
   <main class="content" data-has-form>
-    <h1>🌾 Crop Types</h1>
-    <p>Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
+    <!-- Title row with Quick View (NOT in breadcrumbs) -->
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🌾 Crop Types</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+    </div>
+    <p class="muted" style="margin-top:8px;">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
 
-    <form id="cropForm" novalidate>
+    <!-- Form (stacked) -->
+    <form id="crop-form" novalidate>
       <div class="field">
-        <label for="cropName">Crop name *</label>
-        <input id="cropName" type="text" required />
+        <label for="cropName">Crop name</label>
+        <input id="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
       </div>
       <div class="field">
-        <label for="testWeight">Standard test weight (lb/bu) *</label>
-        <input id="testWeight" type="number" step="0.1" min="0" required />
+        <label for="standardMoisture">Standard moisture (%)</label>
+        <input id="standardMoisture" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
       </div>
       <div class="field">
-        <label for="standardMoisture">Standard moisture (%) *</label>
-        <input id="standardMoisture" type="number" step="0.1" min="0" max="100" required />
+        <label for="testWeight">Standard test weight (lb/bu)</label>
+        <input id="testWeight" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
       </div>
       <div class="field">
-        <label for="unitMeasure">Unit of measure</label>
-        <input id="unitMeasure" type="text" value="Bushels (bu)" readonly />
+        <label for="unitReadonly">Unit of measure</label>
+        <input id="unitReadonly" type="text" value="Bushels (bu)" readonly />
       </div>
 
-      <div class="btn-grid" id="actionButtons">
-        <button class="btn-primary" type="submit">Save crop</button>
-        <button class="btn-outline" type="reset">Clear</button>
-      </div>
+      <!-- Action tiles -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div class="btn-grid">
+          <button class="btn-primary" type="submit" id="saveBtn">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
+          <button class="btn-outline" type="button" id="archiveBtn" style="display:none;">Archive</button>
+          <button class="btn-outline" type="button" id="deleteBtn" style="display:none;">Delete</button>
+        </div>
+      </section>
+
+      <input type="hidden" id="editingId" />
     </form>
 
-    <section class="card" style="margin-top:20px;">
-      <h2>Saved Crops</h2>
-      <div class="row" style="align-items:center; gap:12px; margin-top:8px;">
+    <!-- Saved list -->
+    <section class="card" id="savedCard" style="margin-top:16px;">
+      <h2 style="margin:0 0 8px 0;">Saved Crops</h2>
+      <div class="row" style="align-items:center; gap:12px;">
         <input id="searchInput" class="search" type="search" placeholder="Search crops…" />
+        <div style="flex:1"></div>
         <label class="muted" for="toggleShowArchived">
           <input type="checkbox" id="toggleShowArchived" /> Show archived
         </label>
       </div>
-      <table id="cropsTable" class="data-table" style="margin-top:12px; width:100%;">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Test wt (lb/bu)</th>
-            <th>Std moisture (%)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
     </section>
   </main>
 
@@ -148,119 +116,197 @@
     <span id="version">v0.0.0</span>
   </footer>
 
+  <!-- Quick View modal -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Crop Type Records</h2>
+      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions"><button class="btn-secondary" id="qvClose">Close</button></div>
+    </div>
+  </div>
+
   <!-- Toast -->
-  <div class="toast" id="toast">Save successful</div>
+  <div id="dfToast"><span id="dfToastText">Saved</span></div>
 
   <script>
-    (function CropTypesPage(){
-      const form = document.getElementById('cropForm');
-      const nameEl = document.getElementById('cropName');
-      const weightEl = document.getElementById('testWeight');
-      const moistEl = document.getElementById('standardMoisture');
-      const tableBody = document.querySelector('#cropsTable tbody');
-      const searchEl = document.getElementById('searchInput');
-      const showArchived = document.getElementById('toggleShowArchived');
-      const toast = document.getElementById('toast');
-      const actionBtns = document.getElementById('actionButtons');
-      let editingId = null;
+  (function CropTypesPage(){
+    const KEY='df.crops';                  // ✅ consistent key
+    const $=s=>document.querySelector(s);
 
-      function showToast(msg){
-        toast.textContent = msg;
-        toast.classList.add('show');
-        setTimeout(()=>toast.classList.remove('show'),2000);
-      }
+    const $name=$('#cropName'), $tw=$('#testWeight'), $mo=$('#standardMoisture'), $id=$('#editingId');
+    const $saved=$('#savedList'), $savedCard=$('#savedCard');
+    const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
 
-      function load(){
-        return JSON.parse(localStorage.getItem('df_crops')||'[]');
-      }
-      function save(list){
-        localStorage.setItem('df_crops', JSON.stringify(list));
-      }
+    // iOS-safe decimal input: digits + one dot
+    function wireDecimal(el){
+      el.addEventListener('keydown', (e)=>{
+        const bad=['e','E','+','-'];
+        if (bad.includes(e.key)) return e.preventDefault();
+        if (['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter'].includes(e.key)) return;
+        if (e.key==='.' && el.value.includes('.')) return e.preventDefault();
+        if (/^\d$/.test(e.key)) return;
+        if (e.key!=='.') e.preventDefault();
+      });
+      el.addEventListener('input', ()=>{
+        let v=el.value.replace(/[^0-9.]/g,'');
+        const i=v.indexOf('.'); if(i!==-1) v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'');
+        el.value=v;
+      });
+    }
+    wireDecimal($tw); wireDecimal($mo);
 
-      function applyGlobalCase(txt){
-        return txt.split(/\s+/).map(w => w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
-      }
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
+    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
+    function get(id){ return load().find(x=>x.id===id) }
+    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
+    function remove(id){ save(load().filter(x=>x.id!==id)) }
+    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-') }
+    function toast(msg){ const box=$('#dfToast'),txt=$('#dfToastText'); txt.textContent=msg||'Saved'; box.style.display='block'; clearTimeout(window.__t); window.__t=setTimeout(()=>box.style.display='none',2000); }
 
-      function render(){
-        const list = load();
-        tableBody.innerHTML = '';
-        const q = searchEl.value.toLowerCase();
-        list.filter(c => (showArchived.checked || !c.archived))
-            .filter(c => !q || c.name.toLowerCase().includes(q))
-            .forEach(c=>{
-              const tr = document.createElement('tr');
-              tr.innerHTML = `<td>${c.name}</td><td>${c.weight}</td><td>${c.moisture}</td>`;
-              tr.addEventListener('click',()=>editCrop(c.id));
-              tableBody.appendChild(tr);
-            });
-      }
+    function renderSaved(){
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
 
-      function resetForm(){
-        editingId = null;
-        form.reset();
-        nameEl.focus();
-        actionBtns.innerHTML = `
-          <button class="btn-primary" type="submit">Save crop</button>
-          <button class="btn-outline" type="reset">Clear</button>
-        `;
-      }
+      const rows=load()
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>!q || x.name.toLowerCase().includes(q))
+        .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
 
-      function editCrop(id){
-        const c = load().find(x=>x.id===id);
-        if(!c) return;
-        editingId = id;
-        nameEl.value = c.name;
-        weightEl.value = c.weight;
-        moistEl.value = c.moisture;
-        actionBtns.innerHTML = `
-          <button class="btn-primary" type="submit">Save crop</button>
-          <button class="btn-outline" type="reset">Clear</button>
-          <button class="btn-outline" type="button" onclick="(${archiveCrop})('${id}')">Archive</button>
-          <button class="btn-outline" type="button" onclick="(${deleteCrop})('${id}')">Delete</button>
-        `;
-      }
+      $saved.innerHTML = rows.length ? rows.map(r=>`
+        <li>
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+            style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}% ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
+          </button>
+        </li>`).join('') : '<li class="muted" style="margin-top:8px;">No records.</li>';
 
-      function archiveCrop(id){
-        const list = load().map(c=>c.id===id?{...c, archived:!c.archived}:c);
-        save(list); render(); resetForm();
-      }
-      window.archiveCrop = archiveCrop;
+      $saved.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
+      });
+    }
 
-      function deleteCrop(id){
-        const list = load().filter(c=>c.id!==id);
-        save(list); render(); resetForm();
-      }
-      window.deleteCrop = deleteCrop;
+    function showEditButtons(show, archived=false){
+      $archBtn.style.display = show ? 'inline-block' : 'none';
+      $delBtn.style.display  = show ? 'inline-block' : 'none';
+      $archBtn.textContent   = archived ? 'Unarchive' : 'Archive';
+    }
 
-      form.addEventListener('submit',e=>{
-        e.preventDefault();
-        if(!nameEl.value.trim()||!weightEl.value||!moistEl.value){alert("Please fill all fields");return;}
-        const list = load();
-        if(editingId){
-          const i = list.findIndex(c=>c.id===editingId);
-          if(i>-1){
-            list[i].name = applyGlobalCase(nameEl.value.trim());
-            list[i].weight = parseFloat(weightEl.value);
-            list[i].moisture = parseFloat(moistEl.value);
-          }
-        } else {
-          list.push({
-            id: String(Date.now()),
-            name: applyGlobalCase(nameEl.value.trim()),
-            weight: parseFloat(weightEl.value),
-            moisture: parseFloat(moistEl.value),
-            archived:false
-          });
-        }
-        save(list); render(); resetForm();
-        showToast("Save successful");
+    function openForEdit(id){
+      const item=get(id); if(!item) return;
+      $id.value=item.id; $name.value=item.name; $tw.value=String(item.testWeight); $mo.value=String(item.standardMoisture);
+      showEditButtons(true, item.archived);
+      window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
+    }
+
+    // Save
+    $('#crop-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const pretty=titleCase(($name.value||'').trim()); if(!pretty){$name.focus();return;}
+      const id=$id.value || slug(pretty);
+
+      const list=load();
+      const dup=list.find(x=>x.id!==id && x.name.toLowerCase()===pretty.toLowerCase());
+      if(dup){ alert('That crop already exists.'); return; }
+
+      const prev=list.find(x=>x.id===id);
+      upsert({
+        id, name:pretty,
+        testWeight:Number($tw.value||0),
+        standardMoisture:Number($mo.value||0),
+        unit:'bu',
+        archived: prev ? !!prev.archived : false,
+        createdAt: prev?.createdAt || Date.now(),
+        updatedAt: Date.now()
       });
 
-      form.addEventListener('reset', ()=>setTimeout(resetForm,50));
-      searchEl.addEventListener('input', render);
-      showArchived.addEventListener('change', render);
-      render();
+      $('#crop-form').reset(); $id.value='';
+      showEditButtons(false,false);
+      renderSaved();
+      $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
+      toast('Save successful');
+    });
+
+    // Clear
+    $('#clearBtn').addEventListener('click', ()=>{
+      $('#crop-form').reset(); $id.value='';
+      showEditButtons(false,false); $name.focus();
+    });
+
+    // Archive / Unarchive
+    $archBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      const item=get(id); if(!item) return;
+      item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
+      showEditButtons(true, item.archived);
+      renderSaved();
+      toast(item.archived ? 'Archived' : 'Unarchived');
+    });
+
+    // Delete
+    $delBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      if(confirm('Delete this crop permanently?')){
+        remove(id);
+        $('#crop-form').reset(); $id.value='';
+        showEditButtons(false,false);
+        renderSaved();
+        toast('Deleted');
+      }
+    });
+
+    // Search/filter
+    $('#searchInput').addEventListener('input', renderSaved);
+    $('#toggleShowArchived').addEventListener('change', renderSaved);
+
+    // Quick View (top-right)
+    $('#quickViewBtn').addEventListener('click', ()=>{
+      const list=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const $qvL=$('#qvList'), $qvB=$('#qvBackdrop');
+      $qvL.innerHTML=list.length ? list.map(r=>`
+        <li>
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+            style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}%<br>
+            <em>${r.archived?'Archived':'Active'}</em>
+          </button>
+        </li>`).join('') : '<li>No records.</li>';
+      $qvB.style.display='flex';
+      $qvL.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          $qvB.style.display='none';
+          openForEdit(b.getAttribute('data-id'));
+        });
+      });
+      $('#qvClose').addEventListener('click', ()=> $qvB.style.display='none', {once:true});
+      $qvB.addEventListener('click', (e)=>{ if(e.target===$qvB) $qvB.style.display='none'; }, {once:true});
+    });
+
+    // Seed Corn/Soybeans if empty
+    (function seed(){
+      const list=load(); if(list.length){ renderSaved(); return; }
+      save([
+        { id:'corn', name:'Corn', testWeight:56, standardMoisture:15.5, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() },
+        { id:'soybeans', name:'Soybeans', testWeight:60, standardMoisture:13.0, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() }
+      ]);
+      renderSaved();
     })();
+
+    // Consistent breadcrumbs (in case core.js wants to reflow)
+    window.setBreadcrumbs?.([
+      {label:'Home', href:'index.html'},
+      {label:'Setup / Settings', href:'settings.html'},
+      {label:'Crop Types'}
+    ]);
+  })();
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
   </script>
 </body>
 </html>
