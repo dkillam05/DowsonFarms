@@ -858,3 +858,6 @@ body.home-page .content h1 {
 .df-tile:active {
   transform: translateY(0);
 }
+
+:root { color-scheme: light dark; }
+[data-theme="dark"] { color-scheme: dark; }
