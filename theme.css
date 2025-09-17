@@ -594,3 +594,6 @@ body.home-page .content h1 {
 :root[data-theme="dark"] .auth-modal .field input:focus{
   border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30); outline: none;
 }
+
+.breadcrumbs .logout-btn { margin-left: 10px; }
+
