@@ -52,15 +52,6 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
 })();
 
 /* ---------- USER MANAGER (long-term) ---------- */
-/*
-  Keys:
-    - df_current_user: plain string (e.g., "Jane Doe")
-    - df_profile: JSON string (optional) with { firstName, lastName, displayName }
-  Public API:
-    - window.setCurrentUser(nameOrObj)
-    - window.getCurrentUser()
-    - window.clearCurrentUser()
-*/
 (function bootUserManager(){
   const USER_KEY = "df_current_user";
   const PROFILE_KEY = "df_profile";
@@ -212,7 +203,100 @@ function formatCTDate(d = new Date()) {
   });
 })();
 
-/* ---------- Breadcrumbs: render + smart truncation (never collide with Logout) ---------- */
+/* -------------------------------------------------
+   Breadcrumb fitting (precise, no phantom gaps)
+   ------------------------------------------------- */
+
+/** Shrink crumbs by exactly the overflow needed, in this order:
+ *  1) middle crumbs (share the shrink)
+ *  2) first and last (only if still overflowing)
+ *  This keeps a tidy margin before Logout and avoids blank space.
+ */
+function fitBreadcrumbs(nav) {
+  try {
+    const ol = nav?.querySelector("ol");
+    if (!ol) return;
+
+    // Make sure the list can shrink
+    ol.style.flex = "1 1 auto";
+    ol.style.minWidth = "0";
+    ol.style.whiteSpace = "nowrap";
+    ol.style.overflow = "hidden";
+
+    const logoutBtn = nav.querySelector(".logout-btn");
+    const SAFE_GAP = 12; // cushion between last crumb and Logout
+    const logoutSpace = logoutBtn ? (logoutBtn.offsetWidth + SAFE_GAP) : 0;
+
+    // Available width inside the nav (minus padding and Logout)
+    const ns = getComputedStyle(nav);
+    const padL = parseFloat(ns.paddingLeft) || 0;
+    const padR = parseFloat(ns.paddingRight) || 0;
+    const available = nav.clientWidth - padL - padR - logoutSpace;
+    if (available <= 0) return;
+
+    // Grab just the crumb elements (anchors/spans), skip separators
+    const crumbEls = Array.from(ol.querySelectorAll("a, span"));
+
+    // Reset to natural before measuring
+    crumbEls.forEach(el => {
+      el.style.maxWidth = "none";
+      el.style.overflow = "visible";
+      el.style.textOverflow = "clip";
+      el.style.whiteSpace = "nowrap";
+    });
+
+    // If everything fits naturally, we’re done.
+    if (ol.scrollWidth <= available) return;
+
+    const first = crumbEls[0];
+    const last  = crumbEls[crumbEls.length - 1];
+    const middle = crumbEls.slice(1, -1);
+
+    // Minimum readable widths (px)
+    const MIN_MID  = 72;
+    const MIN_EDGE = 96;
+
+    const box = el => Math.ceil(el.getBoundingClientRect().width);
+
+    // Current overflow we must eliminate
+    let overflow = Math.ceil(ol.scrollWidth - available);
+
+    // Helper to shrink an element by N pixels with ellipsis
+    function shrinkBy(el, px, floor) {
+      const w = box(el);
+      const target = Math.max(floor, w - px);
+      if (target < w) {
+        el.style.maxWidth = target + "px";
+        el.style.overflow = "hidden";
+        el.style.textOverflow = "ellipsis";
+      }
+    }
+
+    // 1) Shrink middle crumbs first (share the pain)
+    let guard = 0;
+    while (overflow > 0 && guard++ < 8) {
+      const flexibles = middle.filter(el => box(el) > MIN_MID);
+      if (!flexibles.length) break;
+
+      const each = Math.max(1, Math.ceil(overflow / flexibles.length));
+      flexibles.forEach(el => shrinkBy(el, each, MIN_MID));
+      overflow = Math.ceil(ol.scrollWidth - available);
+    }
+
+    // 2) If still overflowing, allow edges to help
+    guard = 0;
+    while (overflow > 0 && guard++ < 4) {
+      const edges = [first, last].filter(Boolean).filter(el => box(el) > MIN_EDGE);
+      if (!edges.length) break;
+
+      const each = Math.max(1, Math.ceil(overflow / edges.length));
+      edges.forEach(el => shrinkBy(el, each, MIN_EDGE));
+      overflow = Math.ceil(ol.scrollWidth - available);
+    }
+  } catch (_) {}
+}
+
+/* ---------- Render breadcrumbs from parts, then fit ---------- */
 window.setBreadcrumbs = function setBreadcrumbs(parts) {
   try {
     const nav = document.querySelector(".breadcrumbs");
@@ -230,22 +314,18 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       norm = norm.filter(p => String(p.label).trim().toLowerCase() !== "dashboard");
     }
 
-    // Helper: create crumb (link for non-last; span for last)
-    function makeCrumb(obj, isLast) {
-      const el = document.createElement(isLast ? "span" : "a");
-      el.textContent = obj.label;
-      if (!isLast) el.href = obj.href || "#";
-      el.title = obj.label; // tooltip with full text
-      el.style.whiteSpace = "nowrap";
-      return el;
-    }
-
     // Render fresh
     ol.innerHTML = "";
     norm.forEach((p, i) => {
       const li = document.createElement("li");
       const isLast = i === norm.length - 1;
-      li.appendChild(makeCrumb(p, isLast));
+
+      const el = document.createElement(isLast ? "span" : "a");
+      el.textContent = p.label;
+      el.title = p.label;
+      if (!isLast) el.href = p.href || "#";
+      el.style.whiteSpace = "nowrap";
+      li.appendChild(el);
       ol.appendChild(li);
 
       if (!isLast) {
@@ -256,95 +336,20 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       }
     });
 
-    // Ensure the layout can shrink without wrapping under the Logout button
-    nav.style.display = "flex";
-    nav.style.alignItems = "center";
-    ol.style.flex = "1 1 auto";
-    ol.style.minWidth = "0";       // critical for shrinking flex items
-    ol.style.whiteSpace = "nowrap";
-    ol.style.overflow = "hidden";
+    // Fit now and whenever size changes
+    const raf = () => requestAnimationFrame(() => fitBreadcrumbs(nav));
+    raf();
 
-    // Smart clamp: ellipsize only middle crumbs; cap last so it never hits Logout
-    function clampBreadcrumbs() {
-      const logoutBtn = nav.querySelector(".logout-btn");
-      const logoutSpace = logoutBtn ? (logoutBtn.offsetWidth + 12) : 0; // include safe gap
-
-      // Available width for the <ol>
-      const style = getComputedStyle(nav);
-      const padLeft  = parseFloat(style.paddingLeft) || 0;
-      const padRight = parseFloat(style.paddingRight) || 0;
-      const available = nav.clientWidth - padLeft - padRight - logoutSpace;
-      if (available <= 0) return;
-
-      // Grab anchors/spans only (skip separators)
-      const crumbEls = Array.from(ol.querySelectorAll("a, span"));
-      if (crumbEls.length === 0) return;
-
-      const first = crumbEls[0];
-      const last  = crumbEls[crumbEls.length - 1];
-      const middle = crumbEls.slice(1, -1);
-
-      // Reset to natural widths first (so we don't keep stale clamps = no weird gaps)
-      crumbEls.forEach(el => {
-        el.style.maxWidth = "none";
-        el.style.overflow = "visible";
-        el.style.textOverflow = "clip";
-      });
-
-      // If everything fits naturally, stop here (no gaps, no truncation).
-      if (ol.scrollWidth <= available) return;
-
-      // Step down middle widths first
-      const midSteps = ["14ch", "12ch", "10ch", "8ch", "6ch"];
-      for (const w of midSteps) {
-        middle.forEach(el => {
-          el.style.maxWidth = w;
-          el.style.overflow = "hidden";
-          el.style.textOverflow = "ellipsis";
-          el.style.whiteSpace = "nowrap";
-        });
-        if (ol.scrollWidth <= available) return;
-      }
-
-      // Cap last crumb so it can't crowd Logout (allow up to ~55% of room)
-      const lastCap = Math.max(100, Math.floor(available * 0.55));
-      if (last) {
-        last.style.maxWidth = lastCap + "px";
-        last.style.overflow = "hidden";
-        last.style.textOverflow = "ellipsis";
-        last.style.whiteSpace = "nowrap";
-      }
-      if (ol.scrollWidth <= available) return;
-
-      // As a final fallback, trim first as well
-      const edgeSteps = ["20ch", "16ch", "12ch"];
-      for (const w of edgeSteps) {
-        if (first) {
-          first.style.maxWidth = w;
-          first.style.overflow = "hidden";
-          first.style.textOverflow = "ellipsis";
-          first.style.whiteSpace = "nowrap";
-        }
-        if (ol.scrollWidth <= available) return;
-      }
-    }
-
-    const rafClamp = () => requestAnimationFrame(clampBreadcrumbs);
-    rafClamp();
-
-    // Keep fitting as things change
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(rafClamp);
-      ro.observe(nav);
-      ro.observe(ol);
+      const ro = new ResizeObserver(raf);
+      ro.observe(nav); ro.observe(ol);
     } else {
-      window.addEventListener("resize", rafClamp);
-      window.addEventListener("orientationchange", rafClamp);
+      window.addEventListener("resize", raf);
+      window.addEventListener("orientationchange", raf);
     }
 
-    // Also refit when children change (e.g., Logout injection)
-    const mo = new MutationObserver(rafClamp);
-    mo.observe(nav, { childList: true, subtree: true });
+    // If children change (e.g., Logout injected), refit
+    new MutationObserver(raf).observe(nav, { childList: true, subtree: true });
   } catch (_) {}
 };
 
@@ -387,10 +392,13 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       btn.className = "logout-btn";
       btn.type = "button";
       btn.textContent = "Logout";
-      btn.style.marginLeft = ""; // guaranteed gap from last crumb
+      btn.style.marginLeft = "10px"; // guaranteed gap from last crumb
       btn.addEventListener("click", handleLogout);
       nav.appendChild(btn);
     }
+
+    // Also fit static breadcrumbs that weren’t rendered via setBreadcrumbs()
+    fitBreadcrumbs(nav);
   });
 })();
 
@@ -501,7 +509,6 @@ window.handleLogout = async function handleLogout() {
 
 /* ---------- REQUIRED ASTERISK helper (auto-add * to required field labels) ---------- */
 (function markRequiredAsterisks(){
-  // Inject a tiny style once (keeps theme.css clean if you prefer)
   if (!document.getElementById("df-required-style")) {
     const st = document.createElement("style");
     st.id = "df-required-style";
@@ -510,7 +517,6 @@ window.handleLogout = async function handleLogout() {
   }
 
   function findLabel(ctrl){
-    // 1) <label for="id">
     if (ctrl.id) {
       try {
         const esc = (window.CSS && CSS.escape) ? CSS.escape(ctrl.id) : ctrl.id;
@@ -518,13 +524,11 @@ window.handleLogout = async function handleLogout() {
         if (byFor) return byFor;
       } catch(_) {}
     }
-    // 2) Within a .field wrapper
     const wrap = ctrl.closest(".field");
     if (wrap) {
       const inWrap = wrap.querySelector("label");
       if (inWrap) return inWrap;
     }
-    // 3) Immediate previous sibling label (fallback)
     let n = ctrl.previousElementSibling;
     if (n?.tagName?.toLowerCase() === "label") return n;
     return null;
@@ -535,7 +539,7 @@ window.handleLogout = async function handleLogout() {
     controls.forEach(ctrl => {
       const label = findLabel(ctrl);
       if (!label) return;
-      if (label.querySelector(".req-star")) return; // already marked
+      if (label.querySelector(".req-star")) return;
       const star = document.createElement("span");
       star.className = "req-star";
       star.textContent = "*";
@@ -549,7 +553,6 @@ window.handleLogout = async function handleLogout() {
     process();
   }
 
-  // Watch for forms/fields added later (Ideas/Bugs etc.)
   const mo = new MutationObserver((muts) => {
     muts.forEach(m => {
       m.addedNodes?.forEach(node => {
