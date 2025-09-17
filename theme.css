@@ -819,4 +819,42 @@ body.home-page .content h1 {
   font-size: 0.92rem;
 }
 
+/* Tile grid container */
+.df-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
 
+/* Individual tile */
+.df-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 2px solid var(--tile-border, #1B5E20); /* fallback green */
+  border-radius: 12px;
+  text-align: center;
+  background: var(--tile-bg, #fff);
+  color: var(--ink, #222);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.1s;
+}
+
+/* Emoji + label spacing */
+.df-tile span {
+  margin-top: 8px;
+  display: block;
+}
+
+/* Hover / active feedback */
+.df-tile:hover {
+  background: #f1f1f1;
+  transform: translateY(-2px);
+}
+.df-tile:active {
+  transform: translateY(0);
+}
