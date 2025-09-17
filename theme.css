@@ -861,3 +861,87 @@ body.home-page .content h1 {
 
 :root { color-scheme: light dark; }
 [data-theme="dark"] { color-scheme: dark; }
+
+/* =======================================================================
+   === PATCH A: Auto really follows device for tiles & Theme switches ===
+   - Keeps tiles/switch rows light when device is light
+   - Matches dark styling when device is dark
+   - Only applies while data-theme="auto"
+   ======================================================================= */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] .df-tile,
+  :root[data-theme="auto"] .menu-card,
+  :root[data-theme="auto"] .hub-card,
+  :root[data-theme="auto"] .report-card,
+  :root[data-theme="auto"] .tool-card,
+  :root[data-theme="auto"] .switch {
+    background: var(--tile-bg);   /* white */
+    color: var(--ink);
+    border-color: var(--tile-border);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .df-tile,
+  :root[data-theme="auto"] .menu-card,
+  :root[data-theme="auto"] .hub-card,
+  :root[data-theme="auto"] .report-card,
+  :root[data-theme="auto"] .tool-card,
+  :root[data-theme="auto"] .switch {
+    background: var(--tile-bg);   /* #1c1f18 via tokens */
+    color: var(--ink);
+    border-color: var(--tile-border);
+  }
+}
+
+/* Theme page “switch” row styles (safe if not present elsewhere) */
+.switch {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  background: var(--tile-bg);
+}
+.switch input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+.switch-track {
+  width: 48px; height: 28px; border-radius: 999px;
+  background: #e5e5e5;
+  display: inline-flex; align-items: center;
+  padding: 3px; box-sizing: border-box;
+  transition: background .2s ease, box-shadow .2s ease, border-color .2s ease;
+  border: 1px solid rgba(0,0,0,.12);
+}
+.switch .knob {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  transform: translateX(0); transition: transform .2s ease;
+}
+.switch input:checked + .switch-track {
+  background: var(--brand-green); border-color: var(--brand-green);
+}
+.switch input:checked + .switch-track .knob { transform: translateX(20px); }
+.switch-label { font-weight: 700; color: var(--brand-green); }
+.switch-desc  { margin-left: auto; font-size: .9rem; color: #666; }
+
+/* =======================================================================
+   === PATCH B: Visible focus ring (Light & Dark) + iOS control tint fix ===
+   - Makes the “box indicator” obvious in Light mode
+   - Uses gold-ish ring in Dark (via tokens you already set)
+   ======================================================================= */
+:root { --df-focus-ring: rgba(27, 94, 32, .55); } /* Light */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] { --df-focus-ring: rgba(218,165,32,.55); }
+}
+:root[data-theme="dark"] { --df-focus-ring: rgba(218,165,32,.55); }
+
+input, select, textarea, button {
+  -webkit-appearance: none; /* iOS: stop auto-tinting in Light */
+  outline: none;
+  border-radius: 10px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  box-shadow: 0 0 0 3px var(--df-focus-ring);
+}
