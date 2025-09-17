@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Types — Dowson Farms</title>
 
+  <!-- Prepaint theme -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -49,8 +50,12 @@
   </nav>
 
   <main class="content" data-has-form>
-    <h1>🌾 Crop Types</h1>
-    <p class="muted">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
+    <!-- Title row with Quick View top-right -->
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🌾 Crop Types</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
+    </div>
+    <p class="muted" style="margin-top:8px;">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
 
     <!-- FORM -->
     <form id="crop-form" novalidate>
@@ -79,30 +84,28 @@
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="form-actions" style="align-items:center;">
-        <div></div>
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <button class="btn-primary" type="submit" id="saveBtn">Save crop</button>
-          <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
-          <div id="editActions" style="display:none; gap:8px;">
-            <button class="btn-outline" type="button" id="archiveBtn">Archive</button>
-            <button class="btn-outline" type="button" id="deleteBtn">Delete</button>
-          </div>
+      <!-- 2×2 button grid inside a bordered square; all squares same size -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div id="btnGrid"
+             style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button class="btn-primary" type="submit" id="saveBtn"
+                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;">Save crop</button>
+          <button class="btn-outline" type="reset" id="clearBtn"
+                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;">Clear</button>
+          <button class="btn-outline" type="button" id="archiveBtn"
+                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;" disabled aria-disabled="true">Archive</button>
+          <button class="btn-outline" type="button" id="deleteBtn"
+                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;" disabled aria-disabled="true">Delete</button>
         </div>
-      </div>
+      </section>
 
       <input type="hidden" id="editingId" />
     </form>
 
     <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
-      <div class="row" style="align-items:center; justify-content:space-between;">
-        <h2 style="margin:0;">Saved Crops</h2>
-        <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
-      </div>
-
-      <div class="row" style="align-items:center; gap:12px; margin-top:8px;">
+      <h2 style="margin:0 0 8px 0;">Saved Crops</h2>
+      <div class="row" style="align-items:center; gap:12px;">
         <input id="searchInput" class="search" type="search" placeholder="Search crops…" />
         <div style="flex:1"></div>
         <label class="muted" for="toggleShowArchived">
@@ -134,7 +137,7 @@
     </div>
   </div>
 
-  <!-- Tiny toast -->
+  <!-- Toast -->
   <div id="dfToast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
     padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
     background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;">
@@ -143,38 +146,35 @@
 
   <script>
   (function CropTypesPage(){
-    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
     const KEY='df.crops';
     const $=s=>document.querySelector(s);
 
     const $name=$('#cropName'), $tw=$('#testWeight'), $mo=$('#standardMoisture'), $id=$('#editingId');
     const $saved=$('#savedList'), $savedCard=$('#savedCard');
-    const $editRow=$('#editActions'), $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
+    const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
 
-    // block non-numeric keys for number inputs (prevents e/E/+/- and multiple dots)
+    // numeric-only guards (blocks e/E/+/- and second '.')
     function enforceNumeric(el){
       el.addEventListener('keydown', (e)=>{
-        const bad = ['e','E','+','-'];
-        if (bad.includes(e.key)) e.preventDefault();
-        if (e.key === '.' && el.value.includes('.')) e.preventDefault();
+        const bad=['e','E','+','-']; if(bad.includes(e.key)) e.preventDefault();
+        if(e.key==='.' && el.value.includes('.')) e.preventDefault();
       });
       el.addEventListener('input', ()=>{
-        // keep only digits and one dot
-        let v = el.value.replace(/[^0-9.]/g,'');
-        const firstDot = v.indexOf('.');
-        if (firstDot !== -1) v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g,'');
-        el.value = v;
+        let v=el.value.replace(/[^0-9.]/g,'');
+        const i=v.indexOf('.'); if(i!==-1) v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'');
+        el.value=v;
       });
     }
-    enforceNumeric($tw);
-    enforceNumeric($mo);
+    enforceNumeric($tw); enforceNumeric($mo);
 
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
     function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
     function get(id){ return load().find(x=>x.id===id) }
     function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
     function remove(id){ save(load().filter(x=>x.id!==id)) }
     function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-') }
+    function toast(msg){ const box=$('#dfToast'),txt=$('#dfToastText'); txt.textContent=msg||'Saved'; box.style.display='block'; clearTimeout(window.__t); window.__t=setTimeout(()=>box.style.display='none',2000); }
 
     function renderSaved(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
@@ -201,24 +201,21 @@
     function openForEdit(id){
       const item=get(id); if(!item) return;
       $id.value=item.id; $name.value=item.name; $tw.value=String(item.testWeight); $mo.value=String(item.standardMoisture);
-      $editRow.style.display='flex';
-      $('#archiveBtn').textContent = item.archived ? 'Unarchive' : 'Archive';
+      setEditButtons(true, item.archived);
       window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
     }
 
-    function toast(msg){
-      const box=$('#dfToast'), txt=$('#dfToastText');
-      txt.textContent=msg||'Saved';
-      box.style.display='block';
-      clearTimeout(window.__dfToastT);
-      window.__dfToastT=setTimeout(()=>{ box.style.display='none'; }, 2000);
+    function setEditButtons(isEditing, archived){
+      $archBtn.disabled=!isEditing; $delBtn.disabled=!isEditing;
+      $archBtn.setAttribute('aria-disabled', String(!isEditing));
+      $delBtn.setAttribute('aria-disabled', String(!isEditing));
+      $archBtn.textContent = archived ? 'Unarchive' : 'Archive';
     }
 
     // Save
     $('#crop-form').addEventListener('submit',(e)=>{
       e.preventDefault();
-      const pretty=titleCase(($name.value||'').trim());
-      if(!pretty){$name.focus();return;}
+      const pretty=titleCase(($name.value||'').trim()); if(!pretty){$name.focus();return;}
       const id=$id.value || slug(pretty);
 
       const list=load();
@@ -236,8 +233,9 @@
         updatedAt: Date.now()
       });
 
-      // Exit edit, clear, scroll, toast
-      $('#crop-form').reset(); $id.value=''; $editRow.style.display='none';
+      // exit edit, clear, scroll, toast
+      $('#crop-form').reset(); $id.value='';
+      setEditButtons(false, false);
       renderSaved();
       $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
       toast('Save successful');
@@ -245,25 +243,28 @@
 
     // Clear
     $('#clearBtn').addEventListener('click', ()=>{
-      $('#crop-form').reset(); $id.value=''; $editRow.style.display='none'; $name.focus();
+      $('#crop-form').reset(); $id.value='';
+      setEditButtons(false,false); $name.focus();
     });
 
     // Archive / Unarchive
     $archBtn.addEventListener('click', ()=>{
-      const id=$id.value; if(!id) return;
-      const item=get(id); if(!item) return;
+      if($archBtn.disabled) return;
+      const id=$id.value; const item=get(id); if(!item) return;
       item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
-      $('#archiveBtn').textContent=item.archived?'Unarchive':'Archive';
+      setEditButtons(true, item.archived);
       renderSaved();
       toast(item.archived ? 'Archived' : 'Unarchived');
     });
 
     // Delete
     $delBtn.addEventListener('click', ()=>{
+      if($delBtn.disabled) return;
       const id=$id.value; if(!id) return;
       if(confirm('Delete this crop permanently?')){
         remove(id);
-        $('#crop-form').reset(); $id.value=''; $editRow.style.display='none';
+        $('#crop-form').reset(); $id.value='';
+        setEditButtons(false,false);
         renderSaved();
         toast('Deleted');
       }
@@ -273,7 +274,7 @@
     $('#searchInput').addEventListener('input', renderSaved);
     $('#toggleShowArchived').addEventListener('change', renderSaved);
 
-    // Quick View modal
+    // Quick View (top-right)
     $('#quickViewBtn').addEventListener('click', ()=>{
       const list=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
       const $qvL=$('#qvList'), $qvB=$('#qvBackdrop');
