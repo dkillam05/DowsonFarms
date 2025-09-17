@@ -18,14 +18,19 @@ const LOGIN_URL = "login.html";
 const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed page
 
 /* ---------- THEME ENGINE (instant + synced across pages) ---------- */
-/* Paste stays near top so other modules can rely on the resolved theme. */
 (function bootThemeEngine() {
   try {
-    var root  = document.documentElement;
-    var darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
+    var root = document.documentElement;
 
     function resolve(mode) {
-      return mode === "auto" ? (darkMQ.matches ? "dark" : "light") : (mode === "dark" ? "dark" : "light");
+      if (mode === "auto") {
+        try {
+          return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        } catch(_) {
+          return "light"; // safe fallback
+        }
+      }
+      return mode === "dark" ? "dark" : "light";
     }
 
     function applyTheme(mode) {
@@ -40,7 +45,7 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
       } catch (_) {}
     }
 
-    // Public API (new)
+    // Public API
     window.setDFTheme = function (mode /* 'light'|'dark'|'auto' */) {
       try { localStorage.setItem("df_theme", mode); } catch (_) {}
       applyTheme(mode);
@@ -53,6 +58,30 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
     window.onDFThemeChange = function (cb) {
       if (typeof cb === "function") window.addEventListener("df:themechange", cb);
     };
+
+    // Back-compat alias
+    window.setTheme = window.setDFTheme;
+
+    // React to OS theme changes while in 'auto'
+    try {
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+        if ((localStorage.getItem("df_theme") || "auto") === "auto") {
+          applyTheme("auto");
+        }
+      });
+    } catch(_) {}
+
+    // Keep multiple pages in sync
+    window.addEventListener("storage", function (e) {
+      if (e.key === "df_theme" || e.key === "__df_theme_ping") {
+        applyTheme(localStorage.getItem("df_theme") || "auto");
+      }
+    });
+
+    // Initial apply
+    applyTheme(localStorage.getItem("df_theme") || "auto");
+  } catch (_) {}
+})();
 
     // Back-compat alias (old code may call setTheme)
     window.setTheme = window.setDFTheme;
