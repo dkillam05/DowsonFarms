@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Trailers — Dowson Farms</title>
+
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right">
+      <span id="clock" class="clock">--:--</span>
+    </div>
+  </header>
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="equipment.html">Equipment</a></li>
+      <li class="sep">›</li>
+      <li><span>Trailers</span></li>
+    </ol>
+  </nav>
+
+  <main class="content">
+    <h1>🚚 Trailers</h1>
+    <p>🚧 Coming soon…</p>
+  </main>
+
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
