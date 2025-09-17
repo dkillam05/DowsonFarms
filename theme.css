@@ -651,4 +651,96 @@ body.home-page .content h1 {
   border-color: rgba(255,255,255,0.12);
 }
 
+/* =========================================
+   GLOBAL Menu Tiles (unified across pages)
+   Use any of these grid classes:
+   .menu-grid, .hub-grid, .reports-grid, .tools-grid
+   Use any of these card classes:
+   .menu-card, .hub-card, .report-card, .tool-card
+   ========================================= */
+
+:root {
+  --tile-bg: var(--tile-bg, #fff);
+  --tile-border: var(--tile-border, var(--brand-green, #1B5E20));
+  --tile-radius: 12px;
+  --tile-pad: 14px;
+  --ink: var(--ink, #222);
+}
+
+/* Grids (aliases) */
+.menu-grid,
+.hub-grid,
+.reports-grid,
+.tools-grid {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+/* Cards (aliases) */
+.menu-card,
+.hub-card,
+.report-card,
+.tool-card {
+  display: block;
+  text-decoration: none;
+  background: var(--tile-bg);
+  color: var(--ink);
+  border: 1px solid var(--tile-border);
+  border-radius: var(--tile-radius);
+  padding: var(--tile-pad);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.menu-card:hover,
+.hub-card:hover,
+.report-card:hover,
+.tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* Common interior */
+.menu-card__title,
+.hub-card__title,
+.report-card__title,
+.tool-card__title {
+  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.menu-card__sub,
+.hub-card__sub,
+.report-card__sub,
+.tool-card__sub {
+  opacity: .75;
+  font-size: .92rem;
+}
+
+/* Optional icon slot */
+.menu-card__icon,
+.hub-card__icon,
+.report-card__icon,
+.tool-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--tile-border);
+  margin-bottom: 8px;
+}
+
+/* Dark mode */
+[data-theme="dark"] .menu-card,
+[data-theme="dark"] .hub-card,
+[data-theme="dark"] .report-card,
+[data-theme="dark"] .tool-card {
+  background: #121417;
+  color: #e8e8e8;
+  border-color: rgba(255,255,255,0.12);
+}
 
