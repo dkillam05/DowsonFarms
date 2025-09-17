@@ -3,290 +3,292 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Settings · Crop Types — Dowson Farms</title>
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Crop Types — Dowson Farms</title>
 
-  <!-- exactly what Issues/Bugs pages load -->
+  <!-- Prepaint theme (same as bugs.html) -->
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme =
+      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
+
+  <!-- Styles / App (same order as bugs.html) -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
-</head>
-<body class="content">
 
-  <!-- HEADER -->
-  <header class="page-head">
-    <div class="toolbar">
-      <button class="btn ghost" id="btnBack">← Back</button>
-      <h1>Crop Types</h1>
+  <!-- PWA (optional but matching other pages) -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+</head>
+<body>
+  <!-- ===== Header (shell) ===== -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
     </div>
-    <p class="muted">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
+    <div class="app-header__right">
+      <span id="clock" class="clock">--:--</span>
+    </div>
   </header>
 
-  <!-- TOP ACTIONS (matches other pages: button + search + toggle) -->
-  <div class="toolbar">
-    <button class="btn" id="btnQuickView">Quick View</button>
-    <input id="cropSearch" class="search" type="search" placeholder="Search crops…" />
-    <label class="muted" for="toggleShowArchived">
-      <input type="checkbox" id="toggleShowArchived" /> Show archived
-    </label>
-  </div>
+  <!-- ===== Breadcrumbs (shell) — core.js will inject Logout and fit -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="settings.html">Setup / Settings</a></li>
+      <li class="sep">›</li>
+      <li><span>Crop Types</span></li>
+    </ol>
+  </nav>
 
-  <!-- FORM (card) -->
-  <form id="cropTypeForm" class="card" autocomplete="off">
-    <div class="form-row">
-      <label for="cropName">Crop name <span class="req">*</span></label>
-      <input id="cropName" name="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
-      <small class="help muted">Uses global capitalization rule.</small>
-    </div>
+  <!-- ===== Content ===== -->
+  <main class="content" data-has-form>
+    <h1>🌾 Crop Types</h1>
+    <p class="muted">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
 
-    <div class="form-row">
-      <label for="testWeight">Standard test weight (lb/bu) <span class="req">*</span></label>
-      <input id="testWeight" name="testWeight" type="number" step="0.1" min="0" required placeholder="56 for Corn, 60 for Soybeans" />
-    </div>
+    <!-- Form (same grid as bugs.html) -->
+    <form id="crop-form" novalidate>
+      <div class="row">
+        <div class="field">
+          <label for="cropName">Crop name</label>
+          <input id="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
+          <small class="field-hint" style="color:#666;">Uses global capitalization rule.</small>
+        </div>
+        <div class="field">
+          <label for="unitReadonly">Unit of measure</label>
+          <input id="unitReadonly" type="text" value="Bushels (bu)" readonly />
+        </div>
+      </div>
 
-    <div class="form-row">
-      <label for="standardMoisture">Standard moisture (%) <span class="req">*</span></label>
-      <input id="standardMoisture" name="standardMoisture" type="number" step="0.1" min="0" max="100" required placeholder="15.5 for Corn, 13 for Soybeans" />
-      <small class="help muted">Basis for shrink & other calcs.</small>
-    </div>
+      <div class="row">
+        <div class="field">
+          <label for="testWeight">Standard test weight (lb/bu)</label>
+          <input id="testWeight" type="number" step="0.1" min="0" required placeholder="56 for Corn, 60 for Soybeans" />
+        </div>
+        <div class="field">
+          <label for="standardMoisture">Standard moisture (%)</label>
+          <input id="standardMoisture" type="number" step="0.1" min="0" max="100" required placeholder="15.5 for Corn, 13 for Soybeans" />
+          <small class="field-hint" style="color:#666;">Basis for shrink & other calcs.</small>
+        </div>
+      </div>
 
-    <div class="form-row readonly">
-      <label>Unit of measure</label>
-      <input type="text" value="Bushels (bu)" readonly />
-    </div>
+      <!-- Actions (identical structure to bugs.html) -->
+      <div class="form-actions">
+        <div></div>
+        <button class="btn-primary" type="submit">Save crop</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
+          <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+        </div>
+      </div>
 
-    <div class="form-actions">
-      <input type="hidden" id="editingId" value="" />
-      <button type="submit" class="btn primary" id="saveCropBtn">Save crop</button>
-      <button type="button" class="btn ghost" id="resetCropFormBtn">Clear</button>
-    </div>
-  </form>
+      <input type="hidden" id="editingId" />
+    </form>
 
-  <!-- LIST (card + table) -->
-  <div class="card">
-    <div class="card-head">
+    <!-- List card (same wrapper classes as you use elsewhere) -->
+    <section class="card" style="margin-top:16px;">
       <h2>Saved Crops</h2>
-    </div>
-    <div class="table-wrap">
-      <table class="table tight" id="cropTypesTable" aria-label="Crop types">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Test wt (lb/bu)</th>
-            <th>Std moisture (%)</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody><!-- injected --></tbody>
-      </table>
-    </div>
-  </div>
+      <div class="row" style="align-items:center; gap:12px;">
+        <input id="searchInput" class="search" type="search" placeholder="Search crops…" />
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
+      </div>
 
-  <!-- QUICK VIEW (simple dialog) -->
-  <dialog id="quickViewModal">
-    <article>
-      <header class="toolbar">
-        <h3>Crop Type Records</h3>
-        <button class="btn ghost" id="closeQuick">Close</button>
-      </header>
-      <div class="table-wrap">
-        <table class="table" id="quickViewTable">
+      <div class="table-wrap" style="margin-top:10px;">
+        <table class="table tight" id="cropsTable" aria-label="Crop types">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Test wt</th>
-              <th>Moisture</th>
-              <th>Status</th>
-              <th>Updated</th>
+              <th>Test wt (lb/bu)</th>
+              <th>Std moisture (%)</th>
+              <th></th>
             </tr>
           </thead>
-          <tbody><!-- injected --></tbody>
+          <tbody><!-- rows injected --></tbody>
         </table>
       </div>
-    </article>
-  </dialog>
+    </section>
+  </main>
 
+  <!-- ===== Footer (shell) ===== -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- ===== Quick View modal (same pattern as bugs.html) ===== -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Crop Type Records</h2>
+      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Page logic (tiny, same style as bugs.html) ===== -->
   <script>
-    // ===== Use the same pattern as Issues/Bugs: tiny inline logic, no custom CSS =====
-
-    // Global-capitalization hook (uses your core if present)
-    function applyGlobalCase(str) {
-      try {
-        if (window.App && App.util && typeof App.util.applyGlobalCase === 'function') {
-          return App.util.applyGlobalCase(str);
-        }
-      } catch (e) {}
-      // Fallback: Title Case
-      return (str || '').toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase());
+  (function CropTypesPage(){
+    // use your global case if present; fallback to Title Case
+    function applyGlobalCase(str){
+      try{ if (window.App && App.util && typeof App.util.applyGlobalCase === 'function') { return App.util.applyGlobalCase(str); } }catch(_){}
+      return (str||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
     }
-    function slugify(s){return (s||'').toString().trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-');}
-    function nowTS(){return Date.now();}
-    function fmtDT(ts){try{const d=new Date(ts);return d.toLocaleString();}catch(_){return ''}}
-
-    // Storage key (localStorage like your other light-weight forms)
     const KEY = 'df.crops';
-    function loadAll(){ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch(_) { return []; } }
-    function saveAll(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
-    function getById(id){ return loadAll().find(x=>x.id===id); }
-    function upsert(item){
-      const list = loadAll();
-      const i = list.findIndex(x=>x.id===item.id);
-      if (i>=0) list[i]=item; else list.push(item);
-      saveAll(list);
-    }
-    function removeById(id){ saveAll(loadAll().filter(x=>x.id!==id)); }
+    const $ = s => document.querySelector(s);
 
-    // Elements
-    const $form = document.getElementById('cropTypeForm');
-    const $name = document.getElementById('cropName');
-    const $tw = document.getElementById('testWeight');
-    const $mo = document.getElementById('standardMoisture');
-    const $editId = document.getElementById('editingId');
-    const $tableBody = document.querySelector('#cropTypesTable tbody');
-    const $search = document.getElementById('cropSearch');
-    const $showArchived = document.getElementById('toggleShowArchived');
-    const $modal = document.getElementById('quickViewModal');
-    const $quickBody = document.querySelector('#quickViewTable tbody');
+    const $name = $('#cropName');
+    const $tw   = $('#testWeight');
+    const $mo   = $('#standardMoisture');
+    const $id   = $('#editingId');
+    const $tbl  = $('#cropsTable tbody');
+    const $qvB  = $('#qvBackdrop');
+    const $qvL  = $('#qvList');
 
-    // Back uses your nav helper if available
-    document.getElementById('btnBack').addEventListener('click', () => {
-      if (window.App && App.nav && typeof App.nav.back === 'function') App.nav.back();
-      else history.back();
-    });
+    function load(){ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch(_) { return []; } }
+    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
+    function get(id){ return load().find(x=>x.id===id); }
+    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list); }
+    function remove(id){ save(load().filter(x=>x.id!==id)); }
+    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-'); }
+    function fmt(ts){ try{ return new Date(ts).toLocaleString(); }catch(_){ return ''; } }
 
-    // Clear
-    document.getElementById('resetCropFormBtn').addEventListener('click', resetForm);
-
-    // Submit (Add / Save)
-    $form.addEventListener('submit', (e) => {
+    // Form submit
+    $('#crop-form').addEventListener('submit', (e)=>{
       e.preventDefault();
-      const raw = $name.value.trim();
-      if (!raw) { $name.focus(); return; }
+      const pretty = applyGlobalCase(($name.value||'').trim());
+      if (!pretty) { $name.focus(); return; }
+      const id = $id.value || slug(pretty);
 
-      const pretty = applyGlobalCase(raw);
-      const id = $editId.value || slugify(pretty);
-
-      // duplicate guard (case-insensitive), allow same-id edit
-      const list = loadAll();
+      const list = load();
       const dup = list.find(x => x.id !== id && x.name.toLowerCase() === pretty.toLowerCase());
       if (dup) { alert('That crop already exists.'); return; }
 
-      const existing = list.find(x=>x.id===id);
+      const prev = list.find(x=>x.id===id);
       const item = {
-        id,
-        name: pretty,
+        id, name: pretty,
         testWeight: Number($tw.value),
         standardMoisture: Number($mo.value),
         unit: 'bu',
-        archived: existing ? !!existing.archived : false,
-        createdAt: existing ? existing.createdAt : nowTS(),
-        updatedAt: nowTS()
+        archived: prev ? !!prev.archived : false,
+        createdAt: prev?.createdAt || Date.now(),
+        updatedAt: Date.now()
       };
       upsert(item);
       render();
-      resetForm();
+      $('#crop-form').reset(); $id.value=''; $name.focus();
     });
 
-    // Search + show-archived
-    $search.addEventListener('input', render);
-    $showArchived.addEventListener('change', render);
+    // Clear
+    $('#clearBtn').addEventListener('click', ()=>{ $('#crop-form').reset(); $id.value=''; $name.focus(); });
 
-    // Quick View
-    document.getElementById('btnQuickView').addEventListener('click', () => {
-      fillQuickView();
-      $modal.showModal();
-    });
-    document.getElementById('closeQuick').addEventListener('click', () => $modal.close());
+    // Search + archived toggle
+    $('#searchInput').addEventListener('input', render);
+    $('#toggleShowArchived').addEventListener('change', render);
 
-    function resetForm(){
-      $form.reset();
-      $editId.value = '';
-      $name.focus();
-    }
-
-    function render(){
-      const q = ($search.value||'').trim().toLowerCase();
-      const showArchived = $showArchived.checked;
-      const rows = loadAll()
-        .filter(x => showArchived ? true : !x.archived)
-        .filter(x => !q || x.name.toLowerCase().includes(q))
-        .sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-
-      $tableBody.innerHTML = rows.map(r => {
-        const status = r.archived ? ' (Archived)' : '';
-        return `<tr>
-          <td>${r.name}${status ? ' <span class="tag archived">Archived</span>' : ''}</td>
-          <td>${(r.testWeight ?? '').toString()}</td>
-          <td>${(r.standardMoisture ?? '').toString()}</td>
-          <td>
-            <button class="btn" data-act="edit" data-id="${r.id}">Edit</button>
-            ${r.archived
-              ? `<button class="btn" data-act="unarchive" data-id="${r.id}">Unarchive</button>`
-              : `<button class="btn" data-act="archive" data-id="${r.id}">Archive</button>`}
-            <button class="btn ghost" data-act="delete" data-id="${r.id}">Delete</button>
-          </td>
-        </tr>`;
-      }).join('');
-
-      // bind row actions
-      $tableBody.querySelectorAll('button[data-act]').forEach(btn=>{
-        btn.addEventListener('click', onRowAction);
-      });
-    }
-
+    // Row actions
     function onRowAction(e){
-      const act = e.currentTarget.getAttribute('data-act');
-      const id = e.currentTarget.getAttribute('data-id');
-      const item = getById(id);
-      if (!item) return;
+      const act = e.target.getAttribute('data-act');
+      if (!act) return;
+      const id = e.target.getAttribute('data-id');
+      const item = get(id); if (!item) return;
 
-      if (act === 'edit'){
-        $editId.value = item.id;
+      if (act==='edit'){
+        $id.value = item.id;
         $name.value = item.name;
         $tw.value = item.testWeight;
         $mo.value = item.standardMoisture;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        $name.focus();
-      }
-      if (act === 'archive'){ item.archived = true; item.updatedAt = nowTS(); upsert(item); render(); }
-      if (act === 'unarchive'){ item.archived = false; item.updatedAt = nowTS(); upsert(item); render(); }
-      if (act === 'delete'){
-        if (confirm('Delete this crop permanently?')) { removeById(id); render(); }
-      }
+        window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
+      } else if (act==='archive'){ item.archived = true; item.updatedAt = Date.now(); upsert(item); render(); }
+      else if (act==='unarchive'){ item.archived = false; item.updatedAt = Date.now(); upsert(item); render(); }
+      else if (act==='delete'){ if (confirm('Delete this crop permanently?')) { remove(id); render(); } }
     }
 
-    function fillQuickView(){
-      const list = loadAll().sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-      $quickBody.innerHTML = list.map(r=>`
+    function render(){
+      const q = ($('#searchInput').value || '').toLowerCase().trim();
+      const showA = $('#toggleShowArchived').checked;
+
+      const rows = load()
+        .filter(x=> showA ? true : !x.archived)
+        .filter(x=> !q || x.name.toLowerCase().includes(q))
+        .sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+
+      $tbl.innerHTML = rows.map(r => `
         <tr>
-          <td>${r.name}</td>
+          <td>${r.name}${r.archived ? ' <span class="tag archived">Archived</span>' : ''}</td>
           <td>${r.testWeight}</td>
           <td>${r.standardMoisture}</td>
-          <td>${r.archived ? 'Archived' : 'Active'}</td>
-          <td>${fmtDT(r.updatedAt)}</td>
+          <td>
+            <button class="btn-secondary" data-act="edit" data-id="${r.id}">Edit</button>
+            ${r.archived
+              ? `<button class="btn-secondary" data-act="unarchive" data-id="${r.id}">Unarchive</button>`
+              : `<button class="btn-secondary" data-act="archive" data-id="${r.id}">Archive</button>`}
+            <button class="btn-outline" data-act="delete" data-id="${r.id}">Delete</button>
+          </td>
         </tr>
       `).join('');
+
+      $tbl.querySelectorAll('button').forEach(b => b.addEventListener('click', onRowAction));
     }
 
-    // Seed defaults (Corn/Soybeans) only if empty
+    // Quick View (same pattern as bugs.html)
+    $('#quickViewBtn').addEventListener('click', ()=>{
+      const list = load().sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      $qvL.innerHTML = list.length ? list.map(r => `
+        <li style="border:1px solid var(--tile-border);border-radius:10px;padding:8px 10px;margin:8px 0;">
+          <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}%<br>
+          <em>${r.archived ? 'Archived' : 'Active'}</em> • Updated ${fmt(r.updatedAt)}
+        </li>
+      `).join('') : '<li>No records.</li>';
+      $qvB.style.display = 'flex';
+    });
+    $('#qvClose').addEventListener('click', ()=> $qvB.style.display = 'none');
+    $qvB.addEventListener('click', (e)=>{ if (e.target===$qvB) $qvB.style.display='none'; });
+
+    // Seed defaults if empty
     (function seed(){
-      const list = loadAll();
+      const list = load();
       if (list.length) { render(); return; }
-      const seeds = [
-        { name:'Corn', testWeight:56, standardMoisture:15.5 },
-        { name:'Soybeans', testWeight:60, standardMoisture:13.0 }
-      ].map(s => ({
-        id: slugify(applyGlobalCase(s.name)),
-        name: applyGlobalCase(s.name),
-        testWeight: s.testWeight,
-        standardMoisture: s.standardMoisture,
-        unit:'bu',
-        archived:false,
-        createdAt: nowTS(),
-        updatedAt: nowTS()
-      }));
-      saveAll(seeds);
+      save([
+        { id:'corn', name:'Corn', testWeight:56, standardMoisture:15.5, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() },
+        { id:'soybeans', name:'Soybeans', testWeight:60, standardMoisture:13.0, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() }
+      ]);
       render();
     })();
+
+    // Optional: set breadcrumbs via core helper (keeps Logout fitting logic)
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Setup / Settings', href:'settings.html'},
+      {label:'Crop Types'}
+    ]);
+  })();
+  </script>
+
+  <!-- Service worker (same as bugs.html) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
   </script>
 </body>
 </html>
