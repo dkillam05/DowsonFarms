@@ -1012,3 +1012,16 @@ button:focus-visible {
   padding: 14px;
   box-shadow: 0 6px 16px rgba(0,0,0,.08);
 }
+
+/* AI Reports polish */
+.ai-layout { display: grid; grid-template-columns: 280px 1fr; height: 100%; }
+.ai-sidebar { border-right: 1px solid var(--tile-border); padding: 10px; overflow: auto; background: var(--surface-2); }
+.ai-main { display: grid; grid-template-rows: 1fr auto; }
+.ai-stream { padding: 12px; overflow: auto; }
+.msg { margin: 8px 0; padding: 10px 12px; border-radius: 12px; max-width: 800px; border:1px solid var(--tile-border); }
+.msg.user { background: var(--tile-bg); }
+.msg.assistant { background: #fffef8; }
+:root[data-theme="dark"] .msg.assistant { background: rgba(255,255,255,.05); }
+.ai-inputbar { display:flex; gap: 8px; padding: 10px; border-top:1px solid var(--tile-border); background: var(--surface-1); }
+#ai-input { flex:1; resize:none; padding:10px 12px; border-radius:10px; border:1px solid var(--tile-border); background: var(--tile-bg); }
+.btn.primary { background:#1B5E20; color:#fff; border:none; }
