@@ -961,3 +961,14 @@ textarea:focus-visible,
 button:focus-visible {
   box-shadow: 0 0 0 3px var(--df-focus-ring);
 }
+
+/* =========================================
+   Forms render as cards (non-auth pages)
+   ========================================= */
+:not(.auth-page) .content form {
+  background: var(--tile-bg);
+  border: 2px solid var(--tile-border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+}
