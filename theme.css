@@ -811,4 +811,12 @@ body.home-page .content h1 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.ai-powered-note {
+  text-align: center;
+  font-style: italic;
+  margin-top: 20px;
+  opacity: 0.75;
+  font-size: 0.92rem;
+}
+
 
