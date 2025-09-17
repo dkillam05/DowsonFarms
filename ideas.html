@@ -28,10 +28,30 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 
-  <!-- Larger search + prevent iOS zoom (16px) -->
+  <!-- Larger search + prevent iOS zoom -->
   <style>
     #searchInput{
       font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%; max-width:640px;
+    }
+    /* Attachments grid */
+    .shots-grid{
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(96px,1fr)); gap:10px; margin-top:8px;
+    }
+    .shot{
+      position:relative; border:1px solid var(--tile-border); border-radius:10px; overflow:hidden;
+      background:var(--tile-bg, rgba(0,0,0,.03));
+    }
+    .shot img{ display:block; width:100%; height:100%; object-fit:cover; aspect-ratio:1/1; }
+    .shot button{
+      position:absolute; top:6px; right:6px; border:none; border-radius:8px; padding:4px 6px; font-size:.8rem;
+      background:rgba(0,0,0,.55); color:#fff; cursor:pointer;
+    }
+    .drop-zone{
+      border:1px dashed var(--tile-border); border-radius:10px; padding:10px; text-align:center;
+      background:transparent;
+    }
+    .drop-zone.drag{
+      background:var(--tile-bg, rgba(0,0,0,.04));
     }
   </style>
 </head>
@@ -58,12 +78,12 @@
 
   <!-- Content -->
   <main class="content" data-has-form>
-    <!-- Title row with Quick View top-right (uniform across forms) -->
+    <!-- Title + Quick View -->
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">💡 Ideas</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
     </div>
-    <p class="muted" style="margin-top:8px;">Capture and organize ideas. You can add new Menus/Submenus here.</p>
+    <p class="muted" style="margin-top:8px;">Capture and organize ideas. You can add new Menus/Submenus and optionally attach screenshots.</p>
 
     <!-- FORM (stacked fields) -->
     <form id="idea-form" novalidate>
@@ -93,7 +113,19 @@
         <textarea id="message" required placeholder="Describe your idea…"></textarea>
       </div>
 
-      <!-- Square 2×2 button grid (Save/Clear always; Archive/Delete only on edit) -->
+      <!-- Optional Screenshots -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <h3 style="margin:0;">Screenshots (optional)</h3>
+          <label class="btn-outline" for="shotsInput" style="cursor:pointer;">Add images</label>
+          <input id="shotsInput" type="file" accept="image/*" multiple style="display:none" />
+        </div>
+        <div id="dropZone" class="drop-zone" style="margin-top:10px;">Drop images here or use “Add images”</div>
+        <div id="shotsGrid" class="shots-grid"></div>
+        <small class="muted">We’ll compress large images to keep storage small. Max ~6 images per idea recommended.</small>
+      </section>
+
+      <!-- 2×2 action buttons -->
       <section class="card" style="padding:12px; margin-top:8px;">
         <div id="btnGrid" style="
           --w: 92px;
@@ -163,6 +195,9 @@
     const MENUS_KEY='df_menus';
     const PEOPLE_KEY='df_people';
     const ADD_VALUE="__ADD__";
+    const MAX_IMAGES = 6;
+    const MAX_LONG_EDGE = 1400;    // px
+    const JPEG_QUALITY = 0.8;      // 0..1
     const $=s=>document.querySelector(s);
 
     // DOM refs
@@ -170,6 +205,10 @@
     const $whoHint=$('#whoHint');
     const $saved=$('#savedList'), $savedCard=$('#savedCard');
     const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
+    const $shotsInput=$('#shotsInput'), $shotsGrid=$('#shotsGrid'), $dropZone=$('#dropZone');
+
+    // Working attachments for the current edit (array of {name, dataUrl, w, h, bytes})
+    let attachments = [];
 
     /* ---------- Seeds ---------- */
     if (!localStorage.getItem(PEOPLE_KEY)) {
@@ -270,7 +309,6 @@
       }
     }
     renderMenus(true);
-
     $menu.addEventListener('change', (e)=>{
       if (e.target.value===ADD_VALUE){ handleMaybeAdd($menu,'menu'); return; }
       renderSubmenus($menu.value,true);
@@ -278,6 +316,69 @@
     $sub.addEventListener('change', ()=>{
       if ($sub.value===ADD_VALUE){ handleMaybeAdd($sub,'submenu'); }
     });
+
+    /* ---------- Attachment helpers ---------- */
+    function bytesFromDataUrl(dataUrl){
+      const b64 = dataUrl.split(',')[1] || '';
+      return Math.floor((b64.length * 3) / 4) - (b64.endsWith('==')?2:b64.endsWith('=')?1:0);
+    }
+    function fileToImageBitmap(file){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=reader.result; };
+        reader.onerror=reject; reader.readAsDataURL(file);
+      });
+    }
+    async function compressImage(file){
+      try{
+        const img = await fileToImageBitmap(file);
+        const scale = Math.min(1, MAX_LONG_EDGE / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+        return { name: file.name || 'image.jpg', dataUrl, w, h, bytes: bytesFromDataUrl(dataUrl) };
+      }catch(e){ console.error(e); return null; }
+    }
+    function renderShots(){
+      $shotsGrid.innerHTML = attachments.map((a, idx)=>`
+        <div class="shot">
+          <img src="${a.dataUrl}" alt="${a.name}"/>
+          <button type="button" data-idx="${idx}" aria-label="Remove">✕</button>
+        </div>
+      `).join('');
+      $shotsGrid.querySelectorAll('button[data-idx]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const i = Number(btn.dataset.idx);
+          attachments.splice(i,1);
+          renderShots();
+        });
+      });
+    }
+    async function addFiles(fileList){
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+      if (attachments.length + files.length > MAX_IMAGES){
+        alert(`Please attach up to ${MAX_IMAGES} images per idea.`);
+        return;
+      }
+      for (const f of files){
+        const comp = await compressImage(f);
+        if (comp){
+          attachments.push(comp);
+        }
+      }
+      renderShots();
+    }
+
+    // File select + drag/drop
+    $shotsInput.addEventListener('change', (e)=> addFiles(e.target.files));
+    ;['dragenter','dragover'].forEach(ev=> $dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); $dropZone.classList.add('drag'); }));
+    ;['dragleave','drop'].forEach(ev=> $dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); $dropZone.classList.remove('drag'); }));
+    $dropZone.addEventListener('drop', (e)=> addFiles(e.dataTransfer.files));
 
     /* ---------- Saved Ideas list ---------- */
     function renderSaved(){
@@ -288,15 +389,18 @@
         .filter(x=>!q || x.message.toLowerCase().includes(q) || x.menu.toLowerCase().includes(q) || x.submenu.toLowerCase().includes(q) || x.submittedBy.toLowerCase().includes(q))
         .sort((a,b)=>b.ts-a.ts);
 
-      $saved.innerHTML = rows.length ? rows.map(r=>`
+      $saved.innerHTML = rows.length ? rows.map(r=>{
+        const cam = (r.attachments && r.attachments.length) ? ` <span aria-label="attachments">📷 ×${r.attachments.length}</span>` : '';
+        return `
         <li>
           <button type="button" class="btn-secondary" data-id="${r.id}"
                   style="width:100%; text-align:left; display:block; margin:8px 0;">
-            <strong>${r.menu} › ${r.submenu}</strong><br>
+            <strong>${r.menu} › ${r.submenu}</strong>${cam}<br>
             ${r.message}<br>
             <em>${r.submittedBy}</em> • ${r.date} ${r.archived?'<span style="opacity:.7">• Archived</span>':''}
           </button>
-        </li>`).join('') : '<li class="muted" style="margin-top:8px;">No ideas recorded.</li>';
+        </li>`;
+      }).join('') : '<li class="muted" style="margin-top:8px;">No ideas recorded.</li>';
 
       $saved.querySelectorAll('button[data-id]').forEach(b=>{
         b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
@@ -315,24 +419,36 @@
       $by.value=item.submittedBy;
       $date.value=item.date;
 
-      // Re-render menus to include any new items that may have been added elsewhere
+      // menus/submenus
       renderMenus(false);
       $menu.value=item.menu;
       renderSubmenus(item.menu,false);
       $sub.value=item.submenu;
 
       $msg.value=item.message;
+
+      attachments = Array.isArray(item.attachments) ? item.attachments.slice() : [];
+      renderShots();
+
       showEditButtons(true, item.archived);
       window.scrollTo({top:0, behavior:'smooth'}); $msg.focus();
     }
 
     /* ---------- Submit / Clear / Archive / Delete ---------- */
-    document.getElementById('idea-form').addEventListener('submit',(e)=>{
+    document.getElementById('idea-form').addEventListener('submit', (e)=>{
       e.preventDefault();
       if (!$by.value || !$date.value || !$menu.value || !$sub.value || !$msg.value.trim()){
         alert('Please complete all required fields.');
         return;
       }
+
+      // lightweight storage guard (~5MB localStorage total typical)
+      const attBytes = attachments.reduce((sum,a)=> sum + (a.bytes||0), 0);
+      if (attBytes > 3_500_000){ // ~3.5MB
+        alert('Attachments are too large. Please attach fewer/smaller images.');
+        return;
+      }
+
       const id = $id.value || slug(`${$date.value}-${$menu.value}-${$sub.value}-${Date.now()}`);
       const prev = get(id);
 
@@ -343,6 +459,7 @@
         menu: $menu.value,
         submenu: $sub.value,
         message: $msg.value.trim(),
+        attachments: attachments.slice(), // persist
         archived: prev ? !!prev.archived : false,
         ts: prev?.ts || Date.now(),
         updatedAt: Date.now()
@@ -350,14 +467,18 @@
 
       // Reset view, scroll to list, toast
       e.target.reset(); $id.value='';
+      attachments = []; renderShots();
       showEditButtons(false,false);
       renderSaved();
       $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
       toast('Save successful');
+
       // Refill defaults post-reset
       (function refill(){
         const you=(window.getCurrentUser?window.getCurrentUser():localStorage.getItem('df_current_user'))||'';
-        if (you) { const opt=[...$by.options].find(o=>o.value===you || o.textContent.startsWith(you+' ')); if (opt) $by.value=opt.value; }
+        if (you) {
+          const opt=[...$by.options].find(o=>o.value===you || o.textContent.startsWith(you+' ')); if (opt) $by.value=opt.value;
+        }
         $date.value = todayCT();
         renderMenus(true);
       })();
@@ -365,6 +486,7 @@
 
     document.getElementById('clearBtn').addEventListener('click', ()=>{
       document.getElementById('idea-form').reset(); $id.value='';
+      attachments = []; renderShots();
       showEditButtons(false,false); $by.focus();
       $date.value = todayCT();
       renderMenus(true);
@@ -384,6 +506,7 @@
       if (confirm('Delete this idea permanently?')){
         remove(id);
         document.getElementById('idea-form').reset(); $id.value='';
+        attachments = []; renderShots();
         showEditButtons(false,false);
         renderSaved();
         toast('Deleted');
@@ -398,15 +521,18 @@
     document.getElementById('quickViewBtn').addEventListener('click', ()=>{
       const list=load().filter(x=>!x.archived).sort((a,b)=>b.ts-a.ts);
       const $qvL=document.getElementById('qvList'), $qvB=document.getElementById('qvBackdrop');
-      $qvL.innerHTML = list.length ? list.map(i=>`
+      $qvL.innerHTML = list.length ? list.map(i=>{
+        const cam = (i.attachments && i.attachments.length) ? ` <span>📷 ×${i.attachments.length}</span>` : '';
+        return `
         <li>
           <button type="button" class="btn-secondary" data-id="${i.id}"
                   style="width:100%; text-align:left; display:block; margin:8px 0;">
-            <strong>${i.menu} › ${i.submenu}</strong><br>
+            <strong>${i.menu} › ${i.submenu}</strong>${cam}<br>
             ${i.message}<br>
             <em>${i.submittedBy}</em> • ${i.date}
           </button>
-        </li>`).join('') : '<li>No open ideas.</li>';
+        </li>`;
+      }).join('') : '<li>No open ideas.</li>';
       $qvB.style.display='flex';
       $qvL.querySelectorAll('button[data-id]').forEach(b=>{
         b.addEventListener('click', ()=>{
@@ -421,7 +547,7 @@
     /* ---------- Initial render ---------- */
     renderSaved();
 
-    /* ---------- Breadcrumbs (defensive) ---------- */
+    /* ---------- Breadcrumbs ---------- */
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Feedback', href:'feedback.html'},
