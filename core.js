@@ -35,8 +35,11 @@ const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed 
 
     function applyTheme(mode) {
       var resolved = resolve(mode);
-      root.setAttribute("data-theme", resolved);
+      // ★ CHANGED: Keep the *selected* mode on the attribute (so CSS can key off [data-theme="auto"])
+      //            but still drive color-scheme with the resolved value for correct native control theming.
+      root.setAttribute("data-theme", mode);                        // was: resolved
       root.style.colorScheme = (resolved === "dark") ? "dark" : "light";
+
       try {
         var ev = new CustomEvent("df:themechange", { detail: { mode: mode, resolved: resolved } });
         window.dispatchEvent(ev);
