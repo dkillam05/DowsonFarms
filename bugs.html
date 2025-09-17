@@ -5,29 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Bugs / Issues — Dowson Farms</title>
-  <script>
-(function () {
-  var pref = localStorage.getItem('df_theme') || 'auto';
-  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-  document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-})();
-</script>
 
-  <!-- Styles / App -->
+  <!-- Prepaint theme -->
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme =
+      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
+
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
-
-  <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+
+  <!-- Search bigger + stop iOS zoom (matches crop types) -->
+  <style>
+    #searchInput{
+      font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%; max-width:640px;
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -36,9 +42,7 @@
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
-    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
   <!-- Breadcrumbs -->
@@ -52,32 +56,34 @@
     </ol>
   </nav>
 
-  <!-- Content -->
   <main class="content" data-has-form>
-    <h1>🛠️ Bugs / Issues</h1>
+    <!-- Title row with Quick View top-right (same as crop types) -->
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🛠️ Bugs / Issues</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
+    </div>
+    <p class="muted" style="margin-top:8px;">Report and track issues across the app.</p>
 
+    <!-- FORM (stacked fields like crop types) -->
     <form id="bug-form" novalidate>
-      <div class="row">
-        <div class="field">
-          <label for="submittedBy">Submitted by</label>
-          <select id="submittedBy" required></select>
-          <small id="whoHint" class="field-hint" style="color:#666;"></small>
-        </div>
-        <div class="field">
-          <label for="submittedDate">Date submitted</label>
-          <input id="submittedDate" type="date" required />
-        </div>
+      <div class="field">
+        <label for="submittedBy">Submitted by</label>
+        <select id="submittedBy" required></select>
       </div>
 
-      <div class="row">
-        <div class="field">
-          <label for="menuSel">Menu</label>
-          <select id="menuSel" required></select>
-        </div>
-        <div class="field">
-          <label for="submenuSel">Submenu</label>
-          <select id="submenuSel" required></select>
-        </div>
+      <div class="field">
+        <label for="submittedDate">Date submitted</label>
+        <input id="submittedDate" type="date" required />
+      </div>
+
+      <div class="field">
+        <label for="menuSel">Menu</label>
+        <select id="menuSel" required></select>
+      </div>
+
+      <div class="field">
+        <label for="submenuSel">Submenu</label>
+        <select id="submenuSel" required></select>
       </div>
 
       <div class="field">
@@ -85,16 +91,41 @@
         <textarea id="message" required placeholder="Describe the bug or issue…"></textarea>
       </div>
 
-      <!-- Actions -->
-      <div class="form-actions">
-        <div></div>
-        <button class="btn-primary" type="submit">Submit Issue</button>
-        <div style="display:flex; gap:8px;">
-          <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
-          <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+      <!-- Square 2×2 button grid (identical sizing) -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div id="btnGrid" style="
+          --w: 92px;
+          display:grid; gap:10px;
+          grid-template-columns: var(--w) var(--w);
+          justify-content:center;
+        ">
+          <button class="btn-primary" type="submit" id="saveBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Clear</button>
+          <button class="btn-outline" type="button" id="archiveBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Archive</button>
+          <button class="btn-outline" type="button" id="deleteBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Delete</button>
         </div>
-      </div>
+      </section>
+
+      <input type="hidden" id="editingId" />
     </form>
+
+    <!-- SAVED (same card pattern + larger, no-zoom search) -->
+    <section class="card" id="savedCard" style="margin-top:16px;">
+      <h2 style="margin:0 0 8px 0;">Saved Issues</h2>
+      <div class="row" style="align-items:center; gap:12px;">
+        <input id="searchInput" class="search" type="search" placeholder="Search issues…" />
+        <div style="flex:1"></div>
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
+      </div>
+
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
+    </section>
   </main>
 
   <!-- Footer -->
@@ -117,209 +148,252 @@
     </div>
   </div>
 
-  <script>
-    (function BugsPage(){
-      const getCurrentUser = (window.getCurrentUser) ? window.getCurrentUser : () => localStorage.getItem('df_current_user') || 'Admin';
+  <!-- Toast (same as crop types) -->
+  <div id="dfToast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+    background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;">
+    <span id="dfToastText">Saved</span>
+  </div>
 
-      if (!localStorage.getItem('df_people')) {
-        localStorage.setItem('df_people', JSON.stringify([
-          {name:'John Doe'}, {name:'Jane Smith'}, {name:'Sam Operator'}, {name:'Vendor Co.'}
+  <script>
+  (function BugsPage(){
+    const KEY='df.bugs';
+    const MENUS_KEY='df_menus';
+    const PEOPLE_KEY='df_people';
+    const OTHER = 'Other';
+    const $=s=>document.querySelector(s);
+
+    const $by=$('#submittedBy'), $date=$('#submittedDate'), $menu=$('#menuSel'), $sub=$('#submenuSel'), $msg=$('#message'), $id=$('#editingId');
+    const $saved=$('#savedList'), $savedCard=$('#savedCard');
+    const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
+
+    /* -------- Seed people + default menus if missing -------- */
+    (function seedPeople(){
+      if (!localStorage.getItem(PEOPLE_KEY)) {
+        localStorage.setItem(PEOPLE_KEY, JSON.stringify([
+          {name:'John Doe'},{name:'Jane Smith'},{name:'Sam Operator'},{name:'Vendor Co.'}
         ]));
       }
-
-      const DEFAULT_MENUS = {
-        "Home": ["—"],
-        "Crop Production": ["Planting","Spraying","Harvest"],
-        "Grain Tracking": ["Bins","Tickets","Contracts"],
-        "Equipment": ["Maintenance","Repairs","Assignments"],
-        "Calculators": ["Seed Rate","Fertilizer","ROI"],
-        "Reports": ["Crops","Equipment","Financial"],
-        "Team / Partners": ["Employees","Vendors"],
-        "Feedback": ["Ideas","Bugs / Issues"],
-        "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-      };
-      const ADD_VALUE = "__ADD__";
-      const MENUS = JSON.parse(localStorage.getItem('df_menus') || 'null') || DEFAULT_MENUS;
-
-      const bySel = document.getElementById('submittedBy');
-      const dateEl = document.getElementById('submittedDate');
-      const whoHint = document.getElementById('whoHint');
-      const menuSel = document.getElementById('menuSel');
-      const submenuSel = document.getElementById('submenuSel');
-      const msgEl = document.getElementById('message');
-      const form = document.getElementById('bug-form');
-
-      const qvBtn = document.getElementById('quickViewBtn');
-      const qvBackdrop = document.getElementById('qvBackdrop');
-      const qvList = document.getElementById('qvList');
-      const qvClose = document.getElementById('qvClose');
-
-      function todayCT(){
-        const now = new Date();
-        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
-        const y = parts.find(p=>p.type==='year').value;
-        const m = parts.find(p=>p.type==='month').value;
-        const d = parts.find(p=>p.type==='day').value;
-        return `${y}-${m}-${d}`;
-      }
-
-      function renderPeople(){
-        const people = JSON.parse(localStorage.getItem('df_people'));
-        const you = getCurrentUser();
-        bySel.innerHTML = '';
-        people.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.name;
-          opt.textContent = p.name + (you && you === p.name ? ' (You)' : '');
-          bySel.appendChild(opt);
-        });
-        if (you) {
-          const found = [...bySel.options].find(o => o.value === you);
-          if (found) bySel.value = you;
-        }
-        whoHint.textContent = bySel.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
-      }
-
-      function addAddOption(selectEl, label){
-        const opt = document.createElement('option');
-        opt.value = "__ADD__";
-        opt.textContent = label;
-        opt.setAttribute('data-add','1');
-        selectEl.appendChild(opt);
-      }
-
-      function renderMenus(selectFirst = true){
-        menuSel.innerHTML = '';
-        Object.keys(MENUS).forEach(name => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          menuSel.appendChild(opt);
-        });
-        addAddOption(menuSel, '➕ Add New Menu…');
-        if (selectFirst && menuSel.options.length) menuSel.selectedIndex = 0;
-        renderSubmenus(menuSel.value, true);
-      }
-
-      function renderSubmenus(menu, selectFirst = false){
-        submenuSel.innerHTML = '';
-        (MENUS[menu] || []).forEach(name => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          submenuSel.appendChild(opt);
-        });
-        addAddOption(submenuSel, '➕ Add New Submenu…');
-        if (selectFirst && submenuSel.options.length) submenuSel.selectedIndex = 0;
-      }
-
-      function saveMenus(){
-        localStorage.setItem('df_menus', JSON.stringify(MENUS));
-      }
-
-      function handleMaybeAdd(selectEl, type){
-        if (selectEl.value !== "__ADD__") return;
-        const currentMenu = menuSel.value;
-        const label = (type === 'menu') ? 'New menu name:' : `New submenu for "${currentMenu}":`;
-        const raw = prompt(label);
-        if (!raw) { renderMenus(false); renderSubmenus(currentMenu,false); return; }
-        const name = raw.trim().replace(/^./, c => c.toUpperCase());
-        if (!name) return;
-
-        if (type === 'menu') {
-          if (!MENUS[name]) MENUS[name] = ['—'];
-          saveMenus();
-          renderMenus(false);
-          menuSel.value = name;
-          renderSubmenus(name, true);
-        } else {
-          if (!MENUS[currentMenu]) MENUS[currentMenu] = [];
-          if (!MENUS[currentMenu].includes(name)) MENUS[currentMenu].push(name);
-          saveMenus();
-          renderSubmenus(currentMenu, false);
-          submenuSel.value = name;
-        }
-      }
-
-      function saveIssue(data){
-        const list = JSON.parse(localStorage.getItem('df_bugs') || '[]');
-        list.push(data);
-        localStorage.setItem('df_bugs', JSON.stringify(list));
-      }
-
-      function openQuickView(){
-        qvList.innerHTML = '';
-        const list = JSON.parse(localStorage.getItem('df_bugs') || '[]')
-          .filter(i => i.status !== 'closed' && i.status !== 'archived')
-          .sort((a,b)=>b.ts-a.ts);
-        if (!list.length) {
-          const li = document.createElement('li');
-          li.textContent = 'No open issues.';
-          qvList.appendChild(li);
-        } else {
-          list.forEach(i => {
-            const li = document.createElement('li');
-            li.style.border='1px solid var(--tile-border)';
-            li.style.borderRadius='10px';
-            li.style.padding='8px 10px';
-            li.style.margin='8px 0';
-            li.innerHTML = `<strong>${i.menu} › ${i.submenu}</strong><br>
-                            <em>${i.submittedBy}</em> • ${i.date}<br>
-                            ${i.message}`;
-            qvList.appendChild(li);
-          });
-        }
-        qvBackdrop.style.display = 'flex';
-      }
-      function closeQuickView(){ qvBackdrop.style.display = 'none'; }
-
-      // Init
-      renderPeople();
-      dateEl.value = todayCT();
-      renderMenus(true);
-
-      menuSel.addEventListener('change', (e) => {
-        if (e.target.value === "__ADD__") { handleMaybeAdd(menuSel, 'menu'); return; }
-        renderSubmenus(menuSel.value, true);
-      });
-      submenuSel.addEventListener('change', () => handleMaybeAdd(submenuSel, 'submenu'));
-
-      qvBtn.addEventListener('click', openQuickView);
-      qvClose.addEventListener('click', closeQuickView);
-      qvBackdrop.addEventListener('click', (e)=>{ if(e.target===qvBackdrop) closeQuickView(); });
-
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        if (!bySel.value || !dateEl.value || !menuSel.value || !submenuSel.value || !msgEl.value.trim()) {
-          alert('Please complete all required fields.');
-          return;
-        }
-        const record = {
-          submittedBy: bySel.value.replace(/\s+\(You\)$/,''),
-          date: dateEl.value,
-          menu: menuSel.value,
-          submenu: submenuSel.value,
-          message: msgEl.value.trim(),
-          status: 'open',
-          ts: Date.now()
-        };
-        saveIssue(record);
-        form.reset();
-        renderPeople();
-        dateEl.value = todayCT();
-        renderMenus(true);
-        alert('Issue submitted!');
-      });
-
-      window.setBreadcrumbs?.([
-        {label:'Home', href:'index.html'},
-        {label:'Feedback', href:'feedback.html'},
-        {label:'Bugs / Issues'}
-      ]);
     })();
+    const DEFAULT_MENUS = {
+      "Home": ["—"],
+      "Crop Production": ["Planting","Spraying","Harvest"],
+      "Grain Tracking": ["Bins","Tickets","Contracts"],
+      "Equipment": ["Maintenance","Repairs","Assignments"],
+      "Calculators": ["Seed Rate","Fertilizer","ROI"],
+      "Reports": ["Crops","Equipment","Financial"],
+      "Team / Partners": ["Employees","Vendors"],
+      "Feedback": ["Ideas","Bugs / Issues"],
+      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+    };
+    function menus(){ return JSON.parse(localStorage.getItem(MENUS_KEY) || 'null') || DEFAULT_MENUS; }
+
+    /* -------- Helpers (match crop types patterns) -------- */
+    function toast(msg){ const box=$('#dfToast'),txt=$('#dfToastText'); txt.textContent=msg||'Saved'; box.style.display='block'; clearTimeout(window.__t); window.__t=setTimeout(()=>box.style.display='none',2000); }
+    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
+    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
+    function get(id){ return load().find(x=>x.id===id) }
+    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
+    function remove(id){ save(load().filter(x=>x.id!==id)) }
+    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-') }
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    function todayCT(){
+      const now = new Date();
+      const p = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+      const y=p.find(x=>x.type==='year').value, m=p.find(x=>x.type==='month').value, d=p.find(x=>x.type==='day').value;
+      return `${y}-${m}-${d}`;
+    }
+
+    /* -------- Populate "Submitted by" -------- */
+    (function fillPeople(){
+      const people = JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]');
+      $by.innerHTML = people.map(p=>`<option>${p.name}</option>`).join('');
+      const you = (window.getCurrentUser?window.getCurrentUser():localStorage.getItem('df_current_user')) || '';
+      if (you) { const opt=[...$by.options].find(o=>o.value===you); if(opt) $by.value=you; }
+    })();
+    $date.value = todayCT();
+
+    /* -------- Populate Menu/Submenu with fixed options + "Other" -------- */
+    (function fillMenus(){
+      const m = menus();
+      const menuNames = Object.keys(m);
+      // build menu select + Other
+      $menu.innerHTML = menuNames.map(k=>`<option>${k}</option>`).join('') + `<option>${OTHER}</option>`;
+
+      function setSubmenusFor(menuValue){
+        let subs = [];
+        if (menuValue === OTHER) {
+          subs = [OTHER];
+        } else {
+          subs = (m[menuValue] || []).slice();
+          if (!subs.includes(OTHER)) subs.push(OTHER);
+        }
+        $sub.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+      }
+
+      // initialize with first real menu
+      const first = menuNames[0] || OTHER;
+      $menu.value = first;
+      setSubmenusFor(first);
+
+      $menu.addEventListener('change', ()=>{
+        setSubmenusFor($menu.value);
+        // if menu is Other, force submenu Other for clarity
+        if ($menu.value === OTHER) { $sub.value = OTHER; }
+      });
+    })();
+
+    /* -------- Saved list render (same look/feel) -------- */
+    function renderSaved(){
+      const q = ($('#searchInput').value||'').toLowerCase().trim();
+      const showA = $('#toggleShowArchived').checked;
+      const rows = load()
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>!q || x.message.toLowerCase().includes(q) || x.menu.toLowerCase().includes(q) || x.submenu.toLowerCase().includes(q) || x.submittedBy.toLowerCase().includes(q))
+        .sort((a,b)=>b.ts-a.ts);
+
+      $saved.innerHTML = rows.length ? rows.map(r=>`
+        <li>
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.menu} › ${r.submenu}</strong><br>
+            ${r.message}<br>
+            <em>${r.submittedBy}</em> • ${r.date} ${r.archived?'<span style="opacity:.7">• Archived</span>':''}
+          </button>
+        </li>`).join('') : '<li class="muted" style="margin-top:8px;">No issues recorded.</li>';
+
+      $saved.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
+      });
+    }
+
+    function showEditButtons(show, archived=false){
+      $archBtn.style.display = show ? 'inline-block' : 'none';
+      $delBtn.style.display  = show ? 'inline-block' : 'none';
+      $archBtn.textContent   = archived ? 'Unarchive' : 'Archive';
+    }
+
+    function openForEdit(id){
+      const item=get(id); if(!item) return;
+      $id.value=item.id;
+      $by.value=item.submittedBy;
+      $date.value=item.date;
+      $menu.value=item.menu;
+
+      // refresh submenu list based on stored menu, then set value
+      const m = menus();
+      let subs = [];
+      if ($menu.value === OTHER) {
+        subs = [OTHER];
+      } else {
+        subs = (m[$menu.value] || []).slice();
+        if (!subs.includes(OTHER)) subs.push(OTHER);
+      }
+      $sub.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+      $sub.value=item.submenu;
+
+      $msg.value=item.message;
+      showEditButtons(true, item.archived);
+      window.scrollTo({top:0, behavior:'smooth'}); $msg.focus();
+    }
+
+    /* -------- Submit / Clear / Archive / Delete -------- */
+    document.getElementById('bug-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      if (!$by.value || !$date.value || !$menu.value || !$sub.value || !$msg.value.trim()){
+        alert('Please complete all required fields.');
+        return;
+      }
+      const namePretty = titleCase($by.value.trim());
+      const id = $id.value || slug(`${$date.value}-${$menu.value}-${$sub.value}-${Date.now()}`);
+      const prev = get(id);
+
+      upsert({
+        id,
+        submittedBy: namePretty,
+        date: $date.value,
+        menu: $menu.value,
+        submenu: $sub.value,
+        message: $msg.value.trim(),
+        archived: prev ? !!prev.archived : false,
+        ts: prev?.ts || Date.now(),
+        updatedAt: Date.now()
+      });
+
+      // reset view like crop types
+      e.target.reset(); $id.value='';
+      showEditButtons(false,false);
+      renderSaved();
+      $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
+      toast('Save successful');
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      document.getElementById('bug-form').reset(); $id.value='';
+      showEditButtons(false,false); $by.focus();
+      $date.value = todayCT();
+    });
+
+    $archBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      const item=get(id); if(!item) return;
+      item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
+      showEditButtons(true, item.archived);
+      renderSaved();
+      toast(item.archived ? 'Archived' : 'Unarchived');
+    });
+
+    $delBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      if (confirm('Delete this issue permanently?')){
+        remove(id);
+        document.getElementById('bug-form').reset(); $id.value='';
+        showEditButtons(false,false);
+        renderSaved();
+        toast('Deleted');
+      }
+    });
+
+    /* -------- Search / Show archived -------- */
+    document.getElementById('searchInput').addEventListener('input', renderSaved);
+    document.getElementById('toggleShowArchived').addEventListener('change', renderSaved);
+
+    /* -------- Quick View (top-right) -------- */
+    document.getElementById('quickViewBtn').addEventListener('click', ()=>{
+      const list=load().filter(x=>!x.archived).sort((a,b)=>b.ts-a.ts);
+      const $qvL=document.getElementById('qvList'), $qvB=document.getElementById('qvBackdrop');
+      $qvL.innerHTML = list.length ? list.map(i=>`
+        <li>
+          <button type="button" class="btn-secondary" data-id="${i.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${i.menu} › ${i.submenu}</strong><br>
+            ${i.message}<br>
+            <em>${i.submittedBy}</em> • ${i.date}
+          </button>
+        </li>`).join('') : '<li>No open issues.</li>';
+      $qvB.style.display='flex';
+      $qvL.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          $qvB.style.display='none';
+          openForEdit(b.getAttribute('data-id'));
+        });
+      });
+      document.getElementById('qvClose').addEventListener('click', ()=> $qvB.style.display='none', {once:true});
+      $qvB.addEventListener('click', (e)=>{ if(e.target===$qvB) $qvB.style.display='none'; }, {once:true});
+    });
+
+    /* -------- Initial render -------- */
+    renderSaved();
+
+    /* -------- Breadcrumbs (for consistency) -------- */
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Feedback', href:'feedback.html'},
+      {label:'Bugs / Issues'}
+    ]);
+  })();
   </script>
 
-  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
