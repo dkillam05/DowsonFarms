@@ -123,8 +123,10 @@ body {
    - separators never flex
 */
 .breadcrumbs ol li { flex: 0 0 auto; white-space: nowrap; }
-.breadcrumbs ol li.sep { flex: 0 0 auto; }
-
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
+  flex: 0 1 auto;       /* shrinkable, no growth */
+  min-width: 0;         /* enables ellipsis when clamped */
+}
 .breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
   flex: 1 1 0;          /* allow middle crumbs to shrink */
   min-width: 0;         /* required for ellipsis */
