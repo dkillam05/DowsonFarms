@@ -268,11 +268,20 @@ body.home-page .content h1 {
 .field input::placeholder,
 .field textarea::placeholder { color: rgba(127,127,127,.9); }
 
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  box-shadow: 0 0 0 3px rgba(40,120,50,.22);
-  border-color: var(--brand-green);
+/* Theme-aware, accessible focus ring */
+:root { --df-focus-ring: rgba(27,94,32,.55); } /* green for light */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] { --df-focus-ring: rgba(218,165,32,.55); } /* gold for dark auto */
+}
+:root[data-theme="dark"] { --df-focus-ring: rgba(218,165,32,.55); }    /* gold for dark forced */
+
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--df-focus-ring);
+  border-color: var(--tile-border);
 }
 
 /* --- iOS/Safari normalization so DATE matches SELECT width --- */
@@ -859,8 +868,15 @@ body.home-page .content h1 {
   transform: translateY(0);
 }
 
-:root { color-scheme: light dark; }
-[data-theme="dark"] { color-scheme: dark; }
+/* Color-scheme bridge so user agent controls match the resolved theme
+   while allowing [data-theme="auto"] CSS to keep working */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark;  }
+:root[data-theme="auto"]  { color-scheme: light; } /* default */
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] { color-scheme: dark; }
+}
 
 /* =======================================================================
    === PATCH A: Auto really follows device for tiles & Theme switches ===
