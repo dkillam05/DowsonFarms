@@ -3,47 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
   <title>Crop Production — Dowson Farms</title>
-  <script>
-(function () {
-  var pref = localStorage.getItem('df_theme') || 'auto';
-  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-  document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-})();
-</script>
 
-  <!-- Shared styles/scripts -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <!-- PWA (optional but consistent) -->
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#1B5E20" />
-
-  <!-- iOS PWA (standalone) -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <!-- Optional: maskable if present -->
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 </head>
 <body>
-
-  <!-- Header (logo left, clock right) -->
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right">
-      <span id="clock" class="clock">--:--:-- AM</span>
+      <span id="clock" class="clock">--:--</span>
     </div>
   </header>
 
-  <!-- Breadcrumbs (fixed under header) -->
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -52,46 +38,32 @@
     </ol>
   </nav>
 
-  <!-- Page content -->
+  <!-- Main -->
   <main class="content">
     <h1>🌽 Crop Production</h1>
-    <p>🚧 Coming soon…</p>
+
+    <div class="df-tiles">
+      <a href="crop-planting.html" class="df-tile">🌱 <span>Planting</span></a>
+      <a href="crop-spraying.html" class="df-tile">💦 <span>Spraying</span></a>
+      <a href="crop-aerial.html" class="df-tile">🚁 <span>Aerial Spraying</span></a>
+      <a href="crop-harvest.html" class="df-tile">🌾 <span>Harvest</span></a>
+      <a href="crop-fertilizer.html" class="df-tile">🧪 <span>Fertilizer</span></a>
+      <a href="crop-scouting.html" class="df-tile">🔎 <span>Crop Scouting</span></a>
+      <a href="crop-maintenance.html" class="df-tile">🛠️ <span>Field Maintenance</span></a>
+      <a href="crop-trials.html" class="df-tile">🧬 <span>Trials</span></a>
+    </div>
   </main>
 
-  <!-- Footer (green bg, JD-yellow text, single line) -->
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
-    <span id="report-date">September 14, 2025</span>
+    <span id="report-date">—</span>
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Inline scripts -->
-  <script>
-    // Ensure only one clock interval exists when navigating between pages
-    if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
-
-    function updateClock(){
-      const el = document.getElementById('clock');
-      if(!el) return;
-      el.textContent = new Date().toLocaleTimeString('en-US', {
-        hour:'2-digit', minute:'2-digit', second:'2-digit',
-        hour12:true, timeZone:'America/Chicago'
-      });
-    }
-    updateClock();
-    window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
-
-    // Footer version from version.js
-    (function(){
-      const v = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'v10.14.7';
-      const el = document.getElementById('version');
-      if (el) el.textContent = v;
-    })();
-  </script>
-
-  <!-- Service worker registration (matches your filename) -->
+  <!-- SW -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
