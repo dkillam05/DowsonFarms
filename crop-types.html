@@ -17,12 +17,10 @@
   })();
   </script>
 
-  <!-- Styles / App -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <!-- PWA (match other pages) -->
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -31,18 +29,16 @@
   <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 </head>
 <body>
-  <!-- ===== Header (shell) ===== -->
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
-    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- ===== Breadcrumbs (shell) ===== -->
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -53,18 +49,16 @@
     </ol>
   </nav>
 
-  <!-- ===== Content ===== -->
   <main class="content" data-has-form>
     <h1>🌾 Crop Types</h1>
     <p class="muted">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
 
-    <!-- Form (same grid/classes as bugs.html; concise helper text only) -->
+    <!-- FORM -->
     <form id="crop-form" novalidate>
       <div class="row">
         <div class="field">
           <label for="cropName">Crop name</label>
           <input id="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
-          <small class="field-hint" style="color:#666;">Uses global capitalization rule.</small>
         </div>
         <div class="field">
           <label for="unitReadonly">Unit of measure</label>
@@ -80,17 +74,15 @@
         <div class="field">
           <label for="standardMoisture">Standard moisture (%)</label>
           <input id="standardMoisture" type="number" step="0.1" min="0" max="100" required placeholder="15.5 for Corn, 13 for Soybeans" />
-          <small class="field-hint" style="color:#666;">Basis for shrink & other calcs.</small>
         </div>
       </div>
 
-      <!-- Actions: rectangular styles, consistent with Bugs/Issues -->
-      <div class="form-actions">
+      <!-- Actions: one clean row, same rectangular buttons -->
+      <div class="form-actions" style="align-items:center;">
         <div></div>
-        <button class="btn-primary" type="submit">Save crop</button>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn-primary" type="submit" id="saveBtn">Save crop</button>
           <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
-          <!-- record-level actions appear when editing an item -->
           <div id="editActions" style="display:none; gap:8px;">
             <button class="btn-outline" type="button" id="archiveBtn">Archive</button>
             <button class="btn-outline" type="button" id="deleteBtn">Delete</button>
@@ -101,8 +93,8 @@
       <input type="hidden" id="editingId" />
     </form>
 
-    <!-- Saved area: Quick View only (no table) -->
-    <section class="card" style="margin-top:16px;">
+    <!-- SAVED -->
+    <section class="card" id="savedCard" style="margin-top:16px;">
       <div class="row" style="align-items:center; justify-content:space-between;">
         <h2 style="margin:0;">Saved Crops</h2>
         <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
@@ -116,14 +108,12 @@
         </label>
       </div>
 
-      <!-- Inline quick list (mirrors your modal look; items tappable to edit) -->
-      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;">
-        <!-- items injected -->
-      </ul>
+      <div id="savedNotice" aria-live="polite" style="display:none; margin-top:10px;"></div>
+
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
     </section>
   </main>
 
-  <!-- ===== Footer (shell) ===== -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -132,7 +122,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- ===== Quick View modal (items tappable) ===== -->
+  <!-- Quick View modal -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Crop Type Records</h2>
@@ -143,194 +133,134 @@
     </div>
   </div>
 
-  <!-- ===== Page logic (tiny; same style as bugs.html) ===== -->
   <script>
   (function CropTypesPage(){
-    // global case if provided; fallback to Title Case
+    // title case fallback; still honors any global rule if you add one later
     function applyGlobalCase(str){
-      try{ if (window.App && App.util && typeof App.util.applyGlobalCase === 'function') { return App.util.applyGlobalCase(str); } }catch(_){}
       return (str||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
     }
-    const KEY = 'df.crops';
-    const $ = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
+    const KEY='df.crops';
+    const $=s=>document.querySelector(s);
+    const $$=s=>Array.from(document.querySelectorAll(s));
 
-    const $name = $('#cropName');
-    const $tw   = $('#testWeight');
-    const $mo   = $('#standardMoisture');
-    const $id   = $('#editingId');
-    const $saved = $('#savedList');
-    const $qvB  = $('#qvBackdrop');
-    const $qvL  = $('#qvList');
-    const $editActions = $('#editActions');
-    const $archiveBtn = $('#archiveBtn');
-    const $deleteBtn = $('#deleteBtn');
+    const $name=$('#cropName'), $tw=$('#testWeight'), $mo=$('#standardMoisture'), $id=$('#editingId');
+    const $saved=$('#savedList'), $savedCard=$('#savedCard'), $notice=$('#savedNotice');
+    const $editRow=$('#editActions'), $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
 
-    function load(){ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch(_) { return []; } }
-    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
-    function get(id){ return load().find(x=>x.id===id); }
-    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list); }
-    function remove(id){ save(load().filter(x=>x.id!==id)); }
-    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-'); }
-    function fmt(ts){ try{ return new Date(ts).toLocaleString(); }catch(_){ return ''; } }
+    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
+    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
+    function get(id){ return load().find(x=>x.id===id) }
+    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
+    function remove(id){ save(load().filter(x=>x.id!==id)) }
+    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-') }
 
     function renderSaved(){
-      const q = ($('#searchInput').value || '').toLowerCase().trim();
-      const showA = $('#toggleShowArchived').checked;
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
 
-      const rows = load()
-        .filter(x=> showA ? true : !x.archived)
-        .filter(x=> !q || x.name.toLowerCase().includes(q))
-        .sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const rows=load()
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>!q || x.name.toLowerCase().includes(q))
+        .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
 
-      $saved.innerHTML = rows.length ? rows.map(r => `
+      $saved.innerHTML = rows.length ? rows.map(r=>`
         <li>
-          <button type="button" class="btn-secondary" data-act="open" data-id="${r.id}"
-                  style="width:100%; text-align:left; display:block;">
-            <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}% 
-            ${r.archived ? '<em style="opacity:.7"> • Archived</em>': ''}
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}% ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
           </button>
-        </li>
-      `).join('') : '<li class="muted">No records.</li>';
+        </li>`).join('') : '<li class="muted" style="margin-top:8px;">No records.</li>';
 
-      $saved.querySelectorAll('button[data-act="open"]').forEach(b=>{
+      $saved.querySelectorAll('button[data-id]').forEach(b=>{
         b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
       });
     }
 
     function openForEdit(id){
-      const item = get(id); if (!item) return;
-      $id.value = item.id;
-      $name.value = item.name;
-      $tw.value = item.testWeight;
-      $mo.value = item.standardMoisture;
-
-      // show record actions; toggle Archive/Unarchive label
-      $editActions.style.display = 'flex';
-      $archiveBtn.textContent = item.archived ? 'Unarchive' : 'Archive';
-
-      window.scrollTo({top:0, behavior:'smooth'});
-      $name.focus();
+      const item=get(id); if(!item) return;
+      $id.value=item.id; $name.value=item.name; $tw.value=item.testWeight; $mo.value=item.standardMoisture;
+      $editRow.style.display='flex';
+      $('#archiveBtn').textContent = item.archived ? 'Unarchive' : 'Archive';
+      window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
     }
 
     // Save
-    $('#crop-form').addEventListener('submit', (e)=>{
+    $('#crop-form').addEventListener('submit',(e)=>{
       e.preventDefault();
-      const pretty = applyGlobalCase(($name.value||'').trim());
-      if (!pretty) { $name.focus(); return; }
-      const id = $id.value || slug(pretty);
+      const pretty=applyGlobalCase(($name.value||'').trim());
+      if(!pretty){$name.focus();return;}
+      const id=$id.value || slug(pretty);
 
-      const list = load();
-      const dup = list.find(x => x.id !== id && x.name.toLowerCase() === pretty.toLowerCase());
-      if (dup) { alert('That crop already exists.'); return; }
+      const list=load();
+      const dup=list.find(x=>x.id!==id && x.name.toLowerCase()===pretty.toLowerCase());
+      if(dup){ alert('That crop already exists.'); return; }
 
-      const prev = list.find(x=>x.id===id);
-      const item = {
-        id, name: pretty,
-        testWeight: Number($tw.value),
-        standardMoisture: Number($mo.value),
-        unit: 'bu',
+      const prev=list.find(x=>x.id===id);
+      upsert({
+        id, name:pretty,
+        testWeight:Number($tw.value),
+        standardMoisture:Number($mo.value),
+        unit:'bu',
         archived: prev ? !!prev.archived : false,
         createdAt: prev?.createdAt || Date.now(),
         updatedAt: Date.now()
-      };
-      upsert(item);
+      });
+
+      // Exit edit, clear form, scroll to Saved, show success banner
+      $('#crop-form').reset(); $id.value=''; $editRow.style.display='none';
       renderSaved();
-      // keep in edit state so Archive/Delete remain available
-      $id.value = item.id;
-      $editActions.style.display = 'flex';
-      $archiveBtn.textContent = item.archived ? 'Unarchive' : 'Archive';
+      $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
+      flashNotice('Saved crop.');
     });
 
-    // Clear resets edit state
+    // Clear
     $('#clearBtn').addEventListener('click', ()=>{
-      $('#crop-form').reset();
-      $id.value = '';
-      $editActions.style.display = 'none';
-      $name.focus();
+      $('#crop-form').reset(); $id.value=''; $editRow.style.display='none'; $name.focus();
     });
 
     // Archive / Unarchive
-    $archiveBtn.addEventListener('click', ()=>{
-      const id = $id.value; if (!id) return;
-      const item = get(id); if (!item) return;
-      item.archived = !item.archived;
-      item.updatedAt = Date.now();
-      upsert(item);
-      $archiveBtn.textContent = item.archived ? 'Unarchive' : 'Archive';
+    $archBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      const item=get(id); if(!item) return;
+      item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
+      $('#archiveBtn').textContent=item.archived?'Unarchive':'Archive';
       renderSaved();
+      flashNotice(item.archived ? 'Archived.' : 'Unarchived.');
     });
 
     // Delete
-    $deleteBtn.addEventListener('click', ()=>{
-      const id = $id.value; if (!id) return;
-      if (confirm('Delete this crop permanently?')) {
+    $delBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      if(confirm('Delete this crop permanently?')){
         remove(id);
-        $('#crop-form').reset();
-        $id.value = '';
-        $editActions.style.display = 'none';
+        $('#crop-form').reset(); $id.value=''; $editRow.style.display='none';
         renderSaved();
+        flashNotice('Deleted.');
       }
     });
 
-    // Search/archived changes
+    // Search/filter
     $('#searchInput').addEventListener('input', renderSaved);
     $('#toggleShowArchived').addEventListener('change', renderSaved);
 
     // Quick View modal
     $('#quickViewBtn').addEventListener('click', ()=>{
-      const list = load()
-        .sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-      $qvL.innerHTML = list.length ? list.map(r => `
+      const list=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const $qvL=$('#qvList'), $qvB=$('#qvBackdrop');
+      $qvL.innerHTML=list.length ? list.map(r=>`
         <li>
           <button type="button" class="btn-secondary" data-id="${r.id}"
                   style="width:100%; text-align:left; display:block; margin:8px 0;">
             <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}%<br>
-            <em>${r.archived ? 'Archived' : 'Active'}</em> • Updated ${new Date(r.updatedAt).toLocaleString()}
+            <em>${r.archived?'Archived':'Active'}</em>
           </button>
-        </li>
-      `).join('') : '<li>No records.</li>';
-
-      $qvB.style.display = 'flex';
-
-      // click item to edit
+        </li>`).join('') : '<li>No records.</li>';
+      $qvB.style.display='flex';
       $qvL.querySelectorAll('button[data-id]').forEach(b=>{
         b.addEventListener('click', ()=>{
-          $qvB.style.display = 'none';
+          $qvB.style.display='none';
           openForEdit(b.getAttribute('data-id'));
         });
       });
-    });
-    $('#qvClose').addEventListener('click', ()=> $qvB.style.display = 'none');
-    $qvB.addEventListener('click', (e)=>{ if (e.target===$qvB) $qvB.style.display='none'; });
-
-    // Seed defaults if empty
-    (function seed(){
-      const list = load();
-      if (list.length) { renderSaved(); return; }
-      save([
-        { id:'corn', name:'Corn', testWeight:56, standardMoisture:15.5, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() },
-        { id:'soybeans', name:'Soybeans', testWeight:60, standardMoisture:13.0, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() }
-      ]);
-      renderSaved();
-    })();
-
-    // Keep breadcrumbs pretty via helper
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Setup / Settings', href:'settings.html'},
-      {label:'Crop Types'}
-    ]);
-  })();
-  </script>
-
-  <!-- Service worker -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
-      });
-    }
-  </script>
-</body>
-</html>
+      $('#qvClose').addEventListener('click', ()=> $qvB.style.display='none', {once:true});
+      $qvB.addEventListener('click', (e)=>{ if(e.target===$qvB) $qvB.style.display='none
