@@ -57,45 +57,46 @@
     </div>
     <p class="muted" style="margin-top:8px;">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
 
-    <!-- FORM -->
+    <!-- FORM (stacked fields) -->
     <form id="crop-form" novalidate>
-      <div class="row">
-        <div class="field">
-          <label for="cropName">Crop name</label>
-          <input id="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
-        </div>
-        <div class="field">
-          <label for="unitReadonly">Unit of measure</label>
-          <input id="unitReadonly" type="text" value="Bushels (bu)" readonly />
-        </div>
+      <div class="field">
+        <label for="cropName">Crop name</label>
+        <input id="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
       </div>
 
-      <div class="row">
-        <div class="field">
-          <label for="testWeight">Standard test weight (lb/bu)</label>
-          <input id="testWeight" type="number" step="0.1" min="0"
-                 inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
-        </div>
-        <div class="field">
-          <label for="standardMoisture">Standard moisture (%)</label>
-          <input id="standardMoisture" type="number" step="0.1" min="0" max="100"
-                 inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required
-                 style="min-width:130px;" />
-        </div>
+      <div class="field">
+        <label for="standardMoisture">Standard moisture (%)</label>
+        <input id="standardMoisture" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
       </div>
 
-      <!-- 2×2 button grid inside a bordered square; all squares same size -->
+      <div class="field">
+        <label for="testWeight">Standard test weight (lb/bu)</label>
+        <input id="testWeight" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
+      </div>
+
+      <div class="field">
+        <label for="unitReadonly">Unit of measure</label>
+        <input id="unitReadonly" type="text" value="Bushels (bu)" readonly />
+      </div>
+
+      <!-- Compact centered button grid -->
       <section class="card" style="padding:12px; margin-top:8px;">
-        <div id="btnGrid"
-             style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div id="btnGrid" style="
+          --w: 92px;                    /* square size (half-ish of previous) */
+          display:grid; gap:10px;
+          grid-template-columns: var(--w) var(--w);
+          justify-content:center;      /* center the 2 columns */
+        ">
+          <!-- Row 1 -->
           <button class="btn-primary" type="submit" id="saveBtn"
-                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;">Save crop</button>
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Save</button>
           <button class="btn-outline" type="reset" id="clearBtn"
-                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;">Clear</button>
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Clear</button>
+          <!-- Row 2 (hidden when adding new) -->
           <button class="btn-outline" type="button" id="archiveBtn"
-                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;" disabled aria-disabled="true">Archive</button>
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Archive</button>
           <button class="btn-outline" type="button" id="deleteBtn"
-                  style="width:100%; aspect-ratio:1/1; font-size:1.05rem;" disabled aria-disabled="true">Delete</button>
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Delete</button>
         </div>
       </section>
 
@@ -153,19 +154,33 @@
     const $saved=$('#savedList'), $savedCard=$('#savedCard');
     const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
 
-    // numeric-only guards (blocks e/E/+/- and second '.')
-    function enforceNumeric(el){
+    // Robust decimal-only input (iOS-safe). Allows digits and one dot.
+    function wireDecimal(el){
+      // Block obvious invalid keys
       el.addEventListener('keydown', (e)=>{
-        const bad=['e','E','+','-']; if(bad.includes(e.key)) e.preventDefault();
-        if(e.key==='.' && el.value.includes('.')) e.preventDefault();
+        const bad = ['e','E','+','-'];
+        if (bad.includes(e.key)) return e.preventDefault();
+        // allow navigation, backspace, delete, tab, enter
+        if (['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter'].includes(e.key)) return;
+        // Only one dot
+        if (e.key === '.' && el.value.includes('.')) return e.preventDefault();
+        // Digits OK
+        if (/^\d$/.test(e.key)) return;
+        // Everything else -> block
+        if (e.key !== '.') e.preventDefault();
       });
+      // Clean pasted text without jumping the caret
       el.addEventListener('input', ()=>{
-        let v=el.value.replace(/[^0-9.]/g,'');
-        const i=v.indexOf('.'); if(i!==-1) v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'');
-        el.value=v;
+        const start = el.selectionStart;
+        let v = el.value.replace(/[^0-9.]/g,'');
+        const i = v.indexOf('.');
+        if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g,'');
+        el.value = v;
+        // keep caret at end (simplest, reliable on iOS)
+        el.selectionStart = el.selectionEnd = el.value.length;
       });
     }
-    enforceNumeric($tw); enforceNumeric($mo);
+    wireDecimal($tw); wireDecimal($mo);
 
     function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
     function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
@@ -198,18 +213,17 @@
       });
     }
 
+    function showEditButtons(show, archived=false){
+      $archBtn.style.display = show ? 'inline-block' : 'none';
+      $delBtn.style.display  = show ? 'inline-block' : 'none';
+      $archBtn.textContent = archived ? 'Unarchive' : 'Archive';
+    }
+
     function openForEdit(id){
       const item=get(id); if(!item) return;
       $id.value=item.id; $name.value=item.name; $tw.value=String(item.testWeight); $mo.value=String(item.standardMoisture);
-      setEditButtons(true, item.archived);
+      showEditButtons(true, item.archived);
       window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
-    }
-
-    function setEditButtons(isEditing, archived){
-      $archBtn.disabled=!isEditing; $delBtn.disabled=!isEditing;
-      $archBtn.setAttribute('aria-disabled', String(!isEditing));
-      $delBtn.setAttribute('aria-disabled', String(!isEditing));
-      $archBtn.textContent = archived ? 'Unarchive' : 'Archive';
     }
 
     // Save
@@ -233,9 +247,9 @@
         updatedAt: Date.now()
       });
 
-      // exit edit, clear, scroll, toast
+      // Exit edit, clear, scroll, toast
       $('#crop-form').reset(); $id.value='';
-      setEditButtons(false, false);
+      showEditButtons(false, false);
       renderSaved();
       $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
       toast('Save successful');
@@ -244,27 +258,26 @@
     // Clear
     $('#clearBtn').addEventListener('click', ()=>{
       $('#crop-form').reset(); $id.value='';
-      setEditButtons(false,false); $name.focus();
+      showEditButtons(false,false); $name.focus();
     });
 
     // Archive / Unarchive
     $archBtn.addEventListener('click', ()=>{
-      if($archBtn.disabled) return;
-      const id=$id.value; const item=get(id); if(!item) return;
+      const id=$id.value; if(!id) return;
+      const item=get(id); if(!item) return;
       item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
-      setEditButtons(true, item.archived);
+      showEditButtons(true, item.archived);
       renderSaved();
       toast(item.archived ? 'Archived' : 'Unarchived');
     });
 
     // Delete
     $delBtn.addEventListener('click', ()=>{
-      if($delBtn.disabled) return;
       const id=$id.value; if(!id) return;
       if(confirm('Delete this crop permanently?')){
         remove(id);
         $('#crop-form').reset(); $id.value='';
-        setEditButtons(false,false);
+        showEditButtons(false,false);
         renderSaved();
         toast('Deleted');
       }
