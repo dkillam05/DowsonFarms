@@ -41,7 +41,7 @@
 
   <main class="content" data-has-form>
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
-      <h1 style="margin:0;">🗺️ Fields</h1>
+      <h1 style="margin:0;">🧭 Fields</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
     <div style="margin-top:12px;"></div>
@@ -49,6 +49,7 @@
     <!-- FORM -->
     <form id="field-form" novalidate>
       <div class="field">
+        <label for="fieldName">Field <span class="req-star">*</span></label>
         <input id="fieldName" type="text" required placeholder="Type field name…" />
       </div>
 
@@ -64,7 +65,8 @@
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Fields</h2>
       <div class="row" style="align-items:center; gap:12px;">
-        <input id="searchInput" class="search" type="search" placeholder="Search fields…" style="font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%;" />
+        <input id="searchInput" class="search" type="search" placeholder="Search fields…"
+               style="font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%;" />
         <label class="muted" for="toggleShowArchived">
           <input type="checkbox" id="toggleShowArchived" /> Show archived
         </label>
@@ -80,6 +82,17 @@
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
+
+  <!-- Quick View modal -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Fields</h2>
+      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script>
   (function FieldsPage(){
@@ -98,15 +111,17 @@
       const rows=load()
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || x.name.toLowerCase().includes(q))
-        .sort((a,b)=>a.name.localeCompare(b.name));
-      $saved.innerHTML = rows.length ? rows.map(r=>`<li><strong>${r.name}</strong></li>`).join('') : '<li class="muted">No fields yet.</li>';
+        .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      $saved.innerHTML = rows.length
+        ? rows.map(r=>`<li style="margin:6px 0;"><strong>${r.name}</strong>${r.archived?' <em class="muted">• Archived</em>':''}</li>`).join('')
+        : '<li class="muted">No fields yet.</li>';
     }
 
     $('#field-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       const pretty=titleCase(($name.value||'').trim());
       if(!pretty){$name.focus();return;}
-      upsert({id:pretty.toLowerCase(), name:pretty, archived:false, createdAt:Date.now()});
+      upsert({id:pretty.toLowerCase(), name:pretty, archived:false, createdAt:Date.now(), updatedAt:Date.now()});
       $('#field-form').reset(); renderSaved();
     });
 
@@ -114,7 +129,23 @@
     $('#searchInput').addEventListener('input', renderSaved);
     $('#toggleShowArchived').addEventListener('change', renderSaved);
 
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', ()=>{
+      const list=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const L=$('#qvList'); const B=$('#qvBackdrop');
+      L.innerHTML = list.length ? list.map(r=>`<li class="card" style="padding:10px; margin:8px 0;"><strong>${r.name}</strong></li>`).join('') : '<li>No fields.</li>';
+      B.style.display='flex';
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
+
     renderSaved();
+
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Setup / Settings', href:'settings.html'},
+      {label:'Fields'}
+    ]);
   })();
   </script>
 </body>
