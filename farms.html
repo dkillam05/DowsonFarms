@@ -14,7 +14,6 @@
   })();
   </script>
 
-  <!-- Styles / App -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
@@ -41,13 +40,10 @@
   </nav>
 
   <main class="content" data-has-form>
-    <!-- Title row with Quick View top-right -->
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">🌳 Farms</h1>
-      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
+      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
-
-    <!-- Spacer (removed text, but keep layout) -->
     <div style="margin-top:12px;"></div>
 
     <!-- FORM -->
@@ -57,7 +53,6 @@
         <input id="farmName" type="text" required placeholder="Type farm name…" />
       </div>
 
-      <!-- Buttons -->
       <section class="card" style="padding:12px; margin-top:8px;">
         <div style="display:grid; gap:10px; grid-template-columns:92px 92px; justify-content:center;">
           <button class="btn-primary" type="submit" id="saveBtn" style="width:92px; height:92px;">Save</button>
@@ -66,7 +61,7 @@
       </section>
     </form>
 
-    <!-- Saved -->
+    <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Farms</h2>
       <div class="row" style="align-items:center; gap:12px;">
@@ -79,7 +74,6 @@
     </section>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -92,14 +86,12 @@
   (function FarmsPage(){
     const KEY='df.farms';
     const $=s=>document.querySelector(s);
-
     const $name=$('#farmName'), $saved=$('#savedList');
 
     function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
     function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
     function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
     function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
-    function remove(id){ save(load().filter(x=>x.id!==id)) }
 
     function renderSaved(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
@@ -108,10 +100,7 @@
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || x.name.toLowerCase().includes(q))
         .sort((a,b)=>a.name.localeCompare(b.name));
-      $saved.innerHTML = rows.length ? rows.map(r=>`
-        <li>
-          <strong>${r.name}</strong> ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
-        </li>`).join('') : '<li class="muted">No farms yet.</li>';
+      $saved.innerHTML = rows.length ? rows.map(r=>`<li><strong>${r.name}</strong></li>`).join('') : '<li class="muted">No farms yet.</li>';
     }
 
     $('#farm-form').addEventListener('submit',(e)=>{
