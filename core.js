@@ -6,7 +6,7 @@
    - Logout button injection + handler
    - Password visibility toggle (SVG eye)
    - Back button (default on all non-Home, non-Auth pages)
-   - GLOBAL THEME (light/dark/auto) apply + listeners
+   - GLOBAL THEME (light/dark/auto) apply + listeners  ✅ upgraded
    - USER MANAGER (long-term): set/get/clear current user
    - REQUIRED ASTERISK helper (auto-adds * to labels)
    =========================== */
@@ -17,37 +17,62 @@
 const LOGIN_URL = "login.html";
 const USE_LOCATION_REPLACE = true;   // prevent back button returning to authed page
 
-/* ---------- THEME: apply saved + react to changes globally ---------- */
-(function bootThemeGlobal() {
+/* ---------- THEME ENGINE (instant + synced across pages) ---------- */
+/* Paste stays near top so other modules can rely on the resolved theme. */
+(function bootThemeEngine() {
   try {
-    const root = document.documentElement;
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    var root  = document.documentElement;
+    var darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
 
-    function apply(mode) {
-      const m = (mode === "light" || mode === "dark" || mode === "auto") ? mode : "auto";
-      root.setAttribute("data-theme", m);
+    function resolve(mode) {
+      return mode === "auto" ? (darkMQ.matches ? "dark" : "light") : (mode === "dark" ? "dark" : "light");
     }
 
-    // Public setter (Theme screen uses this)
-    window.setTheme = function setTheme(mode) {
+    function applyTheme(mode) {
+      var resolved = resolve(mode);
+      root.setAttribute("data-theme", resolved);
+      // Help native form controls match theme
+      root.style.colorScheme = (resolved === "dark") ? "dark" : "light";
+      // Fire a custom event for any listeners
+      try {
+        var ev = new CustomEvent("df:themechange", { detail: { mode: mode, resolved: resolved } });
+        window.dispatchEvent(ev);
+      } catch (_) {}
+    }
+
+    // Public API (new)
+    window.setDFTheme = function (mode /* 'light'|'dark'|'auto' */) {
       try { localStorage.setItem("df_theme", mode); } catch (_) {}
-      apply(mode);
+      applyTheme(mode);
+      // Nudge other open pages/tabs in the PWA
+      try { localStorage.setItem("__df_theme_ping", String(Date.now())); } catch (_) {}
+    };
+    window.getDFTheme = function () {
+      return localStorage.getItem("df_theme") || "auto";
+    };
+    window.onDFThemeChange = function (cb) {
+      if (typeof cb === "function") window.addEventListener("df:themechange", cb);
     };
 
-    // Initial apply
-    const saved = localStorage.getItem("df_theme") || "auto";
-    apply(saved);
+    // Back-compat alias (old code may call setTheme)
+    window.setTheme = window.setDFTheme;
 
-    // If system theme flips and we’re in Auto, re-apply to keep in sync
-    media.addEventListener?.("change", () => {
-      const current = localStorage.getItem("df_theme") || "auto";
-      if (current === "auto") apply("auto");
+    // React to OS theme changes while in 'auto'
+    darkMQ.addEventListener?.("change", function () {
+      if ((localStorage.getItem("df_theme") || "auto") === "auto") {
+        applyTheme("auto");
+      }
     });
 
-    // If another tab changes the theme, sync this tab
-    window.addEventListener("storage", (e) => {
-      if (e.key === "df_theme") apply(e.newValue || "auto");
+    // Keep multiple pages in sync (listens for both df_theme and ping)
+    window.addEventListener("storage", function (e) {
+      if (e.key === "df_theme" || e.key === "__df_theme_ping") {
+        applyTheme(localStorage.getItem("df_theme") || "auto");
+      }
     });
+
+    // Initial apply (the pre-paint snippet already set it before CSS; we re-apply to emit events)
+    applyTheme(localStorage.getItem("df_theme") || "auto");
   } catch (_) {}
 })();
 
