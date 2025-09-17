@@ -971,4 +971,44 @@ button:focus-visible {
   border-radius: 14px;
   padding: 14px;
   box-shadow: 0 6px 16px rgba(0,0,0,.08);
+
+}
+
+/* =========================================
+   Forms render as cards (non-auth pages)
+   ========================================= */
+
+/* Base (Light) */
+:root {
+  --tile-bg: #FFFFFF;                 /* card background in light */
+  --tile-border: rgba(0, 0, 0, 0.15); /* visible border in light */
+}
+
+/* Dark (always dark toggle) */
+[data-theme="dark"] {
+  --tile-bg: #1e1f1c;
+  --tile-border: rgba(255, 255, 255, 0.14);
+}
+
+/* Auto = follow device */
+[data-theme="auto"] {
+  /* light default for auto; overridden by media queries below */
+  --tile-bg: #FFFFFF;
+  --tile-border: rgba(0, 0, 0, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --tile-bg: #1e1f1c;
+    --tile-border: rgba(255, 255, 255, 0.14);
+  }
+}
+
+/* Apply to all non-auth forms (e.g., Feedback / Issues) */
+:not(.auth-page) .content form {
+  background: var(--tile-bg);
+  border: 2px solid var(--tile-border, rgba(0,0,0,.15));
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
 }
