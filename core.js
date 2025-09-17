@@ -387,7 +387,7 @@ window.setBreadcrumbs = function setBreadcrumbs(parts) {
       btn.className = "logout-btn";
       btn.type = "button";
       btn.textContent = "Logout";
-      btn.style.marginLeft = "10px"; // guaranteed gap from last crumb
+      btn.style.marginLeft = ""; // guaranteed gap from last crumb
       btn.addEventListener("click", handleLogout);
       nav.appendChild(btn);
     }
