@@ -481,21 +481,38 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // ---- invite via mailto ----
-    function inviteEmployee(id){
-      const list=loadAll(); const e=list.find(x=>x.id===id);
-      if(!e){ alert('Employee not found'); return; }
-      if(!e.email){ alert('Employee email is required to send invite.'); return; }
-      const name = `${e.first||''} ${e.last||''}`.trim() || 'there';
-      const appUrl = location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html';
-      const subject = encodeURIComponent('Dowson Farms App — You’re Invited');
-      const body = encodeURIComponent(
-        `Hi ${name},\n\nYou’ve been invited to the Dowson Farms app.\n\n1) Open: ${appUrl}\n2) Tap “Create Password / Activate”\n3) Use this email address to complete setup.\n\nIf you weren’t expecting this, ignore this email.\n\n— Dowson Farms`
-      );
-      window.location.href = `mailto:${encodeURIComponent(e.email)}?subject=${subject}&body=${body}`;
-      e.invitedAt = Date.now();
-      upsert(e); render();
+ async function inviteEmployee(id){
+  const list = loadAll(); 
+  const e = list.find(x=>x.id===id);
+  if(!e){ alert('Employee not found'); return; }
+  if(!e.email){ alert('Employee email is required to send invite.'); return; }
+
+  try {
+    const res = await fetch('/api/invite', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        email: e.email,
+        name: `${e.first||''} ${e.last||''}`.trim(),
+        role: e.role || '',
+        continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
+      })
+    });
+
+    if(!res.ok){
+      const msg = await res.text();
+      throw new Error(msg || ('HTTP '+res.status));
     }
+
+    e.invitedAt = Date.now();
+    upsert(e);
+    render();
+    alert('Invite successfully sent.');
+  } catch (err){
+    console.error(err);
+    alert('Invite failed: ' + err.message);
+  }
+}
 
     // ---- form wiring ----
     attachPhoneMask($('#empPhone'));
