@@ -30,16 +30,18 @@
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
 
     /* iOS no-zoom without altering your input sizing */
-    #empPhone, #m_phone { font-size:16px; }
+    #empPhone, #m_phone { font-size:16px; } /* keep same height/padding from theme.css */
 
-    /* Overrides modal visuals (pills) */
-    .ex-group {border:1px solid var(--tile-border);border-radius:10px;margin:6px 0;background:var(--tile-bg);}
-    .ex-parent {display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--tile-border);justify-content:space-between}
-    .ex-children {padding:6px 10px 12px}
-    .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
-    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
-    .pill[disabled]{opacity:.45;pointer-events:none}
+    /* -------- Permission Overrides cascader (matches Account Roles) -------- */
+    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));align-items:center}
+    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
+    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
+    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
+    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
+    .menu-body{padding:16px;border-top:1px dashed var(--tile-border)}
+    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
+    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
+    .subbody{padding:8px 4px 2px}
   </style>
 </head>
 <body>
@@ -148,19 +150,16 @@
     </div>
   </div>
 
-  <!-- Permission Overrides Modal -->
+  <!-- Permission Overrides Modal (cascader like Account Roles) -->
   <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
       <h2 id="exTitle">Permission Overrides</h2>
       <p class="muted-small" style="margin-top:-6px;">Grant access to specific Menus and Submenus in addition to the chosen Role.</p>
-      <div class="line" style="gap:10px;align-items:center;margin:4px 0 10px;">
+      <div class="line" style="gap:10px;align-items:center;margin:4px 0 12px;">
         <input id="exSearch" placeholder="Search menus…" style="flex:1;font-size:16px;height:40px;padding:8px 12px;border-radius:10px;">
-        <!-- CHANGED: pill toggle instead of plain checkbox label -->
-        <button type="button" class="pill" id="exEnableBtn" aria-pressed="false" title="Enable overrides">
-          Enable overrides for this employee
-        </button>
+        <button class="btn-outline" id="exEnable" type="button" aria-pressed="false">Enable overrides for this employee</button>
       </div>
-      <div id="exList" style="max-height:min(52vh,500px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px; padding:6px;"></div>
+      <div id="exTree" style="max-height:min(52vh,500px); overflow:auto;"></div>
       <div class="modal-actions" style="justify-content:space-between;">
         <button class="btn-outline" id="exCancel">Cancel</button>
         <button class="btn-primary" id="exSave">Save Overrides</button>
@@ -191,20 +190,44 @@
   <script>
   (function EmployeesPage(){
     const KEY='df.employees';
-    const ROLES_PERMS_KEY='df_role_perms'; // from Account Roles page
-    const MENUS_MAP_KEY='df_menus_map';    // from Account Roles (object style) if present
     const $=s=>document.querySelector(s);
     const $list=$('#savedList');
 
+    // ----- MENUS used by roles + overrides (source of truth from Account Roles) -----
+    const DEFAULT_MENUS = {
+      "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
+      "Grain Tracking": ["Bins","Tickets","Contracts"],
+      "Equipment": ["Maintenance","Repairs","Assignments"],
+      "Calculators": ["Seed Rate","Fertilizer","ROI"],
+      "Reports": ["Crops","Equipment","Financial"],
+      "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
+      "Feedback": ["Ideas","Bugs / Issues"],
+      "AI": ["AI","AI History"],
+      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+    };
+    const MENUS = JSON.parse(localStorage.getItem('df_menus')||'null') || DEFAULT_MENUS;
+
+    // ----- roles: read from Account Roles store (keys of df_role_perms) -----
+    function getRoles(){
+      const rp = JSON.parse(localStorage.getItem('df_role_perms')||'{}');
+      const names = Object.keys(rp);
+      return names.length ? names : ["Administrator","Owner","Manager","Employee","View Only"];
+    }
+    function fillRoleSelect(sel, value){
+      const roles=getRoles();
+      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
+        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+      if(value) sel.value=value;
+    }
+
     // ---- utils ----
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
-    const load = (k,def)=> { try{const v=JSON.parse(localStorage.getItem(k)); return (v==null?def:v);}catch(_){return def;} };
-    const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
-    const loadAll = ()=> load(KEY, []);
-    const upsert = (item)=>{ const list=loadAll(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(KEY,list); };
+    const loadAll = ()=> { try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} };
+    const saveAll = (v)=> localStorage.setItem(KEY, JSON.stringify(v));
+    const upsert = (item)=>{ const list=loadAll(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); saveAll(list); };
     const byName = (a,b)=> a.last.localeCompare(b.last, undefined, {sensitivity:'base'}) || a.first.localeCompare(b.first, undefined, {sensitivity:'base'});
 
-    // Phone mask
+    // Phone mask: (###) ###-####
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -218,34 +241,167 @@
     }
     function isValidPhoneUS(s){ return /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||''); }
 
-    // Roles list (from Account Roles)
-    function getRoleNames(){
-      const rp = load(ROLES_PERMS_KEY, null);
-      return rp ? Object.keys(rp) : ["Admin","Manager","Operator","Viewer"];
+    // ---------- Permission Overrides (cascader like Account Roles) ----------
+    // exceptions = { enabled: boolean, grants: { [menu]: { _all:perm, [submenu]:perm } } }
+    function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
+    const pill = (label, pressed, onToggle)=>{
+      const b=document.createElement('button');
+      b.type='button'; b.className='pill'; b.textContent=label;
+      b.setAttribute('aria-pressed', pressed?'true':'false');
+      b.addEventListener('click', ()=>{
+        const now=b.getAttribute('aria-pressed')==='true';
+        b.setAttribute('aria-pressed', now?'false':'true');
+        onToggle(!now,b);
+      });
+      return b;
+    };
+    function summarizeMenu(menuObj){
+      const subs=Object.keys(menuObj).filter(k=>k!=='_all');
+      if(!subs.length) return 'No access';
+      const allTrue=subs.every(s=>{const p=menuObj[s];return p.view&&p.edit&&p.add&&p.archive&&p.delete;});
+      const allFalse=subs.every(s=>{const p=menuObj[s];return !p.view&&!p.edit&&!p.add&&!p.archive&&!p.delete;});
+      if(allTrue) return 'All';
+      if(allFalse) return 'No access';
+      return 'Custom';
     }
-    function fillRoleSelect(sel, value){
-      const roles=getRoleNames();
-      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
-        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
-      if(value) sel.value=value;
+    function summarizeChildren(menuObj){
+      const subs=Object.keys(menuObj).filter(k=>k!=='_all');
+      const on=subs.filter(s=>{const p=menuObj[s];return p.view||p.edit||p.add||p.archive||p.delete;}).length;
+      if(!on) return 'None';
+      if(on===subs.length) return 'All submenus';
+      return `${on} of ${subs.length} submenus`;
+    }
+    function countOverrideEntries(ex){
+      if(!ex || !ex.enabled || !ex.grants) return 0;
+      let n=0;
+      Object.values(ex.grants).forEach(menu=>{
+        Object.entries(menu).forEach(([k,v])=>{
+          if(k==='_all') return;
+          if(v.view||v.edit||v.add||v.archive||v.delete) n++;
+        });
+      });
+      return n;
+    }
+    window.countOverrideEntries = countOverrideEntries; // used in list render
+
+    function buildMenuCard(menuName, ex){
+      const card=document.createElement('div'); card.className='menu-card';
+      const head=document.createElement('div'); head.className='menu-head';
+      const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
+      const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
+      const title=document.createElement('strong'); title.textContent=menuName;
+      left.append(caret,title);
+      const right=document.createElement('span'); right.className='muted-small'; right.textContent=' ';
+      head.append(left,right);
+
+      const body=document.createElement('div'); body.className='menu-body'; body.style.display='none';
+
+      ex.grants[menuName]=ex.grants[menuName]||{};
+      ex.grants[menuName]._all=ex.grants[menuName]._all||blankPerm();
+
+      const grid=document.createElement('div'); grid.className='pill-grid';
+      ['View','Edit','Add','Archive','Delete'].forEach(name=>{
+        const k=name.toLowerCase();
+        const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
+          ex.grants[menuName]._all[k]=isOn;
+          // cascade to children + reflect visuals
+          MENUS[menuName].forEach(sub=>{
+            ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
+            ex.grants[menuName][sub][k]=isOn;
+          });
+          body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(b=>b.setAttribute('aria-pressed', isOn?'true':'false'));
+          right.textContent = summarizeMenu(ex.grants[menuName]);
+        });
+        grid.appendChild(p);
+      });
+      body.appendChild(grid);
+
+      const subWrap=document.createElement('div'); subWrap.className='subwrap';
+      const sh=document.createElement('div'); sh.className='subhead';
+      const shL=document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
+      const subCaret=document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
+      const shT=document.createElement('strong'); shT.textContent='Manage submenus';
+      shL.append(subCaret,shT);
+      const shR=document.createElement('span'); shR.className='muted-small'; shR.textContent=' ';
+      sh.append(shL,shR);
+      const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
+
+      MENUS[menuName].forEach(sub=>{
+        ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
+        const sec=document.createElement('section'); sec.style.margin='10px 0 14px';
+        const h=document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent=`${menuName} › ${sub}`;
+        const grid2=document.createElement('div'); grid2.className='pill-grid';
+        ['View','Edit','Add','Archive','Delete'].forEach(name=>{
+          const k=name.toLowerCase();
+          const btn=pill(name, !!ex.grants[menuName][sub][k], (isOn)=>{
+            ex.grants[menuName][sub][k]=isOn;
+            shR.textContent = summarizeChildren(ex.grants[menuName]);
+            right.textContent = summarizeMenu(ex.grants[menuName]);
+          });
+          btn.setAttribute('data-sub', `${menuName}::${k}`);
+          grid2.appendChild(btn);
+        });
+        sec.append(h,grid2);
+        subBody.appendChild(sec);
+      });
+
+      sh.addEventListener('click', ()=>{
+        const open=subBody.style.display!=='none';
+        subBody.style.display=open?'none':'block';
+        subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
+      });
+
+      subWrap.append(sh, subBody);
+      body.appendChild(subWrap);
+
+      head.addEventListener('click', ()=>{
+        const open=body.style.display!=='none';
+        body.style.display=open?'none':'block';
+        caret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
+      });
+
+      right.textContent = summarizeMenu(ex.grants[menuName]);
+      shR.textContent = summarizeChildren(ex.grants[menuName]);
+
+      card.append(head, body);
+      return card;
     }
 
-    // Menus
-    function getMenusObject(){
-      const obj = load(MENUS_MAP_KEY, null);
-      if (obj && typeof obj === 'object') return obj;
-      return {
-        "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-        "Grain Tracking": ["Bins","Tickets","Contracts"],
-        "Equipment": ["Maintenance","Repairs","Assignments"],
-        "Calculators": ["Seed Rate","Fertilizer","ROI"],
-        "Reports": ["Crops","Equipment","Financial"],
-        "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-        "Feedback": ["Ideas","Bugs / Issues"],
-        "AI": ["AI","AI History"],
-        "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+    function openPermissionOverrides(existing, onSave){
+      const B=$('#exBackdrop'), Tree=$('#exTree'), Enable=$('#exEnable'), Search=$('#exSearch');
+      const ex = existing && typeof existing==='object'
+        ? JSON.parse(JSON.stringify(existing))
+        : {enabled:false,grants:{}};
+
+      Tree.innerHTML='';
+      Object.keys(MENUS).forEach(menu=>{
+        Tree.appendChild(buildMenuCard(menu, ex));
+      });
+
+      const setEnable=(v)=>{
+        ex.enabled=!!v;
+        Enable.setAttribute('aria-pressed', v?'true':'false');
+        Tree.style.opacity=v?1:.45;
+        Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v);
       };
+      setEnable(!!ex.enabled);
+      Enable.onclick=()=> setEnable(!(Enable.getAttribute('aria-pressed')==='true'));
+
+      Search.value='';
+      Search.oninput=()=>{
+        const q=Search.value.toLowerCase().trim();
+        Tree.querySelectorAll('.menu-card').forEach(card=>{
+          card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      };
+
+      $('#exSave').onclick=()=>{ B.style.display='none'; onSave && onSave(ex); };
+      $('#exCancel').onclick=()=>{ B.style.display='none'; };
+      B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+      B.style.display='flex';
     }
+    // expose for reuse in manage modal
+    window.openPermissionOverrides = openPermissionOverrides;
 
     // ---- render saved ----
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -259,7 +415,7 @@
 
       $list.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim();
-        const exCount = r.exceptions?.enabled ? Object.keys(r.exceptions?.grants||{}).length : 0;
+        const exCount = countOverrideEntries(r.exceptions);
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name||'(No Name)'}</strong>
@@ -278,163 +434,6 @@
       $list.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
     }
 
-    // ---------- Permission Overrides (pills) ----------
-    const exState = { enabled:false, grants:{} };
-
-    function curryPill(label, on){
-      const b=document.createElement('button');
-      b.type='button'; b.className='pill'; b.textContent=label;
-      b.setAttribute('aria-pressed', on?'true':'false');
-      b.addEventListener('click',()=>{
-        const now=b.getAttribute('aria-pressed')==='true';
-        b.setAttribute('aria-pressed', now?'false':'true');
-      });
-      return b;
-    }
-
-    function pillStateToObj(container){
-      const keys=['view','edit','add','archive','delete'];
-      const vals=[...container.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true');
-      return Object.fromEntries(keys.map((k,i)=>[k,vals[i]]));
-    }
-
-    function setPillsFromObj(container,obj){
-      const keys=['view','edit','add','archive','delete'];
-      [...container.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=>{
-        p.setAttribute('aria-pressed', obj?.[keys[i]] ? 'true':'false');
-      });
-    }
-
-    function makePillRow(initial, disabled){
-      const row=document.createElement('div'); row.className='pill-grid';
-      ['View','Edit','Add','Archive','Delete'].forEach(name=>{
-        const p=curryPill(name, !!initial?.[name.toLowerCase()]);
-        if(disabled) p.setAttribute('disabled','');
-        row.appendChild(p);
-      });
-      return row;
-    }
-
-    function openExceptions(existing){
-      // Back-compat translate: old {enabled,allow:[ids]} ➜ grants with all five true
-      let draft = { enabled:false, grants:{} };
-      if (existing){
-        if (typeof existing.enabled === 'boolean') draft.enabled = existing.enabled;
-        if (existing.grants && typeof existing.grants === 'object'){
-          draft.grants = {...existing.grants};
-        } else if (Array.isArray(existing.allow)){
-          existing.allow.forEach(id=>{
-            draft.grants[id] = {view:true,edit:true,add:true,archive:true,delete:true};
-          });
-        }
-      }
-      exState.enabled = !!draft.enabled;
-      exState.grants = {...draft.grants};
-
-      const MENUS = getMenusObject();
-      const B=$('#exBackdrop'), L=$('#exList');
-      const enableBtn = $('#exEnableBtn');
-
-      // Reflect enabled state on the pill button
-      enableBtn.setAttribute('aria-pressed', exState.enabled ? 'true' : 'false');
-
-      // Build groups
-      L.innerHTML = '';
-      Object.keys(MENUS).forEach(menuName=>{
-        const group = document.createElement('details');
-        group.className='ex-group';
-        group.open = true;
-
-        // Parent row with "Grant all in <menu>"
-        const parent = document.createElement('div'); parent.className='ex-parent';
-        const left=document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
-        const title=document.createElement('strong'); title.textContent = menuName;
-        const sublabel=document.createElement('span'); sublabel.className='muted-small'; sublabel.textContent='Grant all in '+menuName;
-        left.append(title,sublabel);
-
-        const parentRow = makePillRow(exState.grants[`${menuName}>*`], !exState.enabled);
-        parent.append(left,parentRow);
-
-        parentRow.addEventListener('click', (e)=>{
-          if(e.target.classList.contains('pill')){
-            const state = pillStateToObj(parentRow);
-            exState.grants[`${menuName}>*`] = state;
-            group.querySelectorAll('[data-subrow]').forEach(r=>{
-              setPillsFromObj(r, state);
-              const key=r.dataset.key;
-              exState.grants[key] = {...state};
-            });
-          }
-        });
-
-        // Children list
-        const kidsWrap = document.createElement('div'); kidsWrap.className='ex-children';
-        MENUS[menuName].forEach(sub=>{
-          const row = document.createElement('div'); row.style.margin='10px 0'; row.setAttribute('data-subrow','');
-          const label=document.createElement('div'); label.textContent=sub; label.style.margin='0 0 6px';
-          const key=`${menuName}>${sub}`;
-          const pills = makePillRow(exState.grants[key], !exState.enabled);
-          pills.setAttribute('data-key', key);
-          row.dataset.key=key;
-          pills.addEventListener('click',(e)=>{
-            if(e.target.classList.contains('pill')){
-              exState.grants[key] = pillStateToObj(pills);
-            }
-          });
-          if(!exState.enabled){ row.style.opacity=.6; }
-          row.append(label,pills);
-          kidsWrap.appendChild(row);
-        });
-
-        group.append(parent, kidsWrap);
-        L.appendChild(group);
-      });
-
-      function setEnabledUI(on){
-        L.querySelectorAll('.pill').forEach(p=>{
-          if(on) p.removeAttribute('disabled'); else p.setAttribute('disabled','');
-        });
-        L.querySelectorAll('[data-subrow]').forEach(r=>{
-          r.style.opacity = on? 1 : .6;
-        });
-      }
-      setEnabledUI(exState.enabled);
-
-      // Toggle handler for the NEW pill button
-      enableBtn.onclick = ()=>{
-        exState.enabled = !exState.enabled;
-        enableBtn.setAttribute('aria-pressed', exState.enabled ? 'true' : 'false');
-        setEnabledUI(exState.enabled);
-      };
-
-      // Search filter
-      const search=$('#exSearch');
-      search.value='';
-      search.oninput=()=>{
-        const q=search.value.toLowerCase().trim();
-        L.querySelectorAll('.ex-group').forEach(d=>{
-          const txt=d.textContent.toLowerCase();
-          d.style.display = (!q || txt.includes(q)) ? '' : 'none';
-        });
-      };
-
-      // Open modal
-      B.style.display='flex';
-      $('#exCancel').onclick=()=> B.style.display='none';
-      $('#exSave').onclick=()=>{
-        B.style.display='none';
-        Object.keys(exState.grants).forEach(k=>{
-          const g=exState.grants[k];
-          const any = g && (g.view||g.edit||g.add||g.archive||g.delete);
-          if(!any) delete exState.grants[k];
-        });
-        if(typeof exState.onSave==='function'){
-          exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
-        }
-      };
-      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
-    }
-
     // ---- Manage modal ----
     function openManage(id){
       const list=loadAll(); const e=list.find(x=>x.id===id); if(!e) return;
@@ -446,8 +445,7 @@
 
       const B=$('#manageBackdrop'); B.style.display='flex';
       $('#m_exceptions').onclick=()=>{
-        exState.onSave = (val)=>{ e.exceptions = val; };
-        openExceptions(e.exceptions);
+        openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; });
       };
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
@@ -503,10 +501,10 @@
     attachPhoneMask($('#empPhone'));
     fillRoleSelect($('#empRole'));
 
+    // open overrides from form
     $('#exceptionsBtn').addEventListener('click', ()=>{
-      exState.onSave = (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); };
       const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
-      openExceptions(existing);
+      openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
     });
 
     $('#inviteBtn').addEventListener('click', ()=>{
@@ -514,7 +512,7 @@
       const last  = titleCase(($('#empLast').value||'').trim());
       const email = ($('#empEmail').value||'').trim();
       if(!first || !last || !email){ alert('Enter First, Last, and Email to send an invite.'); return; }
-      const id = (first + ' last').toLowerCase();
+      const id = (first + ' ' + last).toLowerCase();
       const item = {
         id, first, last,
         phone: $('#empPhone').value,
