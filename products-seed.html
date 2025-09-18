@@ -21,18 +21,32 @@
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <!-- Page-only breadcrumb safety (wrap + ellipsis, no theme/core edits) -->
+  <!-- Page-only breadcrumb rules: single-line + middle ellipsis -->
   <style>
+    /* container stays one line and clips */
     .breadcrumbs ol{
-      display:flex; flex-wrap:wrap; column-gap:8px; row-gap:6px; align-items:center;
-      margin:0; padding:0; list-style:none;
+      display:flex; align-items:center; gap:8px;
+      white-space:nowrap; overflow:hidden; margin:0; padding:0; list-style:none;
     }
-    .breadcrumbs li{ display:flex; align-items:center; min-width:0; }
-    .breadcrumbs .sep{ opacity:.65; }
+    .breadcrumbs li{ min-width:0; flex:0 1 auto; }
+    .breadcrumbs .sep{ flex:0 0 auto; opacity:.65; }
+
+    /* all crumb labels get ellipsis capability */
     .breadcrumbs a, .breadcrumbs span{
-      display:block; max-width:42vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
-    @media (min-width:700px){ .breadcrumbs a, .breadcrumbs span{ max-width:none; } }
+
+    /* 1) first crumb (Home) can be a bit wider if needed */
+    .breadcrumbs li:first-child a,
+    .breadcrumbs li:first-child span{ max-width: 12ch; }
+
+    /* 2) middle crumbs are forced very short so they render as “…” on phones */
+    .breadcrumbs li:not(:first-child):not(:last-child) a,
+    .breadcrumbs li:not(:first-child):not(:last-child) span{ max-width: 3ch; }
+
+    /* 3) last crumb (current page) gets the remaining space */
+    .breadcrumbs li:last-child a,
+    .breadcrumbs li:last-child span{ max-width: 100%; }
   </style>
 </head>
 <body>
