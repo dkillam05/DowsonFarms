@@ -184,8 +184,23 @@
   <script>
   (function EmployeesPage(){
     const KEY='df.employees';
-    const ROLES_KEY='df.roles'; // ["Admin","Manager",...]
-    const MENUS_KEY='df.menus'; // [{id,label,parentId?}, …]
+
+    /* === Link to Account Roles data =============================== */
+    const ROLE_PERMS_KEY = 'df_role_perms';         // from Account Roles page
+    const ROLES_LIST = () => Object.keys(JSON.parse(localStorage.getItem(ROLE_PERMS_KEY) || '{}'));
+    // Keep the same menu/submenu names used by Account Roles (order only matters for display)
+    const ROLES_MENUS = (JSON.parse(localStorage.getItem('df_menus')||'null')) || {
+      "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
+      "Grain Tracking": ["Bins","Tickets","Contracts"],
+      "Equipment": ["Maintenance","Repairs","Assignments"],
+      "Calculators": ["Seed Rate","Fertilizer","ROI"],
+      "Reports": ["Crops","Equipment","Financial"],
+      "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
+      "Feedback": ["Ideas","Bugs / Issues"],
+      "AI": ["AI","AI History"],
+      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+    };
+
     const $=s=>document.querySelector(s);
     const $list=$('#savedList');
 
@@ -211,35 +226,57 @@
     }
     function isValidPhoneUS(s){ return /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||''); }
 
-    // Roles
-    function getRoles(){
-      const roles = load(ROLES_KEY, null);
-      return Array.isArray(roles) && roles.length ? roles : ["Admin","Manager","Operator","Viewer"];
-    }
+    /* === Roles & Effective Permissions ============================ */
+    function getRolePerms(){ return load(ROLE_PERMS_KEY, {}); } // {RoleName:{Menu:{Sub:{view,..}}}}
     function fillRoleSelect(sel, value){
-      const roles=getRoles();
+      const roles = ROLES_LIST();
+      // Fallback if Account Roles hasn't been used yet
+      const opts = roles.length ? roles : ["Administrator","Owner","Manager","Employee","View Only"];
       sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
-        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+        opts.map(r=>`<option value="${r}">${r}</option>`).join('');
       if(value) sel.value=value;
     }
 
-    // Menus
-    function getMenus(){
-      const fallback = [
-        {id:'home',label:'Home'},
-        {id:'teams',label:'Teams & Partners'},
-        {id:'teams_employees',label:'Employees',parentId:'teams'},
-        {id:'teams_subcontractors',label:'Sub-Contractors',parentId:'teams'},
-        {id:'teams_vendors',label:'Vendors',parentId:'teams'},
-        {id:'teams_dictionary',label:'Dictionary',parentId:'teams'},
-        {id:'settings',label:'Setup / Settings'},
-        {id:'settings_farms',label:'Farms',parentId:'settings'},
-        {id:'settings_fields',label:'Fields',parentId:'settings'},
-        {id:'issues',label:'Issues & Feedback'}
-      ];
-      const m = load(MENUS_KEY, null);
-      return Array.isArray(m) && m.length ? m : (window.DF_MENUS||fallback);
+    // Build override list using the same names as Account Roles.
+    function buildOverrideCatalog(){
+      const parents = Object.keys(ROLES_MENUS).map(menu => ({
+        id: `menu::${menu}`, label: menu, children: ROLES_MENUS[menu].map(sub=>({ id:`sub::${menu}::${sub}`, label: sub }))
+      }));
+      return parents;
     }
+
+    // Deep copy helper
+    const clone = (o)=> JSON.parse(JSON.stringify(o));
+
+    // Merge role perms + employee overrides (overrides grant FULL access to the chosen submenus)
+    function computeEffectivePerms(roleName, overrides){
+      const roles = getRolePerms();
+      const base = clone(roles[roleName] || {});
+      if (overrides?.enabled && Array.isArray(overrides.allow)){
+        overrides.allow.forEach(key=>{
+          const parts = key.split('::'); // "sub::Menu::Sub" or "menu::Menu"
+          if (parts[0] === 'sub'){
+            const menu = parts[1], sub = parts[2];
+            base[menu] = base[menu] || {};
+            base[menu][sub] = {view:true, edit:true, add:true, archive:true, delete:true};
+          } else if (parts[0] === 'menu'){
+            const menu = parts[1];
+            base[menu] = base[menu] || {};
+            (ROLES_MENUS[menu]||[]).forEach(sub=>{
+              base[menu][sub] = {view:true, edit:true, add:true, archive:true, delete:true};
+            });
+          }
+        });
+      }
+      return base;
+    }
+
+    // Expose a tiny helper other pages can use:
+    window.DF_getEffectivePermsForEmployee = function(empId){
+      const e = loadAll().find(x=>x.id===empId);
+      if(!e) return {};
+      return computeEffectivePerms(e.role, e.exceptions);
+    };
 
     // ---- render saved ----
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -272,68 +309,57 @@
       $list.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
     }
 
-    // ---- Permission Overrides (Menus ➜ Submenus; Home disabled) ----
+    /* ---- Permission Overrides (now uses Account Roles menus) ---- */
     const exState = { id:null, enabled:false, allow:[] };
 
     function openExceptions(existing){
-      const menusRaw = getMenus(); // [{id,label,parentId?}]
-      const parents = {};
-      menusRaw.forEach(m => { if(!m.parentId){ parents[m.id] = parents[m.id] || {info:m, children:[]}; } });
-      menusRaw.forEach(m => { if(m.parentId && parents[m.parentId]) parents[m.parentId].children.push(m); });
-
+      const catalog = buildOverrideCatalog(); // [{id:'menu::X', label:'X', children:[{id:'sub::X::Y',label:'Y'}]}]
       const B=$('#exBackdrop'), L=$('#exList');
+
       $('#exEnable').checked = !!existing?.enabled;
       exState.enabled = !!existing?.enabled;
       exState.allow = Array.isArray(existing?.allow) ? [...existing.allow] : [];
 
       const isChecked = (id)=> exState.allow.includes(id) ? 'checked' : '';
-      const isHome = (id)=> id === 'home';
 
-      const blocks = Object.values(parents)
-        .sort((a,b)=> a.info.label.localeCompare(b.info.label))
-        .map(group => {
-          const p = group.info;
-          const kids = group.children.sort((a,b)=> a.label.localeCompare(b.label));
+      const blocks = catalog.map(group => {
+        const p = group;
+        const kidIds = p.children.map(k=>k.id);
+        const allKidsChecked = kidIds.length>0 && kidIds.every(id => exState.allow.includes(id));
+        const parentChecked = kidIds.length === 0 ? isChecked(p.id) : (allKidsChecked?'checked':'');
 
-          const kidIds = kids.map(k=>k.id);
-          const allKidsChecked = kidIds.length>0 && kidIds.every(id => exState.allow.includes(id));
-          const parentChecked = (kids.length === 0)
-            ? (exState.allow.includes(p.id))
-            : allKidsChecked;
+        const parentRow = `
+          <div class="ex-parent">
+            <input type="checkbox" data-parent="${p.id}" ${parentChecked}
+                   ${exState.enabled?'':'disabled'}/>
+            <span><strong>${p.label}</strong></span>
+          </div>
+        `;
+        const childRows = p.children.length ? `
+          <div class="ex-children">
+            ${p.children.map(c => `
+              <label style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+                <input type="checkbox" data-child="${c.id}" ${isChecked(c.id)}
+                       ${exState.enabled?'':'disabled'} />
+                <span>${c.label}</span>
+              </label>
+            `).join('')}
+          </div>
+        ` : '';
 
-          const parentRow = `
-            <div class="ex-parent">
-              <input type="checkbox" data-parent="${p.id}" ${parentChecked?'checked':''}
-                     ${exState.enabled?'':'disabled'} ${isHome(p.id)?'disabled':''}/>
-              <span><strong>${p.label}</strong>${isHome(p.id) ? ' <span class="muted-small">(no overrides)</span>' : ''}</span>
-            </div>
-          `;
-          const childRows = kids.length ? `
-            <div class="ex-children">
-              ${kids.map(c => `
-                <label style="display:flex;align-items:center;gap:8px;padding:4px 0;">
-                  <input type="checkbox" data-child="${c.id}" ${isChecked(c.id)}
-                         ${exState.enabled?'':'disabled'} />
-                  <span>${c.label}</span>
-                </label>
-              `).join('')}
-            </div>
-          ` : '';
-
-          return `
-            <details class="ex-group" ${kids.length? '': 'open'}>
-              <summary style="list-style:none;">${parentRow}</summary>
-              ${childRows}
-            </details>
-          `;
-        });
+        return `
+          <details class="ex-group">
+            <summary style="list-style:none;">${parentRow}</summary>
+            ${childRows}
+          </details>
+        `;
+      });
 
       L.innerHTML = blocks.join('') || '<div class="muted" style="padding:8px;">No menus defined.</div>';
 
       $('#exEnable').onchange = (e)=>{
         exState.enabled = e.target.checked;
         L.querySelectorAll('input[type="checkbox"]').forEach(ch=>{
-          if (ch.dataset.parent === 'home') { ch.disabled = true; return; }
           ch.disabled = !exState.enabled;
         });
       };
@@ -343,9 +369,9 @@
         if (!t || t.type !== 'checkbox') return;
 
         if (t.dataset.parent){
-          const pid = t.dataset.parent;
-          if (pid === 'home') { t.checked = false; return; }
-          const kids = menusRaw.filter(m => m.parentId === pid).map(m=>m.id);
+          const pid = t.dataset.parent;          // "menu::Menu Name"
+          const menuName = pid.split('::')[1];
+          const kids = catalog.find(g=>g.label===menuName)?.children.map(k=>k.id) || [];
           if (kids.length === 0) {
             if (t.checked){ if(!exState.allow.includes(pid)) exState.allow.push(pid); }
             else { exState.allow = exState.allow.filter(x=>x!==pid); }
@@ -362,16 +388,15 @@
         }
 
         if (t.dataset.child){
-          const cid = t.dataset.child;
+          const cid = t.dataset.child;          // "sub::Menu::Sub"
           if (t.checked){ if(!exState.allow.includes(cid)) exState.allow.push(cid); }
           else { exState.allow = exState.allow.filter(x=>x!==cid); }
-          const parentId = menusRaw.find(m=>m.id===cid)?.parentId;
-          if (parentId){
-            const kids = menusRaw.filter(m => m.parentId === parentId).map(m=>m.id);
-            const allKidsChecked = kids.length>0 && kids.every(id => exState.allow.includes(id));
-            const pbox = L.querySelector(`input[data-parent="${parentId}"]`);
-            if (pbox) pbox.checked = allKidsChecked;
-          }
+
+          const menuName = cid.split('::')[1];
+          const kids = catalog.find(g=>g.label===menuName)?.children.map(k=>k.id) || [];
+          const allKidsChecked = kids.length>0 && kids.every(id => exState.allow.includes(id));
+          const pbox = L.querySelector(`input[data-parent="menu::${menuName}"]`);
+          if (pbox) pbox.checked = allKidsChecked;
         }
       });
 
@@ -386,11 +411,9 @@
       };
 
       L.querySelectorAll('input[type="checkbox"]').forEach(ch=>{
-        if (ch.dataset.parent === 'home') { ch.disabled = true; return; }
         ch.disabled = !exState.enabled;
       });
 
-      const B=$('#exBackdrop');
       B.style.display='flex';
       $('#exCancel').onclick=()=> B.style.display='none';
       $('#exSave').onclick=()=>{
@@ -427,6 +450,8 @@
         e.role=$('#m_role').value;
         e.archived=$('#m_archived').checked;
         e.updatedAt=Date.now();
+        // recompute effective perms on save
+        e.effectivePerms = computeEffectivePerms(e.role, e.exceptions);
         upsert(e); B.style.display='none'; render();
       };
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
@@ -438,8 +463,9 @@
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
+        const exCount = r.exceptions?.enabled ? (r.exceptions?.allow?.length||0) : 0;
         return `<li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line"><strong>${name}</strong> ${chip(r.role)}</div>
+          <div class="line"><strong>${name}</strong> ${chip(r.role)} ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: ''}</div>
           ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
         </li>`;
       }).join('') : '<li>No employees.</li>';
@@ -489,6 +515,8 @@
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,allow:[]}),
         createdAt: Date.now(), updatedAt: Date.now()
       };
+      // compute effective perms at creation time too
+      item.effectivePerms = computeEffectivePerms(item.role, item.exceptions);
       upsert(item);
       inviteEmployee(id);
     });
@@ -507,12 +535,14 @@
       if(!role){ alert('Role is required.'); return; }
 
       const id = (first + ' ' + last).toLowerCase();
-      upsert({
+      const item = {
         id, first, last, phone, email, role,
         archived:false,
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,allow:[]}),
         createdAt: Date.now(), updatedAt: Date.now()
-      });
+      };
+      item.effectivePerms = computeEffectivePerms(item.role, item.exceptions);
+      upsert(item);
       $('#emp-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
       render();
@@ -523,6 +553,9 @@
     $('#toggleShowArchived').addEventListener('change', render);
 
     render();
+
+    // Manage modal: fill roles from Account Roles as well
+    (function prepareManageRoleSelect(){ fillRoleSelect($('#m_role')); })();
 
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
