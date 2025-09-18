@@ -29,38 +29,47 @@
   <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Page-local helpers */
-    .perm-accordion { display: grid; gap: 14px; }
-    .perm-section { border:1px solid var(--tile-border); border-radius:16px; background:var(--tile-bg); box-shadow:var(--tile-shadow); }
-    .perm-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; cursor:pointer; }
-    .perm-title { font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; }
-    .caret { transition: transform .18s ease; }
-    .perm-body { display:none; padding: 10px 14px 14px; border-top:1px solid var(--tile-border); }
+    .content{overflow-x:hidden}
+    .card{box-sizing:border-box;max-width:100%}
+
+    /* Accordion */
+    .perm-accordion{display:grid;gap:14px}
+    .perm-section{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);box-shadow:var(--tile-shadow)}
+    .perm-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
+    .perm-title{font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px}
+    .caret{transition:transform .18s ease}
+    .perm-body{display:none;padding:10px 14px 14px;border-top:1px solid var(--tile-border)}
 
     /* Select-all row */
-    .perm-selectall { display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding: 6px 0 10px; border-bottom:1px solid var(--tile-border); margin-bottom:10px; }
-    .perm-selectall strong { min-width: 180px; }
+    .perm-selectall{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:6px 0 12px;border-bottom:1px solid var(--tile-border);margin-bottom:12px}
+    .perm-selectall strong{margin-right:6px}
 
-    /* Submenu blocks – VERTICAL, no horizontal scrolling */
-    .perm-items { display:grid; gap:12px; }
-    .perm-item { border:1px dashed var(--tile-border); border-radius:12px; padding:10px 12px; }
-    .perm-item__title { font-weight:600; margin-bottom:8px; }
-    .perm-item__checks { display:grid; grid-template-columns: repeat(2, minmax(140px, 1fr)); gap:8px 16px; }
-    @media (min-width: 640px) {
-      .perm-item__checks { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+    /* Submenus list */
+    .perm-items{display:grid;gap:12px}
+    .perm-item{border:1px dashed var(--tile-border);border-radius:12px;padding:10px 12px}
+    .perm-item__title{font-weight:600;margin-bottom:8px}
+
+    /* Toggle pills */
+    .perm-row{display:flex;flex-wrap:wrap;gap:8px}
+    .pill{
+      border:1.5px solid var(--tile-border);
+      border-radius:999px;
+      padding:8px 12px;
+      background:transparent;
+      line-height:1;
+      font:inherit;
+      cursor:pointer;
+      user-select:none
     }
-
-    /* Make sure checkboxes are clearly visible/tappable */
-    input[type="checkbox"]{
-      -webkit-appearance: checkbox;
-      appearance: checkbox;
-      width: 18px; height: 18px;
-      margin: 0;
+    .pill[aria-pressed="true"]{
+      background:var(--brand,#1B5E20);
+      border-color:var(--brand,#1B5E20);
+      color:#fff
     }
-    .cb { display:flex; align-items:center; gap:8px; }
+    .pill:focus{outline:2px solid var(--focus,#5aa0ff);outline-offset:2px}
 
-    .muted-note { color: var(--muted,#666); font-size:.92rem; }
-    .btn-sq-wrap { display:grid; gap:10px; grid-template-columns:92px 92px; justify-content:center; }
+    /* Save/Clear squares */
+    .btn-sq-wrap{display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
   </style>
 </head>
 <body>
@@ -105,7 +114,7 @@
 
       <section class="card" style="padding:14px; margin-top:10px;">
         <h2 style="margin:0 0 6px 0;">Permissions</h2>
-        <p class="muted-note" style="margin:0 0 8px 0;">
+        <p class="muted" style="margin:0 0 8px 0;">
           Expand a menu and set what this role can do on each submenu. Use the “select all” row to toggle an entire menu at once.
         </p>
 
@@ -145,8 +154,8 @@
     const $ = (s, r=document) => r.querySelector(s);
     const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
+    // MENUS — Home removed per your request
     const MENUS = {
-      "Home": ["—"],
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Bags","Tickets","Contracts"],
       "Equipment": ["Tractors","Combines","Sprayers","Implements","Construction","Trailers","Trucks","StarFire"],
@@ -156,6 +165,7 @@
       "Feedback": ["Ideas","Bugs / Issues"],
       "Setup / Settings": ["Farms","Fields","Products","Theme","Account Roles","Crop Types","Settings"]
     };
+
     const PERMS = ["view","edit","add","archive"];
     const STORE_KEY = "df_roles";
 
@@ -166,6 +176,19 @@
 
     const acc = $("#permAccordion");
 
+    function pill(label, attrs={}){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pill";
+      b.textContent = label;
+      b.setAttribute("aria-pressed","false");
+      Object.entries(attrs).forEach(([k,v])=> b.dataset[k]=v);
+      return b;
+    }
+    const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+    const setPressed = (btn,on)=> btn.setAttribute("aria-pressed", on?"true":"false");
+    const isPressed = btn => btn.getAttribute("aria-pressed")==="true";
+
     function buildAccordion(){
       acc.innerHTML = "";
       Object.entries(MENUS).forEach(([menu, subs])=>{
@@ -174,44 +197,38 @@
 
         const head = document.createElement("div");
         head.className = "perm-head";
-        head.innerHTML = `
-          <div class="perm-title"><span class="caret">›</span><span>${menu}</span></div>
-          <div></div>
-        `;
+        head.innerHTML = `<div class="perm-title"><span class="caret">›</span><span>${menu}</span></div><div></div>`;
+
         const body = document.createElement("div");
         body.className = "perm-body";
 
         // Select-all row
         const selAll = document.createElement("div");
         selAll.className = "perm-selectall";
-        selAll.innerHTML = `
-          <strong>Select all in ${menu}</strong>
-          ${PERMS.map(p => `
-            <label class="cb">
-              <input type="checkbox" class="perm-all" data-perm="${p}" />
-              <span>${p.charAt(0).toUpperCase()+p.slice(1)}</span>
-            </label>
-          `).join("")}
-        `;
+        const label = document.createElement("strong");
+        label.textContent = `Select all in ${menu}`;
+        selAll.appendChild(label);
+
+        const selRow = document.createElement("div");
+        selRow.className = "perm-row";
+        PERMS.forEach(p=>{
+          const b=pill(cap(p), {perm:p, kind:"all"});
+          selRow.appendChild(b);
+        });
+        selAll.appendChild(selRow);
         body.appendChild(selAll);
 
-        // Submenu items (vertical)
+        // Submenus
         const items = document.createElement("div");
         items.className = "perm-items";
         subs.forEach(sub=>{
           const item = document.createElement("div");
           item.className = "perm-item";
-          item.innerHTML = `
-            <div class="perm-item__title"><span class="muted">${menu}</span> › <strong>${sub}</strong></div>
-            <div class="perm-item__checks">
-              ${PERMS.map(p => `
-                <label class="cb">
-                  <input type="checkbox" class="perm-cb" data-menu="${menu}" data-sub="${sub}" data-perm="${p}">
-                  <span>${p.charAt(0).toUpperCase()+p.slice(1)}</span>
-                </label>
-              `).join("")}
-            </div>
-          `;
+          item.innerHTML = `<div class="perm-item__title"><span class="muted">${menu}</span> › <strong>${sub}</strong></div>`;
+          const row = document.createElement("div");
+          row.className = "perm-row";
+          PERMS.forEach(p=> row.appendChild(pill(cap(p), {menu:menu, sub:sub, perm:p, kind:"one"})));
+          item.appendChild(row);
           items.appendChild(item);
         });
         body.appendChild(items);
@@ -219,7 +236,6 @@
         // collapsed by default
         body.style.display = "none";
         head.querySelector(".caret").style.transform = "rotate(0deg)";
-
         head.addEventListener("click", ()=>{
           const open = body.style.display !== "none";
           body.style.display = open ? "none" : "block";
@@ -227,128 +243,117 @@
           if (!open) syncMenuSelectAll(sec);
         });
 
-        sec.appendChild(head);
-        sec.appendChild(body);
+        sec.appendChild(head); sec.appendChild(body);
         acc.appendChild(sec);
       });
     }
 
-    function clearChecks(){
-      $$(".perm-cb").forEach(cb => cb.checked = false);
-      $$(".perm-all").forEach(cb => { cb.checked = false; cb.indeterminate = false; });
-    }
-
-    function applyRole(role){
-      clearChecks();
-      const state = getRoleState(role);
-      Object.entries(state).forEach(([menu, subs])=>{
-        Object.entries(subs).forEach(([sub, perms])=>{
-          PERMS.forEach(p=>{
-            const cb = $(`.perm-cb[data-menu="${CSS.escape(menu)}"][data-sub="${CSS.escape(sub)}"][data-perm="${p}"]`);
-            if (cb && typeof perms[p] === "boolean") cb.checked = !!perms[p];
-          });
-        });
-      });
-      $$(".perm-section").forEach(sec => syncMenuSelectAll(sec));
-    }
-
-    function readStateFromUI(){
+    function clearUI(){ $$(".pill").forEach(b=> setPressed(b,false)); }
+    function stateFromUI(){
       const state = {};
-      $$(".perm-cb").forEach(cb=>{
-        const m=cb.dataset.menu, s=cb.dataset.sub, p=cb.dataset.perm;
-        state[m] = state[m] || {};
-        state[m][s] = state[m][s] || {};
-        state[m][s][p] = cb.checked;
+      $$(".pill[data-kind='one']").forEach(b=>{
+        const m=b.dataset.menu, s=b.dataset.sub, p=b.dataset.perm;
+        state[m]=state[m]||{}; state[m][s]=state[m][s]||{}; state[m][s][p]=isPressed(b);
       });
       return state;
     }
+    function applyRole(role){
+      clearUI();
+      const st = getRoleState(role);
+      Object.entries(st).forEach(([m, subs])=>{
+        Object.entries(subs).forEach(([s, perms])=>{
+          PERMS.forEach(p=>{
+            if (perms[p]) {
+              const btn = $(`.pill[data-menu="${CSS.escape(m)}"][data-sub="${CSS.escape(s)}"][data-perm="${p}"]`);
+              if (btn) setPressed(btn,true);
+            }
+          });
+        });
+      });
+      $$(".perm-section").forEach(syncMenuSelectAll);
+    }
 
-    function syncMenuSelectAll(sectionEl){
-      const menu = sectionEl.dataset.menu;
+    function syncMenuSelectAll(sec){
+      const menu = sec.dataset.menu;
       PERMS.forEach(p=>{
-        const allBox = sectionEl.querySelector(`.perm-all[data-perm="${p}"]`);
-        if (!allBox) return;
-        const cbs = $$(`.perm-cb[data-menu="${CSS.escape(menu)}"][data-perm="${p}"]`, sectionEl);
-        const checked = cbs.filter(cb=>cb.checked).length;
-        if (checked === 0){ allBox.checked = false; allBox.indeterminate = false; }
-        else if (checked === cbs.length){ allBox.checked = true; allBox.indeterminate = false; }
-        else { allBox.checked = false; allBox.indeterminate = true; }
+        const allBtn = sec.querySelector(`.pill[data-kind="all"][data-perm="${p}"]`);
+        if (!allBtn) return;
+        const btns = $$(`.pill[data-kind='one'][data-menu="${CSS.escape(menu)}"][data-perm="${p}"]`, sec);
+        const countOn = btns.filter(isPressed).length;
+        setPressed(allBtn, countOn>0 && countOn===btns.length);
       });
     }
 
     function attachHandlers(){
-      acc.addEventListener("change", (e)=>{
-        const t = e.target;
-        if (t.classList.contains("perm-cb")){
-          const sec = t.closest(".perm-section");
-          if (sec) syncMenuSelectAll(sec);
+      acc.addEventListener("click",(e)=>{
+        const t=e.target;
+        if(!(t instanceof HTMLButtonElement) || !t.classList.contains("pill")) return;
+        const kind=t.dataset.kind;
+        if(kind==="one"){
+          setPressed(t,!isPressed(t));
+          const sec=t.closest(".perm-section"); if(sec) syncMenuSelectAll(sec);
+          return;
+        }
+        if(kind==="all"){
+          const sec=t.closest(".perm-section"), menu=sec.dataset.menu, perm=t.dataset.perm;
+          const on=!isPressed(t);
+          $$(`.pill[data-kind='one'][data-menu="${CSS.escape(menu)}"][data-perm="${perm}"]`, sec)
+            .forEach(b=>setPressed(b,on));
+          syncMenuSelectAll(sec);
         }
       });
-      acc.addEventListener("change", (e)=>{
-        const t = e.target;
-        if (!t.classList.contains("perm-all")) return;
-        const sec = t.closest(".perm-section");
-        const menu = sec.dataset.menu;
-        const perm = t.dataset.perm;
-        $$(`.perm-cb[data-menu="${CSS.escape(menu)}"][data-perm="${perm}"]`, sec)
-          .forEach(cb => cb.checked = t.checked);
-        syncMenuSelectAll(sec);
-      });
 
-      $("#roles-form").addEventListener("submit", (e)=>{
+      $("#roles-form").addEventListener("submit",(e)=>{
         e.preventDefault();
-        setRoleState($("#roleSel").value, readStateFromUI());
+        setRoleState($("#roleSel").value, stateFromUI());
         toast("Permissions saved");
       });
 
       $("#clearBtn").addEventListener("click", ()=>{
-        if (!confirm("Clear all permissions on screen for this role (unsaved until Save)?")) return;
-        clearChecks();
+        if(!confirm("Clear all permissions on screen for this role (unsaved until Save)?")) return;
+        clearUI(); $$(".perm-section").forEach(syncMenuSelectAll);
       });
 
       $("#roleSel").addEventListener("change", ()=>applyRole($("#roleSel").value));
 
-      // Quick View
       $("#quickViewBtn").addEventListener("click", openQuickView);
-      $("#qvClose").addEventListener("click", ()=> $("#qvBackdrop").style.display = "none");
-      $("#qvBackdrop").addEventListener("click", (e)=>{ if(e.target.id==='qvBackdrop') $("#qvBackdrop").style.display='none'; });
+      $("#qvClose").addEventListener("click", ()=> $("#qvBackdrop").style.display='none');
+      $("#qvBackdrop").addEventListener("click",(e)=>{ if(e.target.id==='qvBackdrop') $("#qvBackdrop").style.display='none'; });
     }
 
     function openQuickView(){
       const role = $("#roleSel").value;
-      const state = readStateFromUI();
-      const body = $("#qvBody");
-      body.innerHTML = "";
-      Object.entries(MENUS).forEach(([menu, subs])=>{
-        const h = document.createElement("h3");
-        h.textContent = menu; h.style.margin = "8px 0 4px";
-        const ul = document.createElement("ul"); ul.style.margin=0; ul.style.paddingLeft="18px";
+      const st = stateFromUI();
+      const body = $("#qvBody"); body.innerHTML="";
+      Object.entries(MENUS).forEach(([menu,subs])=>{
+        const h=document.createElement("h3"); h.textContent=menu; h.style.margin="8px 0 4px";
+        const ul=document.createElement("ul"); ul.style.margin=0; ul.style.paddingLeft="18px";
         subs.forEach(sub=>{
-          const perms = (state[menu] && state[menu][sub]) || {};
-          const on = ["view","edit","add","archive"].filter(k=>perms[k]).map(k=>k[0].toUpperCase()+k.slice(1));
-          const li = document.createElement("li");
-          li.textContent = `${sub} — ${on.length ? on.join(", ") : "No access"}`;
+          const perms=(st[menu]&&st[menu][sub])||{};
+          const on=PERMS.filter(k=>perms[k]).map(cap);
+          const li=document.createElement("li");
+          li.textContent=`${sub} — ${on.length?on.join(", "):"No access"}`;
           ul.appendChild(li);
         });
         body.appendChild(h); body.appendChild(ul);
       });
-      $("#qvTitle").textContent = `Role Permissions — ${role}`;
-      $("#qvBackdrop").style.display = "flex";
+      $("#qvTitle").textContent=`Role Permissions — ${role}`;
+      $("#qvBackdrop").style.display="flex";
     }
 
     function toast(msg){
-      let box = document.getElementById("dfToast");
-      if (!box){
-        box = document.createElement("div");
+      let box=document.getElementById("dfToast");
+      if(!box){
+        box=document.createElement("div");
         box.id="dfToast";
         box.style.cssText="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg,rgba(0,0,0,.03));box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999;display:none;";
-        box.innerHTML = '<span id="dfToastText">Saved</span>';
+        box.innerHTML='<span id="dfToastText">Saved</span>';
         document.body.appendChild(box);
       }
-      document.getElementById("dfToastText").textContent = msg || "Saved";
-      box.style.display = "block";
+      document.getElementById("dfToastText").textContent=msg||"Saved";
+      box.style.display="block";
       clearTimeout(window.__toast);
-      window.__toast = setTimeout(()=> box.style.display = "none", 1800);
+      window.__toast=setTimeout(()=> box.style.display="none", 1800);
     }
 
     // Init
