@@ -19,19 +19,22 @@
   <script defer src="core.js"></script>
 
   <style>
-    /* Uniform touches */
-    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
-
-    /* Permissions table */
-    .perm-wrap {overflow:auto; border:1px solid var(--tile-border); border-radius:12px;}
-    table.perm {width:100%; border-collapse:collapse; min-width:720px}
-    .perm th, .perm td {padding:8px 10px; border-bottom:1px solid var(--tile-border); text-align:left}
-    .perm thead th {position:sticky; top:0; background:var(--tile-bg, var(--bg)); z-index:1}
-    .perm .col-action {text-align:center; width:96px}
-    .menu-row {background:var(--tile-bg); font-weight:600}
-    .muted-sm {opacity:.72; font-size:.92rem}
-    .badge {padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+    .grid2{display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
+    .accordion{display:flex;flex-direction:column;gap:10px}
+    .acc-item{border:1px solid var(--tile-border);border-radius:12px;overflow:hidden;background:var(--tile-bg)}
+    .acc-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer}
+    .acc-title{display:flex;align-items:center;gap:10px;font-weight:600}
+    .acc-perm-all{display:flex;align-items:center;gap:10px;font-size:.9rem;opacity:.9}
+    .acc-body{display:none;padding:10px 12px;background:var(--bg)}
+    .acc-body.open{display:block}
+    .submenu-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--tile-border)}
+    .submenu-name{flex:1}
+    .perm-toggles{display:flex;gap:16px;min-width:220px;justify-content:flex-end}
+    .perm-toggles label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .badge{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+    .muted-sm{opacity:.72;font-size:.92rem}
+    .chev{transition:transform .18s ease}
+    .acc-item.open .chev{transform:rotate(90deg)}
   </style>
 </head>
 <body>
@@ -71,43 +74,18 @@
         <select id="roleSel" required>
           <option value="Administrator">Administrator</option>
           <option value="Owner">Owner</option>
-          <option value="Manager">Manager</option><!-- corrected “Manger” -->
+          <option value="Manager">Manager</option>
           <option value="Employee">Employee</option>
           <option value="View Only">View Only</option>
         </select>
       </div>
 
-      <!-- Permissions matrix -->
+      <!-- Permissions (accordion) -->
       <section class="card" style="margin-top:8px;">
         <h2 style="margin:0 0 8px 0;">Permissions</h2>
-        <div class="muted-sm" style="margin-bottom:8px;">Set what each role can do on every Menu/Submenu. “Apply to all submenus” lets you set a whole menu at once.</div>
-        <div class="perm-wrap">
-          <table class="perm" id="permTable" aria-describedby="permHelp">
-            <thead>
-              <tr>
-                <th>Menu › Submenu</th>
-                <th class="col-action">
-                  View<br>
-                  <input type="checkbox" id="colAllView" title="Toggle all View">
-                </th>
-                <th class="col-action">
-                  Edit<br>
-                  <input type="checkbox" id="colAllEdit" title="Toggle all Edit">
-                </th>
-                <th class="col-action">
-                  Add<br>
-                  <input type="checkbox" id="colAllAdd" title="Toggle all Add">
-                </th>
-                <th class="col-action">
-                  Archive<br>
-                  <input type="checkbox" id="colAllArchive" title="Toggle all Archive">
-                </th>
-              </tr>
-            </thead>
-            <tbody id="permBody"><!-- filled by JS --></tbody>
-          </table>
-        </div>
-        <div id="permHelp" class="muted-sm" style="margin-top:8px;">Owner/Admin start with full access. Manager: all except Archive. Employee: View only by default. “View Only”: View only.</div>
+        <div class="muted-sm" style="margin-bottom:8px;">Tap a menu to expand its submenus. Use the <em>All</em> checkboxes in the menu header to toggle that permission for every submenu in the section.</div>
+
+        <div class="accordion" id="permAcc"><!-- built by JS --></div>
       </section>
 
       <!-- Save / Clear -->
@@ -119,7 +97,7 @@
       </section>
     </form>
 
-    <!-- Saved snapshot for transparency -->
+    <!-- Snapshot -->
     <section class="card" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Current Role Snapshot</h2>
       <div id="roleSummary" class="muted-sm">—</div>
@@ -150,9 +128,8 @@
   (function RolesPage(){
     const ROLES_KEY='df.roles';
     const MENUS_KEY='df_menus';
-
     const DEFAULT_MENUS = {
-      "Home": ["—"],
+      "Home": ["Main Menus"],
       "Crop Production": ["Planting","Spraying","Harvest"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
       "Equipment": ["Maintenance","Repairs","Assignments"],
@@ -165,221 +142,161 @@
 
     const $=s=>document.querySelector(s);
     const $$=s=>Array.from(document.querySelectorAll(s));
-    const roleSel=$('#roleSel');
-    const permBody=$('#permBody');
 
     function getMenus(){
-      try {
-        const obj = JSON.parse(localStorage.getItem(MENUS_KEY)||'null') || DEFAULT_MENUS;
-        return obj;
-      } catch(_) { return DEFAULT_MENUS; }
+      try { return JSON.parse(localStorage.getItem(MENUS_KEY)||'null') || DEFAULT_MENUS; }
+      catch(_) { return DEFAULT_MENUS; }
+    }
+    function loadRoles(){ try { return JSON.parse(localStorage.getItem(ROLES_KEY)||'{}'); } catch(_) { return {}; } }
+    function saveRoles(obj){ localStorage.setItem(ROLES_KEY, JSON.stringify(obj)); }
+
+    function presetFor(role){
+      const base = (v,e,a,r)=>({view:v, edit:e, add:a, archive:r});
+      if (role==='Administrator' || role==='Owner') return base(true,true,true,true);
+      if (role==='Manager') return base(true,true,true,false);
+      return base(true,false,false,false); // Employee & View Only
     }
 
-    function loadRoles(){
-      try { return JSON.parse(localStorage.getItem(ROLES_KEY)||'{}'); } catch(_) { return {}; }
-    }
-    function saveRoles(data){ localStorage.setItem(ROLES_KEY, JSON.stringify(data)); }
-
-    // Default presets when a role is first seen
-    function defaultPresetFor(role, menus){
-      const all = (v,e,a,r)=>({view:v, edit:e, add:a, archive:r});
-      let preset;
-      if (role === 'Administrator' || role === 'Owner')      preset = all(true,true,true,true);
-      else if (role === 'Manager')                           preset = all(true,true,true,false);
-      else if (role === 'Employee')                          preset = all(true,false,false,false);
-      else                                                   preset = all(true,false,false,false); // View Only or unknown
-
-      const obj={};
-      Object.entries(menus).forEach(([menu, subs])=>{
-        obj[menu] = {};
-        subs.forEach(sub=>{
-          obj[menu][sub] = {...preset};
-        });
-      });
-      return obj;
-    }
-
-    // Ensure a role object contains all current menu/submenu keys (safe against future additions)
-    function normalizeRole(roleObj, menus, fallbackPreset){
-      const out = {...roleObj};
-      Object.entries(menus).forEach(([menu, subs])=>{
-        if (!out[menu]) out[menu] = {};
-        subs.forEach(sub=>{
-          if (!out[menu][sub]) out[menu][sub] = {...fallbackPreset};
-        });
-      });
-      // prune stale menus/subs that no longer exist
-      Object.keys(out).forEach(menu=>{
-        if (!menus[menu]) { delete out[menu]; return; }
-        Object.keys(out[menu]).forEach(sub=>{
-          if (!menus[menu].includes(sub)) delete out[menu][sub];
-        });
-      });
-      return out;
-    }
-
-    function renderTable(roleData){
-      permBody.innerHTML='';
+    function materialize(roleName){
       const menus=getMenus();
-      Object.entries(menus).forEach(([menu, subs], mi)=>{
-        // Menu header row with apply-to-all toggles
-        const trMenu=document.createElement('tr');
-        trMenu.className='menu-row';
-        const tdTitle=document.createElement('td');
-        tdTitle.colSpan=1;
-        tdTitle.innerHTML = `${menu} <span class="badge">${subs.length} submenu${subs.length!==1?'s':''}</span>`;
-        trMenu.appendChild(tdTitle);
-
-        ['view','edit','add','archive'].forEach(kind=>{
-          const td=document.createElement('td');
-          td.className='col-action';
-          td.innerHTML = `<label class="muted-sm" title="Apply to all submenus in ${menu}">
-            <input type="checkbox" data-menu="${menu}" data-apply="${kind}"> All
-          </label>`;
-          trMenu.appendChild(td);
+      const roles=loadRoles();
+      const base=presetFor(roleName);
+      let data = roles[roleName];
+      // Construct or normalize to current menus
+      const out={};
+      Object.entries(menus).forEach(([menu, subs])=>{
+        out[menu]={};
+        subs.forEach(sub=>{
+          out[menu][sub] = data?.[menu]?.[sub] ?? {...base};
         });
-        permBody.appendChild(trMenu);
-
-        // Submenu rows
-        subs.forEach((sub, si)=>{
-          const row=document.createElement('tr');
-          const cell=document.createElement('td');
-          cell.textContent = `${menu} › ${sub}`;
-          row.appendChild(cell);
-
-          ['view','edit','add','archive'].forEach(kind=>{
-            const td=document.createElement('td'); td.className='col-action';
-            const chk=document.createElement('input');
-            chk.type='checkbox';
-            chk.dataset.menu=menu;
-            chk.dataset.sub=sub;
-            chk.dataset.kind=kind;
-            chk.checked = !!roleData?.[menu]?.[sub]?.[kind];
-            td.appendChild(chk);
-            row.appendChild(td);
-          });
-          permBody.appendChild(row);
-        });
-      });
-
-      // Wire menu-level apply
-      $$('input[data-apply]').forEach(ch=>{
-        ch.addEventListener('change', ()=>{
-          const menu=ch.dataset.menu, kind=ch.dataset.apply, val=ch.checked;
-          $$(`input[type="checkbox"][data-menu="${menu}"][data-kind="${kind}"]`).forEach(cb=>{ cb.checked=val; });
-          refreshHeaderChecks();
-        });
-      });
-
-      // Wire cell changes to refresh header checks
-      $$('input[type="checkbox"][data-kind]').forEach(ch=>{
-        ch.addEventListener('change', refreshHeaderChecks);
-      });
-
-      // Column “select all” in the header
-      $('#colAllView').onchange = ()=> toggleColumn('view', $('#colAllView').checked);
-      $('#colAllEdit').onchange = ()=> toggleColumn('edit', $('#colAllEdit').checked);
-      $('#colAllAdd').onchange = ()=> toggleColumn('add', $('#colAllAdd').checked);
-      $('#colAllArchive').onchange = ()=> toggleColumn('archive', $('#colAllArchive').checked);
-
-      refreshHeaderChecks();
-    }
-
-    function toggleColumn(kind, val){
-      $$(`input[type="checkbox"][data-kind="${kind}"]`).forEach(cb=>{ cb.checked=val; });
-    }
-
-    function refreshHeaderChecks(){
-      ['view','edit','add','archive'].forEach(kind=>{
-        const all=$$(`input[type="checkbox"][data-kind="${kind}"]`);
-        const on=all.filter(el=>el.checked).length;
-        const hdr = kind==='view' ? '#colAllView' : kind==='edit' ? '#colAllEdit' : kind==='add' ? '#colAllAdd' : '#colAllArchive';
-        const h=$(hdr);
-        h.indeterminate = (on>0 && on<all.length);
-        h.checked = (on===all.length && all.length>0);
-      });
-    }
-
-    function readTableInto(roleData){
-      const out = JSON.parse(JSON.stringify(roleData||{}));
-      $$('input[type="checkbox"][data-kind]').forEach(ch=>{
-        const {menu, sub, kind} = ch.dataset;
-        out[menu] = out[menu] || {};
-        out[menu][sub] = out[menu][sub] || {view:false, edit:false, add:false, archive:false};
-        out[menu][sub][kind] = ch.checked;
       });
       return out;
     }
 
     function summarize(roleName, data){
       let v=0,e=0,a=0,r=0, rows=0;
-      Object.values(data||{}).forEach(subs=>{
+      Object.values(data).forEach(subs=>{
         Object.values(subs).forEach(p=>{ rows++; if(p.view)v++; if(p.edit)e++; if(p.add)a++; if(p.archive)r++; });
       });
       $('#roleSummary').textContent = `${roleName}: ${rows} entries • View ${v}, Edit ${e}, Add ${a}, Archive ${r}`;
     }
 
-    // Quick View: list all roles with quick counts
-    function openQuickView(){
-      const roles = loadRoles();
-      const menus = getMenus();
-      const L = $('#qvList'), B=$('#qvBackdrop');
-      const roleNames = ['Administrator','Owner','Manager','Employee','View Only'];
-      L.innerHTML = roleNames.map(name=>{
-        const preset = defaultPresetFor(name, menus);
-        const normalized = normalizeRole(roles[name], menus, {view:false,edit:false,add:false,archive:false});
-        const data = roles[name] ? normalized : preset;
-        let v=0,e=0,a=0,r=0;
-        Object.values(data).forEach(subs=>{
-          Object.values(subs).forEach(p=>{ if(p.view)v++; if(p.edit)e++; if(p.add)a++; if(p.archive)r++; });
+    function makeChk(id, checked, attrs={}){
+      const i=document.createElement('input'); i.type='checkbox'; i.id=id; i.checked=!!checked;
+      Object.entries(attrs).forEach(([k,v])=> i.setAttribute(k,v));
+      return i;
+    }
+
+    function renderAccordion(roleName){
+      const acc=$('#permAcc'); acc.innerHTML='';
+      const data=materialize(roleName);
+      const menus=getMenus();
+
+      Object.entries(menus).forEach(([menu, subs], idx)=>{
+        const item=document.createElement('div'); item.className='acc-item';
+        const head=document.createElement('div'); head.className='acc-head';
+        const title=document.createElement('div'); title.className='acc-title';
+        title.innerHTML=`<span class="chev">›</span><span>${menu}</span> <span class="badge">${subs.length} submenu${subs.length!==1?'s':''}</span>`;
+        head.appendChild(title);
+
+        // “All” toggles for the menu
+        const allWrap=document.createElement('div'); allWrap.className='acc-perm-all';
+        const kinds=['view','edit','add','archive'];
+        kinds.forEach(kind=>{
+          const lbl=document.createElement('label');
+          lbl.title=`Toggle ${kind} for all submenus in ${menu}`;
+          const allChk = makeChk(`${menu}-${kind}-all`, Object.values(data[menu]).every(p=>p[kind]), {
+            'data-menu':menu, 'data-kind':kind, 'data-all':'1'
+          });
+          lbl.appendChild(allChk); lbl.appendChild(document.createTextNode(kind.charAt(0).toUpperCase()+kind.slice(1)+' (All)'));
+          allWrap.appendChild(lbl);
         });
-        return `<li class="card" style="padding:10px; margin:8px 0;">
-          <strong>${name}</strong>
-          <div class="muted-sm">View ${v} • Edit ${e} • Add ${a} • Archive ${r}</div>
-        </li>`;
+        head.appendChild(allWrap);
+        item.appendChild(head);
+
+        // Body (submenu rows)
+        const body=document.createElement('div'); body.className='acc-body';
+        //let first=true; // open first menu by default
+        //if (idx===0) { body.classList.add('open'); item.classList.add('open'); }
+        subs.forEach(sub=>{
+          const row=document.createElement('div'); row.className='submenu-row';
+          const name=document.createElement('div'); name.className='submenu-name'; name.textContent=`${menu} › ${sub}`;
+          const toggles=document.createElement('div'); toggles.className='perm-toggles';
+          ['view','edit','add','archive'].forEach(kind=>{
+            const lbl=document.createElement('label');
+            lbl.title = `${kind} permission for ${menu} › ${sub}`;
+            const chk = makeChk(`${menu}-${sub}-${kind}`, !!data[menu][sub][kind], {
+              'data-menu':menu, 'data-sub':sub, 'data-kind':kind
+            });
+            lbl.appendChild(chk); lbl.appendChild(document.createTextNode(kind.charAt(0).toUpperCase()+kind.slice(1)));
+            toggles.appendChild(lbl);
+          });
+          row.appendChild(name); row.appendChild(toggles);
+          body.appendChild(row);
+        });
+        item.appendChild(body);
+        acc.appendChild(item);
+
+        // Toggle open/closed
+        head.addEventListener('click', (ev)=>{
+          // ignore clicks on the "All" checkboxes themselves
+          if (ev.target && ev.target.matches('input[type="checkbox"][data-all]')) return;
+          body.classList.toggle('open'); item.classList.toggle('open');
+        });
+
+        // Wire “All” checkboxes
+        allWrap.querySelectorAll('input[data-all]').forEach(allChk=>{
+          allChk.addEventListener('change', ()=>{
+            const kind=allChk.dataset.kind;
+            const menuName=allChk.dataset.menu;
+            body.querySelectorAll(`input[data-menu="${menuName}"][data-kind="${kind}"][data-sub]`).forEach(cb=>{ cb.checked = allChk.checked; });
+          });
+        });
+      });
+    }
+
+    function readFromUI(){
+      const out={};
+      $$('.submenu-row input[type="checkbox"][data-sub]').forEach(ch=>{
+        const m=ch.dataset.menu, s=ch.dataset.sub, k=ch.dataset.kind;
+        out[m]=out[m]||{}; out[m][s]=out[m][s]||{view:false,edit:false,add:false,archive:false};
+        out[m][s][k]=ch.checked;
+      });
+      return out;
+    }
+
+    function openQuickView(){
+      const roles=loadRoles();
+      const menus=getMenus();
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      const names=['Administrator','Owner','Manager','Employee','View Only'];
+      L.innerHTML = names.map(name=>{
+        const mat = materialize(name);
+        let v=0,e=0,a=0,r=0;
+        Object.values(mat).forEach(subs=>Object.values(subs).forEach(p=>{ if(p.view)v++; if(p.edit)e++; if(p.add)a++; if(p.archive)r++; }));
+        return `<li class="card" style="padding:10px; margin:8px 0;"><strong>${name}</strong>
+          <div class="muted-sm">View ${v} • Edit ${e} • Add ${a} • Archive ${r}</div></li>`;
       }).join('');
       B.style.display='flex';
       $('#qvClose').onclick=()=> B.style.display='none';
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Role change → render matrix
-    function loadRole(roleName){
-      const menus = getMenus();
-      const roles = loadRoles();
-      const preset = defaultPresetFor(roleName, menus);
-      const data = roles[roleName] ? normalizeRole(roles[roleName], menus, {view:false,edit:false,add:false,archive:false}) : preset;
-      renderTable(data);
-      summarize(roleName, data);
-    }
+    // Init & wiring
+    const roleSel=$('#roleSel');
+    function loadRoleUI(){ renderAccordion(roleSel.value); summarize(roleSel.value, materialize(roleSel.value)); }
+    roleSel.addEventListener('change', loadRoleUI);
+    loadRoleUI();
 
-    // Save / Clear
-    $('#roles-form').addEventListener('submit',(e)=>{
+    $('#roles-form').addEventListener('submit', (e)=>{
       e.preventDefault();
-      const role=roleSel.value;
-      const menus=getMenus();
-      const roles=loadRoles();
-      const start = roles[role] || defaultPresetFor(role, menus);
-      const next = readTableInto(start);
-      roles[role] = next;
-      saveRoles(roles);
-      summarize(role, next);
-      alert('Saved role permissions.');
+      const roles=loadRoles(); roles[roleSel.value]=readFromUI(); saveRoles(roles);
+      summarize(roleSel.value, roles[roleSel.value]); alert('Saved role permissions.');
     });
-
     $('#clearBtn').addEventListener('click', ()=>{
-      // Reset current role to default preset
-      const role=roleSel.value;
-      renderTable(defaultPresetFor(role, getMenus()));
-      summarize(role, defaultPresetFor(role, getMenus()));
+      const roles=loadRoles(); delete roles[roleSel.value]; saveRoles(roles); loadRoleUI();
     });
-
-    // Quick View
     $('#quickViewBtn').addEventListener('click', openQuickView);
-
-    // Init
-    loadRole(roleSel.value);
-    roleSel.addEventListener('change', ()=> loadRole(roleSel.value));
 
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
