@@ -17,12 +17,10 @@
   })();
   </script>
 
-  <!-- Theme / App -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <!-- PWA bits -->
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -31,22 +29,38 @@
   <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 
   <style>
-    /* Small structural helpers for this page only */
+    /* Page-local helpers */
     .perm-accordion { display: grid; gap: 14px; }
-    .perm-section { border: 1px solid var(--tile-border); border-radius: 16px; background: var(--tile-bg); box-shadow: var(--tile-shadow); }
+    .perm-section { border:1px solid var(--tile-border); border-radius:16px; background:var(--tile-bg); box-shadow:var(--tile-shadow); }
     .perm-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; cursor:pointer; }
-    .perm-title { font-weight: 700; font-size: 1.05rem; display:flex; align-items:center; gap:8px; }
+    .perm-title { font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; }
     .caret { transition: transform .18s ease; }
-    .perm-body { display:none; padding: 10px 14px 14px; border-top: 1px solid var(--tile-border); }
-    .perm-grid { width:100%; border-collapse: collapse; }
-    .perm-grid th, .perm-grid td { padding: 8px 6px; }
-    .perm-grid thead th { font-weight: 700; text-align:left; }
-    .perm-grid tbody tr + tr td { border-top: 1px dashed var(--tile-border); }
-    .perm-selectall { display:flex; align-items:center; gap:16px; padding: 6px 0 10px; border-bottom: 1px solid var(--tile-border); margin-bottom: 8px; }
-    .muted-note { color: var(--muted, #666); font-size: .92rem; }
-    .role-row { display:grid; grid-template-columns: 1fr; gap: 12px; }
-    .role-row .field { min-width: 220px; }
-    .btn-sq-wrap { display:grid; gap:10px; grid-template-columns: 92px 92px; justify-content:center; }
+    .perm-body { display:none; padding: 10px 14px 14px; border-top:1px solid var(--tile-border); }
+
+    /* Select-all row */
+    .perm-selectall { display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding: 6px 0 10px; border-bottom:1px solid var(--tile-border); margin-bottom:10px; }
+    .perm-selectall strong { min-width: 180px; }
+
+    /* Submenu blocks – VERTICAL, no horizontal scrolling */
+    .perm-items { display:grid; gap:12px; }
+    .perm-item { border:1px dashed var(--tile-border); border-radius:12px; padding:10px 12px; }
+    .perm-item__title { font-weight:600; margin-bottom:8px; }
+    .perm-item__checks { display:grid; grid-template-columns: repeat(2, minmax(140px, 1fr)); gap:8px 16px; }
+    @media (min-width: 640px) {
+      .perm-item__checks { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+    }
+
+    /* Make sure checkboxes are clearly visible/tappable */
+    input[type="checkbox"]{
+      -webkit-appearance: checkbox;
+      appearance: checkbox;
+      width: 18px; height: 18px;
+      margin: 0;
+    }
+    .cb { display:flex; align-items:center; gap:8px; }
+
+    .muted-note { color: var(--muted,#666); font-size:.92rem; }
+    .btn-sq-wrap { display:grid; gap:10px; grid-template-columns:92px 92px; justify-content:center; }
   </style>
 </head>
 <body>
@@ -71,29 +85,24 @@
   </nav>
 
   <main class="content" data-has-form>
-    <!-- Title row with Quick View -->
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">🛡️ Account Roles</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
     <div style="margin-top:12px;"></div>
 
-    <!-- Role picker -->
     <form id="roles-form" novalidate>
-      <div class="role-row">
-        <div class="field">
-          <label for="roleSel">Role <span style="color:#b00020">*</span></label>
-          <select id="roleSel" required>
-            <option>Administrator</option>
-            <option>Owner</option>
-            <option>Manager</option>
-            <option>Employee</option>
-            <option>View Only</option>
-          </select>
-        </div>
+      <div class="field" style="max-width:420px;">
+        <label for="roleSel">Role <span style="color:#b00020">*</span></label>
+        <select id="roleSel" required>
+          <option>Administrator</option>
+          <option>Owner</option>
+          <option>Manager</option>
+          <option>Employee</option>
+          <option>View Only</option>
+        </select>
       </div>
 
-      <!-- Permissions accordion -->
       <section class="card" style="padding:14px; margin-top:10px;">
         <h2 style="margin:0 0 6px 0;">Permissions</h2>
         <p class="muted-note" style="margin:0 0 8px 0;">
@@ -102,7 +111,6 @@
 
         <div id="permAccordion" class="perm-accordion"></div>
 
-        <!-- Button grid -->
         <section class="card" style="padding:12px; margin-top:12px;">
           <div class="btn-sq-wrap">
             <button class="btn-primary" type="submit" id="saveBtn">Save</button>
@@ -113,7 +121,6 @@
     </form>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -138,7 +145,6 @@
     const $ = (s, r=document) => r.querySelector(s);
     const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-    // Menus/submenus exactly like the app (tweak as needed)
     const MENUS = {
       "Home": ["—"],
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
@@ -150,46 +156,28 @@
       "Feedback": ["Ideas","Bugs / Issues"],
       "Setup / Settings": ["Farms","Fields","Products","Theme","Account Roles","Crop Types","Settings"]
     };
-
-    // Fixed list of permissions we support (used for headers / keys)
     const PERMS = ["view","edit","add","archive"];
+    const STORE_KEY = "df_roles";
 
-    // Storage helpers
-    const STORE_KEY = "df_roles"; // { roleName: { Menu: { Submenu: {view:true,...} } } }
     const loadAll = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || "{}"); } catch(_) { return {}; } };
     const saveAll = (obj) => localStorage.setItem(STORE_KEY, JSON.stringify(obj));
+    const getRoleState = role => loadAll()[role] || {};
+    const setRoleState = (role, state) => { const all=loadAll(); all[role]=state; saveAll(all); };
 
-    function getRoleState(role) {
-      const all = loadAll();
-      return all[role] || {};
-    }
-    function setRoleState(role, state) {
-      const all = loadAll();
-      all[role] = state;
-      saveAll(all);
-    }
-
-    // ----- UI BUILD -----
     const acc = $("#permAccordion");
 
-    function buildAccordion() {
+    function buildAccordion(){
       acc.innerHTML = "";
-
-      Object.entries(MENUS).forEach(([menu, subs], idx) => {
+      Object.entries(MENUS).forEach(([menu, subs])=>{
         const sec = document.createElement("div");
-        sec.className = "perm-section";
-        sec.dataset.menu = menu;
+        sec.className = "perm-section"; sec.dataset.menu = menu;
 
         const head = document.createElement("div");
         head.className = "perm-head";
         head.innerHTML = `
-          <div class="perm-title">
-            <span class="caret" aria-hidden="true">›</span>
-            <span>${menu}</span>
-          </div>
+          <div class="perm-title"><span class="caret">›</span><span>${menu}</span></div>
           <div></div>
         `;
-
         const body = document.createElement("div");
         body.className = "perm-body";
 
@@ -197,9 +185,9 @@
         const selAll = document.createElement("div");
         selAll.className = "perm-selectall";
         selAll.innerHTML = `
-          <strong style="min-width:160px;">Select all in ${menu}</strong>
+          <strong>Select all in ${menu}</strong>
           ${PERMS.map(p => `
-            <label style="display:flex;align-items:center;gap:6px;">
+            <label class="cb">
               <input type="checkbox" class="perm-all" data-perm="${p}" />
               <span>${p.charAt(0).toUpperCase()+p.slice(1)}</span>
             </label>
@@ -207,44 +195,36 @@
         `;
         body.appendChild(selAll);
 
-        // Grid header + rows
-        const table = document.createElement("table");
-        table.className = "perm-grid";
-        const thead = document.createElement("thead");
-        thead.innerHTML = `
-          <tr>
-            <th style="min-width:180px;">Menu › Submenu</th>
-            ${PERMS.map(p => `<th>${p.charAt(0).toUpperCase()+p.slice(1)}</th>`).join("")}
-          </tr>
-        `;
-        table.appendChild(thead);
-
-        const tbody = document.createElement("tbody");
-        subs.forEach(sub => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td><span class="muted">${menu}</span> › <strong>${sub}</strong></td>
-            ${PERMS.map(p => `
-              <td>
-                <input type="checkbox" class="perm-cb" data-menu="${menu}" data-sub="${sub}" data-perm="${p}" />
-              </td>
-            `).join("")}
+        // Submenu items (vertical)
+        const items = document.createElement("div");
+        items.className = "perm-items";
+        subs.forEach(sub=>{
+          const item = document.createElement("div");
+          item.className = "perm-item";
+          item.innerHTML = `
+            <div class="perm-item__title"><span class="muted">${menu}</span> › <strong>${sub}</strong></div>
+            <div class="perm-item__checks">
+              ${PERMS.map(p => `
+                <label class="cb">
+                  <input type="checkbox" class="perm-cb" data-menu="${menu}" data-sub="${sub}" data-perm="${p}">
+                  <span>${p.charAt(0).toUpperCase()+p.slice(1)}</span>
+                </label>
+              `).join("")}
+            </div>
           `;
-          tbody.appendChild(tr);
+          items.appendChild(item);
         });
-        table.appendChild(tbody);
-        body.appendChild(table);
+        body.appendChild(items);
 
-        // Collapse initial state
+        // collapsed by default
         body.style.display = "none";
         head.querySelector(".caret").style.transform = "rotate(0deg)";
 
-        // Toggle
-        head.addEventListener("click", () => {
+        head.addEventListener("click", ()=>{
           const open = body.style.display !== "none";
           body.style.display = open ? "none" : "block";
           head.querySelector(".caret").style.transform = open ? "rotate(0deg)" : "rotate(90deg)";
-          if (!open) syncMenuSelectAll(sec); // refresh select-all states when opening
+          if (!open) syncMenuSelectAll(sec);
         });
 
         sec.appendChild(head);
@@ -253,155 +233,129 @@
       });
     }
 
-    // ----- APPLY / READ STATE -----
-    function clearChecks() {
-      $$(".perm-cb").forEach(cb => { cb.checked = false; });
+    function clearChecks(){
+      $$(".perm-cb").forEach(cb => cb.checked = false);
       $$(".perm-all").forEach(cb => { cb.checked = false; cb.indeterminate = false; });
     }
 
-    function applyRole(role) {
+    function applyRole(role){
       clearChecks();
       const state = getRoleState(role);
-      Object.entries(state).forEach(([menu, subs]) => {
-        Object.entries(subs).forEach(([sub, perms]) => {
-          PERMS.forEach(p => {
+      Object.entries(state).forEach(([menu, subs])=>{
+        Object.entries(subs).forEach(([sub, perms])=>{
+          PERMS.forEach(p=>{
             const cb = $(`.perm-cb[data-menu="${CSS.escape(menu)}"][data-sub="${CSS.escape(sub)}"][data-perm="${p}"]`);
-            if (cb && perms && typeof perms[p] === "boolean") cb.checked = !!perms[p];
+            if (cb && typeof perms[p] === "boolean") cb.checked = !!perms[p];
           });
         });
       });
-      // update all select-all rows for current checks
       $$(".perm-section").forEach(sec => syncMenuSelectAll(sec));
     }
 
-    function readStateFromUI() {
-      const roleState = {};
-      $$(".perm-cb").forEach(cb => {
-        const menu = cb.dataset.menu, sub = cb.dataset.sub, perm = cb.dataset.perm;
-        roleState[menu] = roleState[menu] || {};
-        roleState[menu][sub] = roleState[menu][sub] || {};
-        roleState[menu][sub][perm] = cb.checked;
+    function readStateFromUI(){
+      const state = {};
+      $$(".perm-cb").forEach(cb=>{
+        const m=cb.dataset.menu, s=cb.dataset.sub, p=cb.dataset.perm;
+        state[m] = state[m] || {};
+        state[m][s] = state[m][s] || {};
+        state[m][s][p] = cb.checked;
       });
-      return roleState;
+      return state;
     }
 
-    // ----- SELECT-ALL logic -----
-    function syncMenuSelectAll(sectionEl) {
+    function syncMenuSelectAll(sectionEl){
       const menu = sectionEl.dataset.menu;
-      PERMS.forEach(p => {
+      PERMS.forEach(p=>{
         const allBox = sectionEl.querySelector(`.perm-all[data-perm="${p}"]`);
         if (!allBox) return;
         const cbs = $$(`.perm-cb[data-menu="${CSS.escape(menu)}"][data-perm="${p}"]`, sectionEl);
-        const checked = cbs.filter(cb => cb.checked).length;
-        if (checked === 0) { allBox.checked = false; allBox.indeterminate = false; }
-        else if (checked === cbs.length) { allBox.checked = true; allBox.indeterminate = false; }
+        const checked = cbs.filter(cb=>cb.checked).length;
+        if (checked === 0){ allBox.checked = false; allBox.indeterminate = false; }
+        else if (checked === cbs.length){ allBox.checked = true; allBox.indeterminate = false; }
         else { allBox.checked = false; allBox.indeterminate = true; }
       });
     }
 
-    function attachHandlers() {
-      // When any submenu checkbox changes, refresh that menu's select-all row
-      acc.addEventListener("change", (e) => {
+    function attachHandlers(){
+      acc.addEventListener("change", (e)=>{
         const t = e.target;
-        if (t.classList.contains("perm-cb")) {
+        if (t.classList.contains("perm-cb")){
           const sec = t.closest(".perm-section");
           if (sec) syncMenuSelectAll(sec);
         }
       });
-
-      // Select-all toggles
-      acc.addEventListener("change", (e) => {
+      acc.addEventListener("change", (e)=>{
         const t = e.target;
         if (!t.classList.contains("perm-all")) return;
         const sec = t.closest(".perm-section");
         const menu = sec.dataset.menu;
         const perm = t.dataset.perm;
-        const boxes = $$(`.perm-cb[data-menu="${CSS.escape(menu)}"][data-perm="${perm}"]`, sec);
-        boxes.forEach(cb => cb.checked = t.checked);
+        $$(`.perm-cb[data-menu="${CSS.escape(menu)}"][data-perm="${perm}"]`, sec)
+          .forEach(cb => cb.checked = t.checked);
         syncMenuSelectAll(sec);
       });
 
-      // Save
-      $("#roles-form").addEventListener("submit", (e) => {
+      $("#roles-form").addEventListener("submit", (e)=>{
         e.preventDefault();
-        const role = $("#roleSel").value;
-        const state = readStateFromUI();
-        setRoleState(role, state);
+        setRoleState($("#roleSel").value, readStateFromUI());
         toast("Permissions saved");
       });
 
-      // Clear (uncheck everything for the current role)
-      $("#clearBtn").addEventListener("click", () => {
-        if (!confirm("Clear all permissions for this role on the page (unsaved until you press Save)?")) return;
+      $("#clearBtn").addEventListener("click", ()=>{
+        if (!confirm("Clear all permissions on screen for this role (unsaved until Save)?")) return;
         clearChecks();
       });
 
-      // Role change
-      $("#roleSel").addEventListener("change", () => applyRole($("#roleSel").value));
+      $("#roleSel").addEventListener("change", ()=>applyRole($("#roleSel").value));
 
       // Quick View
       $("#quickViewBtn").addEventListener("click", openQuickView);
-      $("#qvClose").addEventListener("click", () => $("#qvBackdrop").style.display = "none");
-      $("#qvBackdrop").addEventListener("click", (e)=>{ if(e.target === $("#qvBackdrop")) $("#qvBackdrop").style.display = "none"; });
+      $("#qvClose").addEventListener("click", ()=> $("#qvBackdrop").style.display = "none");
+      $("#qvBackdrop").addEventListener("click", (e)=>{ if(e.target.id==='qvBackdrop') $("#qvBackdrop").style.display='none'; });
     }
 
     function openQuickView(){
       const role = $("#roleSel").value;
-      const state = readStateFromUI(); // reflect current UI (even if not saved yet)
-      const wrap = document.createElement("div");
-
-      Object.entries(MENUS).forEach(([menu, subs]) => {
-        const block = document.createElement("div");
-        block.style.margin = "8px 0 10px";
+      const state = readStateFromUI();
+      const body = $("#qvBody");
+      body.innerHTML = "";
+      Object.entries(MENUS).forEach(([menu, subs])=>{
         const h = document.createElement("h3");
-        h.textContent = menu;
-        h.style.margin = "8px 0 4px";
-        block.appendChild(h);
-
-        const ul = document.createElement("ul");
-        ul.style.margin = 0; ul.style.paddingLeft = "18px";
-
-        subs.forEach(sub => {
-          const li = document.createElement("li");
+        h.textContent = menu; h.style.margin = "8px 0 4px";
+        const ul = document.createElement("ul"); ul.style.margin=0; ul.style.paddingLeft="18px";
+        subs.forEach(sub=>{
           const perms = (state[menu] && state[menu][sub]) || {};
-          const on = PERMS.filter(p => perms[p]).map(p => p[0].toUpperCase() + p.slice(1));
+          const on = ["view","edit","add","archive"].filter(k=>perms[k]).map(k=>k[0].toUpperCase()+k.slice(1));
+          const li = document.createElement("li");
           li.textContent = `${sub} — ${on.length ? on.join(", ") : "No access"}`;
           ul.appendChild(li);
         });
-
-        block.appendChild(ul);
-        wrap.appendChild(block);
+        body.appendChild(h); body.appendChild(ul);
       });
-
-      $("#qvBody").innerHTML = "";
-      $("#qvBody").appendChild(wrap);
-      $("#qvBackdrop").style.display = "flex";
       $("#qvTitle").textContent = `Role Permissions — ${role}`;
+      $("#qvBackdrop").style.display = "flex";
     }
 
-    // Simple toast like on other pages
     function toast(msg){
       let box = document.getElementById("dfToast");
-      if (!box) {
+      if (!box){
         box = document.createElement("div");
-        box.id = "dfToast";
-        box.style.cssText = "position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg,rgba(0,0,0,.03));box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999;display:none;";
+        box.id="dfToast";
+        box.style.cssText="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg,rgba(0,0,0,.03));box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999;display:none;";
         box.innerHTML = '<span id="dfToastText">Saved</span>';
         document.body.appendChild(box);
       }
-      const txt = document.getElementById("dfToastText");
-      txt.textContent = msg || "Saved";
+      document.getElementById("dfToastText").textContent = msg || "Saved";
       box.style.display = "block";
-      clearTimeout(window.__df_toast);
-      window.__df_toast = setTimeout(()=> box.style.display = "none", 1800);
+      clearTimeout(window.__toast);
+      window.__toast = setTimeout(()=> box.style.display = "none", 1800);
     }
 
-    // Build + wire + initial apply
+    // Init
     buildAccordion();
     attachHandlers();
     applyRole($("#roleSel").value);
 
-    // Breadcrumbs safety (keeps style uniform)
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Setup / Settings', href:'settings.html'},
@@ -410,7 +364,6 @@
   })();
   </script>
 
-  <!-- (Optional) service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
