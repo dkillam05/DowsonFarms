@@ -155,7 +155,10 @@
       <p class="muted-small" style="margin-top:-6px;">Grant access to specific Menus and Submenus in addition to the chosen Role.</p>
       <div class="line" style="gap:10px;align-items:center;margin:4px 0 10px;">
         <input id="exSearch" placeholder="Search menus…" style="flex:1;font-size:16px;height:40px;padding:8px 12px;border-radius:10px;">
-        <label class="muted"><input type="checkbox" id="exEnable"> Enable overrides for this employee</label>
+        <!-- CHANGED: pill toggle instead of plain checkbox label -->
+        <button type="button" class="pill" id="exEnableBtn" aria-pressed="false" title="Enable overrides">
+          Enable overrides for this employee
+        </button>
       </div>
       <div id="exList" style="max-height:min(52vh,500px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px; padding:6px;"></div>
       <div class="modal-actions" style="justify-content:space-between;">
@@ -227,13 +230,10 @@
       if(value) sel.value=value;
     }
 
-    // Menus source (object map preferred; fallback to simple list used earlier)
+    // Menus
     function getMenusObject(){
-      // Prefer the object map used by Account Roles so labels/order match
       const obj = load(MENUS_MAP_KEY, null);
       if (obj && typeof obj === 'object') return obj;
-
-      // Fallback to a sane default if not present
       return {
         "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
         "Grain Tracking": ["Bins","Tickets","Contracts"],
@@ -279,7 +279,7 @@
     }
 
     // ---------- Permission Overrides (pills) ----------
-    const exState = { enabled:false, grants:{} }; // key "Menu>Submenu" or "Menu>*" ➜ {view,edit,add,archive,delete}
+    const exState = { enabled:false, grants:{} };
 
     function curryPill(label, on){
       const b=document.createElement('button');
@@ -315,7 +315,6 @@
       return row;
     }
 
-    // build modal list
     function openExceptions(existing){
       // Back-compat translate: old {enabled,allow:[ids]} ➜ grants with all five true
       let draft = { enabled:false, grants:{} };
@@ -334,7 +333,10 @@
 
       const MENUS = getMenusObject();
       const B=$('#exBackdrop'), L=$('#exList');
-      $('#exEnable').checked = exState.enabled;
+      const enableBtn = $('#exEnableBtn');
+
+      // Reflect enabled state on the pill button
+      enableBtn.setAttribute('aria-pressed', exState.enabled ? 'true' : 'false');
 
       // Build groups
       L.innerHTML = '';
@@ -353,12 +355,10 @@
         const parentRow = makePillRow(exState.grants[`${menuName}>*`], !exState.enabled);
         parent.append(left,parentRow);
 
-        // Sync parent pills to all children
         parentRow.addEventListener('click', (e)=>{
           if(e.target.classList.contains('pill')){
             const state = pillStateToObj(parentRow);
             exState.grants[`${menuName}>*`] = state;
-            // cascade to each child row (visual only; user can still tweak per child after)
             group.querySelectorAll('[data-subrow]').forEach(r=>{
               setPillsFromObj(r, state);
               const key=r.dataset.key;
@@ -381,9 +381,7 @@
               exState.grants[key] = pillStateToObj(pills);
             }
           });
-          if(!exState.enabled){ // disabled view
-            row.style.opacity=.6;
-          }
+          if(!exState.enabled){ row.style.opacity=.6; }
           row.append(label,pills);
           kidsWrap.appendChild(row);
         });
@@ -392,7 +390,6 @@
         L.appendChild(group);
       });
 
-      // Enable/disable mode
       function setEnabledUI(on){
         L.querySelectorAll('.pill').forEach(p=>{
           if(on) p.removeAttribute('disabled'); else p.setAttribute('disabled','');
@@ -403,8 +400,10 @@
       }
       setEnabledUI(exState.enabled);
 
-      $('#exEnable').onchange = (e)=>{
-        exState.enabled = e.target.checked;
+      // Toggle handler for the NEW pill button
+      enableBtn.onclick = ()=>{
+        exState.enabled = !exState.enabled;
+        enableBtn.setAttribute('aria-pressed', exState.enabled ? 'true' : 'false');
         setEnabledUI(exState.enabled);
       };
 
@@ -424,7 +423,6 @@
       $('#exCancel').onclick=()=> B.style.display='none';
       $('#exSave').onclick=()=>{
         B.style.display='none';
-        // prune empty grants (all false ➜ remove)
         Object.keys(exState.grants).forEach(k=>{
           const g=exState.grants[k];
           const any = g && (g.view||g.edit||g.add||g.archive||g.delete);
@@ -516,7 +514,7 @@
       const last  = titleCase(($('#empLast').value||'').trim());
       const email = ($('#empEmail').value||'').trim();
       if(!first || !last || !email){ alert('Enter First, Last, and Email to send an invite.'); return; }
-      const id = (first + ' ' + last).toLowerCase();
+      const id = (first + ' last').toLowerCase();
       const item = {
         id, first, last,
         phone: $('#empPhone').value,
