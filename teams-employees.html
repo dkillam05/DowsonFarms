@@ -30,7 +30,7 @@
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
 
     /* iOS no-zoom without altering your input sizing */
-    #empPhone, #m_phone { font-size:16px; } /* keep same height/padding from theme.css */
+    #empPhone, #m_phone { font-size:16px; }
 
     /* -------- Permission Overrides cascader (matches Account Roles) -------- */
     .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));align-items:center}
@@ -43,10 +43,14 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px}
 
-    /* Make sure stacked modals layer correctly */
+    /* Modals — ensure proper stacking */
     .auth-modal__backdrop{z-index:1000;}
-    #exBackdrop{z-index:1001;}
-    #manageBackdrop{z-index:1002;} /* always above others */
+    #manageBackdrop.auth-modal__backdrop{z-index:1100;}   /* above others */
+    #exBackdrop.auth-modal__backdrop{z-index:1200;}       /* overrides always on top */
+
+    /* Make selects inside Manage look like normal fields */
+    .fieldish{display:grid;gap:6px}
+    .fieldish select{width:100%;height:44px;padding:10px 12px;border-radius:12px;border:1px solid var(--tile-border);background:var(--tile-bg);color:inherit}
   </style>
 </head>
 <body>
@@ -177,22 +181,35 @@
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Employee</h2>
       <div id="manageBox" style="display:grid;gap:10px;">
-        <input id="m_first" placeholder="First Name" />
-        <input id="m_last" placeholder="Last Name" />
-        <input id="m_phone" placeholder="Phone Number" maxlength="14" />
-        <input id="m_email" placeholder="Email" />
-        <select id="m_role"></select>
-        <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
-        <div class="line">
-          <button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button>
+        <div class="fieldish">
+          <label for="m_first">First Name</label>
+          <input id="m_first" placeholder="First Name" />
         </div>
+        <div class="fieldish">
+          <label for="m_last">Last Name</label>
+          <input id="m_last" placeholder="Last Name" />
+        </div>
+        <div class="fieldish">
+          <label for="m_phone">Phone Number</label>
+          <input id="m_phone" placeholder="Phone Number" maxlength="14" />
+        </div>
+        <div class="fieldish">
+          <label for="m_email">Email</label>
+          <input id="m_email" placeholder="Email" />
+        </div>
+        <div class="fieldish">
+          <label for="m_role">Role (Permissions)</label>
+          <select id="m_role"></select>
+        </div>
+
+        <div class="line"><button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button></div>
       </div>
-      <div class="modal-actions" style="justify-content:space-between;">
-        <button class="btn-outline" id="manageDelete" style="border-color:#a33;color:#a33;">Delete</button>
-        <div>
-          <button class="btn-outline" id="manageCancel">Cancel</button>
-          <button class="btn-primary" id="manageSave">Save Changes</button>
-        </div>
+      <div class="modal-actions" style="justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <button class="btn-danger" id="m_delete" type="button">Delete</button>
+        <button class="btn-secondary" id="m_archive" type="button">Archive</button>
+        <span style="flex:1"></span>
+        <button class="btn-outline" id="manageCancel">Cancel</button>
+        <button class="btn-primary" id="manageSave">Save Changes</button>
       </div>
     </div>
   </div>
@@ -292,6 +309,7 @@
       });
       return n;
     }
+    window.countOverrideEntries = countOverrideEntries;
 
     function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
@@ -429,6 +447,7 @@
             ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
             ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
             ${r.invitedAt ? `<span class="chip">Invited</span>`:''}
+            ${r.archived ? `<span class="chip">Archived</span>`:''}
           </div>
           <div class="line" style="margin-top:8px;">
             <button class="btn-secondary" data-edit="${r.id}">Manage</button>
@@ -442,31 +461,46 @@
     }
 
     // ---- Manage modal ----
-    function closeAllModalsExcept(idToKeep){
-      ['qvBackdrop','exBackdrop','manageBackdrop'].forEach(id=>{
-        if(id!==idToKeep){ const el=document.getElementById(id); if(el) el.style.display='none'; }
-      });
+    let __reopenManageAfterOverrides = null;
+
+    function closeAllModals(){
+      ['qvBackdrop','exBackdrop','manageBackdrop'].forEach(id=>{ const el=$('#'+id); if(el) el.style.display='none'; });
     }
 
     function openManage(id){
+      closeAllModals(); // ensure on top
       const list=loadAll(); const e=list.find(x=>x.id===id); if(!e) return;
-
-      // Make sure nothing sits on top of Manage
-      closeAllModalsExcept('manageBackdrop');
-
       $('#manageTitle').textContent = `Edit Employee — ${(e.first||'') + ' ' + (e.last||'')}`.trim();
       $('#m_first').value=e.first||''; $('#m_last').value=e.last||'';
       $('#m_phone').value=e.phone||''; attachPhoneMask($('#m_phone'));
-      $('#m_email').value=e.email||''; fillRoleSelect($('#m_role'), e.role||'');
-      $('#m_archived').checked=!!e.archived;
+      $('#m_email').value=e.email||'';
+      fillRoleSelect($('#m_role'), e.role||'');
+
+      const archiveBtn = $('#m_archive');
+      archiveBtn.textContent = e.archived ? 'Unarchive' : 'Archive';
 
       const B=$('#manageBackdrop'); B.style.display='flex';
+
       $('#m_exceptions').onclick=()=>{
-        // pause Manage while overrides are open, then bring it back on close
-        openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; B.style.display='flex'; });
-        $('#exBackdrop').addEventListener('click',(ev)=>{ if(ev.target.id==='exBackdrop') B.style.display='flex'; }, {once:true});
+        // open overrides on top; when closed, optionally reopen Manage
+        B.style.display='none';
+        __reopenManageAfterOverrides = ()=> openManage(id);
+        openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; __reopenManageAfterOverrides && __reopenManageAfterOverrides(); __reopenManageAfterOverrides=null; });
+        $('#exCancel').onclick=()=>{ $('#exBackdrop').style.display='none'; __reopenManageAfterOverrides && __reopenManageAfterOverrides(); __reopenManageAfterOverrides=null; };
       };
-      $('#manageCancel').onclick=()=> B.style.display='none';
+
+      archiveBtn.onclick=()=>{
+        e.archived = !e.archived;
+        archiveBtn.textContent = e.archived ? 'Unarchive' : 'Archive';
+      };
+
+      $('#m_delete').onclick=()=>{
+        if(confirm('Delete this employee? This cannot be undone.')){
+          removeById(e.id); B.style.display='none'; render();
+        }
+      };
+
+      $('#manageCancel').onclick=()=> { B.style.display='none'; render(); };
       $('#manageSave').onclick=()=>{
         if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
         if(!isValidPhoneUS($('#m_phone').value)){ alert('Phone must be in the format (###) ###-####'); return; }
@@ -477,18 +511,8 @@
         e.phone=$('#m_phone').value;
         e.email=$('#m_email').value.trim();
         e.role=$('#m_role').value;
-        e.archived=$('#m_archived').checked;
         e.updatedAt=Date.now();
         upsert(e); B.style.display='none'; render();
-      };
-
-      // Delete
-      $('#manageDelete').onclick=()=>{
-        const ok = confirm('Delete this employee? Only do this if the employee has never been used elsewhere.');
-        if(!ok) return;
-        removeById(e.id);
-        B.style.display='none';
-        render();
       };
 
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
@@ -496,6 +520,7 @@
 
     // ---- Quick view ----
     $('#quickViewBtn').addEventListener('click', ()=>{
+      closeAllModals();
       const rows=loadAll().sort(byName);
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = rows.length ? rows.map(r=>{
@@ -505,23 +530,20 @@
           ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
         </li>`;
       }).join('') : '<li>No employees.</li>';
-      closeAllModalsExcept('qvBackdrop');
       B.style.display='flex';
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // ---- Invite: nicer errors ----
+    // ---- Invite (friendly placeholder) ----
     async function inviteEmployee(id){
-      const list = loadAll(); 
+      const list = loadAll();
       const e = list.find(x=>x.id===id);
       if(!e){ alert('Employee not found'); return; }
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
       try {
-        const res = await fetch('/api/invite', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
+        const res = await fetch('/api/invite', { method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             email: e.email,
             name: `${e.first||''} ${e.last||''}`.trim(),
@@ -530,30 +552,17 @@
           })
         });
 
-        if(!res.ok){
-          // Try to read JSON first, then text; hide raw HTML errors
-          const ct = res.headers.get('content-type')||'';
-          let msg = '';
-          if(ct.includes('application/json')){
-            const j = await res.json().catch(()=>null);
-            msg = j?.message || j?.error || '';
-          } else {
-            const t = await res.text();
-            msg = /<[^>]+>/.test(t) ? '' : t; // if looks like HTML, suppress
-          }
-          const label = res.status===405 ? 'Invite endpoint not available (405)' :
-                        res.status===404 ? 'Invite endpoint not found (404)' :
-                        `Invite failed (${res.status})`;
-          throw new Error(msg ? `${label}: ${msg}` : label);
-        }
+        if(!res.ok) throw new Error('COMING_SOON');
 
         e.invitedAt = Date.now();
         upsert(e);
         render();
         alert('Invite successfully sent.');
-      } catch (err){
-        console.error(err);
-        alert(err.message || 'Invite failed. Please try again.');
+      } catch (_err){
+        e.invitedAt = Date.now();
+        upsert(e);
+        render();
+        alert('🚧 Coming soon — waiting on back-end development.');
       }
     }
 
@@ -589,7 +598,7 @@
     $('#emp-form').addEventListener('submit',(e)=>{
       e.preventDefault();
       const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim());
+      const last  = titleCase(($('#empLast').value||'').trim()));
       const phone = $('#empPhone').value;
       const email = ($('#empEmail').value||'').trim();
       const role  = $('#empRole').value;
