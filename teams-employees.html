@@ -3,55 +3,107 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
   <title>Employees — Dowson Farms</title>
   <script>
-(function () {
-  var pref = localStorage.getItem('df_theme') || 'auto';
-  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-  document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-})();
-</script>
-  
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
 
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
-
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#1B5E20" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+  <style>
+    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
+    .row-center {display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+    .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .muted-small{opacity:.8;font-size:.9rem}
+  </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--:-- AM</span>
-    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="index.html#/teams">Teams &amp; Partners</a></li>
+      <li><a href="teams-partners.html">Teams &amp; Partners</a></li>
       <li class="sep">›</li>
       <li><span>Employees</span></li>
     </ol>
   </nav>
 
-  <main class="content">
-    <h1>🧑🏼‍🌾 Employees</h1>
-    <p>🚧 Coming soon…</p>
+  <!-- Main -->
+  <main class="content" data-has-form>
+    <div class="row-center">
+      <h1 style="margin:0;">👥 Employees</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+    </div>
+    <div style="margin-top:12px;"></div>
+
+    <!-- FORM -->
+    <form id="emp-form" novalidate>
+      <div class="field">
+        <label for="empName">Name <span class="req-star">*</span></label>
+        <input id="empName" type="text" required placeholder="Type employee name…" />
+      </div>
+
+      <div class="field">
+        <label for="empRole">Role / Title</label>
+        <input id="empRole" type="text" placeholder="e.g., Operator, Mechanic, Agronomy" />
+      </div>
+
+      <div class="field">
+        <label for="empTeam">Team</label>
+        <input id="empTeam" type="text" placeholder="e.g., Harvest, Shop, Agronomy" />
+      </div>
+
+      <div class="field">
+        <label for="empPhone">Phone</label>
+        <input id="empPhone" type="tel" inputmode="tel" placeholder="(###) ###-####" />
+      </div>
+
+      <div class="field">
+        <label for="empEmail">Email</label>
+        <input id="empEmail" type="email" inputmode="email" placeholder="name@example.com" />
+      </div>
+
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div class="grid2">
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+        </div>
+      </section>
+    </form>
+
+    <!-- SAVED -->
+    <section class="card" id="savedCard" style="margin-top:16px;">
+      <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
+      <div class="row" style="align-items:center; gap:12px;">
+        <input id="searchInput" class="search" type="search" placeholder="Search employees…" />
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
+      </div>
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
+    </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -60,39 +112,150 @@
     <span id="version">v0.0.0</span>
   </footer>
 
+  <!-- Quick View -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Employees</h2>
+      <ul id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage/Edit Modal -->
+  <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
+      <h2 id="manageTitle">Edit Employee</h2>
+      <div class="row" style="gap:10px;align-items:center;margin:4px 0 10px;">
+        <span class="muted-small">Update details and Save</span>
+      </div>
+      <div id="manageBox" style="display:grid;gap:10px;">
+        <input id="m_name" placeholder="Name" />
+        <input id="m_role" placeholder="Role / Title" />
+        <input id="m_team" placeholder="Team" />
+        <input id="m_phone" placeholder="Phone" />
+        <input id="m_email" placeholder="Email" />
+        <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
+      </div>
+      <div class="modal-actions" style="justify-content:space-between;">
+        <button class="btn-outline" id="manageCancel">Cancel</button>
+        <button class="btn-primary" id="manageSave">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    if (window.__DF_CLOCK_INTERVAL) clearInterval(window.__DF_CLOCK_INTERVAL);
-    function updateClock(){
-      const el = document.getElementById('clock');
-      if(!el) return;
-      el.textContent = new Date().toLocaleTimeString('en-US', {
-        hour:'2-digit', minute:'2-digit', second:'2-digit',
-        hour12:true, timeZone:'America/Chicago'
+  (function EmployeesPage(){
+    const KEY='df.employees';
+    const $=s=>document.querySelector(s);
+    const $list=$('#savedList');
+
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
+    function save(v){ localStorage.setItem(KEY, JSON.stringify(v)) }
+    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list); }
+
+    function badge(s, cls){ return s?`<span class="chip">${s}</span>`:''; }
+
+    function render(){
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
+      const rows=load()
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>!q || (x.name?.toLowerCase().includes(q) || x.role?.toLowerCase().includes(q) || x.team?.toLowerCase().includes(q)))
+        .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+
+      $list.innerHTML = rows.length ? rows.map(r=>`
+        <li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line">
+            <strong>${r.name}</strong>
+            ${badge(r.role)}
+            ${badge(r.team)}
+            ${badge(r.phone)}
+            ${badge(r.email)}
+          </div>
+          <div class="line" style="margin-top:8px;">
+            <button class="btn-secondary" data-edit="${r.id}">Manage</button>
+          </div>
+        </li>
+      `).join('') : '<li class="muted">No employees yet.</li>';
+
+      $list.querySelectorAll('[data-edit]').forEach(b=>{
+        b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit')));
       });
     }
-    updateClock();
-    window.__DF_CLOCK_INTERVAL = setInterval(updateClock, 1000);
 
-    // Footer date (today, Central)
-    (function(){
-      const el = document.getElementById('report-date');
-      if (el) el.textContent = new Date().toLocaleDateString('en-US', {
-        year:'numeric', month:'long', day:'numeric', timeZone:'America/Chicago'
-      });
-    })();
+    function openManage(id){
+      const list=load(); const e=list.find(x=>x.id===id); if(!e) return;
+      $('#manageTitle').textContent = `Edit Employee — ${e.name}`;
+      $('#m_name').value=e.name||''; $('#m_role').value=e.role||''; $('#m_team').value=e.team||'';
+      $('#m_phone').value=e.phone||''; $('#m_email').value=e.email||''; $('#m_archived').checked=!!e.archived;
 
-    // Footer version from version.js
-    (function(){
-      const v = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'v10.14.7';
-      const el = document.getElementById('version');
-      if (el) el.textContent = v;
-    })();
-
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
-      });
+      const B=$('#manageBackdrop'); B.style.display='flex';
+      $('#manageCancel').onclick=()=> B.style.display='none';
+      $('#manageSave').onclick=()=>{
+        e.name=titleCase($('#m_name').value||'');
+        e.role=$('#m_role').value||'';
+        e.team=$('#m_team').value||'';
+        e.phone=$('#m_phone').value||'';
+        e.email=$('#m_email').value||'';
+        e.archived=$('#m_archived').checked;
+        e.updatedAt=Date.now();
+        upsert(e); B.style.display='none'; render();
+      };
+      B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
+
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', ()=>{
+      const rows=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = rows.length ? rows.map(r=>`
+        <li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line">
+            <strong>${r.name}</strong>
+            ${badge(r.role)}
+            ${badge(r.team)}
+          </div>
+          ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
+        </li>
+      `).join('') : '<li>No employees.</li>';
+      B.style.display='flex';
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
+
+    // Save
+    $('#emp-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const name=titleCase(($('#empName').value||'').trim()); if(!name){$('#empName').focus();return;}
+      const id=name.toLowerCase();
+      const item={
+        id, name,
+        role: ($('#empRole').value||'').trim(),
+        team: ($('#empTeam').value||'').trim(),
+        phone: ($('#empPhone').value||'').trim(),
+        email: ($('#empEmail').value||'').trim(),
+        archived:false, createdAt:Date.now(), updatedAt:Date.now()
+      };
+      upsert(item);
+      $('#emp-form').reset();
+      render();
+    });
+
+    $('#clearBtn').addEventListener('click', ()=>$('#emp-form').reset());
+    $('#searchInput').addEventListener('input', render);
+    $('#toggleShowArchived').addEventListener('change', render);
+
+    render();
+
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Teams & Partners', href:'teams-partners.html'},
+      {label:'Employees'}
+    ]);
+  })();
   </script>
 </body>
 </html>
