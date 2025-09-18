@@ -6,26 +6,36 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Account Roles — Dowson Farms</title>
   <script>
-(function () {
-  var pref = localStorage.getItem('df_theme') || 'auto';
-  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-  document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-})();
-</script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
 
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+  <style>
+    /* Uniform touches */
+    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
+
+    /* Permissions table */
+    .perm-wrap {overflow:auto; border:1px solid var(--tile-border); border-radius:12px;}
+    table.perm {width:100%; border-collapse:collapse; min-width:720px}
+    .perm th, .perm td {padding:8px 10px; border-bottom:1px solid var(--tile-border); text-align:left}
+    .perm thead th {position:sticky; top:0; background:var(--tile-bg, var(--bg)); z-index:1}
+    .perm .col-action {text-align:center; width:96px}
+    .menu-row {background:var(--tile-bg); font-weight:600}
+    .muted-sm {opacity:.72; font-size:.92rem}
+    .badge {padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+  </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -34,6 +44,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -44,11 +55,78 @@
     </ol>
   </nav>
 
-  <main class="content">
-    <h1>🛡️ Account Roles</h1>
-    <p>🚧 Coming soon…</p>
+  <main class="content" data-has-form>
+    <!-- Title row with Quick View top-right -->
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🛡️ Account Roles</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+    </div>
+    <div style="margin-top:12px;"></div>
+
+    <!-- FORM -->
+    <form id="roles-form" novalidate>
+      <!-- Role selector -->
+      <div class="field">
+        <label for="roleSel">Role <span class="req-star">*</span></label>
+        <select id="roleSel" required>
+          <option value="Administrator">Administrator</option>
+          <option value="Owner">Owner</option>
+          <option value="Manager">Manager</option><!-- corrected “Manger” -->
+          <option value="Employee">Employee</option>
+          <option value="View Only">View Only</option>
+        </select>
+      </div>
+
+      <!-- Permissions matrix -->
+      <section class="card" style="margin-top:8px;">
+        <h2 style="margin:0 0 8px 0;">Permissions</h2>
+        <div class="muted-sm" style="margin-bottom:8px;">Set what each role can do on every Menu/Submenu. “Apply to all submenus” lets you set a whole menu at once.</div>
+        <div class="perm-wrap">
+          <table class="perm" id="permTable" aria-describedby="permHelp">
+            <thead>
+              <tr>
+                <th>Menu › Submenu</th>
+                <th class="col-action">
+                  View<br>
+                  <input type="checkbox" id="colAllView" title="Toggle all View">
+                </th>
+                <th class="col-action">
+                  Edit<br>
+                  <input type="checkbox" id="colAllEdit" title="Toggle all Edit">
+                </th>
+                <th class="col-action">
+                  Add<br>
+                  <input type="checkbox" id="colAllAdd" title="Toggle all Add">
+                </th>
+                <th class="col-action">
+                  Archive<br>
+                  <input type="checkbox" id="colAllArchive" title="Toggle all Archive">
+                </th>
+              </tr>
+            </thead>
+            <tbody id="permBody"><!-- filled by JS --></tbody>
+          </table>
+        </div>
+        <div id="permHelp" class="muted-sm" style="margin-top:8px;">Owner/Admin start with full access. Manager: all except Archive. Employee: View only by default. “View Only”: View only.</div>
+      </section>
+
+      <!-- Save / Clear -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div class="grid2">
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline" type="button" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+        </div>
+      </section>
+    </form>
+
+    <!-- Saved snapshot for transparency -->
+    <section class="card" style="margin-top:16px;">
+      <h2 style="margin:0 0 8px 0;">Current Role Snapshot</h2>
+      <div id="roleSummary" class="muted-sm">—</div>
+    </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -57,6 +135,261 @@
     <span id="version">v0.0.0</span>
   </footer>
 
+  <!-- Quick View modal -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
+      <h2 id="qvTitle">Role Overview</h2>
+      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function RolesPage(){
+    const ROLES_KEY='df.roles';
+    const MENUS_KEY='df_menus';
+
+    const DEFAULT_MENUS = {
+      "Home": ["—"],
+      "Crop Production": ["Planting","Spraying","Harvest"],
+      "Grain Tracking": ["Bins","Tickets","Contracts"],
+      "Equipment": ["Maintenance","Repairs","Assignments"],
+      "Calculators": ["Seed Rate","Fertilizer","ROI"],
+      "Reports": ["Crops","Equipment","Financial"],
+      "Team / Partners": ["Employees","Vendors"],
+      "Feedback": ["Ideas","Bugs / Issues"],
+      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+    };
+
+    const $=s=>document.querySelector(s);
+    const $$=s=>Array.from(document.querySelectorAll(s));
+    const roleSel=$('#roleSel');
+    const permBody=$('#permBody');
+
+    function getMenus(){
+      try {
+        const obj = JSON.parse(localStorage.getItem(MENUS_KEY)||'null') || DEFAULT_MENUS;
+        return obj;
+      } catch(_) { return DEFAULT_MENUS; }
+    }
+
+    function loadRoles(){
+      try { return JSON.parse(localStorage.getItem(ROLES_KEY)||'{}'); } catch(_) { return {}; }
+    }
+    function saveRoles(data){ localStorage.setItem(ROLES_KEY, JSON.stringify(data)); }
+
+    // Default presets when a role is first seen
+    function defaultPresetFor(role, menus){
+      const all = (v,e,a,r)=>({view:v, edit:e, add:a, archive:r});
+      let preset;
+      if (role === 'Administrator' || role === 'Owner')      preset = all(true,true,true,true);
+      else if (role === 'Manager')                           preset = all(true,true,true,false);
+      else if (role === 'Employee')                          preset = all(true,false,false,false);
+      else                                                   preset = all(true,false,false,false); // View Only or unknown
+
+      const obj={};
+      Object.entries(menus).forEach(([menu, subs])=>{
+        obj[menu] = {};
+        subs.forEach(sub=>{
+          obj[menu][sub] = {...preset};
+        });
+      });
+      return obj;
+    }
+
+    // Ensure a role object contains all current menu/submenu keys (safe against future additions)
+    function normalizeRole(roleObj, menus, fallbackPreset){
+      const out = {...roleObj};
+      Object.entries(menus).forEach(([menu, subs])=>{
+        if (!out[menu]) out[menu] = {};
+        subs.forEach(sub=>{
+          if (!out[menu][sub]) out[menu][sub] = {...fallbackPreset};
+        });
+      });
+      // prune stale menus/subs that no longer exist
+      Object.keys(out).forEach(menu=>{
+        if (!menus[menu]) { delete out[menu]; return; }
+        Object.keys(out[menu]).forEach(sub=>{
+          if (!menus[menu].includes(sub)) delete out[menu][sub];
+        });
+      });
+      return out;
+    }
+
+    function renderTable(roleData){
+      permBody.innerHTML='';
+      const menus=getMenus();
+      Object.entries(menus).forEach(([menu, subs], mi)=>{
+        // Menu header row with apply-to-all toggles
+        const trMenu=document.createElement('tr');
+        trMenu.className='menu-row';
+        const tdTitle=document.createElement('td');
+        tdTitle.colSpan=1;
+        tdTitle.innerHTML = `${menu} <span class="badge">${subs.length} submenu${subs.length!==1?'s':''}</span>`;
+        trMenu.appendChild(tdTitle);
+
+        ['view','edit','add','archive'].forEach(kind=>{
+          const td=document.createElement('td');
+          td.className='col-action';
+          td.innerHTML = `<label class="muted-sm" title="Apply to all submenus in ${menu}">
+            <input type="checkbox" data-menu="${menu}" data-apply="${kind}"> All
+          </label>`;
+          trMenu.appendChild(td);
+        });
+        permBody.appendChild(trMenu);
+
+        // Submenu rows
+        subs.forEach((sub, si)=>{
+          const row=document.createElement('tr');
+          const cell=document.createElement('td');
+          cell.textContent = `${menu} › ${sub}`;
+          row.appendChild(cell);
+
+          ['view','edit','add','archive'].forEach(kind=>{
+            const td=document.createElement('td'); td.className='col-action';
+            const chk=document.createElement('input');
+            chk.type='checkbox';
+            chk.dataset.menu=menu;
+            chk.dataset.sub=sub;
+            chk.dataset.kind=kind;
+            chk.checked = !!roleData?.[menu]?.[sub]?.[kind];
+            td.appendChild(chk);
+            row.appendChild(td);
+          });
+          permBody.appendChild(row);
+        });
+      });
+
+      // Wire menu-level apply
+      $$('input[data-apply]').forEach(ch=>{
+        ch.addEventListener('change', ()=>{
+          const menu=ch.dataset.menu, kind=ch.dataset.apply, val=ch.checked;
+          $$(`input[type="checkbox"][data-menu="${menu}"][data-kind="${kind}"]`).forEach(cb=>{ cb.checked=val; });
+          refreshHeaderChecks();
+        });
+      });
+
+      // Wire cell changes to refresh header checks
+      $$('input[type="checkbox"][data-kind]').forEach(ch=>{
+        ch.addEventListener('change', refreshHeaderChecks);
+      });
+
+      // Column “select all” in the header
+      $('#colAllView').onchange = ()=> toggleColumn('view', $('#colAllView').checked);
+      $('#colAllEdit').onchange = ()=> toggleColumn('edit', $('#colAllEdit').checked);
+      $('#colAllAdd').onchange = ()=> toggleColumn('add', $('#colAllAdd').checked);
+      $('#colAllArchive').onchange = ()=> toggleColumn('archive', $('#colAllArchive').checked);
+
+      refreshHeaderChecks();
+    }
+
+    function toggleColumn(kind, val){
+      $$(`input[type="checkbox"][data-kind="${kind}"]`).forEach(cb=>{ cb.checked=val; });
+    }
+
+    function refreshHeaderChecks(){
+      ['view','edit','add','archive'].forEach(kind=>{
+        const all=$$(`input[type="checkbox"][data-kind="${kind}"]`);
+        const on=all.filter(el=>el.checked).length;
+        const hdr = kind==='view' ? '#colAllView' : kind==='edit' ? '#colAllEdit' : kind==='add' ? '#colAllAdd' : '#colAllArchive';
+        const h=$(hdr);
+        h.indeterminate = (on>0 && on<all.length);
+        h.checked = (on===all.length && all.length>0);
+      });
+    }
+
+    function readTableInto(roleData){
+      const out = JSON.parse(JSON.stringify(roleData||{}));
+      $$('input[type="checkbox"][data-kind]').forEach(ch=>{
+        const {menu, sub, kind} = ch.dataset;
+        out[menu] = out[menu] || {};
+        out[menu][sub] = out[menu][sub] || {view:false, edit:false, add:false, archive:false};
+        out[menu][sub][kind] = ch.checked;
+      });
+      return out;
+    }
+
+    function summarize(roleName, data){
+      let v=0,e=0,a=0,r=0, rows=0;
+      Object.values(data||{}).forEach(subs=>{
+        Object.values(subs).forEach(p=>{ rows++; if(p.view)v++; if(p.edit)e++; if(p.add)a++; if(p.archive)r++; });
+      });
+      $('#roleSummary').textContent = `${roleName}: ${rows} entries • View ${v}, Edit ${e}, Add ${a}, Archive ${r}`;
+    }
+
+    // Quick View: list all roles with quick counts
+    function openQuickView(){
+      const roles = loadRoles();
+      const menus = getMenus();
+      const L = $('#qvList'), B=$('#qvBackdrop');
+      const roleNames = ['Administrator','Owner','Manager','Employee','View Only'];
+      L.innerHTML = roleNames.map(name=>{
+        const preset = defaultPresetFor(name, menus);
+        const normalized = normalizeRole(roles[name], menus, {view:false,edit:false,add:false,archive:false});
+        const data = roles[name] ? normalized : preset;
+        let v=0,e=0,a=0,r=0;
+        Object.values(data).forEach(subs=>{
+          Object.values(subs).forEach(p=>{ if(p.view)v++; if(p.edit)e++; if(p.add)a++; if(p.archive)r++; });
+        });
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <strong>${name}</strong>
+          <div class="muted-sm">View ${v} • Edit ${e} • Add ${a} • Archive ${r}</div>
+        </li>`;
+      }).join('');
+      B.style.display='flex';
+      $('#qvClose').onclick=()=> B.style.display='none';
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    }
+
+    // Role change → render matrix
+    function loadRole(roleName){
+      const menus = getMenus();
+      const roles = loadRoles();
+      const preset = defaultPresetFor(roleName, menus);
+      const data = roles[roleName] ? normalizeRole(roles[roleName], menus, {view:false,edit:false,add:false,archive:false}) : preset;
+      renderTable(data);
+      summarize(roleName, data);
+    }
+
+    // Save / Clear
+    $('#roles-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const role=roleSel.value;
+      const menus=getMenus();
+      const roles=loadRoles();
+      const start = roles[role] || defaultPresetFor(role, menus);
+      const next = readTableInto(start);
+      roles[role] = next;
+      saveRoles(roles);
+      summarize(role, next);
+      alert('Saved role permissions.');
+    });
+
+    $('#clearBtn').addEventListener('click', ()=>{
+      // Reset current role to default preset
+      const role=roleSel.value;
+      renderTable(defaultPresetFor(role, getMenus()));
+      summarize(role, defaultPresetFor(role, getMenus()));
+    });
+
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', openQuickView);
+
+    // Init
+    loadRole(roleSel.value);
+    roleSel.addEventListener('change', ()=> loadRole(roleSel.value));
+
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Setup / Settings', href:'settings.html'},
+      {label:'Account Roles'}
+    ]);
+  })();
+  </script>
+
+  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
