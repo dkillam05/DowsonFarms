@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Seed — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -14,17 +16,27 @@
       (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
   })();
   </script>
+
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
+
+  <!-- Page-only breadcrumb safety (wrap + ellipsis, no theme/core edits) -->
   <style>
-    .coming { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:26px; text-align:center; }
-    .emoji { font-size:44px; line-height:1; }
-    .title { font-weight:800; font-size:1.2rem; }
-    .hint { opacity:.8; }
+    .breadcrumbs ol{
+      display:flex; flex-wrap:wrap; column-gap:8px; row-gap:6px; align-items:center;
+      margin:0; padding:0; list-style:none;
+    }
+    .breadcrumbs li{ display:flex; align-items:center; min-width:0; }
+    .breadcrumbs .sep{ opacity:.65; }
+    .breadcrumbs a, .breadcrumbs span{
+      display:block; max-width:42vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    @media (min-width:700px){ .breadcrumbs a, .breadcrumbs span{ max-width:none; } }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -33,17 +45,28 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs (empty list; populated by setBreadcrumbs like Bugs) -->
-  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol></ol></nav>
+  <!-- Breadcrumbs (static) -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="settings.html">Setup / Settings</a></li>
+      <li class="sep">›</li>
+      <li><a href="products.html">Products</a></li>
+      <li class="sep">›</li>
+      <li><span>Seed</span></li>
+    </ol>
+  </nav>
 
   <main class="content">
-    <section class="card coming">
-      <div class="emoji">🌽</div>
-      <div class="title">Seed — Coming Soon</div>
-      <div class="hint">Lots, hybrids, treatment, on-farm storage, and usage history.</div>
+    <section class="card" style="display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; padding:26px;">
+      <div style="font-size:44px; line-height:1;">🌽</div>
+      <div style="font-weight:800; font-size:1.2rem;">Seed — Coming Soon</div>
+      <div class="muted">Lots, hybrids, treatment, on-farm storage, and usage history.</div>
     </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -53,14 +76,6 @@
   </footer>
 
   <script>
-    // Match the Bugs pattern: build crumbs dynamically
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Setup / Settings', href:'settings.html'},
-      {label:'Products', href:'products.html'},
-      {label:'Seed'}
-    ]);
-
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
