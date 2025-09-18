@@ -64,9 +64,6 @@
       padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
       background:var(--tile-bg); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;
     }
-
-    /* ✨ NEW: a little breathing room between title/Quick View and the first card */
-    #role-form .card:first-of-type { margin-top: 12px; }
   </style>
 </head>
 <body>
@@ -95,6 +92,9 @@
       <h1 style="margin:0;">🛡️ Account Roles</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
+
+    <!-- spacer to match Farms spacing -->
+    <div style="margin-top:12px;"></div>
 
     <form id="role-form" novalidate>
       <section class="card">
@@ -191,10 +191,8 @@
       save(v){ localStorage.setItem('df_role_perms', JSON.stringify(v)); }
     };
 
-    // --- NEW: always points to the currently edited role's perms
     let activePerms = null;
 
-    // ------- UI helpers
     function toast(msg){
       el.toastTxt.textContent = msg || 'Saved';
       el.toast.style.display = 'block';
@@ -212,13 +210,8 @@
       return b;
     }
 
-    function renderRoleOptions(){
-      el.role.innerHTML = ROLES.map(r=>`<option value="${r}">${r}</option>`).join('');
-    }
-
     function getPerms(role){ return store.load()[role]; }
 
-    // Compute summary label for a menu
     function menuSummary(perms, menuName){
       const subs = Object.values(perms[menuName]||{});
       if (!subs.length) return 'No access';
@@ -229,20 +222,17 @@
       return 'Custom';
     }
 
-    // Build the menus tree
     function renderMenus(){
       const role = el.role.value;
-      activePerms = getPerms(role);   // <- keep reference to the live perms being edited
+      activePerms = getPerms(role);
       el.menus.innerHTML = '';
 
       Object.keys(MENUS).forEach(menuName=>{
         const card = document.createElement('div'); card.className='menu-card';
 
-        // header
         const head = document.createElement('div'); head.className='menu-head';
         const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
-        const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transform='rotate(0deg)';
-        caret.style.transition='transform .2s';
+        const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transform='rotate(0deg)'; caret.style.transition='transform .2s';
         const title = document.createElement('strong'); title.textContent = menuName;
         left.append(caret, title);
 
@@ -251,7 +241,6 @@
 
         const body = document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
-        // parent toggles (cascade to all submenus)
         const grid = document.createElement('div'); grid.className='pill-grid';
         const pNames = ['View','Edit','Add','Archive','Delete'];
         pNames.forEach(name=>{
@@ -271,7 +260,6 @@
           grid.appendChild(p);
         });
 
-        // manage submenus collapsible
         const subWrap = document.createElement('div'); subWrap.className='subwrap';
         const subHead = document.createElement('div'); subHead.className='subhead';
         const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
@@ -282,7 +270,6 @@
         subHead.append(shL, shR);
         const subBody = document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
 
-        // build each submenu row (initially hidden)
         MENUS[menuName].forEach(sub=>{
           const section = document.createElement('section'); section.style.margin='10px 0 14px';
           const h = document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent = `${menuName} › ${sub}`;
@@ -335,12 +322,12 @@
     function savePerms(){
       const role = el.role.value;
       const all = store.load();
-      all[role] = activePerms;            // <-- write the edited perms back
-      store.save(all);                    // <-- persist so Quick View reads latest
+      all[role] = activePerms;
+      store.save(all);
     }
 
-    // Initial render
     function hydrateRoleSelect(){
+      const ROLES = ["Administrator","Owner","Manager","Employee","View Only"];
       el.role.innerHTML = ROLES.map(r=>`<option value="${r}">${r}</option>`).join('');
       const last = localStorage.getItem('df_role_selected');
       if (last && ROLES.includes(last)) el.role.value = last;
@@ -349,7 +336,6 @@
     hydrateRoleSelect();
     renderMenus();
 
-    // Save / Reset / Role change
     el.form.addEventListener('submit', (e)=>{
       e.preventDefault();
       savePerms();
@@ -372,7 +358,7 @@
     // Quick View
     el.qvBtn.addEventListener('click', ()=>{
       const role = el.role.value; el.qvRole.textContent = role;
-      const perms = store.load()[role];   // read what’s saved
+      const perms = store.load()[role];
       el.qvList.innerHTML = '';
       Object.keys(MENUS).forEach(menu=>{
         const li = document.createElement('li');
@@ -384,7 +370,6 @@
     el.qvClose.addEventListener('click', ()=> el.qvB.style.display='none');
     el.qvB.addEventListener('click', (e)=>{ if(e.target===el.qvB) el.qvB.style.display='none'; });
 
-    // Ensure selected role object exists
     (function ensureSelectedRoleShape(){
       const role = el.role.value;
       const all = store.load();
@@ -396,7 +381,7 @@
         });
       });
       store.save(all);
-      activePerms = all[role];  // keep the live reference in sync
+      activePerms = all[role];
     })();
 
     window.setBreadcrumbs?.([
