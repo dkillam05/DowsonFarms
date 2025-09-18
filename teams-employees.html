@@ -20,29 +20,19 @@
   <script defer src="core.js"></script>
 
   <style>
-    /* ===== Page-local styling to keep your global CSS untouched ===== */
+    /* Page-local utilities only; do NOT change your box sizes */
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
-    .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
 
-    /* === Phone field bigger + prevent iOS zoom === */
-    #empPhone, #m_phone {
-      font-size: 18px;   /* >=16px stops iOS zoom on focus */
-      height: 52px;
-      padding: 10px 14px;
-      border-radius: 12px;
-    }
-    /* Safety: keep inputs readable on iOS */
-    @supports (-webkit-touch-callout: none) {
-      input, select, textarea { font-size: 16px; }
-    }
+    /* iOS no-zoom without altering your input sizing */
+    #empPhone, #m_phone { font-size:16px; } /* keep same height/padding from theme.css */
 
-    /* Exceptions list look */
+    /* Permission Overrides visual */
     .ex-group {border:1px solid var(--tile-border);border-radius:10px;margin:6px 0;background:var(--tile-bg);}
     .ex-parent {display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--tile-border);}
     .ex-children {padding:4px 8px 8px 36px;}
@@ -92,7 +82,7 @@
 
       <div class="field-row">
         <div class="field">
-          <label for="empPhone">Phone (US) <span class="req-star">*</span></label>
+          <label for="empPhone">Phone Number <span class="req-star">*</span></label>
           <input id="empPhone" type="tel" inputmode="numeric" required placeholder="(555) 123-4567" maxlength="14" />
         </div>
         <div class="field">
@@ -178,7 +168,7 @@
       <div id="manageBox" style="display:grid;gap:10px;">
         <input id="m_first" placeholder="First Name" />
         <input id="m_last" placeholder="Last Name" />
-        <input id="m_phone" placeholder="Phone (US)" maxlength="14" />
+        <input id="m_phone" placeholder="Phone Number" maxlength="14" />
         <input id="m_email" placeholder="Email" />
         <select id="m_role"></select>
         <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
@@ -287,7 +277,6 @@
 
     function openExceptions(existing){
       const menusRaw = getMenus(); // [{id,label,parentId?}]
-      // Parent map
       const parents = {};
       menusRaw.forEach(m => { if(!m.parentId){ parents[m.id] = parents[m.id] || {info:m, children:[]}; } });
       menusRaw.forEach(m => { if(m.parentId && parents[m.parentId]) parents[m.parentId].children.push(m); });
@@ -353,7 +342,6 @@
         const t=e.target;
         if (!t || t.type !== 'checkbox') return;
 
-        // Parent toggled
         if (t.dataset.parent){
           const pid = t.dataset.parent;
           if (pid === 'home') { t.checked = false; return; }
@@ -373,7 +361,6 @@
           }
         }
 
-        // Child toggled
         if (t.dataset.child){
           const cid = t.dataset.child;
           if (t.checked){ if(!exState.allow.includes(cid)) exState.allow.push(cid); }
