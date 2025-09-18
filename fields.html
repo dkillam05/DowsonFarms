@@ -19,15 +19,17 @@
   <script defer src="core.js"></script>
 
   <style>
-    /* iOS no-zoom + roomy search */
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    /* tiny helper layout for the “searchable county” mode */
+    .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
     .inline-grow{display:flex;gap:10px;align-items:center}
     .inline-grow > input{flex:1}
+    .badge {padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+    .muted-sm {opacity:.72;font-size:.92rem}
+    .tbl {width:100%; border-collapse:collapse}
+    .tbl th,.tbl td{border-bottom:1px solid var(--tile-border); padding:6px 8px; text-align:left}
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -36,7 +38,6 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -56,26 +57,38 @@
 
     <!-- FORM -->
     <form id="field-form" novalidate>
-      <!-- Field name (required) -->
+      <!-- Field name -->
       <div class="field">
         <label for="fieldName">Field <span class="req-star">*</span></label>
         <input id="fieldName" type="text" required placeholder="Type field name…" />
       </div>
 
-      <!-- Tillable acres (required, up to 2 decimals) -->
+      <!-- Tillable acres -->
       <div class="field">
         <label for="acres">Tillable acres <span class="req-star">*</span></label>
         <input id="acres" type="text" inputmode="decimal" placeholder="e.g., 80 or 80.25" required />
       </div>
 
-      <!-- County (dropdown; becomes searchable when >10) -->
+      <!-- Farm picker (with +Add, searchable >10) -->
+      <div class="field" id="farmField">
+        <label for="farmSel">Farm</label>
+
+        <!-- Mode A: <=10 farms -->
+        <select id="farmSel" style="display:none"></select>
+
+        <!-- Mode B: >10 farms -->
+        <div id="farmSearchWrap" class="inline-grow" style="display:none">
+          <input id="farmSearch" list="farmList" placeholder="Search farms…"/>
+          <datalist id="farmList"></datalist>
+          <button type="button" class="btn-outline" id="farmAddBtn" title="Add farm">+ Add</button>
+        </div>
+        <div class="muted-sm">Optional — you can bulk-assign under Farms → Manage Fields.</div>
+      </div>
+
+      <!-- County (optional; same behavior as before) -->
       <div class="field" id="countyField">
-        <label for="countySel">County <span class="req-star">*</span></label>
-
-        <!-- Mode A: simple select (≤10 counties) -->
+        <label for="countySel">County</label>
         <select id="countySel" style="display:none"></select>
-
-        <!-- Mode B: searchable with datalist (>10 counties) -->
         <div id="countySearchWrap" class="inline-grow" style="display:none">
           <input id="countySearch" list="countyList" placeholder="Search counties…" />
           <datalist id="countyList"></datalist>
@@ -84,14 +97,23 @@
       </div>
 
       <section class="card" style="padding:12px; margin-top:8px;">
-        <div style="display:grid; gap:10px; grid-template-columns:92px 92px; justify-content:center;">
-          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px; height:92px;">Save</button>
-          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px; height:92px;">Clear</button>
+        <div class="grid2">
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
         </div>
       </section>
 
       <input type="hidden" id="editingId" />
     </form>
+
+    <!-- Import (CSV) -->
+    <section class="card" style="margin-top:16px;">
+      <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+        <h2 style="margin:0;">Import</h2>
+        <button type="button" class="btn-secondary" id="importBtn">Import CSV</button>
+      </div>
+      <div class="muted-sm" style="margin-top:6px;">Columns supported: Field Name (required), Tillable Acres (required), Farm (optional), County (optional).</div>
+    </section>
 
     <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
@@ -114,7 +136,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View modal -->
+  <!-- Quick View (fields) -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Fields</h2>
@@ -125,47 +147,111 @@
     </div>
   </div>
 
+  <!-- Import Modal -->
+  <div class="auth-modal__backdrop" id="impBackdrop" role="dialog" aria-modal="true" aria-labelledby="impTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(860px,96vw);">
+      <h2 id="impTitle">Import Fields (CSV)</h2>
+
+      <div id="impStep1">
+        <input id="impFile" type="file" accept=".csv" />
+        <div class="muted-sm" style="margin-top:6px;">We’ll auto-detect headers; you can adjust the mapping.</div>
+      </div>
+
+      <div id="impStep2" style="display:none; margin-top:12px;">
+        <h3 style="margin:0 0 8px 0;">Map Columns</h3>
+        <div class="row" style="gap:10px; flex-wrap:wrap;">
+          <label>Field Name <select id="mapName"></select></label>
+          <label>Tillable Acres <select id="mapAcres"></select></label>
+          <label>Farm <select id="mapFarm"></select></label>
+          <label>County <select id="mapCounty"></select></label>
+        </div>
+        <div class="muted-sm" style="margin-top:6px;">Unmapped optional columns will be ignored.</div>
+      </div>
+
+      <div id="impStep3" style="display:none; margin-top:12px;">
+        <h3 style="margin:0 0 8px 0;">Preview</h3>
+        <div id="impPreview" style="max-height:min(48vh,460px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px;"></div>
+      </div>
+
+      <div class="modal-actions" style="justify-content:space-between; margin-top:12px;">
+        <button class="btn-outline" id="impCancel">Cancel</button>
+        <div>
+          <button class="btn-outline" id="impBack" style="display:none;">Back</button>
+          <button class="btn-primary" id="impNext" disabled>Next</button>
+          <button class="btn-primary" id="impCommit" style="display:none;">Import</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
   (function FieldsPage(){
     const FIELD_KEY='df.fields';
+    const FARM_KEY='df.farms';
     const COUNTY_KEY='df.counties';
     const ADD_VALUE='__ADD__';
 
     const $=s=>document.querySelector(s);
+    const $$=(s)=>Array.from(document.querySelectorAll(s));
+
+    const $id=$('#editingId');
     const $name=$('#fieldName');
     const $acres=$('#acres');
-    const $id=$('#editingId');
     const $saved=$('#savedList');
 
+    // Farm controls
+    const $farmSel=$('#farmSel');
+    const $farmSearchWrap=$('#farmSearchWrap');
+    const $farmSearch=$('#farmSearch');
+    const $farmList=$('#farmList');
+    const $farmAddBtn=$('#farmAddBtn');
+
+    // County controls
     const $countySel=$('#countySel');
     const $countySearchWrap=$('#countySearchWrap');
     const $countySearch=$('#countySearch');
     const $countyList=$('#countyList');
     const $countyAddBtn=$('#countyAddBtn');
 
-    /* ---------- helpers ---------- */
+    // Title-case helper
     function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
-    function load(key){ try{return JSON.parse(localStorage.getItem(key)||'[]')}catch(_){return[]} }
-    function save(key,list){ localStorage.setItem(key, JSON.stringify(list)) }
 
+    // Storage helpers
+    function load(k){ try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(_){return[]} }
+    function save(k,v){ localStorage.setItem(k, JSON.stringify(v)) }
+
+    // Farms list
+    function listFarms(){ return load(FARM_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'})); }
+    function upsertFarmByName(name){
+      const nm=titleCase((name||'').trim()); if(!nm) return null;
+      const id=nm.toLowerCase();
+      const farms=listFarms();
+      if(!farms.find(f=>f.id===id)){
+        farms.push({id, name:nm, archived:false, createdAt:Date.now(), updatedAt:Date.now()});
+        save(FARM_KEY, farms);
+      }
+      return id;
+    }
+
+    // Counties list
+    function listCounties(){ return load(COUNTY_KEY).sort((a,b)=>a.localeCompare(b)); }
+    function addCountyRaw(name){
+      const nm=titleCase((name||'').trim()); if(!nm) return null;
+      const list=listCounties();
+      if(!list.includes(nm)){ list.push(nm); save(COUNTY_KEY,list); }
+      return nm;
+    }
+
+    // Fields CRUD
+    function getField(id){ return load(FIELD_KEY).find(x=>x.id===id) }
     function upsertField(item){
       const list=load(FIELD_KEY);
       const i=list.findIndex(x=>x.id===item.id);
       if(i>=0) list[i]=item; else list.push(item);
       save(FIELD_KEY,list);
     }
-    function getField(id){ return load(FIELD_KEY).find(x=>x.id===id); }
 
-    function listCounties(){ return load(COUNTY_KEY).sort((a,b)=>a.localeCompare(b)); }
-    function addCountyRaw(name){
-      const val=titleCase((name||'').trim());
-      if(!val) return null;
-      const list=listCounties();
-      if(!list.includes(val)){ list.push(val); save(COUNTY_KEY,list); }
-      return val;
-    }
-
-    /* ---------- acres: enforce up to 2 decimals ---------- */
+    // Enforce acres 0–2 decimals
     function wireAcres(el){
       el.addEventListener('keydown',(e)=>{
         const bad=['e','E','+','-']; if(bad.includes(e.key)) return e.preventDefault();
@@ -177,57 +263,86 @@
         let v=el.value.replace(/[^0-9.]/g,'');
         const i=v.indexOf('.');
         if(i!==-1){ v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,''); v=v.replace(/^(\d+\.\d{0,2}).*$/,'$1'); }
-        el.value=v;
-        el.selectionStart=el.selectionEnd=el.value.length;
+        el.value=v; el.selectionStart=el.selectionEnd=el.value.length;
       });
     }
     wireAcres($acres);
 
-    /* ---------- county control (auto select vs searchable) ---------- */
-    function renderCountyControl(selected){
-      const counties=listCounties();
-      const many = counties.length>10;
+    /* ---------- Farm picker (<=10 select, >10 searchable) ---------- */
+    function renderFarmControl(selectedIdOrName){
+      const farms=listFarms();
+      const many=farms.length>10;
 
       if(!many){
-        // SELECT MODE
+        $farmSearchWrap.style.display='none';
+        $farmSel.style.display='block';
+        $farmSel.innerHTML='';
+        const empty=document.createElement('option'); empty.value=''; empty.textContent='— Unassigned —'; $farmSel.appendChild(empty);
+        farms.forEach(f=>{ const o=document.createElement('option'); o.value=f.id; o.textContent=f.name; $farmSel.appendChild(o); });
+        const add=document.createElement('option'); add.value=ADD_VALUE; add.textContent='➕ Add New Farm…'; $farmSel.appendChild(add);
+        if(selectedIdOrName){
+          const id = farms.find(f=>f.id===selectedIdOrName || f.name===selectedIdOrName)?.id || '';
+          $farmSel.value=id;
+        } else $farmSel.value='';
+      } else {
+        $farmSel.style.display='none';
+        $farmSearchWrap.style.display='flex';
+        $farmList.innerHTML=farms.map(f=>`<option value="${f.name}">`).join('');
+        $farmSearch.value = selectedIdOrName && farms.find(f=>f.id===selectedIdOrName)?.name || '';
+      }
+    }
+    $farmSel.addEventListener('change', ()=>{
+      if($farmSel.value!==ADD_VALUE) return;
+      const raw=prompt('New farm name:'); if(!raw){ renderFarmControl(); return; }
+      const id=upsertFarmByName(raw);
+      renderFarmControl(id);
+    });
+    $farmAddBtn.addEventListener('click', ()=>{
+      const raw = $farmSearch.value || prompt('New farm name:');
+      const id=upsertFarmByName(raw);
+      const farms=listFarms(); const f=farms.find(x=>x.id===id);
+      $farmSearch.value = f?.name || '';
+      renderFarmControl(id);
+    });
+
+    /* ---------- County control (same pattern) ---------- */
+    function renderCountyControl(selected){
+      const counties=listCounties();
+      const many=counties.length>10;
+
+      if(!many){
         $countySearchWrap.style.display='none';
         $countySel.style.display='block';
         $countySel.innerHTML='';
-        // Options
-        counties.forEach(c=>{
-          const o=document.createElement('option'); o.value=c; o.textContent=c; $countySel.appendChild(o);
-        });
-        // Add option
+        const empty=document.createElement('option'); empty.value=''; empty.textContent='— None —'; $countySel.appendChild(empty);
+        counties.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; $countySel.appendChild(o); });
         const add=document.createElement('option'); add.value=ADD_VALUE; add.textContent='➕ Add New County…'; $countySel.appendChild(add);
-        // Select
-        if(selected && counties.includes(selected)) $countySel.value=selected; else if(counties.length) $countySel.selectedIndex=0;
-      }else{
-        // SEARCH MODE (datalist + Add button)
+        $countySel.value = selected || '';
+      } else {
         $countySel.style.display='none';
         $countySearchWrap.style.display='flex';
         $countyList.innerHTML=counties.map(c=>`<option value="${c}">`).join('');
-        if(selected) $countySearch.value=selected; else $countySearch.value='';
+        $countySearch.value = selected || '';
       }
     }
-
-    // Handle Add from select
-    $countySel.addEventListener('change',()=>{
+    $countySel.addEventListener('change', ()=>{
       if($countySel.value!==ADD_VALUE) return;
       const raw=prompt('New county name:'); if(!raw){ renderCountyControl(); return; }
       const val=addCountyRaw(raw);
       renderCountyControl(val);
     });
-    // Handle Add button in search mode
-    $countyAddBtn.addEventListener('click',()=>{
-      const raw = $countySearch.value || prompt('New county name:');
+    $countyAddBtn.addEventListener('click', ()=>{
+      const raw=$countySearch.value || prompt('New county name:');
       const val=addCountyRaw(raw);
       renderCountyControl(val);
     });
 
-    /* ---------- saved list ---------- */
+    /* ---------- Saved list & quick view ---------- */
     function renderSaved(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
+      const farmsById=Object.fromEntries(listFarms().map(f=>[f.id,f]));
+
       const rows=load(FIELD_KEY)
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || x.name.toLowerCase().includes(q))
@@ -238,7 +353,8 @@
           <button type="button" class="btn-secondary" data-id="${r.id}"
                   style="width:100%; text-align:left; display:block; margin:8px 0;">
             <strong>${r.name}</strong>
-            • ${Number(r.acres).toFixed( r.acres%1? 2:0 )} ac
+            • ${Number(r.acres||0).toFixed(r.acres%1?2:0)} ac
+            ${r.farmId?`• ${farmsById[r.farmId]?.name || '—'}`:'• Unassigned'}
             ${r.county?`• ${r.county}`:''}
             ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
           </button>
@@ -253,68 +369,77 @@
       const f=getField(id); if(!f) return;
       $id.value=f.id;
       $name.value=f.name;
-      $acres.value=String(f.acres);
-      renderCountyControl(f.county);
-      if($countySel.style.display==='block') $countySel.value=f.county||'';
-      else $countySearch.value=f.county||'';
+      $acres.value=String(f.acres ?? '');
+      renderFarmControl(f.farmId || '');
+      renderCountyControl(f.county || '');
       window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
     }
 
-    /* ---------- form actions ---------- */
+    /* ---------- Form actions ---------- */
     $('#field-form').addEventListener('submit',(e)=>{
       e.preventDefault();
 
       const name=titleCase(($name.value||'').trim());
       const acresRaw=($acres.value||'').trim();
-      // finalize acres to 2-dec number
       const acres = acresRaw ? Number(Number(acresRaw).toFixed(2)) : NaN;
 
-      // county pick
+      // farm selection
+      let farmId=null;
+      if($farmSel.style.display==='block'){
+        farmId = ($farmSel.value && $farmSel.value!==ADD_VALUE) ? $farmSel.value : null;
+      } else {
+        const nm = ($farmSearch.value||'').trim();
+        if(nm) farmId = upsertFarmByName(nm);
+      }
+
+      // county selection (optional)
       let county='';
-      if($countySel.style.display==='block'){ county = $countySel.value===ADD_VALUE ? '' : ($countySel.value||''); }
-      else { county = $countySearch.value||''; if(county) county = titleCase(county); }
+      if($countySel.style.display==='block'){
+        county = ($countySel.value && $countySel.value!==ADD_VALUE) ? $countySel.value : '';
+      } else {
+        county = $countySearch.value ? titleCase($countySearch.value) : '';
+        if(county) addCountyRaw(county);
+      }
 
       if(!name){ alert('Field name is required.'); $name.focus(); return; }
       if(!acresRaw || isNaN(acres)){ alert('Enter tillable acres (up to 2 decimals).'); $acres.focus(); return; }
-      if(!county){ alert('Pick a county (or add one).'); ($countySel.style.display==='block' ? $countySel : $countySearch).focus(); return; }
 
-      // make sure county exists in storage (covers search mode typing)
-      addCountyRaw(county);
-
-      const id = $id.value || name.toLowerCase();
-      const prev = getField(id);
+      const id=$id.value || name.toLowerCase();
+      const prev=getField(id);
       upsertField({
-        id, name, acres, county,
+        id, name, acres, farmId, county: county||null,
         archived: prev ? !!prev.archived : false,
         createdAt: prev?.createdAt || Date.now(),
         updatedAt: Date.now()
       });
 
-      // reset + refresh
       $('#field-form').reset(); $id.value='';
-      renderCountyControl();   // re-render county control (might switch mode if counts change)
+      renderFarmControl(); renderCountyControl();
       renderSaved();
       $('#savedCard').scrollIntoView({behavior:'smooth', block:'start'});
     });
 
     $('#clearBtn').addEventListener('click', ()=>{
       $('#field-form').reset(); $id.value='';
-      renderCountyControl();
+      renderFarmControl(); renderCountyControl();
       $name.focus();
     });
 
-    // search/filter & quick view
     $('#searchInput').addEventListener('input', renderSaved);
     $('#toggleShowArchived').addEventListener('change', renderSaved);
 
+    // Quick View
     $('#quickViewBtn').addEventListener('click', ()=>{
+      const farmsById=Object.fromEntries(listFarms().map(f=>[f.id,f]));
       const list=load(FIELD_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = list.length ? list.map(r=>`
         <li>
           <button type="button" class="btn-secondary" data-id="${r.id}"
                   style="width:100%; text-align:left; display:block; margin:8px 0;">
-            <strong>${r.name}</strong> • ${Number(r.acres).toFixed(r.acres%1?2:0)} ac • ${r.county||'—'}
+            <strong>${r.name}</strong> • ${Number(r.acres||0).toFixed(r.acres%1?2:0)} ac
+            • ${r.farmId ? (farmsById[r.farmId]?.name || '—') : 'Unassigned'}
+            ${r.county?`• ${r.county}`:''}
           </button>
         </li>`).join('') : '<li>No fields.</li>';
       B.style.display='flex';
@@ -325,9 +450,226 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // Initial renders
-    renderCountyControl();   // start with current counties (none by default)
-    renderSaved();
+    /* ---------- Import (CSV) ---------- */
+    const impB=$('#impBackdrop');
+    const impFile=$('#impFile'); const step1=$('#impStep1'); const step2=$('#impStep2'); const step3=$('#impStep3');
+    const mapName=$('#mapName'), mapAcres=$('#mapAcres'), mapFarm=$('#mapFarm'), mapCounty=$('#mapCounty');
+    const impNext=$('#impNext'), impBack=$('#impBack'), impCommit=$('#impCommit');
+
+    let csvRows=[]; let csvHeaders=[];
+
+    function openImport(){ impB.style.display='flex'; resetImport(); }
+    function closeImport(){ impB.style.display='none'; }
+    function resetImport(){
+      step1.style.display='block'; step2.style.display='none'; step3.style.display='none';
+      impBack.style.display='none'; impCommit.style.display='none'; impNext.style.display='inline-block';
+      impNext.disabled=true;
+      impFile.value='';
+      $('#impPreview').innerHTML='';
+      mapName.innerHTML=mapAcres.innerHTML=mapFarm.innerHTML=mapCounty.innerHTML='';
+    }
+
+    function parseCSV(text){
+      // Simple CSV parser with quotes
+      const rows=[]; let i=0, field='', row=[], inQ=false;
+      while(i<text.length){
+        const c=text[i];
+        if(inQ){
+          if(c==='"' && text[i+1]==='"'){ field+='"'; i+=2; continue; }
+          if(c==='"'){ inQ=false; i++; continue; }
+          field+=c; i++; continue;
+        }
+        if(c==='"'){ inQ=true; i++; continue; }
+        if(c===','){ row.push(field); field=''; i++; continue; }
+        if(c==='\n' || c==='\r'){
+          // handle \r\n
+          if(c==='\r' && text[i+1]==='\n') i++;
+          row.push(field); rows.push(row); field=''; row=[]; i++; continue;
+        }
+        field+=c; i++;
+      }
+      if(field.length || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    function autoMap(headers){
+      const H=headers.map(h=>h.trim().toLowerCase());
+      function idx(...names){ for(const n of names){ const i=H.indexOf(n); if(i>=0) return i; } return -1; }
+      return {
+        name:  idx('field','field name','name'),
+        acres: idx('acres','tillable acres','tillable'),
+        farm:  idx('farm','farm name'),
+        county:idx('county')
+      };
+    }
+
+    function fillMappingSelect(sel, headers, preIdx){
+      sel.innerHTML = headers.map((h,i)=>`<option value="${i}">${h}</option>`).join('')
+        + `<option value="-1">— (None)</option>`;
+      sel.value = String(preIdx>=0 ? preIdx : -1);
+    }
+
+    // Build preview table
+    function renderPreview(){
+      const pi = {
+        name: Number(mapName.value),
+        acres: Number(mapAcres.value),
+        farm: Number(mapFarm.value),
+        county: Number(mapCounty.value)
+      };
+      const ok = (pi.name>=0 && pi.acres>=0);
+      impNext.style.display='none';
+      impBack.style.display='inline-block';
+      impCommit.style.display='inline-block';
+      impCommit.disabled = !ok;
+
+      const head = `<table class="tbl"><thead><tr>
+        <th>Field</th><th>Acres</th><th>Farm</th><th>County</th><th>Status</th></tr></thead><tbody>`;
+      let body = '';
+      const farms=listFarms().map(f=>f.name.toLowerCase());
+      const counties=listCounties().map(c=>c.toLowerCase());
+      let create=0, update=0, skip=0;
+
+      csvRows.slice(0,200).forEach((r,idx)=>{
+        const nm = pi.name>=0 ? r[pi.name] : '';
+        const ac = pi.acres>=0 ? r[pi.acres] : '';
+        const fm = pi.farm>=0 ? r[pi.farm] : '';
+        const cy = pi.county>=0 ? r[pi.county] : '';
+        const name=titleCase(String(nm||'').trim());
+        const acres = String(ac||'').trim();
+        const farm = String(fm||'').trim();
+        const county = String(cy||'').trim();
+
+        let status='OK';
+        if(!name || !acres) { status='Missing required'; skip++; }
+        else {
+          const ex = getField(name.toLowerCase());
+          status = ex ? 'Will Update' : 'Will Create';
+          ex ? update++ : create++;
+        }
+        body += `<tr>
+          <td>${name||'—'}</td>
+          <td>${acres||'—'}</td>
+          <td>${farm||'—'}</td>
+          <td>${county||'—'}</td>
+          <td class="muted-sm">${status}</td>
+        </tr>`;
+      });
+
+      $('#impPreview').innerHTML = head + body + '</tbody></table>' +
+        `<div class="muted-sm" style="margin-top:8px;">Previewing first ${Math.min(200,csvRows.length)} of ${csvRows.length} rows • Create ${create}, Update ${update}, Skip ${skip}</div>`;
+    }
+
+    // Commit import
+    function commitImport(){
+      const pi = {
+        name: Number(mapName.value),
+        acres: Number(mapAcres.value),
+        farm: Number(mapFarm.value),
+        county: Number(mapCounty.value)
+      };
+      if(!(pi.name>=0 && pi.acres>=0)) return;
+
+      let created=0, updated=0, errors=0;
+      const list=load(FIELD_KEY);
+
+      csvRows.forEach(r=>{
+        const nm = titleCase(String(r[pi.name]||'').trim());
+        const acRaw = String(r[pi.acres]||'').trim();
+        if(!nm || !acRaw) return;
+
+        const acres = Number(Number(acRaw).toFixed(2));
+        if(isNaN(acres)) { errors++; return; }
+
+        // Farm (optional)
+        let farmId=null;
+        if(pi.farm>=0){
+          const fName = titleCase(String(r[pi.farm]||'').trim());
+          if(fName) farmId = upsertFarmByName(fName);
+        }
+
+        // County (optional)
+        let county=null;
+        if(pi.county>=0){
+          const cy = titleCase(String(r[pi.county]||'').trim());
+          if(cy){ addCountyRaw(cy); county=cy; }
+        }
+
+        const id = nm.toLowerCase();
+        const i=list.findIndex(x=>x.id===id);
+        if(i>=0){
+          list[i] = { ...list[i], name:nm, acres, farmId, county: county || null, updatedAt:Date.now() };
+          updated++;
+        } else {
+          list.push({ id, name:nm, acres, farmId, county: county || null, archived:false, createdAt:Date.now(), updatedAt:Date.now() });
+          created++;
+        }
+      });
+
+      save(FIELD_KEY, list);
+      closeImport();
+      renderSaved();
+      alert(`Import complete.\nCreated: ${created}\nUpdated: ${updated}\nErrors: ${errors}`);
+    }
+
+    // Import wiring
+    $('#importBtn').addEventListener('click', openImport);
+    $('#impCancel').addEventListener('click', closeImport);
+    $('#impBackdrop').addEventListener('click', (e)=>{ if(e.target===e.currentTarget) closeImport(); });
+
+    impFile.addEventListener('change', async ()=>{
+      const f=impFile.files?.[0]; if(!f){ impNext.disabled=true; return; }
+      const text = await f.text();
+      const rows = parseCSV(text);
+      if(!rows.length){ alert('Empty file'); return; }
+      csvHeaders = rows.shift().map(h=>String(h||'').trim());
+      csvRows = rows.filter(r=>r.some(c=>String(c||'').trim().length));
+      // move to mapping
+      step1.style.display='none'; step2.style.display='block'; step3.style.display='none';
+      impNext.disabled=false;
+
+      const guess = autoMap(csvHeaders);
+      const fill=(sel, idx)=> fillMappingSelect(sel, csvHeaders, idx);
+      fill(mapName, guess.name); fill(mapAcres, guess.acres); fill(mapFarm, guess.farm); fill(mapCounty, guess.county);
+    });
+
+    $('#impNext').addEventListener('click', ()=>{
+      if(step2.style.display==='block'){
+        step2.style.display='none'; step3.style.display='block';
+        renderPreview();
+      } else {
+        // from step1 -> step2 handled by file input
+      }
+    });
+    $('#impBack').addEventListener('click', ()=>{
+      step3.style.display='none'; step2.style.display='block';
+      impCommit.style.display='none'; impNext.style.display='inline-block';
+    });
+    $('#impCommit').addEventListener('click', commitImport);
+
+    // Initial render
+    renderFarmControl(); renderCountyControl(); renderSaved();
+
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', ()=>{
+      const farmsById=Object.fromEntries(listFarms().map(f=>[f.id,f]));
+      const list=load(FIELD_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = list.length ? list.map(r=>`
+        <li>
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.name}</strong> • ${Number(r.acres||0).toFixed(r.acres%1?2:0)} ac
+            • ${r.farmId ? (farmsById[r.farmId]?.name || '—') : 'Unassigned'} ${r.county?`• ${r.county}`:''}
+          </button>
+        </li>`).join('') : '<li>No fields.</li>';
+      B.style.display='flex';
+      L.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=>{ B.style.display='none'; openForEdit(b.getAttribute('data-id')); });
+      });
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
 
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
