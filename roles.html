@@ -21,60 +21,81 @@
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
-
   <style>
-    .content{overflow-x:hidden}
-    .card{box-sizing:border-box;max-width:100%}
+    /* keep our label to one star no matter what theme.css does */
+    #roleLabel::after { content: none !important; }
+    .req { color: var(--danger, #b00020); }
 
-    /* Accordion containers */
-    .perm-accordion{display:grid;gap:14px}
-    .perm-section{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);box-shadow:var(--tile-shadow)}
-    .perm-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
-    .perm-title{font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px}
-    .caret{transition:transform .18s ease}
-    .perm-body{display:none;padding:10px 14px 14px;border-top:1px solid var(--tile-border)}
-
-    /* Menu-level controls */
-    .menu-row{display:grid;gap:10px}
-    .perm-pills{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-    @media (max-width:420px){ .perm-pills{grid-template-columns:repeat(3,minmax(0,1fr))} }
-
-    /* Submenu block (hidden until toggled) */
-    .submenu-wrap{margin-top:10px;border:1px dashed var(--tile-border);border-radius:12px;padding:10px 12px}
-    .submenu-head{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
-    .submenu-body{display:none;margin-top:10px}
-    .perm-items{display:grid;gap:10px}
-    .perm-item{border:1px dashed var(--tile-border);border-radius:12px;padding:10px 12px}
-    .perm-item__title{font-weight:600;margin-bottom:8px}
-
-    /* Toggle pills styled to match app */
-    .pill{
-      border:1.5px solid var(--tile-border);
-      border-radius:999px;
-      padding:10px 12px;
-      background:var(--tile-bg);
-      line-height:1;
-      font:inherit;
-      color:inherit;
-      cursor:pointer;
-      text-align:center;
-      user-select:none
+    /* permission pills */
+    .perm-actions {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: 10px 0 6px;
     }
-    .pill[aria-pressed="true"]{
-      background:var(--brand,#1B5E20);
-      border-color:var(--brand,#1B5E20);
-      color:#fff
+    @media (max-width: 420px){
+      .perm-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
-    .pill:focus{outline:2px solid var(--focus,#5aa0ff);outline-offset:2px}
+    .btn-toggle {
+      border-radius: 18px;
+      padding: 10px 0;
+      text-align: center;
+      border: 2px solid var(--btn-outline, #2c6b2f);
+      background: var(--tile-bg, #fff);
+      color: var(--brand-ink, #264b26);
+      font-weight: 600;
+    }
+    .btn-toggle.is-on {
+      background: var(--brand-ink, #1b5e20);
+      color: #fff;
+      border-color: var(--brand-ink, #1b5e20);
+    }
 
-    /* Save/Clear squares */
-    .btn-sq-wrap{display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
+    /* accordion look (stays within card width) */
+    details.perm-accordion {
+      border: 1px solid var(--tile-border);
+      border-radius: 14px;
+      background: var(--tile-bg);
+      margin: 10px 0;
+      overflow: hidden;
+    }
+    details.perm-accordion > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      font-weight: 700;
+      display:flex; align-items:center; gap:10px;
+    }
+    details.perm-accordion > summary::marker { display:none; }
+    details.perm-accordion > summary .caret {
+      display:inline-block; width: 12px; height:12px;
+      border-right: 2px solid currentColor; border-bottom:2px solid currentColor;
+      transform: rotate(-45deg); margin-right:4px;
+    }
+    details[open] > summary .caret { transform: rotate(45deg); }
+
+    .perm-body { padding: 12px 14px 16px; border-top:1px dashed var(--tile-border); }
+    .submenus-wrap {
+      border: 2px dashed var(--tile-border);
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 6px;
+      background: var(--tile-bg);
+    }
+
+    /* manage submenus row button */
+    .manage-row {
+      display:flex; align-items:center; justify-content:space-between;
+      border: 1px dashed var(--tile-border);
+      border-radius: 12px; padding: 12px 14px; margin-top: 8px;
+      background: var(--tile-bg);
+      font-weight:700;
+    }
+
+    /* toast */
+    #dfToast { display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999; }
   </style>
 </head>
 <body>
@@ -99,15 +120,16 @@
   </nav>
 
   <main class="content" data-has-form>
+    <!-- Title row with Quick View -->
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">🛡️ Account Roles</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
-    <div style="margin-top:12px;"></div>
 
-    <form id="roles-form" novalidate>
-      <div class="field" style="max-width:420px;">
-        <label for="roleSel" class="required">Role</label>
+    <!-- Role selector -->
+    <section class="card" style="margin-top:12px;">
+      <div class="field">
+        <label id="roleLabel" for="roleSel">Role <span class="req">*</span></label>
         <select id="roleSel" required>
           <option>Administrator</option>
           <option>Owner</option>
@@ -116,25 +138,26 @@
           <option>View Only</option>
         </select>
       </div>
+    </section>
 
-      <section class="card" style="padding:14px; margin-top:10px;">
-        <h2 style="margin:0 0 6px 0;">Permissions</h2>
-        <p class="muted" style="margin:0 0 8px 0;">
-          Expand a menu and set what this role can do. Use “Manage submenus” to fine-tune individual screens.
-        </p>
+    <!-- Permissions -->
+    <section class="card" style="margin-top:12px;">
+      <h2 style="margin:0 0 6px;">Permissions</h2>
+      <p class="muted" style="margin-top:0;">
+        Expand a menu and set what this role can do. Use “Manage submenus” to fine-tune individual screens.
+      </p>
 
-        <div id="permAccordion" class="perm-accordion"></div>
+      <div id="permRoot"></div>
 
-        <section class="card" style="padding:12px; margin-top:12px;">
-          <div class="btn-sq-wrap">
-            <button class="btn-primary" type="submit" id="saveBtn">Save</button>
-            <button class="btn-outline" type="button" id="clearBtn">Clear</button>
-          </div>
-        </section>
-      </section>
-    </form>
+      <div class="form-actions" style="margin-top:8px;">
+        <div></div>
+        <button class="btn-primary" id="savePermsBtn" type="button">Save</button>
+        <div></div>
+      </div>
+    </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -145,273 +168,197 @@
 
   <!-- Quick View modal -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(720px,92vw);">
-      <h2 id="qvTitle">Role Permissions</h2>
-      <div id="qvBody" style="max-height:60vh; overflow:auto;"></div>
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Role Permissions — <span id="qvRole">—</span></h2>
+      <ul id="qvList" style="list-style:disc; padding-left:22px; margin:8px 0 0;"></ul>
       <div class="modal-actions">
         <button class="btn-secondary" id="qvClose">Close</button>
       </div>
     </div>
   </div>
 
+  <!-- Toast -->
+  <div id="dfToast"><span id="dfToastText">Saved</span></div>
+
   <script>
   (function RolesPage(){
-    const $ = (s, r=document) => r.querySelector(s);
-    const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+    const $ = (s)=>document.querySelector(s);
+    const permRoot = $('#permRoot');
+    const roleSel = $('#roleSel');
 
-    // MENUS in the working order (Home removed)
-    const MENUS = {
-      "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-      "Grain Tracking": ["Bins","Bags","Tickets","Contracts"],
-      "Equipment": ["Tractors","Combines","Sprayers","Implements","Construction","Trailers","Trucks","StarFire"],
-      "Calculators": ["Area","Chemical Mix","Combine Yield","Grain Bin","Grain Shrink","Trial Yields"],
-      "Reports": ["Crops","Equipment","Predefined","AI","AI History"],
-      "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-      "Feedback": ["Ideas","Bugs / Issues"],
-      "Setup / Settings": ["Farms","Fields","Products","Theme","Account Roles","Crop Types","Settings"]
-    };
+    // --- MENUS (order matches app; "Home" omitted as requested)
+    const MENUS = [
+      { menu:'Crop Production', sub:['Planting','Spraying','Harvest','Trials','Scouting','Maintenance'] },
+      { menu:'Grain Tracking',  sub:['Bins','Tickets','Contracts'] },
+      { menu:'Equipment',       sub:['Maintenance','Repairs','Assignments'] },
+      { menu:'Calculators',     sub:['Seed Rate','Fertilizer','ROI'] },
+      { menu:'Reports',         sub:['Crops','Equipment','Financial'] },
+      { menu:'Team / Partners', sub:['Employees','Vendors','Sub-contractors','Dictionary'] },
+      { menu:'Feedback',        sub:['Ideas','Bugs / Issues'] },
+      { menu:'AI',              sub:['AI','AI History'] },
+      { menu:'Setup / Settings',sub:['Farms','Fields','Theme','Account Roles','Crop Types'] },
+    ];
 
-    // Five permissions (added Delete)
-    const PERMS = ["view","edit","add","archive","delete"];
-    const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+    const ACTIONS = ['view','edit','add','archive','del'];
+    const actionLabel = {view:'View',edit:'Edit',add:'Add',archive:'Archive',del:'Delete'};
 
-    const STORE_KEY = "df_roles";
-    const loadAll = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || "{}"); } catch(_) { return {}; } };
-    const saveAll = (obj) => localStorage.setItem(STORE_KEY, JSON.stringify(obj));
-    const getRoleState = role => loadAll()[role] || {};
-    const setRoleState = (role, state) => { const all=loadAll(); all[role]=state; saveAll(all); };
+    const STORE_KEY = 'df.rolePerms.v2'; // role -> { [menu]: {all:{..}, sub:{ name:{..} }}}
+    const state = loadState();
 
-    const acc = $("#permAccordion");
-
-    function pill(label, attrs={}){
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "pill";
-      b.textContent = label;
-      b.setAttribute("aria-pressed","false");
-      Object.entries(attrs).forEach(([k,v])=> b.dataset[k]=v);
-      return b;
+    function loadState(){
+      try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+      catch { return {}; }
     }
-    const setPressed = (btn,on)=> btn.setAttribute("aria-pressed", on?"true":"false");
-    const isPressed = btn => btn.getAttribute("aria-pressed")==="true";
+    function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 
-    function buildAccordion(){
-      acc.innerHTML = "";
-      Object.entries(MENUS).forEach(([menu, subs])=>{
-        const sec = document.createElement("div");
-        sec.className = "perm-section"; sec.dataset.menu = menu;
-
-        const head = document.createElement("div");
-        head.className = "perm-head";
-        head.innerHTML = `<div class="perm-title"><span class="caret">›</span><span>${menu}</span></div><div></div>`;
-
-        const body = document.createElement("div");
-        body.className = "perm-body";
-
-        // Menu-level pill row (no submenus yet)
-        const menuRow = document.createElement("div");
-        menuRow.className = "menu-row";
-
-        const pills = document.createElement("div");
-        pills.className = "perm-pills";
-        PERMS.forEach(p=>{
-          const b=pill(cap(p), {perm:p, kind:"menu"});
-          pills.appendChild(b);
+    function getRolePerm(role){
+      if(!state[role]){
+        // default: View Only: only "view" on everything, others false
+        const def = {};
+        MENUS.forEach(m=>{
+          def[m.menu] = {
+            all: {view: role==='View Only', edit:false, add:false, archive:false, del:false},
+            sub: Object.fromEntries(m.sub.map(s=>[s,{view: role==='View Only', edit:false, add:false, archive:false, del:false}]))
+          };
         });
-        menuRow.appendChild(pills);
-
-        // Submenus collapsed under their own toggle
-        const smWrap = document.createElement("div");
-        smWrap.className = "submenu-wrap";
-        const smHead = document.createElement("div");
-        smHead.className = "submenu-head";
-        smHead.innerHTML = `<strong>Manage submenus</strong><span class="caret">›</span>`;
-        const smBody = document.createElement("div");
-        smBody.className = "submenu-body";
-
-        const items = document.createElement("div");
-        items.className = "perm-items";
-        subs.forEach(sub=>{
-          const item = document.createElement("div");
-          item.className = "perm-item";
-          item.innerHTML = `<div class="perm-item__title"><span class="muted">${menu}</span> › <strong>${sub}</strong></div>`;
-          const row = document.createElement("div");
-          row.className = "perm-pills";
-          PERMS.forEach(p=> row.appendChild(pill(cap(p), {menu:menu, sub:sub, perm:p, kind:"one"})));
-          item.appendChild(row);
-          items.appendChild(item);
-        });
-        smBody.appendChild(items);
-        smHead.addEventListener("click", ()=>{
-          const open = smBody.style.display !== "none";
-          smBody.style.display = open ? "none" : "block";
-          smHead.querySelector(".caret").style.transform = open ? "rotate(0deg)" : "rotate(90deg)";
-        });
-        smBody.style.display = "none";
-        smWrap.appendChild(smHead); smWrap.appendChild(smBody);
-
-        body.appendChild(menuRow);
-        body.appendChild(smWrap);
-
-        // collapsed by default
-        body.style.display = "none";
-        head.querySelector(".caret").style.transform = "rotate(0deg)";
-        head.addEventListener("click", ()=>{
-          const open = body.style.display !== "none";
-          body.style.display = open ? "none" : "block";
-          head.querySelector(".caret").style.transform = open ? "rotate(0deg)" : "rotate(90deg)";
-          if (!open) syncMenuSelect(sec);
-        });
-
-        sec.appendChild(head); sec.appendChild(body);
-        acc.appendChild(sec);
-      });
-    }
-
-    function clearUI(){ $$(".pill").forEach(b=> setPressed(b,false)); }
-
-    function stateFromUI(){
-      const state = {};
-      // Submenu-level
-      $$(".pill[data-kind='one']").forEach(b=>{
-        const m=b.dataset.menu, s=b.dataset.sub, p=b.dataset.perm;
-        state[m]=state[m]||{}; state[m][s]=state[m][s]||{}; state[m][s][p]=isPressed(b);
-      });
-      // Menu-level for quick checks (optional mirror)
-      $$(".perm-section").forEach(sec=>{
-        const menu = sec.dataset.menu;
-        state[menu]=state[menu]||{};
-        state[menu]._menu = state[menu]._menu || {};
-        PERMS.forEach(p=>{
-          const btn = sec.querySelector(`.pill[data-kind="menu"][data-perm="${p}"]`);
-          state[menu]._menu[p] = btn && isPressed(btn);
-        });
-      });
-      return state;
-    }
-
-    function applyRole(role){
-      clearUI();
-      const st = getRoleState(role);
-
-      // paint submenu pills
-      Object.entries(st).forEach(([m, obj])=>{
-        Object.entries(obj).forEach(([k, perms])=>{
-          if (k === "_menu") return;
-          PERMS.forEach(p=>{
-            if (perms && perms[p]) {
-              const btn = $(`.pill[data-kind="one"][data-menu="${CSS.escape(m)}"][data-sub="${CSS.escape(k)}"][data-perm="${p}"]`);
-              if (btn) setPressed(btn,true);
-            }
-          });
-        });
-      });
-
-      // derive menu-level pills from submenus (on if ALL submenus are on)
-      $$(".perm-section").forEach(sec=> syncMenuSelect(sec));
-
-      // if explicit _menu was saved before, keep it in sync visually
-      Object.entries(st).forEach(([m, obj])=>{
-        if (!obj._menu) return;
-        PERMS.forEach(p=>{
-          const btn = $(`.perm-section[data-menu="${CSS.escape(m)}"] .pill[data-kind="menu"][data-perm="${p}"]`);
-          if (btn) setPressed(btn, !!obj._menu[p]);
-        });
-      });
-    }
-
-    function syncMenuSelect(sec){
-      const menu = sec.dataset.menu;
-      PERMS.forEach(p=>{
-        const menuBtn = sec.querySelector(`.pill[data-kind="menu"][data-perm="${p}"]`);
-        if (!menuBtn) return;
-        const subsBtns = $$(`.pill[data-kind='one'][data-menu="${CSS.escape(menu)}"][data-perm="${p}"]`, sec);
-        if (!subsBtns.length) { setPressed(menuBtn,false); return; }
-        const countOn = subsBtns.filter(isPressed).length;
-        // on only if ALL submenus are on
-        setPressed(menuBtn, countOn>0 && countOn===subsBtns.length);
-      });
-    }
-
-    function attachHandlers(){
-      acc.addEventListener("click",(e)=>{
-        const t=e.target;
-        if(!(t instanceof HTMLButtonElement) || !t.classList.contains("pill")) return;
-        const kind=t.dataset.kind;
-        if(kind==="one"){
-          setPressed(t,!isPressed(t));
-          const sec=t.closest(".perm-section"); if(sec) syncMenuSelect(sec);
-          return;
-        }
-        if(kind==="menu"){
-          // toggle all submenus for that permission within this menu
-          const sec=t.closest(".perm-section"), menu=sec.dataset.menu, perm=t.dataset.perm;
-          const on=!isPressed(t);
-          $$(`.pill[data-kind='one'][data-menu="${CSS.escape(menu)}"][data-perm="${perm}"]`, sec)
-            .forEach(b=>setPressed(b,on));
-          syncMenuSelect(sec);
-        }
-      });
-
-      $("#roles-form").addEventListener("submit",(e)=>{
-        e.preventDefault();
-        setRoleState($("#roleSel").value, stateFromUI());
-        toast("Permissions saved");
-      });
-
-      $("#clearBtn").addEventListener("click", ()=>{
-        if(!confirm("Clear all permissions on screen for this role (unsaved until Save)?")) return;
-        clearUI(); $$(".perm-section").forEach(syncMenuSelect);
-      });
-
-      $("#roleSel").addEventListener("change", ()=>applyRole($("#roleSel").value));
-
-      $("#quickViewBtn").addEventListener("click", openQuickView);
-      $("#qvClose").addEventListener("click", ()=> $("#qvBackdrop").style.display='none');
-      $("#qvBackdrop").addEventListener("click",(e)=>{ if(e.target.id==='qvBackdrop') $("#qvBackdrop").style.display='none'; });
-    }
-
-    function openQuickView(){
-      const role = $("#roleSel").value;
-      const st = stateFromUI();
-      const body = $("#qvBody"); body.innerHTML="";
-      Object.entries(MENUS).forEach(([menu,subs])=>{
-        const h=document.createElement("h3"); h.textContent=menu; h.style.margin="8px 0 4px";
-        const ul=document.createElement("ul"); ul.style.margin=0; ul.style.paddingLeft="18px";
-        subs.forEach(sub=>{
-          const perms=(st[menu]&&st[menu][sub])||{};
-          const on=PERMS.filter(k=>perms[k]).map(cap);
-          const li=document.createElement("li");
-          li.textContent=`${sub} — ${on.length?on.join(", "):"No access"}`;
-          ul.appendChild(li);
-        });
-        body.appendChild(h); body.appendChild(ul);
-      });
-      $("#qvTitle").textContent=`Role Permissions — ${role}`;
-      $("#qvBackdrop").style.display="flex";
-    }
-
-    function toast(msg){
-      let box=document.getElementById("dfToast");
-      if(!box){
-        box=document.createElement("div");
-        box.id="dfToast";
-        box.style.cssText="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg,rgba(0,0,0,.03));box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999;display:none;";
-        box.innerHTML='<span id="dfToastText">Saved</span>';
-        document.body.appendChild(box);
+        state[role] = def;
       }
-      document.getElementById("dfToastText").textContent=msg||"Saved";
-      box.style.display="block";
-      clearTimeout(window.__toast);
-      window.__toast=setTimeout(()=> box.style.display="none", 1800);
+      return state[role];
     }
 
-    // Init
-    buildAccordion();
-    attachHandlers();
-    applyRole($("#roleSel").value);
+    function render(){
+      permRoot.innerHTML = '';
+      const data = getRolePerm(roleSel.value);
 
-    window.setBreadcrumbs && window.setBreadcrumbs([
+      MENUS.forEach(group=>{
+        const details = document.createElement('details');
+        details.className = 'perm-accordion'; // collapsed by default
+
+        const summary = document.createElement('summary');
+        summary.innerHTML = `<span class="caret"></span> ${group.menu}`;
+        details.appendChild(summary);
+
+        const body = document.createElement('div');
+        body.className = 'perm-body';
+
+        // Top-level actions (apply to ALL submenus inside this menu)
+        const topRow = document.createElement('div');
+        topRow.className = 'perm-actions';
+        ACTIONS.forEach(a=>{
+          const btn = document.createElement('button');
+          btn.type='button';
+          btn.className = 'btn-toggle' + (data[group.menu].all[a] ? ' is-on' : '');
+          btn.textContent = actionLabel[a];
+          btn.addEventListener('click', ()=>{
+            data[group.menu].all[a] = !data[group.menu].all[a];
+            btn.classList.toggle('is-on');
+          });
+          topRow.appendChild(btn);
+        });
+        body.appendChild(topRow);
+
+        // Manage submenus (expander)
+        const manage = document.createElement('div');
+        manage.className = 'manage-row';
+        manage.innerHTML = `<span>Manage submenus</span><span aria-hidden="true">›</span>`;
+        body.appendChild(manage);
+
+        const subWrap = document.createElement('div');
+        subWrap.className = 'submenus-wrap';
+        subWrap.style.display = 'none';
+
+        group.sub.forEach(name=>{
+          const row = document.createElement('div');
+          row.style.margin = '10px 0 12px';
+
+          const title = document.createElement('div');
+          title.style.fontWeight = '700';
+          title.style.marginBottom = '6px';
+          title.textContent = `${group.menu} › ${name}`;
+          row.appendChild(title);
+
+          const actions = document.createElement('div');
+          actions.className = 'perm-actions';
+          ACTIONS.forEach(a=>{
+            const btn = document.createElement('button');
+            btn.type='button';
+            btn.className = 'btn-toggle' + (data[group.menu].sub[name][a] ? ' is-on' : '');
+            btn.textContent = actionLabel[a];
+            btn.addEventListener('click', ()=>{
+              data[group.menu].sub[name][a] = !data[group.menu].sub[name][a];
+              btn.classList.toggle('is-on');
+            });
+            actions.appendChild(btn);
+          });
+          row.appendChild(actions);
+          subWrap.appendChild(row);
+        });
+
+        manage.addEventListener('click', ()=>{
+          subWrap.style.display = (subWrap.style.display === 'none') ? 'block' : 'none';
+        });
+
+        body.appendChild(subWrap);
+        details.appendChild(body);
+        permRoot.appendChild(details);
+      });
+    }
+
+    // Save handler: persist, collapse everything, scroll top, toast
+    $('#savePermsBtn').addEventListener('click', ()=>{
+      saveState();
+      toast('Permissions saved');
+      document.querySelectorAll('.perm-accordion[open]').forEach(d=>d.removeAttribute('open'));
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+
+    // Switch role
+    roleSel.addEventListener('change', render);
+
+    // Quick View summary
+    const qvBtn = $('#quickViewBtn'), qvBackdrop = $('#qvBackdrop'), qvList = $('#qvList'), qvRole = $('#qvRole');
+    qvBtn.addEventListener('click', ()=>{
+      const data = getRolePerm(roleSel.value);
+      qvRole.textContent = roleSel.value;
+      qvList.innerHTML = '';
+      MENUS.forEach(group=>{
+        const li = document.createElement('li');
+        li.style.margin='8px 0';
+        li.innerHTML = `<strong>${group.menu}</strong> — ${summarizeMenu(data[group.menu], group.sub)}`;
+        qvList.appendChild(li);
+      });
+      qvBackdrop.style.display='flex';
+    });
+    $('#qvClose').addEventListener('click', ()=> qvBackdrop.style.display='none');
+    qvBackdrop.addEventListener('click', (e)=>{ if(e.target===qvBackdrop) qvBackdrop.style.display='none'; });
+
+    function summarizeMenu(entry, subs){
+      // If ALL actions true across ALL submenus, say "All"
+      const allTrue = ACTIONS.every(a=> entry.all[a]) && subs.every(s=> ACTIONS.every(a=> entry.sub[s][a]));
+      if (allTrue) return 'All';
+
+      // actions that are on for every submenu
+      const onEvery = ACTIONS.filter(a=> subs.every(s=> !!entry.sub[s][a]));
+      const hasExceptions =
+        subs.some(s => ACTIONS.some(a => entry.sub[s][a] !== entry.sub[subs[0]][a])) ||
+        ACTIONS.some(a => entry.all[a] !== onEvery.includes(a));
+
+      let line = onEvery.length ? onEvery.map(a=>actionLabel[a]).join(', ') : 'Custom';
+      if (hasExceptions) line += ' (some exceptions)';
+      return line;
+    }
+
+    function toast(msg){ const box=$('#dfToast'),txt=$('#dfToastText');
+      txt.textContent=msg||'Saved';
+      box.style.display='block'; clearTimeout(window.__t);
+      window.__t=setTimeout(()=>box.style.display='none',1800);
+    }
+
+    // init
+    render();
+
+    // breadcrumbs (safety)
+    window.setBreadcrumbs?.([
       {label:'Home', href:'index.html'},
       {label:'Setup / Settings', href:'settings.html'},
       {label:'Account Roles'}
@@ -419,6 +366,7 @@
   })();
   </script>
 
+  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
