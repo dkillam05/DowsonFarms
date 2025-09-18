@@ -1069,3 +1069,38 @@ button:focus-visible {
 .breadcrumbs ol li:not(.sep):last-child a,
 .breadcrumbs ol li:not(.sep):last-child span{ max-width:100%; }
 
+
+/* =========================================================
+   Breadcrumb polish: tighter middles + capped last label
+   ========================================================= */
+:root{
+  /* Tune these two to taste */
+  --crumb-middle-ch: 4ch;   /* 3–5ch → “…”, “Pro…”, “Chem…” */
+  --crumb-last-max: 52%;    /* last crumb will never exceed this share of the trail */
+}
+
+/* Middle crumbs (anything that's not first/last/sep) */
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
+  flex: 0 1 auto;           /* can shrink */
+  min-width: 0;
+}
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) a,
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) span{
+  max-width: var(--crumb-middle-ch); /* << shorter: forces “Pro…”, “Chem…”, etc. */
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Last crumb (current page): cap its width so it can't crash into Logout */
+.breadcrumbs ol li:not(.sep):last-child{
+  flex: 0 1 var(--crumb-last-max);   /* hard cap */
+  min-width: 0;
+}
+.breadcrumbs ol li:not(.sep):last-child a,
+.breadcrumbs ol li:not(.sep):last-child span{
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Keep a little breathing room before Logout (if not already present) */
+.breadcrumbs ol + .logout-btn{ margin-left: 10px; }
+
