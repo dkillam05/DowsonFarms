@@ -33,17 +33,8 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><a href="settings.html">Setup / Settings</a></li>
-      <li class="sep">›</li>
-      <li><a href="products.html">Products</a></li>
-      <li class="sep">›</li>
-      <li><span>Seed</span></li>
-    </ol>
-  </nav>
+  <!-- Breadcrumbs (empty list; populated by setBreadcrumbs like Bugs) -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol></ol></nav>
 
   <main class="content">
     <section class="card coming">
@@ -62,6 +53,14 @@
   </footer>
 
   <script>
+    // Match the Bugs pattern: build crumbs dynamically
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Setup / Settings', href:'settings.html'},
+      {label:'Products', href:'products.html'},
+      {label:'Seed'}
+    ]);
+
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
