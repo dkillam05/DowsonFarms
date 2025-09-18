@@ -20,7 +20,7 @@
   <script defer src="core.js"></script>
 
   <style>
-    /* page-local utilities (don’t change your global sizing) */
+    /* page-local utilities (keep your global sizing) */
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
@@ -29,14 +29,19 @@
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
 
-    /* Overrides modal pill look (same as Employees) */
-    .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
-    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
-    .pill[disabled]{opacity:.45;pointer-events:none}
-    .ex-group {border:1px solid var(--tile-border);border-radius:10px;margin:6px 0;background:var(--tile-bg);}
-    .ex-parent {display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--tile-border);justify-content:space-between}
-    .ex-children {padding:6px 10px 12px}
+    /* iOS no-zoom + larger phone inputs (match Employees) */
+    #scBizPhone, #scCellPhone, #m_biz, #m_cell { font-size:16px; } /* keep theme.css sizing */
+
+    /* Cascader (identical to Employees / Account Roles) */
+    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));align-items:center}
+    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
+    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
+    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
+    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
+    .menu-body{padding:16px;border-top:1px dashed var(--tile-border)}
+    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
+    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
+    .subbody{padding:8px 4px 2px}
   </style>
 </head>
 <body>
@@ -110,8 +115,8 @@
 
       <div class="field-row">
         <div class="field">
-          <label for="scTrade">Trade / Service</label>
-          <input id="scTrade" type="text" placeholder="e.g., Excavation, Trucking, Electrical" />
+          <label for="scTradeSel">Trade / Service</label>
+          <select id="scTradeSel"></select>
         </div>
         <div class="field">
           <label for="scNotes">Notes</label>
@@ -166,18 +171,16 @@
     </div>
   </div>
 
-  <!-- Permission Overrides Modal (same as Employees) -->
+  <!-- Permission Overrides Modal (cascader; identical to Employees) -->
   <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
       <h2 id="exTitle">Permission Overrides</h2>
       <p class="muted-small" style="margin-top:-6px;">Grant access to specific Menus and Submenus in addition to the chosen Role.</p>
-      <div class="line" style="gap:10px;align-items:center;margin:4px 0 10px;">
+      <div class="line" style="gap:10px;align-items:center;margin:4px 0 12px;">
         <input id="exSearch" placeholder="Search menus…" style="flex:1;font-size:16px;height:40px;padding:8px 12px;border-radius:10px;">
-        <button type="button" class="pill" id="exEnableBtn" aria-pressed="false" title="Enable overrides">
-          Enable overrides for this company
-        </button>
+        <button class="btn-outline" id="exEnable" type="button" aria-pressed="false">Enable overrides for this company</button>
       </div>
-      <div id="exList" style="max-height:min(52vh,500px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px; padding:6px;"></div>
+      <div id="exTree" style="max-height:min(52vh,500px); overflow:auto;"></div>
       <div class="modal-actions" style="justify-content:space-between;">
         <button class="btn-outline" id="exCancel">Cancel</button>
         <button class="btn-primary" id="exSave">Save Overrides</button>
@@ -200,7 +203,7 @@
           <input id="m_cell" placeholder="Cell Phone" maxlength="14" />
         </div>
         <input id="m_email" placeholder="Primary Email" />
-        <input id="m_trade" placeholder="Trade / Service" />
+        <select id="m_tradeSel"></select>
         <input id="m_notes" placeholder="Notes" />
         <select id="m_role"></select>
         <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
@@ -217,7 +220,8 @@
   (function SubcontractorsPage(){
     const KEY='df.subcontractors';
     const ROLES_PERMS_KEY='df_role_perms'; // from Account Roles
-    const MENUS_MAP_KEY='df_menus_map';    // menus object from Account Roles page
+    const MENUS_MAP_KEY='df_menus';        // menus object from Account Roles page
+    const TRADE_KEY='df.trade_list';       // array of strings
 
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -246,7 +250,7 @@
     // Roles and Menus (mirror Employees)
     function getRoleNames(){
       const rp = load(ROLES_PERMS_KEY, null);
-      return rp ? Object.keys(rp) : ["Admin","Manager","Operator","Viewer"];
+      return rp ? Object.keys(rp) : ["Administrator","Owner","Manager","Employee","View Only"];
     }
     function fillRoleSelect(sel, value){
       const roles=getRoleNames();
@@ -269,113 +273,209 @@
       };
     }
 
-    // ---- Overrides (same shape as Employees: {enabled:boolean, grants:{ "Menu>Sub": {view..delete} }} ) ----
-    const exState = { enabled:false, grants:{} };
-
-    // Pill helpers
-    function makePill(label, on){ const b=document.createElement('button'); b.type='button'; b.className='pill'; b.textContent=label; b.setAttribute('aria-pressed', on?'true':'false'); b.addEventListener('click',()=>{ const now=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed', now?'false':'true'); }); return b; }
-    function pillRowFromObj(obj, disabled){
-      const row=document.createElement('div'); row.className='pill-grid';
-      ['View','Edit','Add','Archive','Delete'].forEach(k=>{ const p=makePill(k, !!obj?.[k.toLowerCase()]); if(disabled) p.setAttribute('disabled',''); row.appendChild(p); });
-      return row;
+    // ---------- Cascader overrides (same as Employees) ----------
+    function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
+    const pill = (label, pressed, onToggle)=>{
+      const b=document.createElement('button');
+      b.type='button'; b.className='pill'; b.textContent=label;
+      b.setAttribute('aria-pressed', pressed?'true':'false');
+      b.addEventListener('click', ()=>{
+        const now=b.getAttribute('aria-pressed')==='true';
+        b.setAttribute('aria-pressed', now?'false':'true');
+        onToggle(!now,b);
+      });
+      return b;
+    };
+    function summarizeMenu(menuObj){
+      const subs=Object.keys(menuObj).filter(k=>k!=='_all');
+      if(!subs.length) return 'No access';
+      const allTrue=subs.every(s=>{const p=menuObj[s];return p.view&&p.edit&&p.add&&p.archive&&p.delete;});
+      const allFalse=subs.every(s=>{const p=menuObj[s];return !p.view&&!p.edit&&!p.add&&!p.archive&&!p.delete;});
+      if(allTrue) return 'All';
+      if(allFalse) return 'No access';
+      return 'Custom';
     }
-    function rowToObj(row){ const keys=['view','edit','add','archive','delete']; const vals=[...row.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true'); return Object.fromEntries(keys.map((k,i)=>[k,vals[i]])); }
-    function setRow(row,obj){ const keys=['view','edit','add','archive','delete']; [...row.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=> p.setAttribute('aria-pressed', obj?.[keys[i]]?'true':'false')); }
+    function summarizeChildren(menuObj){
+      const subs=Object.keys(menuObj).filter(k=>k!=='_all');
+      const on=subs.filter(s=>{const p=menuObj[s];return p.view||p.edit||p.add||p.archive||p.delete;}).length;
+      if(!on) return 'None';
+      if(on===subs.length) return 'All submenus';
+      return `${on} of ${subs.length} submenus`;
+    }
 
-    function openExceptions(existing){
-      // back-compat translate if needed
-      let draft = { enabled:false, grants:{} };
-      if (existing){
-        draft.enabled = !!existing.enabled;
-        if (existing.grants && typeof existing.grants==='object') draft.grants={...existing.grants};
-        else if (Array.isArray(existing.allow)) existing.allow.forEach(id=>{ draft.grants[id] = {view:true,edit:true,add:true,archive:true,delete:true}; });
-      }
-      exState.enabled = draft.enabled;
-      exState.grants = {...draft.grants};
+    function buildMenuCard(menuName, ex, MENUS){
+      const card=document.createElement('div'); card.className='menu-card';
+      const head=document.createElement('div'); head.className='menu-head';
+      const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
+      const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
+      const title=document.createElement('strong'); title.textContent=menuName;
+      left.append(caret,title);
+      const right=document.createElement('span'); right.className='muted-small'; right.textContent=' ';
+      head.append(left,right);
 
-      const MENUS=getMenusObject();
-      const B=$('#exBackdrop'), L=$('#exList'), enableBtn=$('#exEnableBtn');
+      const body=document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
-      L.innerHTML='';
-      Object.keys(MENUS).forEach(menu=>{
-        const group=document.createElement('details'); group.className='ex-group'; group.open=true;
+      ex.grants[menuName]=ex.grants[menuName]||{};
+      ex.grants[menuName]._all=ex.grants[menuName]._all||blankPerm();
 
-        // parent row “Grant all in <menu>”
-        const parent=document.createElement('div'); parent.className='ex-parent';
-        const left=document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
-        const title=document.createElement('strong'); title.textContent=menu;
-        const sublabel=document.createElement('span'); sublabel.className='muted-small'; sublabel.textContent='Grant all in '+menu;
-        left.append(title, sublabel);
-
-        const pkey=`${menu}>*`;
-        const pRow=pillRowFromObj(exState.grants[pkey], !exState.enabled);
-        parent.append(left, pRow);
-        pRow.addEventListener('click',(e)=>{
-          if(!e.target.classList.contains('pill')) return;
-          const state=rowToObj(pRow); exState.grants[pkey]=state;
-          group.querySelectorAll('[data-subrow]').forEach(r=>{
-            setRow(r, state);
-            exState.grants[r.dataset.key] = {...state};
+      const grid=document.createElement('div'); grid.className='pill-grid';
+      ['View','Edit','Add','Archive','Delete'].forEach(name=>{
+        const k=name.toLowerCase();
+        const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
+          ex.grants[menuName]._all[k]=isOn;
+          MENUS[menuName].forEach(sub=>{
+            ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
+            ex.grants[menuName][sub][k]=isOn;
           });
+          body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(b=>b.setAttribute('aria-pressed', isOn?'true':'false'));
+          right.textContent = summarizeMenu(ex.grants[menuName]);
         });
+        grid.appendChild(p);
+      });
+      body.appendChild(grid);
 
-        const kidsWrap=document.createElement('div'); kidsWrap.className='ex-children';
-        MENUS[menu].forEach(sub=>{
-          const key=`${menu}>${sub}`;
-          const row=document.createElement('div'); row.style.margin='10px 0'; row.setAttribute('data-subrow',''); row.dataset.key=key;
-          const label=document.createElement('div'); label.textContent=sub; label.style.margin='0 0 6px';
-          const pills=pillRowFromObj(exState.grants[key], !exState.enabled);
-          pills.addEventListener('click',(e)=>{ if(e.target.classList.contains('pill')) exState.grants[key]=rowToObj(pills); });
-          row.append(label, pills);
-          kidsWrap.appendChild(row);
+      const subWrap=document.createElement('div'); subWrap.className='subwrap';
+      const sh=document.createElement('div'); sh.className='subhead';
+      const shL=document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
+      const subCaret=document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
+      const shT=document.createElement('strong'); shT.textContent='Manage submenus';
+      shL.append(subCaret,shT);
+      const shR=document.createElement('span'); shR.className='muted-small'; shR.textContent=' ';
+      sh.append(shL,shR);
+      const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
+
+      MENUS[menuName].forEach(sub=>{
+        ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
+        const sec=document.createElement('section'); sec.style.margin='10px 0 14px';
+        const h=document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent=`${menuName} › ${sub}`;
+        const grid2=document.createElement('div'); grid2.className='pill-grid';
+        ['View','Edit','Add','Archive','Delete'].forEach(name=>{
+          const k=name.toLowerCase();
+          const btn=pill(name, !!ex.grants[menuName][sub][k], (isOn)=>{
+            ex.grants[menuName][sub][k]=isOn;
+            shR.textContent = summarizeChildren(ex.grants[menuName]);
+            right.textContent = summarizeMenu(ex.grants[menuName]);
+          });
+          btn.setAttribute('data-sub', `${menuName}::${k}`);
+          grid2.appendChild(btn);
         });
-
-        group.append(parent, kidsWrap);
-        L.appendChild(group);
+        sec.append(h,grid2);
+        subBody.appendChild(sec);
       });
 
-      function setEnabledUI(on){
-        L.querySelectorAll('.pill').forEach(p=> on? p.removeAttribute('disabled') : p.setAttribute('disabled',''));
-        L.querySelectorAll('[data-subrow]').forEach(r=> r.style.opacity = on ? 1 : .6);
-      }
-      enableBtn.setAttribute('aria-pressed', exState.enabled?'true':'false');
-      setEnabledUI(exState.enabled);
+      sh.addEventListener('click', ()=>{
+        const open=subBody.style.display!=='none';
+        subBody.style.display=open?'none':'block';
+        subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
+      });
 
-      enableBtn.onclick=()=>{ exState.enabled=!exState.enabled; enableBtn.setAttribute('aria-pressed', exState.enabled?'true':'false'); setEnabledUI(exState.enabled); };
+      subWrap.append(sh, subBody);
+      body.appendChild(subWrap);
 
-      // search
-      const search=$('#exSearch'); search.value='';
-      search.oninput=()=>{ const q=search.value.toLowerCase().trim(); L.querySelectorAll('.ex-group').forEach(d=>{ const txt=d.textContent.toLowerCase(); d.style.display=(!q||txt.includes(q))?'':'none'; }); };
+      head.addEventListener('click', ()=>{
+        const open=body.style.display!=='none';
+        body.style.display=open?'none':'block';
+        caret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
+      });
 
-      B.style.display='flex';
-      $('#exCancel').onclick=()=> B.style.display='none';
-      $('#exSave').onclick=()=>{
-        B.style.display='none';
-        // drop empty grants
-        Object.keys(exState.grants).forEach(k=>{ const g=exState.grants[k]; const any=g&&(g.view||g.edit||g.add||g.archive||g.delete); if(!any) delete exState.grants[k]; });
-        if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
+      right.textContent = summarizeMenu(ex.grants[menuName]);
+      shR.textContent = summarizeChildren(ex.grants[menuName]);
+
+      card.append(head, body);
+      return card;
+    }
+
+    function openPermissionOverrides(existing, onSave){
+      const MENUS=getMenusObject();
+      const B=$('#exBackdrop'), Tree=$('#exTree'), Enable=$('#exEnable'), Search=$('#exSearch');
+      const ex = existing && typeof existing==='object'
+        ? JSON.parse(JSON.stringify(existing))
+        : {enabled:false,grants:{}};
+
+      Tree.innerHTML='';
+      Object.keys(MENUS).forEach(menu=>{
+        Tree.appendChild(buildMenuCard(menu, ex, MENUS));
+      });
+
+      const setEnable=(v)=>{
+        ex.enabled=!!v;
+        Enable.setAttribute('aria-pressed', v?'true':'false');
+        Tree.style.opacity=v?1:.45;
+        Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v);
       };
+      setEnable(!!ex.enabled);
+      Enable.onclick=()=> setEnable(!(Enable.getAttribute('aria-pressed')==='true'));
+
+      Search.value='';
+      Search.oninput=()=>{
+        const q=Search.value.toLowerCase().trim();
+        Tree.querySelectorAll('.menu-card').forEach(card=>{
+          card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      };
+
+      $('#exSave').onclick=()=>{ B.style.display='none'; onSave && onSave(ex); };
+      $('#exCancel').onclick=()=>{ B.style.display='none'; };
       B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+      B.style.display='flex';
+    }
+    window.openPermissionOverrides = openPermissionOverrides;
+
+    // Trade list
+    function getTrades(){ const arr = load(TRADE_KEY, []); return Array.isArray(arr)?arr:[]; }
+    function setTrades(arr){ save(TRADE_KEY, Array.from(new Set(arr)).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}))); }
+    function fillTradeSelect(sel, value){
+      const trades = getTrades();
+      sel.innerHTML =
+        `<option value="" ${value?'':'selected'} disabled>Select trade…</option>` +
+        trades.map(t=>`<option value="${t}">${t}</option>`).join('') +
+        `<option value="__add__">+ Add new…</option>`;
+      if(value && trades.includes(value)) sel.value=value;
+      sel.onchange = ()=>{
+        if(sel.value==='__add__'){
+          const name = prompt('Add new trade / service:','');
+          if(name && name.trim()){
+            const t = titleCase(name.trim());
+            const next = getTrades(); next.push(t); setTrades(next);
+            fillTradeSelect(sel, t);
+          } else {
+            fillTradeSelect(sel, '');
+          }
+        }
+      };
     }
 
     // Role select
     fillRoleSelect($('#scRole'));
+    fillTradeSelect($('#scTradeSel'));
 
     // Phone masks
     attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
 
-    // Invite
-    function inviteSub(id){
-      const all=listLoad(); const r=all.find(x=>x.id===id); if(!r) return alert('Record not found');
-      if(!r.email) return alert('Primary email required to send invite.');
-      const name = (r.company || (r.first+' '+r.last) || 'there').trim();
-      const appUrl = location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html';
-      const subject = encodeURIComponent('Dowson Farms App — Sub-Contractor Access');
-      const body = encodeURIComponent(
-        `Hi ${name},\n\nYou’ve been invited to the Dowson Farms app.\n\n1) Open: ${appUrl}\n2) Tap “Create Password / Activate”\n3) Use this email address to complete setup.\n\n— Dowson Farms`
-      );
-      window.location.href = `mailto:${encodeURIComponent(r.email)}?subject=${subject}&body=${body}`;
-      r.invitedAt=Date.now(); upsert(r); render();
+    // Invite via API (mock backend endpoint)
+    async function inviteSub(id){
+      const all=listLoad(); const r=all.find(x=>x.id===id);
+      if(!r){ alert('Record not found'); return; }
+      if(!r.email){ alert('Primary email required to send invite.'); return; }
+
+      try{
+        const res = await fetch('/api/invite', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            email: r.email,
+            name: (r.company || ([r.first,r.last].filter(Boolean).join(' ')) || '').trim(),
+            role: r.role || '',
+            continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
+          })
+        });
+        if(!res.ok){ throw new Error(await res.text() || ('HTTP '+res.status)); }
+        r.invitedAt = Date.now(); upsert(r); render();
+        alert('Invite successfully sent.');
+      }catch(err){
+        console.error(err);
+        alert('Invite failed: ' + err.message);
+      }
     }
 
     // Saved list
@@ -395,7 +495,7 @@
         const name = r.company || '(No Company)';
         const person = [r.first,r.last].filter(Boolean).join(' ');
         const rowChips = [person, r.trade, r.phoneBiz, r.phoneCell, r.email].filter(Boolean).map(chip).join(' ');
-        const exCount = r.exceptions?.enabled ? Object.keys(r.exceptions?.grants||{}).length : 0;
+        const exCount = r.exceptions?.enabled ? Object.values(r.exceptions?.grants||{}).reduce((n,m)=>n+Object.keys(m).filter(k=>k!=='_all').length,0) : 0;
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name}</strong>
@@ -422,15 +522,16 @@
       $('#m_first').value=r.first||''; $('#m_last').value=r.last||'';
       $('#m_biz').value=r.phoneBiz||''; $('#m_cell').value=r.phoneCell||'';
       attachPhoneMask($('#m_biz')); attachPhoneMask($('#m_cell'));
-      $('#m_email').value=r.email||''; $('#m_trade').value=r.trade||''; $('#m_notes').value=r.notes||'';
+      $('#m_email').value=r.email||'';
+      fillTradeSelect($('#m_tradeSel'), r.trade||'');
+      $('#m_notes').value=r.notes||'';
       fillRoleSelect($('#m_role'), r.role||'');
       $('#m_archived').checked=!!r.archived;
 
       const B=$('#manageBackdrop'); B.style.display='flex';
-      $('#m_exceptions').onclick=()=>{ exState.onSave = (v)=>{ r.exceptions=v; }; openExceptions(r.exceptions); };
+      $('#m_exceptions').onclick=()=>{ openPermissionOverrides(r.exceptions, (v)=>{ r.exceptions=v; }); };
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
-        // basic validation mirrors create flow
         if(!($('#m_company').value||'').trim()){ alert('Company is required.'); return; }
         if(!isValidPhoneUS($('#m_biz').value)||!isValidPhoneUS($('#m_cell').value)){ alert('Phones must be (###) ###-####'); return; }
         if(!isEmail($('#m_email').value)){ alert('Valid primary email is required.'); return; }
@@ -440,7 +541,8 @@
         r.last=titleCase(($('#m_last').value||'').trim());
         r.phoneBiz=$('#m_biz').value; r.phoneCell=$('#m_cell').value;
         r.email=$('#m_email').value.trim();
-        r.trade=($('#m_trade').value||'').trim(); r.notes=($('#m_notes').value||'').trim();
+        r.trade=$('#m_tradeSel').value || '';
+        r.notes=$('#m_notes').value||'';
         r.role=$('#m_role').value;
         r.archived=$('#m_archived').checked;
         r.updatedAt=Date.now();
@@ -470,10 +572,10 @@
 
     // Create flow
     attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
+
     $('#exceptionsBtn').addEventListener('click', ()=>{
-      exState.onSave = (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); };
       const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
-      openExceptions(existing);
+      openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
     });
 
     $('#inviteBtn').addEventListener('click', ()=>{
@@ -489,7 +591,7 @@
         phoneCell: $('#scCellPhone').value,
         email,
         role: $('#scRole').value || '',
-        trade: ($('#scTrade').value||'').trim(),
+        trade: $('#scTradeSel').value || '',
         notes: ($('#scNotes').value||'').trim(),
         archived:false,
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
@@ -519,7 +621,7 @@
         id, company, first, last,
         phoneBiz: biz, phoneCell: cell,
         email, role,
-        trade: ($('#scTrade').value||'').trim(),
+        trade: ($('#scTradeSel').value || ''),
         notes: ($('#scNotes').value||'').trim(),
         archived:false,
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
@@ -527,10 +629,11 @@
       });
       $('#sc-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
+      fillTradeSelect($('#scTradeSel')); // reset to placeholder
       render();
     });
 
-    $('#clearBtn').addEventListener('click', ()=>{ $('#sc-form').reset(); delete $('#exceptionsBtn').dataset.payload; });
+    $('#clearBtn').addEventListener('click', ()=>{ $('#sc-form').reset(); delete $('#exceptionsBtn').dataset.payload; fillTradeSelect($('#scTradeSel')); });
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
 
