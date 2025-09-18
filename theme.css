@@ -1103,3 +1103,50 @@ button:focus-visible {
 
 /* Keep a little breathing room before Logout (if not already present) */
 .breadcrumbs ol + .logout-btn{ margin-left: 10px; }
+
+/* ===== BREADCRUMB HOTFIX (append-only, safe) ===== */
+.breadcrumbs{ justify-content: space-between !important; }
+
+.breadcrumbs ol{
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  gap: 6px !important;
+}
+
+/* Make sure text can actually ellipsize */
+.breadcrumbs ol a,
+.breadcrumbs ol span{
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Middle crumbs collapse to short labels (“Pro…”, “Chem…”, “Seed…”) */
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+}
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span{
+  max-width: 4ch !important; /* adjust 3–6ch to taste */
+}
+
+/* Last crumb capped so it never runs into Logout */
+.breadcrumbs ol li:not(.sep):last-child{
+  flex: 0 1 52% !important;  /* adjust 48–55% to taste */
+  min-width: 0 !important;
+}
+.breadcrumbs ol li:not(.sep):last-child > a,
+.breadcrumbs ol li:not(.sep):last-child > span{
+  max-width: 100% !important;
+}
+
+/* Separators and Logout are never flexible */
+.breadcrumbs ol li.sep{ flex: 0 0 auto !important; }
+.breadcrumbs .logout-btn{
+  flex-shrink: 0 !important;
+  margin-left: 10px !important; /* guardrail so last label never kisses it */
+}
