@@ -42,6 +42,11 @@
     .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px}
+
+    /* Make sure stacked modals layer correctly */
+    .auth-modal__backdrop{z-index:1000;}
+    #exBackdrop{z-index:1001;}
+    #manageBackdrop{z-index:1002;} /* always above others */
   </style>
 </head>
 <body>
@@ -178,11 +183,16 @@
         <input id="m_email" placeholder="Email" />
         <select id="m_role"></select>
         <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
-        <div class="line"><button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button></div>
+        <div class="line">
+          <button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button>
+        </div>
       </div>
       <div class="modal-actions" style="justify-content:space-between;">
-        <button class="btn-outline" id="manageCancel">Cancel</button>
-        <button class="btn-primary" id="manageSave">Save Changes</button>
+        <button class="btn-outline" id="manageDelete" style="border-color:#a33;color:#a33;">Delete</button>
+        <div>
+          <button class="btn-outline" id="manageCancel">Cancel</button>
+          <button class="btn-primary" id="manageSave">Save Changes</button>
+        </div>
       </div>
     </div>
   </div>
@@ -225,6 +235,7 @@
     const loadAll = ()=> { try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} };
     const saveAll = (v)=> localStorage.setItem(KEY, JSON.stringify(v));
     const upsert = (item)=>{ const list=loadAll(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); saveAll(list); };
+    const removeById = (id)=>{ const list=loadAll().filter(x=>x.id!==id); saveAll(list); };
     const byName = (a,b)=> a.last.localeCompare(b.last, undefined, {sensitivity:'base'}) || a.first.localeCompare(b.first, undefined, {sensitivity:'base'});
 
     // Phone mask: (###) ###-####
@@ -242,7 +253,6 @@
     function isValidPhoneUS(s){ return /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||''); }
 
     // ---------- Permission Overrides (cascader like Account Roles) ----------
-    // exceptions = { enabled: boolean, grants: { [menu]: { _all:perm, [submenu]:perm } } }
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     const pill = (label, pressed, onToggle)=>{
       const b=document.createElement('button');
@@ -282,7 +292,6 @@
       });
       return n;
     }
-    window.countOverrideEntries = countOverrideEntries; // used in list render
 
     function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
@@ -304,7 +313,6 @@
         const k=name.toLowerCase();
         const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
           ex.grants[menuName]._all[k]=isOn;
-          // cascade to children + reflect visuals
           MENUS[menuName].forEach(sub=>{
             ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
             ex.grants[menuName][sub][k]=isOn;
@@ -400,7 +408,6 @@
       B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
       B.style.display='flex';
     }
-    // expose for reuse in manage modal
     window.openPermissionOverrides = openPermissionOverrides;
 
     // ---- render saved ----
@@ -435,8 +442,18 @@
     }
 
     // ---- Manage modal ----
+    function closeAllModalsExcept(idToKeep){
+      ['qvBackdrop','exBackdrop','manageBackdrop'].forEach(id=>{
+        if(id!==idToKeep){ const el=document.getElementById(id); if(el) el.style.display='none'; }
+      });
+    }
+
     function openManage(id){
       const list=loadAll(); const e=list.find(x=>x.id===id); if(!e) return;
+
+      // Make sure nothing sits on top of Manage
+      closeAllModalsExcept('manageBackdrop');
+
       $('#manageTitle').textContent = `Edit Employee — ${(e.first||'') + ' ' + (e.last||'')}`.trim();
       $('#m_first').value=e.first||''; $('#m_last').value=e.last||'';
       $('#m_phone').value=e.phone||''; attachPhoneMask($('#m_phone'));
@@ -445,7 +462,9 @@
 
       const B=$('#manageBackdrop'); B.style.display='flex';
       $('#m_exceptions').onclick=()=>{
-        openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; });
+        // pause Manage while overrides are open, then bring it back on close
+        openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; B.style.display='flex'; });
+        $('#exBackdrop').addEventListener('click',(ev)=>{ if(ev.target.id==='exBackdrop') B.style.display='flex'; }, {once:true});
       };
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
@@ -462,6 +481,16 @@
         e.updatedAt=Date.now();
         upsert(e); B.style.display='none'; render();
       };
+
+      // Delete
+      $('#manageDelete').onclick=()=>{
+        const ok = confirm('Delete this employee? Only do this if the employee has never been used elsewhere.');
+        if(!ok) return;
+        removeById(e.id);
+        B.style.display='none';
+        render();
+      };
+
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
@@ -476,30 +505,15 @@
           ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
         </li>`;
       }).join('') : '<li>No employees.</li>';
+      closeAllModalsExcept('qvBackdrop');
       B.style.display='flex';
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // ---- tiny toast helper (created on-the-fly; no HTML changes needed)
-    function showToast(msg){
-      let box = document.getElementById('dfToast');
-      if(!box){
-        box = document.createElement('div');
-        box.id='dfToast';
-        box.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg, #fff);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999;display:none;';
-        const span=document.createElement('span'); span.id='dfToastText'; box.appendChild(span);
-        document.body.appendChild(box);
-      }
-      const span = document.getElementById('dfToastText');
-      span.textContent = msg || 'Done';
-      box.style.display='block';
-      clearTimeout(window.__toastT); window.__toastT=setTimeout(()=> box.style.display='none', 1500);
-    }
-
-    // ---- invite via backend (shows toast on success) ----
+    // ---- Invite: nicer errors ----
     async function inviteEmployee(id){
-      const list = loadAll();
+      const list = loadAll(); 
       const e = list.find(x=>x.id===id);
       if(!e){ alert('Employee not found'); return; }
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
@@ -517,17 +531,29 @@
         });
 
         if(!res.ok){
-          const msg = await res.text();
-          throw new Error(msg || ('HTTP '+res.status));
+          // Try to read JSON first, then text; hide raw HTML errors
+          const ct = res.headers.get('content-type')||'';
+          let msg = '';
+          if(ct.includes('application/json')){
+            const j = await res.json().catch(()=>null);
+            msg = j?.message || j?.error || '';
+          } else {
+            const t = await res.text();
+            msg = /<[^>]+>/.test(t) ? '' : t; // if looks like HTML, suppress
+          }
+          const label = res.status===405 ? 'Invite endpoint not available (405)' :
+                        res.status===404 ? 'Invite endpoint not found (404)' :
+                        `Invite failed (${res.status})`;
+          throw new Error(msg ? `${label}: ${msg}` : label);
         }
 
         e.invitedAt = Date.now();
         upsert(e);
         render();
-        showToast('Invite sent'); // <— toast instead of alert
+        alert('Invite successfully sent.');
       } catch (err){
         console.error(err);
-        alert('Invite failed: ' + err.message);
+        alert(err.message || 'Invite failed. Please try again.');
       }
     }
 
