@@ -30,12 +30,16 @@
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
 
     /* iOS no-zoom without altering your input sizing */
-    #empPhone, #m_phone { font-size:16px; } /* keep same height/padding from theme.css */
+    #empPhone, #m_phone { font-size:16px; }
 
-    /* Permission Overrides visual */
+    /* Overrides modal visuals (pills) */
     .ex-group {border:1px solid var(--tile-border);border-radius:10px;margin:6px 0;background:var(--tile-bg);}
-    .ex-parent {display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--tile-border);}
-    .ex-children {padding:4px 8px 8px 36px;}
+    .ex-parent {display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--tile-border);justify-content:space-between}
+    .ex-children {padding:6px 10px 12px}
+    .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
+    .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
+    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
+    .pill[disabled]{opacity:.45;pointer-events:none}
   </style>
 </head>
 <body>
@@ -184,23 +188,8 @@
   <script>
   (function EmployeesPage(){
     const KEY='df.employees';
-
-    /* === Link to Account Roles data =============================== */
-    const ROLE_PERMS_KEY = 'df_role_perms';         // from Account Roles page
-    const ROLES_LIST = () => Object.keys(JSON.parse(localStorage.getItem(ROLE_PERMS_KEY) || '{}'));
-    // Keep the same menu/submenu names used by Account Roles (order only matters for display)
-    const ROLES_MENUS = (JSON.parse(localStorage.getItem('df_menus')||'null')) || {
-      "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-      "Grain Tracking": ["Bins","Tickets","Contracts"],
-      "Equipment": ["Maintenance","Repairs","Assignments"],
-      "Calculators": ["Seed Rate","Fertilizer","ROI"],
-      "Reports": ["Crops","Equipment","Financial"],
-      "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-      "Feedback": ["Ideas","Bugs / Issues"],
-      "AI": ["AI","AI History"],
-      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-    };
-
+    const ROLES_PERMS_KEY='df_role_perms'; // from Account Roles page
+    const MENUS_MAP_KEY='df_menus_map';    // from Account Roles (object style) if present
     const $=s=>document.querySelector(s);
     const $list=$('#savedList');
 
@@ -212,7 +201,7 @@
     const upsert = (item)=>{ const list=loadAll(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(KEY,list); };
     const byName = (a,b)=> a.last.localeCompare(b.last, undefined, {sensitivity:'base'}) || a.first.localeCompare(b.first, undefined, {sensitivity:'base'});
 
-    // Phone mask: (###) ###-####
+    // Phone mask
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -226,57 +215,37 @@
     }
     function isValidPhoneUS(s){ return /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||''); }
 
-    /* === Roles & Effective Permissions ============================ */
-    function getRolePerms(){ return load(ROLE_PERMS_KEY, {}); } // {RoleName:{Menu:{Sub:{view,..}}}}
+    // Roles list (from Account Roles)
+    function getRoleNames(){
+      const rp = load(ROLES_PERMS_KEY, null);
+      return rp ? Object.keys(rp) : ["Admin","Manager","Operator","Viewer"];
+    }
     function fillRoleSelect(sel, value){
-      const roles = ROLES_LIST();
-      // Fallback if Account Roles hasn't been used yet
-      const opts = roles.length ? roles : ["Administrator","Owner","Manager","Employee","View Only"];
+      const roles=getRoleNames();
       sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
-        opts.map(r=>`<option value="${r}">${r}</option>`).join('');
+        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
       if(value) sel.value=value;
     }
 
-    // Build override list using the same names as Account Roles.
-    function buildOverrideCatalog(){
-      const parents = Object.keys(ROLES_MENUS).map(menu => ({
-        id: `menu::${menu}`, label: menu, children: ROLES_MENUS[menu].map(sub=>({ id:`sub::${menu}::${sub}`, label: sub }))
-      }));
-      return parents;
+    // Menus source (object map preferred; fallback to simple list used earlier)
+    function getMenusObject(){
+      // Prefer the object map used by Account Roles so labels/order match
+      const obj = load(MENUS_MAP_KEY, null);
+      if (obj && typeof obj === 'object') return obj;
+
+      // Fallback to a sane default if not present
+      return {
+        "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
+        "Grain Tracking": ["Bins","Tickets","Contracts"],
+        "Equipment": ["Maintenance","Repairs","Assignments"],
+        "Calculators": ["Seed Rate","Fertilizer","ROI"],
+        "Reports": ["Crops","Equipment","Financial"],
+        "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
+        "Feedback": ["Ideas","Bugs / Issues"],
+        "AI": ["AI","AI History"],
+        "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+      };
     }
-
-    // Deep copy helper
-    const clone = (o)=> JSON.parse(JSON.stringify(o));
-
-    // Merge role perms + employee overrides (overrides grant FULL access to the chosen submenus)
-    function computeEffectivePerms(roleName, overrides){
-      const roles = getRolePerms();
-      const base = clone(roles[roleName] || {});
-      if (overrides?.enabled && Array.isArray(overrides.allow)){
-        overrides.allow.forEach(key=>{
-          const parts = key.split('::'); // "sub::Menu::Sub" or "menu::Menu"
-          if (parts[0] === 'sub'){
-            const menu = parts[1], sub = parts[2];
-            base[menu] = base[menu] || {};
-            base[menu][sub] = {view:true, edit:true, add:true, archive:true, delete:true};
-          } else if (parts[0] === 'menu'){
-            const menu = parts[1];
-            base[menu] = base[menu] || {};
-            (ROLES_MENUS[menu]||[]).forEach(sub=>{
-              base[menu][sub] = {view:true, edit:true, add:true, archive:true, delete:true};
-            });
-          }
-        });
-      }
-      return base;
-    }
-
-    // Expose a tiny helper other pages can use:
-    window.DF_getEffectivePermsForEmployee = function(empId){
-      const e = loadAll().find(x=>x.id===empId);
-      if(!e) return {};
-      return computeEffectivePerms(e.role, e.exceptions);
-    };
 
     // ---- render saved ----
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -290,7 +259,7 @@
 
       $list.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim();
-        const exCount = r.exceptions?.enabled ? (r.exceptions?.allow?.length||0) : 0;
+        const exCount = r.exceptions?.enabled ? Object.keys(r.exceptions?.grants||{}).length : 0;
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name||'(No Name)'}</strong>
@@ -309,116 +278,161 @@
       $list.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
     }
 
-    /* ---- Permission Overrides (now uses Account Roles menus) ---- */
-    const exState = { id:null, enabled:false, allow:[] };
+    // ---------- Permission Overrides (pills) ----------
+    const exState = { enabled:false, grants:{} }; // key "Menu>Submenu" or "Menu>*" ➜ {view,edit,add,archive,delete}
 
+    function curryPill(label, on){
+      const b=document.createElement('button');
+      b.type='button'; b.className='pill'; b.textContent=label;
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.addEventListener('click',()=>{
+        const now=b.getAttribute('aria-pressed')==='true';
+        b.setAttribute('aria-pressed', now?'false':'true');
+      });
+      return b;
+    }
+
+    function pillStateToObj(container){
+      const keys=['view','edit','add','archive','delete'];
+      const vals=[...container.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true');
+      return Object.fromEntries(keys.map((k,i)=>[k,vals[i]]));
+    }
+
+    function setPillsFromObj(container,obj){
+      const keys=['view','edit','add','archive','delete'];
+      [...container.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=>{
+        p.setAttribute('aria-pressed', obj?.[keys[i]] ? 'true':'false');
+      });
+    }
+
+    function makePillRow(initial, disabled){
+      const row=document.createElement('div'); row.className='pill-grid';
+      ['View','Edit','Add','Archive','Delete'].forEach(name=>{
+        const p=curryPill(name, !!initial?.[name.toLowerCase()]);
+        if(disabled) p.setAttribute('disabled','');
+        row.appendChild(p);
+      });
+      return row;
+    }
+
+    // build modal list
     function openExceptions(existing){
-      const catalog = buildOverrideCatalog(); // [{id:'menu::X', label:'X', children:[{id:'sub::X::Y',label:'Y'}]}]
+      // Back-compat translate: old {enabled,allow:[ids]} ➜ grants with all five true
+      let draft = { enabled:false, grants:{} };
+      if (existing){
+        if (typeof existing.enabled === 'boolean') draft.enabled = existing.enabled;
+        if (existing.grants && typeof existing.grants === 'object'){
+          draft.grants = {...existing.grants};
+        } else if (Array.isArray(existing.allow)){
+          existing.allow.forEach(id=>{
+            draft.grants[id] = {view:true,edit:true,add:true,archive:true,delete:true};
+          });
+        }
+      }
+      exState.enabled = !!draft.enabled;
+      exState.grants = {...draft.grants};
+
+      const MENUS = getMenusObject();
       const B=$('#exBackdrop'), L=$('#exList');
+      $('#exEnable').checked = exState.enabled;
 
-      $('#exEnable').checked = !!existing?.enabled;
-      exState.enabled = !!existing?.enabled;
-      exState.allow = Array.isArray(existing?.allow) ? [...existing.allow] : [];
+      // Build groups
+      L.innerHTML = '';
+      Object.keys(MENUS).forEach(menuName=>{
+        const group = document.createElement('details');
+        group.className='ex-group';
+        group.open = true;
 
-      const isChecked = (id)=> exState.allow.includes(id) ? 'checked' : '';
+        // Parent row with "Grant all in <menu>"
+        const parent = document.createElement('div'); parent.className='ex-parent';
+        const left=document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
+        const title=document.createElement('strong'); title.textContent = menuName;
+        const sublabel=document.createElement('span'); sublabel.className='muted-small'; sublabel.textContent='Grant all in '+menuName;
+        left.append(title,sublabel);
 
-      const blocks = catalog.map(group => {
-        const p = group;
-        const kidIds = p.children.map(k=>k.id);
-        const allKidsChecked = kidIds.length>0 && kidIds.every(id => exState.allow.includes(id));
-        const parentChecked = kidIds.length === 0 ? isChecked(p.id) : (allKidsChecked?'checked':'');
+        const parentRow = makePillRow(exState.grants[`${menuName}>*`], !exState.enabled);
+        parent.append(left,parentRow);
 
-        const parentRow = `
-          <div class="ex-parent">
-            <input type="checkbox" data-parent="${p.id}" ${parentChecked}
-                   ${exState.enabled?'':'disabled'}/>
-            <span><strong>${p.label}</strong></span>
-          </div>
-        `;
-        const childRows = p.children.length ? `
-          <div class="ex-children">
-            ${p.children.map(c => `
-              <label style="display:flex;align-items:center;gap:8px;padding:4px 0;">
-                <input type="checkbox" data-child="${c.id}" ${isChecked(c.id)}
-                       ${exState.enabled?'':'disabled'} />
-                <span>${c.label}</span>
-              </label>
-            `).join('')}
-          </div>
-        ` : '';
+        // Sync parent pills to all children
+        parentRow.addEventListener('click', (e)=>{
+          if(e.target.classList.contains('pill')){
+            const state = pillStateToObj(parentRow);
+            exState.grants[`${menuName}>*`] = state;
+            // cascade to each child row (visual only; user can still tweak per child after)
+            group.querySelectorAll('[data-subrow]').forEach(r=>{
+              setPillsFromObj(r, state);
+              const key=r.dataset.key;
+              exState.grants[key] = {...state};
+            });
+          }
+        });
 
-        return `
-          <details class="ex-group">
-            <summary style="list-style:none;">${parentRow}</summary>
-            ${childRows}
-          </details>
-        `;
+        // Children list
+        const kidsWrap = document.createElement('div'); kidsWrap.className='ex-children';
+        MENUS[menuName].forEach(sub=>{
+          const row = document.createElement('div'); row.style.margin='10px 0'; row.setAttribute('data-subrow','');
+          const label=document.createElement('div'); label.textContent=sub; label.style.margin='0 0 6px';
+          const key=`${menuName}>${sub}`;
+          const pills = makePillRow(exState.grants[key], !exState.enabled);
+          pills.setAttribute('data-key', key);
+          row.dataset.key=key;
+          pills.addEventListener('click',(e)=>{
+            if(e.target.classList.contains('pill')){
+              exState.grants[key] = pillStateToObj(pills);
+            }
+          });
+          if(!exState.enabled){ // disabled view
+            row.style.opacity=.6;
+          }
+          row.append(label,pills);
+          kidsWrap.appendChild(row);
+        });
+
+        group.append(parent, kidsWrap);
+        L.appendChild(group);
       });
 
-      L.innerHTML = blocks.join('') || '<div class="muted" style="padding:8px;">No menus defined.</div>';
+      // Enable/disable mode
+      function setEnabledUI(on){
+        L.querySelectorAll('.pill').forEach(p=>{
+          if(on) p.removeAttribute('disabled'); else p.setAttribute('disabled','');
+        });
+        L.querySelectorAll('[data-subrow]').forEach(r=>{
+          r.style.opacity = on? 1 : .6;
+        });
+      }
+      setEnabledUI(exState.enabled);
 
       $('#exEnable').onchange = (e)=>{
         exState.enabled = e.target.checked;
-        L.querySelectorAll('input[type="checkbox"]').forEach(ch=>{
-          ch.disabled = !exState.enabled;
-        });
+        setEnabledUI(exState.enabled);
       };
 
-      L.addEventListener('change', (e)=>{
-        const t=e.target;
-        if (!t || t.type !== 'checkbox') return;
-
-        if (t.dataset.parent){
-          const pid = t.dataset.parent;          // "menu::Menu Name"
-          const menuName = pid.split('::')[1];
-          const kids = catalog.find(g=>g.label===menuName)?.children.map(k=>k.id) || [];
-          if (kids.length === 0) {
-            if (t.checked){ if(!exState.allow.includes(pid)) exState.allow.push(pid); }
-            else { exState.allow = exState.allow.filter(x=>x!==pid); }
-          } else {
-            kids.forEach(id=>{
-              const idx = exState.allow.indexOf(id);
-              if (t.checked && idx<0) exState.allow.push(id);
-              if (!t.checked && idx>=0) exState.allow.splice(idx,1);
-            });
-            L.querySelectorAll(`input[data-child]`).forEach(ch=>{
-              if (kids.includes(ch.dataset.child)) ch.checked = t.checked;
-            });
-          }
-        }
-
-        if (t.dataset.child){
-          const cid = t.dataset.child;          // "sub::Menu::Sub"
-          if (t.checked){ if(!exState.allow.includes(cid)) exState.allow.push(cid); }
-          else { exState.allow = exState.allow.filter(x=>x!==cid); }
-
-          const menuName = cid.split('::')[1];
-          const kids = catalog.find(g=>g.label===menuName)?.children.map(k=>k.id) || [];
-          const allKidsChecked = kids.length>0 && kids.every(id => exState.allow.includes(id));
-          const pbox = L.querySelector(`input[data-parent="menu::${menuName}"]`);
-          if (pbox) pbox.checked = allKidsChecked;
-        }
-      });
-
+      // Search filter
       const search=$('#exSearch');
       search.value='';
       search.oninput=()=>{
         const q=search.value.toLowerCase().trim();
-        L.querySelectorAll('details').forEach(d=>{
+        L.querySelectorAll('.ex-group').forEach(d=>{
           const txt=d.textContent.toLowerCase();
           d.style.display = (!q || txt.includes(q)) ? '' : 'none';
         });
       };
 
-      L.querySelectorAll('input[type="checkbox"]').forEach(ch=>{
-        ch.disabled = !exState.enabled;
-      });
-
+      // Open modal
       B.style.display='flex';
       $('#exCancel').onclick=()=> B.style.display='none';
       $('#exSave').onclick=()=>{
         B.style.display='none';
-        if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, allow:[...new Set(exState.allow)]});
+        // prune empty grants (all false ➜ remove)
+        Object.keys(exState.grants).forEach(k=>{
+          const g=exState.grants[k];
+          const any = g && (g.view||g.edit||g.add||g.archive||g.delete);
+          if(!any) delete exState.grants[k];
+        });
+        if(typeof exState.onSave==='function'){
+          exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
+        }
       };
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     }
@@ -450,8 +464,6 @@
         e.role=$('#m_role').value;
         e.archived=$('#m_archived').checked;
         e.updatedAt=Date.now();
-        // recompute effective perms on save
-        e.effectivePerms = computeEffectivePerms(e.role, e.exceptions);
         upsert(e); B.style.display='none'; render();
       };
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
@@ -463,9 +475,8 @@
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const exCount = r.exceptions?.enabled ? (r.exceptions?.allow?.length||0) : 0;
         return `<li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line"><strong>${name}</strong> ${chip(r.role)} ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: ''}</div>
+          <div class="line"><strong>${name}</strong> ${chip(r.role)}</div>
           ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
         </li>`;
       }).join('') : '<li>No employees.</li>';
@@ -512,11 +523,9 @@
         email,
         role: $('#empRole').value || '',
         archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,allow:[]}),
+        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
         createdAt: Date.now(), updatedAt: Date.now()
       };
-      // compute effective perms at creation time too
-      item.effectivePerms = computeEffectivePerms(item.role, item.exceptions);
       upsert(item);
       inviteEmployee(id);
     });
@@ -535,14 +544,12 @@
       if(!role){ alert('Role is required.'); return; }
 
       const id = (first + ' ' + last).toLowerCase();
-      const item = {
+      upsert({
         id, first, last, phone, email, role,
         archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,allow:[]}),
+        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
         createdAt: Date.now(), updatedAt: Date.now()
-      };
-      item.effectivePerms = computeEffectivePerms(item.role, item.exceptions);
-      upsert(item);
+      });
       $('#emp-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
       render();
@@ -553,9 +560,6 @@
     $('#toggleShowArchived').addEventListener('change', render);
 
     render();
-
-    // Manage modal: fill roles from Account Roles as well
-    (function prepareManageRoleSelect(){ fillRoleSelect($('#m_role')); })();
 
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
