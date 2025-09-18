@@ -17,36 +17,20 @@
   })();
   </script>
 
+  <!-- Global styles + app scripts -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <!-- Page-only breadcrumb rules: single-line + middle ellipsis -->
+  <!-- Page-only styles (none touching breadcrumbs) -->
   <style>
-    /* container stays one line and clips */
-    .breadcrumbs ol{
-      display:flex; align-items:center; gap:8px;
-      white-space:nowrap; overflow:hidden; margin:0; padding:0; list-style:none;
+    .coming {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:10px; padding:26px; text-align:center;
     }
-    .breadcrumbs li{ min-width:0; flex:0 1 auto; }
-    .breadcrumbs .sep{ flex:0 0 auto; opacity:.65; }
-
-    /* all crumb labels get ellipsis capability */
-    .breadcrumbs a, .breadcrumbs span{
-      display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    }
-
-    /* 1) first crumb (Home) can be a bit wider if needed */
-    .breadcrumbs li:first-child a,
-    .breadcrumbs li:first-child span{ max-width: 12ch; }
-
-    /* 2) middle crumbs are forced very short so they render as “…” on phones */
-    .breadcrumbs li:not(:first-child):not(:last-child) a,
-    .breadcrumbs li:not(:first-child):not(:last-child) span{ max-width: 3ch; }
-
-    /* 3) last crumb (current page) gets the remaining space */
-    .breadcrumbs li:last-child a,
-    .breadcrumbs li:last-child span{ max-width: 100%; }
+    .coming .emoji { font-size:44px; line-height:1; }
+    .coming .title { font-weight:800; font-size:1.2rem; }
+    .coming .hint { opacity:.8; }
   </style>
 </head>
 <body>
@@ -59,7 +43,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs (static) -->
+  <!-- Breadcrumbs (static; matches global CSS expectations) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -73,10 +57,10 @@
   </nav>
 
   <main class="content">
-    <section class="card" style="display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; padding:26px;">
-      <div style="font-size:44px; line-height:1;">🌽</div>
-      <div style="font-weight:800; font-size:1.2rem;">Seed — Coming Soon</div>
-      <div class="muted">Lots, hybrids, treatment, on-farm storage, and usage history.</div>
+    <section class="card coming">
+      <div class="emoji">🌽</div>
+      <div class="title">Seed — Coming Soon</div>
+      <div class="hint">Lots, hybrids, treatment, on-farm storage, and usage history.</div>
     </section>
   </main>
 
@@ -90,6 +74,7 @@
   </footer>
 
   <script>
+    /* No setBreadcrumbs() call here — global theme.css handles the trail + ellipsis */
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
