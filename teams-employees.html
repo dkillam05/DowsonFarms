@@ -19,11 +19,13 @@
   <script defer src="core.js"></script>
   <style>
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
     .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
-    .row-center {display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
@@ -49,7 +51,7 @@
 
   <!-- Main -->
   <main class="content" data-has-form>
-    <div class="row-center">
+    <div class="line" style="justify-content:space-between;">
       <h1 style="margin:0;">👥 Employees</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
@@ -57,35 +59,44 @@
 
     <!-- FORM -->
     <form id="emp-form" novalidate>
-      <div class="field">
-        <label for="empName">Name <span class="req-star">*</span></label>
-        <input id="empName" type="text" required placeholder="Type employee name…" />
+      <div class="field-row">
+        <div class="field">
+          <label for="empFirst">First Name <span class="req-star">*</span></label>
+          <input id="empFirst" type="text" required placeholder="First name" />
+        </div>
+        <div class="field">
+          <label for="empLast">Last Name <span class="req-star">*</span></label>
+          <input id="empLast" type="text" required placeholder="Last name" />
+        </div>
       </div>
 
-      <div class="field">
-        <label for="empRole">Role / Title</label>
-        <input id="empRole" type="text" placeholder="e.g., Operator, Mechanic, Agronomy" />
+      <div class="field-row">
+        <div class="field">
+          <label for="empPhone">Phone (US) <span class="req-star">*</span></label>
+          <input id="empPhone" type="tel" inputmode="numeric" required placeholder="(555) 123-4567" maxlength="14" />
+        </div>
+        <div class="field">
+          <label for="empEmail">Email <span class="req-star">*</span></label>
+          <input id="empEmail" type="email" inputmode="email" required placeholder="name@example.com" />
+        </div>
       </div>
 
-      <div class="field">
-        <label for="empTeam">Team</label>
-        <input id="empTeam" type="text" placeholder="e.g., Harvest, Shop, Agronomy" />
-      </div>
-
-      <div class="field">
-        <label for="empPhone">Phone</label>
-        <input id="empPhone" type="tel" inputmode="tel" placeholder="(###) ###-####" />
-      </div>
-
-      <div class="field">
-        <label for="empEmail">Email</label>
-        <input id="empEmail" type="email" inputmode="email" placeholder="name@example.com" />
+      <div class="field-row">
+        <div class="field">
+          <label for="empRole">Role (Permissions) <span class="req-star">*</span></label>
+          <select id="empRole" required></select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button type="button" class="btn-outline" id="exceptionsBtn">Exceptions / Overrides</button>
+        </div>
       </div>
 
       <section class="card" style="padding:12px; margin-top:8px;">
-        <div class="grid2">
+        <div class="grid3">
           <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
           <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+          <button class="btn-secondary" type="button" id="inviteBtn" style="width:92px;height:92px;">Invite</button>
         </div>
       </section>
     </form>
@@ -93,7 +104,7 @@
     <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
-      <div class="row" style="align-items:center; gap:12px;">
+      <div class="line">
         <input id="searchInput" class="search" type="search" placeholder="Search employees…" />
         <label class="muted" for="toggleShowArchived">
           <input type="checkbox" id="toggleShowArchived" /> Show archived
@@ -123,20 +134,35 @@
     </div>
   </div>
 
+  <!-- Exceptions Modal -->
+  <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
+      <h2 id="exTitle">Exceptions / Overrides</h2>
+      <p class="muted-small" style="margin-top:-6px;">Select menus this employee can access in addition to the chosen role.</p>
+      <div class="line" style="gap:10px;align-items:center;margin:4px 0 10px;">
+        <input id="exSearch" placeholder="Search menus…" style="flex:1;font-size:16px;height:40px;padding:8px 12px;border-radius:10px;">
+        <label class="muted"><input type="checkbox" id="exEnable"> Enable exceptions for this employee</label>
+      </div>
+      <div id="exList" style="max-height:min(52vh,500px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px; padding:6px;"></div>
+      <div class="modal-actions" style="justify-content:space-between;">
+        <button class="btn-outline" id="exCancel">Cancel</button>
+        <button class="btn-primary" id="exSave">Save Exceptions</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Manage/Edit Modal -->
   <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Employee</h2>
-      <div class="row" style="gap:10px;align-items:center;margin:4px 0 10px;">
-        <span class="muted-small">Update details and Save</span>
-      </div>
       <div id="manageBox" style="display:grid;gap:10px;">
-        <input id="m_name" placeholder="Name" />
-        <input id="m_role" placeholder="Role / Title" />
-        <input id="m_team" placeholder="Team" />
-        <input id="m_phone" placeholder="Phone" />
+        <input id="m_first" placeholder="First Name" />
+        <input id="m_last" placeholder="Last Name" />
+        <input id="m_phone" placeholder="Phone (US)" maxlength="14" />
         <input id="m_email" placeholder="Email" />
+        <select id="m_role"></select>
         <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
+        <div class="line"><button class="btn-outline" type="button" id="m_exceptions">Exceptions / Overrides</button></div>
       </div>
       <div class="modal-actions" style="justify-content:space-between;">
         <button class="btn-outline" id="manageCancel">Cancel</button>
@@ -148,58 +174,163 @@
   <script>
   (function EmployeesPage(){
     const KEY='df.employees';
+    const ROLES_KEY='df.roles'; // expected: ["Admin","Manager",...]
+    const MENUS_KEY='df.menus'; // optional: array of {id,label,parentId?} from your permissions builder
     const $=s=>document.querySelector(s);
     const $list=$('#savedList');
 
-    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
-    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
-    function save(v){ localStorage.setItem(KEY, JSON.stringify(v)) }
-    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list); }
+    // ---- utilities ----
+    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
+    const load = (k,def)=> { try{const v=JSON.parse(localStorage.getItem(k)); return (v==null?def:v);}catch(_){return def;} };
+    const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+    const loadAll = ()=> load(KEY, []);
+    const upsert = (item)=>{ const list=loadAll(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(KEY,list); };
+    const byName = (a,b)=> a.last.localeCompare(b.last, undefined, {sensitivity:'base'}) || a.first.localeCompare(b.first, undefined, {sensitivity:'base'});
 
-    function badge(s, cls){ return s?`<span class="chip">${s}</span>`:''; }
+    // Phone mask: keep digits, format as (###) ###-####
+    function formatPhoneDigits(d){
+      const x=d.replace(/\D/g,'').slice(0,10);
+      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
+      if(x.length<=3) return x ? `(${a}` : '';
+      if(x.length<=6) return `(${a}) ${b}`;
+      return `(${a}) ${b}-${c}`;
+    }
+    function attachPhoneMask(input){
+      input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
+      input.addEventListener('blur', ()=>{ input.value = formatPhoneDigits(input.value); });
+    }
+    function isValidPhoneUS(s){ return /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||''); }
 
+    // Roles list
+    function getRoles(){
+      const roles = load(ROLES_KEY, null);
+      return Array.isArray(roles) && roles.length ? roles : ["Admin","Manager","Operator","Viewer"];
+    }
+    function fillRoleSelect(sel, value){
+      const roles=getRoles();
+      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
+        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+      if(value) sel.value=value;
+    }
+
+    // Menus list for exceptions
+    function getMenus(){
+      const fallback = [
+        {id:'home',label:'Home'},
+        {id:'crop',label:'Crop Production'},
+        {id:'fields',label:'Fields'},
+        {id:'teams',label:'Teams & Partners'},
+        {id:'settings',label:'Settings'},
+        {id:'issues',label:'Issues & Feedback'},
+      ];
+      const m = load(MENUS_KEY, null);
+      return Array.isArray(m) && m.length ? m : (window.DF_MENUS||fallback);
+    }
+
+    // ---- render saved ----
+    function chip(s){ return s?`<span class="chip">${s}</span>`:''; }
     function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      const rows=load()
+      const rows=loadAll()
         .filter(x=>showA?true:!x.archived)
-        .filter(x=>!q || (x.name?.toLowerCase().includes(q) || x.role?.toLowerCase().includes(q) || x.team?.toLowerCase().includes(q)))
-        .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+        .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
+        .sort(byName);
 
-      $list.innerHTML = rows.length ? rows.map(r=>`
-        <li class="card" style="padding:10px; margin:8px 0;">
+      $list.innerHTML = rows.length ? rows.map(r=>{
+        const name = `${r.first||''} ${r.last||''}`.trim();
+        const exCount = r.exceptions?.enabled ? (r.exceptions?.allow?.length||0) : 0;
+        return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
-            <strong>${r.name}</strong>
-            ${badge(r.role)}
-            ${badge(r.team)}
-            ${badge(r.phone)}
-            ${badge(r.email)}
+            <strong>${name||'(No Name)'}</strong>
+            ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
+            ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
+            ${r.invitedAt ? `<span class="chip">Invited</span>`:''}
           </div>
           <div class="line" style="margin-top:8px;">
             <button class="btn-secondary" data-edit="${r.id}">Manage</button>
+            <button class="btn-outline" data-invite="${r.id}">Invite</button>
           </div>
-        </li>
-      `).join('') : '<li class="muted">No employees yet.</li>';
+        </li>`;
+      }).join('') : '<li class="muted">No employees yet.</li>';
 
-      $list.querySelectorAll('[data-edit]').forEach(b=>{
-        b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit')));
-      });
+      $list.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
+      $list.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
     }
 
+    // ---- exceptions modal ----
+    const exState = { id:null, enabled:false, allow:[] };
+    function openExceptions(existing){
+      const menus=getMenus();
+      const B=$('#exBackdrop'), L=$('#exList');
+      $('#exEnable').checked = !!existing?.enabled;
+      exState.enabled = !!existing?.enabled;
+      exState.allow = Array.isArray(existing?.allow) ? [...existing.allow] : [];
+      L.innerHTML = menus.map(m=>{
+        const checked = exState.allow.includes(m.id) ? 'checked' : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--tile-border);">
+          <input type="checkbox" data-menu="${m.id}" ${checked} ${exState.enabled?'':'disabled'}/>
+          <span><strong>${m.label}</strong>${m.parentId?` <span class="muted-small">(${m.parentId})</span>`:''}</span>
+        </label>`;
+      }).join('');
+      $('#exEnable').onchange = (e)=>{
+        exState.enabled = e.target.checked;
+        L.querySelectorAll('input[type="checkbox"]').forEach(ch=> ch.disabled = !exState.enabled);
+      };
+      L.onchange = (e)=>{
+        const id=e.target.dataset.menu;
+        if(!id) return;
+        if(e.target.checked){
+          if(!exState.allow.includes(id)) exState.allow.push(id);
+        }else{
+          exState.allow = exState.allow.filter(x=>x!==id);
+        }
+      };
+      const search=$('#exSearch');
+      search.value='';
+      search.oninput=()=>{
+        const q=search.value.toLowerCase().trim();
+        L.querySelectorAll('label').forEach(l=>{
+          const txt=l.textContent.toLowerCase();
+          l.style.display = (!q || txt.includes(q)) ? 'flex' : 'none';
+        });
+      };
+      B.style.display='flex';
+      $('#exCancel').onclick=()=> B.style.display='none';
+      $('#exSave').onclick=()=>{
+        // close; caller will read exState
+        B.style.display='none';
+        if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, allow:exState.allow});
+      };
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    }
+
+    // ---- manage modal ----
     function openManage(id){
-      const list=load(); const e=list.find(x=>x.id===id); if(!e) return;
-      $('#manageTitle').textContent = `Edit Employee — ${e.name}`;
-      $('#m_name').value=e.name||''; $('#m_role').value=e.role||''; $('#m_team').value=e.team||'';
-      $('#m_phone').value=e.phone||''; $('#m_email').value=e.email||''; $('#m_archived').checked=!!e.archived;
+      const list=loadAll(); const e=list.find(x=>x.id===id); if(!e) return;
+      $('#manageTitle').textContent = `Edit Employee — ${e.first||''} ${e.last||''}`.trim();
+      $('#m_first').value=e.first||''; $('#m_last').value=e.last||'';
+      $('#m_phone').value=e.phone||''; attachPhoneMask($('#m_phone'));
+      $('#m_email').value=e.email||''; fillRoleSelect($('#m_role'), e.role||'');
+      $('#m_archived').checked=!!e.archived;
 
       const B=$('#manageBackdrop'); B.style.display='flex';
+      $('#m_exceptions').onclick=()=>{
+        exState.onSave = (val)=>{ e.exceptions = val; };
+        openExceptions(e.exceptions);
+      };
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
-        e.name=titleCase($('#m_name').value||'');
-        e.role=$('#m_role').value||'';
-        e.team=$('#m_team').value||'';
-        e.phone=$('#m_phone').value||'';
-        e.email=$('#m_email').value||'';
+        // validate
+        if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
+        if(!isValidPhoneUS($('#m_phone').value)){ alert('Phone must be in the format (###) ###-####'); return; }
+        if(!$('#m_email').value.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($('#m_email').value)){ alert('Valid email is required.'); return; }
+        if(!$('#m_role').value){ alert('Role is required.'); return; }
+        e.first=titleCase($('#m_first').value);
+        e.last=titleCase($('#m_last').value);
+        e.phone=$('#m_phone').value;
+        e.email=$('#m_email').value.trim();
+        e.role=$('#m_role').value;
         e.archived=$('#m_archived').checked;
         e.updatedAt=Date.now();
         upsert(e); B.style.display='none'; render();
@@ -207,49 +338,107 @@
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Quick View
+    // ---- quick view ----
     $('#quickViewBtn').addEventListener('click', ()=>{
-      const rows=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const rows=loadAll().sort(byName);
       const L=$('#qvList'), B=$('#qvBackdrop');
-      L.innerHTML = rows.length ? rows.map(r=>`
-        <li class="card" style="padding:10px; margin:8px 0;">
+      L.innerHTML = rows.length ? rows.map(r=>{
+        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
+        return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
-            <strong>${r.name}</strong>
-            ${badge(r.role)}
-            ${badge(r.team)}
+            <strong>${name}</strong> ${chip(r.role)}
           </div>
           ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
-        </li>
-      `).join('') : '<li>No employees.</li>';
+        </li>`;
+      }).join('') : '<li>No employees.</li>';
       B.style.display='flex';
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // Save
-    $('#emp-form').addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const name=titleCase(($('#empName').value||'').trim()); if(!name){$('#empName').focus();return;}
-      const id=name.toLowerCase();
-      const item={
-        id, name,
-        role: ($('#empRole').value||'').trim(),
-        team: ($('#empTeam').value||'').trim(),
-        phone: ($('#empPhone').value||'').trim(),
-        email: ($('#empEmail').value||'').trim(),
-        archived:false, createdAt:Date.now(), updatedAt:Date.now()
+    // ---- invite via email (mailto) ----
+    function inviteEmployee(id){
+      const list=loadAll(); const e=list.find(x=>x.id===id);
+      if(!e){ alert('Employee not found'); return; }
+      if(!e.email){ alert('Employee email is required to send invite.'); return; }
+      const name = `${e.first||''} ${e.last||''}`.trim() || 'there';
+      const appUrl = location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html';
+      const subject = encodeURIComponent('Dowson Farms App — You’re Invited');
+      const body = encodeURIComponent(
+        `Hi ${name},\n\nYou’ve been invited to the Dowson Farms app.\n\n1) Open: ${appUrl}\n2) Tap “Create Password / Activate”\n3) Use this email address to complete setup.\n\nIf you weren’t expecting this, ignore this email.\n\n— Dowson Farms`
+      );
+      // open mail client
+      window.location.href = `mailto:${encodeURIComponent(e.email)}?subject=${subject}&body=${body}`;
+      // mark invited
+      e.invitedAt = Date.now();
+      upsert(e); render();
+    }
+
+    // ---- form wiring ----
+    attachPhoneMask($('#empPhone'));
+    fillRoleSelect($('#empRole'));
+    $('#exceptionsBtn').addEventListener('click', ()=>{
+      exState.onSave = (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); };
+      const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
+      openExceptions(existing);
+    });
+
+    $('#inviteBtn').addEventListener('click', ()=>{
+      // Attempt to invite the employee being entered (pre-save)
+      // Require email + name to compose the mailto
+      const first = titleCase(($('#empFirst').value||'').trim());
+      const last  = titleCase(($('#empLast').value||'').trim());
+      const email = ($('#empEmail').value||'').trim();
+      if(!first || !last || !email){ alert('Enter First, Last, and Email to send an invite.'); return; }
+      // Save (or update) and then send invite
+      const id = (first + ' ' + last).toLowerCase();
+      const item = {
+        id, first, last,
+        phone: $('#empPhone').value,
+        email,
+        role: $('#empRole').value || '',
+        archived:false,
+        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,allow:[]}),
+        createdAt: Date.now(), updatedAt: Date.now()
       };
       upsert(item);
+      inviteEmployee(id);
+    });
+
+    $('#emp-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      // validations
+      const first = titleCase(($('#empFirst').value||'').trim());
+      const last  = titleCase(($('#empLast').value||'').trim());
+      const phone = $('#empPhone').value;
+      const email = ($('#empEmail').value||'').trim();
+      const role  = $('#empRole').value;
+
+      if(!first || !last){ alert('First and Last name are required.'); return; }
+      if(!isValidPhoneUS(phone)){ alert('Phone must be in the format (###) ###-####'); return; }
+      if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert('Valid email is required.'); return; }
+      if(!role){ alert('Role is required.'); return; }
+
+      const id = (first + ' ' + last).toLowerCase();
+      upsert({
+        id, first, last, phone, email, role,
+        archived:false,
+        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,allow:[]}),
+        createdAt: Date.now(), updatedAt: Date.now()
+      });
       $('#emp-form').reset();
+      delete $('#exceptionsBtn').dataset.payload;
       render();
     });
 
-    $('#clearBtn').addEventListener('click', ()=>$('#emp-form').reset());
+    $('#clearBtn').addEventListener('click', ()=>{ $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload; });
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
 
+    // initial render
     render();
 
+    // breadcrumbs (if your core.js exposes this)
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Teams & Partners', href:'teams-partners.html'},
