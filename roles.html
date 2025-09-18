@@ -32,7 +32,7 @@
     .content{overflow-x:hidden}
     .card{box-sizing:border-box;max-width:100%}
 
-    /* Accordion */
+    /* Accordion containers */
     .perm-accordion{display:grid;gap:14px}
     .perm-section{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);box-shadow:var(--tile-shadow)}
     .perm-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
@@ -40,25 +40,30 @@
     .caret{transition:transform .18s ease}
     .perm-body{display:none;padding:10px 14px 14px;border-top:1px solid var(--tile-border)}
 
-    /* Select-all row */
-    .perm-selectall{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:6px 0 12px;border-bottom:1px solid var(--tile-border);margin-bottom:12px}
-    .perm-selectall strong{margin-right:6px}
+    /* Menu-level controls */
+    .menu-row{display:grid;gap:10px}
+    .perm-pills{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+    @media (max-width:420px){ .perm-pills{grid-template-columns:repeat(3,minmax(0,1fr))} }
 
-    /* Submenus list */
-    .perm-items{display:grid;gap:12px}
+    /* Submenu block (hidden until toggled) */
+    .submenu-wrap{margin-top:10px;border:1px dashed var(--tile-border);border-radius:12px;padding:10px 12px}
+    .submenu-head{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+    .submenu-body{display:none;margin-top:10px}
+    .perm-items{display:grid;gap:10px}
     .perm-item{border:1px dashed var(--tile-border);border-radius:12px;padding:10px 12px}
     .perm-item__title{font-weight:600;margin-bottom:8px}
 
-    /* Toggle pills */
-    .perm-row{display:flex;flex-wrap:wrap;gap:8px}
+    /* Toggle pills styled to match app */
     .pill{
       border:1.5px solid var(--tile-border);
       border-radius:999px;
-      padding:8px 12px;
-      background:transparent;
+      padding:10px 12px;
+      background:var(--tile-bg);
       line-height:1;
       font:inherit;
+      color:inherit;
       cursor:pointer;
+      text-align:center;
       user-select:none
     }
     .pill[aria-pressed="true"]{
@@ -115,7 +120,7 @@
       <section class="card" style="padding:14px; margin-top:10px;">
         <h2 style="margin:0 0 6px 0;">Permissions</h2>
         <p class="muted" style="margin:0 0 8px 0;">
-          Expand a menu and set what this role can do on each submenu. Use the “select all” row to toggle an entire menu at once.
+          Expand a menu and set what this role can do. Use “Manage submenus” to fine-tune individual screens.
         </p>
 
         <div id="permAccordion" class="perm-accordion"></div>
@@ -154,7 +159,7 @@
     const $ = (s, r=document) => r.querySelector(s);
     const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-    // MENUS — Home removed per your request
+    // MENUS in the working order (Home removed)
     const MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Bags","Tickets","Contracts"],
@@ -166,9 +171,11 @@
       "Setup / Settings": ["Farms","Fields","Products","Theme","Account Roles","Crop Types","Settings"]
     };
 
-    const PERMS = ["view","edit","add","archive"];
-    const STORE_KEY = "df_roles";
+    // Five permissions (added Delete)
+    const PERMS = ["view","edit","add","archive","delete"];
+    const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
 
+    const STORE_KEY = "df_roles";
     const loadAll = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || "{}"); } catch(_) { return {}; } };
     const saveAll = (obj) => localStorage.setItem(STORE_KEY, JSON.stringify(obj));
     const getRoleState = role => loadAll()[role] || {};
@@ -185,7 +192,6 @@
       Object.entries(attrs).forEach(([k,v])=> b.dataset[k]=v);
       return b;
     }
-    const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
     const setPressed = (btn,on)=> btn.setAttribute("aria-pressed", on?"true":"false");
     const isPressed = btn => btn.getAttribute("aria-pressed")==="true";
 
@@ -202,23 +208,27 @@
         const body = document.createElement("div");
         body.className = "perm-body";
 
-        // Select-all row
-        const selAll = document.createElement("div");
-        selAll.className = "perm-selectall";
-        const label = document.createElement("strong");
-        label.textContent = `Select all in ${menu}`;
-        selAll.appendChild(label);
+        // Menu-level pill row (no submenus yet)
+        const menuRow = document.createElement("div");
+        menuRow.className = "menu-row";
 
-        const selRow = document.createElement("div");
-        selRow.className = "perm-row";
+        const pills = document.createElement("div");
+        pills.className = "perm-pills";
         PERMS.forEach(p=>{
-          const b=pill(cap(p), {perm:p, kind:"all"});
-          selRow.appendChild(b);
+          const b=pill(cap(p), {perm:p, kind:"menu"});
+          pills.appendChild(b);
         });
-        selAll.appendChild(selRow);
-        body.appendChild(selAll);
+        menuRow.appendChild(pills);
 
-        // Submenus
+        // Submenus collapsed under their own toggle
+        const smWrap = document.createElement("div");
+        smWrap.className = "submenu-wrap";
+        const smHead = document.createElement("div");
+        smHead.className = "submenu-head";
+        smHead.innerHTML = `<strong>Manage submenus</strong><span class="caret">›</span>`;
+        const smBody = document.createElement("div");
+        smBody.className = "submenu-body";
+
         const items = document.createElement("div");
         items.className = "perm-items";
         subs.forEach(sub=>{
@@ -226,12 +236,22 @@
           item.className = "perm-item";
           item.innerHTML = `<div class="perm-item__title"><span class="muted">${menu}</span> › <strong>${sub}</strong></div>`;
           const row = document.createElement("div");
-          row.className = "perm-row";
+          row.className = "perm-pills";
           PERMS.forEach(p=> row.appendChild(pill(cap(p), {menu:menu, sub:sub, perm:p, kind:"one"})));
           item.appendChild(row);
           items.appendChild(item);
         });
-        body.appendChild(items);
+        smBody.appendChild(items);
+        smHead.addEventListener("click", ()=>{
+          const open = smBody.style.display !== "none";
+          smBody.style.display = open ? "none" : "block";
+          smHead.querySelector(".caret").style.transform = open ? "rotate(0deg)" : "rotate(90deg)";
+        });
+        smBody.style.display = "none";
+        smWrap.appendChild(smHead); smWrap.appendChild(smBody);
+
+        body.appendChild(menuRow);
+        body.appendChild(smWrap);
 
         // collapsed by default
         body.style.display = "none";
@@ -240,7 +260,7 @@
           const open = body.style.display !== "none";
           body.style.display = open ? "none" : "block";
           head.querySelector(".caret").style.transform = open ? "rotate(0deg)" : "rotate(90deg)";
-          if (!open) syncMenuSelectAll(sec);
+          if (!open) syncMenuSelect(sec);
         });
 
         sec.appendChild(head); sec.appendChild(body);
@@ -249,38 +269,67 @@
     }
 
     function clearUI(){ $$(".pill").forEach(b=> setPressed(b,false)); }
+
     function stateFromUI(){
       const state = {};
+      // Submenu-level
       $$(".pill[data-kind='one']").forEach(b=>{
         const m=b.dataset.menu, s=b.dataset.sub, p=b.dataset.perm;
         state[m]=state[m]||{}; state[m][s]=state[m][s]||{}; state[m][s][p]=isPressed(b);
       });
+      // Menu-level for quick checks (optional mirror)
+      $$(".perm-section").forEach(sec=>{
+        const menu = sec.dataset.menu;
+        state[menu]=state[menu]||{};
+        state[menu]._menu = state[menu]._menu || {};
+        PERMS.forEach(p=>{
+          const btn = sec.querySelector(`.pill[data-kind="menu"][data-perm="${p}"]`);
+          state[menu]._menu[p] = btn && isPressed(btn);
+        });
+      });
       return state;
     }
+
     function applyRole(role){
       clearUI();
       const st = getRoleState(role);
-      Object.entries(st).forEach(([m, subs])=>{
-        Object.entries(subs).forEach(([s, perms])=>{
+
+      // paint submenu pills
+      Object.entries(st).forEach(([m, obj])=>{
+        Object.entries(obj).forEach(([k, perms])=>{
+          if (k === "_menu") return;
           PERMS.forEach(p=>{
-            if (perms[p]) {
-              const btn = $(`.pill[data-menu="${CSS.escape(m)}"][data-sub="${CSS.escape(s)}"][data-perm="${p}"]`);
+            if (perms && perms[p]) {
+              const btn = $(`.pill[data-kind="one"][data-menu="${CSS.escape(m)}"][data-sub="${CSS.escape(k)}"][data-perm="${p}"]`);
               if (btn) setPressed(btn,true);
             }
           });
         });
       });
-      $$(".perm-section").forEach(syncMenuSelectAll);
+
+      // derive menu-level pills from submenus (on if ALL submenus are on)
+      $$(".perm-section").forEach(sec=> syncMenuSelect(sec));
+
+      // if explicit _menu was saved before, keep it in sync visually
+      Object.entries(st).forEach(([m, obj])=>{
+        if (!obj._menu) return;
+        PERMS.forEach(p=>{
+          const btn = $(`.perm-section[data-menu="${CSS.escape(m)}"] .pill[data-kind="menu"][data-perm="${p}"]`);
+          if (btn) setPressed(btn, !!obj._menu[p]);
+        });
+      });
     }
 
-    function syncMenuSelectAll(sec){
+    function syncMenuSelect(sec){
       const menu = sec.dataset.menu;
       PERMS.forEach(p=>{
-        const allBtn = sec.querySelector(`.pill[data-kind="all"][data-perm="${p}"]`);
-        if (!allBtn) return;
-        const btns = $$(`.pill[data-kind='one'][data-menu="${CSS.escape(menu)}"][data-perm="${p}"]`, sec);
-        const countOn = btns.filter(isPressed).length;
-        setPressed(allBtn, countOn>0 && countOn===btns.length);
+        const menuBtn = sec.querySelector(`.pill[data-kind="menu"][data-perm="${p}"]`);
+        if (!menuBtn) return;
+        const subsBtns = $$(`.pill[data-kind='one'][data-menu="${CSS.escape(menu)}"][data-perm="${p}"]`, sec);
+        if (!subsBtns.length) { setPressed(menuBtn,false); return; }
+        const countOn = subsBtns.filter(isPressed).length;
+        // on only if ALL submenus are on
+        setPressed(menuBtn, countOn>0 && countOn===subsBtns.length);
       });
     }
 
@@ -291,15 +340,16 @@
         const kind=t.dataset.kind;
         if(kind==="one"){
           setPressed(t,!isPressed(t));
-          const sec=t.closest(".perm-section"); if(sec) syncMenuSelectAll(sec);
+          const sec=t.closest(".perm-section"); if(sec) syncMenuSelect(sec);
           return;
         }
-        if(kind==="all"){
+        if(kind==="menu"){
+          // toggle all submenus for that permission within this menu
           const sec=t.closest(".perm-section"), menu=sec.dataset.menu, perm=t.dataset.perm;
           const on=!isPressed(t);
           $$(`.pill[data-kind='one'][data-menu="${CSS.escape(menu)}"][data-perm="${perm}"]`, sec)
             .forEach(b=>setPressed(b,on));
-          syncMenuSelectAll(sec);
+          syncMenuSelect(sec);
         }
       });
 
@@ -311,7 +361,7 @@
 
       $("#clearBtn").addEventListener("click", ()=>{
         if(!confirm("Clear all permissions on screen for this role (unsaved until Save)?")) return;
-        clearUI(); $$(".perm-section").forEach(syncMenuSelectAll);
+        clearUI(); $$(".perm-section").forEach(syncMenuSelect);
       });
 
       $("#roleSel").addEventListener("change", ()=>applyRole($("#roleSel").value));
