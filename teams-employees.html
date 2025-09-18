@@ -481,38 +481,55 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
- async function inviteEmployee(id){
-  const list = loadAll(); 
-  const e = list.find(x=>x.id===id);
-  if(!e){ alert('Employee not found'); return; }
-  if(!e.email){ alert('Employee email is required to send invite.'); return; }
-
-  try {
-    const res = await fetch('/api/invite', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        email: e.email,
-        name: `${e.first||''} ${e.last||''}`.trim(),
-        role: e.role || '',
-        continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
-      })
-    });
-
-    if(!res.ok){
-      const msg = await res.text();
-      throw new Error(msg || ('HTTP '+res.status));
+    // ---- tiny toast helper (created on-the-fly; no HTML changes needed)
+    function showToast(msg){
+      let box = document.getElementById('dfToast');
+      if(!box){
+        box = document.createElement('div');
+        box.id='dfToast';
+        box.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg, #fff);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999;display:none;';
+        const span=document.createElement('span'); span.id='dfToastText'; box.appendChild(span);
+        document.body.appendChild(box);
+      }
+      const span = document.getElementById('dfToastText');
+      span.textContent = msg || 'Done';
+      box.style.display='block';
+      clearTimeout(window.__toastT); window.__toastT=setTimeout(()=> box.style.display='none', 1500);
     }
 
-    e.invitedAt = Date.now();
-    upsert(e);
-    render();
-    alert('Invite successfully sent.');
-  } catch (err){
-    console.error(err);
-    alert('Invite failed: ' + err.message);
-  }
-}
+    // ---- invite via backend (shows toast on success) ----
+    async function inviteEmployee(id){
+      const list = loadAll();
+      const e = list.find(x=>x.id===id);
+      if(!e){ alert('Employee not found'); return; }
+      if(!e.email){ alert('Employee email is required to send invite.'); return; }
+
+      try {
+        const res = await fetch('/api/invite', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            email: e.email,
+            name: `${e.first||''} ${e.last||''}`.trim(),
+            role: e.role || '',
+            continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
+          })
+        });
+
+        if(!res.ok){
+          const msg = await res.text();
+          throw new Error(msg || ('HTTP '+res.status));
+        }
+
+        e.invitedAt = Date.now();
+        upsert(e);
+        render();
+        showToast('Invite sent'); // <— toast instead of alert
+      } catch (err){
+        console.error(err);
+        alert('Invite failed: ' + err.message);
+      }
+    }
 
     // ---- form wiring ----
     attachPhoneMask($('#empPhone'));
