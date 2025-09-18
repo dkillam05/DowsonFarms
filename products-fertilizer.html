@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Fertilizer — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -14,17 +16,20 @@
       (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
   })();
   </script>
+
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
+
   <style>
-    .coming { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:26px; text-align:center; }
-    .emoji { font-size:44px; line-height:1; }
-    .title { font-weight:800; font-size:1.2rem; }
-    .hint { opacity:.8; }
+    .coming{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:26px;text-align:center;}
+    .coming .emoji{font-size:44px;line-height:1;}
+    .coming .title{font-weight:800;font-size:1.2rem;}
+    .coming .hint{opacity:.8;}
   </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -33,6 +38,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs (static; relies on global theme.css to ellipsize) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -53,6 +59,7 @@
     </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -62,12 +69,7 @@
   </footer>
 
   <script>
-    window.setBreadcrumbs?.([
-      {label:'Home', href:'index.html'},
-      {label:'Setup / Settings', href:'settings.html'},
-      {label:'Products', href:'products.html'},
-      {label:'Fertilizer'}
-    ]);
+    // No setBreadcrumbs(); global CSS handles the trail behavior.
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
