@@ -37,6 +37,11 @@
   --z-header:  1000;
   --z-crumbs:   900;
   --z-footer:  1000;
+
+  /* Breadcrumb tuning */
+  --crumb-first-ch: 12ch;  /* width hint for first crumb (e.g., "Home") */
+  --crumb-middle-ch: 4ch;  /* 3–5ch => “…”, “Pro…”, “Chem…” */
+  --crumb-last-max: 52%;   /* last crumb cap so it never hits Logout */
 }
 
 /* ===========================
@@ -86,12 +91,12 @@ body {
 }
 
 /* ===========================
-   Breadcrumbs
+   Breadcrumbs  (FINAL / CONSOLIDATED)
    =========================== */
 .breadcrumbs {
   position: fixed; top: var(--header-h); left: 0; right: 0;
   height: var(--crumb-h);
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; /* keep Logout safe */
   background: var(--auth-edge-bg);
   color: var(--crumb-fg);
   padding: 0 var(--pad-x);
@@ -101,48 +106,49 @@ body {
   overflow: hidden; /* guardrail for long labels */
 }
 
-.breadcrumbs ol {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: .85rem;
-  font-weight: 500;
+.breadcrumbs ol{
+  display:flex; align-items:center; gap:6px;
+  list-style:none; margin:0; padding:0;
+  font-size:.85rem; font-weight:500;
+  white-space:nowrap; overflow:hidden;
+  flex:1 1 auto; min-width:0;           /* allows shrinking */
+}
+.breadcrumbs ol li{ flex:0 0 auto; min-width:0; white-space:nowrap; }
+.breadcrumbs ol li.sep{ flex:0 0 auto; color: var(--crumb-fg); opacity:.9; font-size:.85rem; }
 
-  flex: 1 1 auto;      /* take remaining space beside Logout */
-  min-width: 0;        /* allow children to shrink */
-  white-space: nowrap; /* no wrapping */
-  overflow: hidden;
+.breadcrumbs ol a,
+.breadcrumbs ol span{
+  display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 
-/* Core of the fix:
-   - first and last crumb: keep natural width
-   - middle crumbs: share remaining space and ellipsis
-   - separators never flex
-*/
-.breadcrumbs ol li { flex: 0 0 auto; white-space: nowrap; }
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
-  flex: 0 1 auto;       /* shrinkable, no growth */
-  min-width: 0;         /* enables ellipsis when clamped */
+/* First crumb: a bit wider */
+.breadcrumbs ol li:not(.sep):first-child a,
+.breadcrumbs ol li:not(.sep):first-child span{
+  max-width: var(--crumb-first-ch);
 }
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
-  flex: 1 1 0;          /* allow middle crumbs to shrink */
-  min-width: 0;         /* required for ellipsis */
+
+/* Middle crumbs: always shrink to show an ellipsis */
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
+  flex:0 1 auto; min-width:0;
 }
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) a,
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) span{
+  max-width: var(--crumb-middle-ch);
+}
+
+/* Last crumb: take space but never exceed the cap */
+.breadcrumbs ol li:not(.sep):last-child{
+  flex:0 1 var(--crumb-last-max);
+  min-width:0;
+}
+.breadcrumbs ol li:not(.sep):last-child a,
+.breadcrumbs ol li:not(.sep):last-child span{
+  max-width:100%;
 }
 
 /* Links + hover */
 .breadcrumbs a { color: var(--crumb-fg); text-decoration: none; }
 .breadcrumbs a:hover { text-decoration: underline; }
-.breadcrumbs .sep { color: var(--crumb-fg); opacity: .9; font-size: .85rem; }
 
 /* Logout never shrinks (prevents collision) */
 .breadcrumbs .logout-btn {
@@ -159,6 +165,7 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
   flex-shrink: 0;
+  margin-left: 10px; /* breathing room from last crumb */
 }
 .breadcrumbs .logout-btn:hover,
 .breadcrumbs .logout-btn:focus-visible {
@@ -605,10 +612,6 @@ button:focus-visible {
 :root[data-theme="dark"] .auth-modal .field input:focus{
   border-color: var(--tile-border); box-shadow: 0 0 0 3px rgba(45,106,49,.30); outline: none;
 }
-/* Add a conditional gap only if a crumb is directly before Logout */
-.breadcrumbs ol + .logout-btn {
-  margin-left: 10px;
-}
 
 /* ===========================
    Teams & Partners hub tiles
@@ -664,10 +667,6 @@ button:focus-visible {
 
 /* =========================================
    GLOBAL Menu Tiles (unified across pages)
-   Use any of these grid classes:
-   .menu-grid, .hub-grid, .reports-grid, .tools-grid
-   Use any of these card classes:
-   .menu-card, .hub-card, .report-card, .tool-card
    ========================================= */
 
 :root {
@@ -755,265 +754,9 @@ button:focus-visible {
   border-color: rgba(255,255,255,0.12);
 }
 
-/* Breadcrumbs: CSS-only safety so middle crumbs flex and never leave a gap */
-.breadcrumbs ol { display:flex; align-items:center; gap:6px; }
-.breadcrumbs ol li { margin:0; flex:0 0 auto; white-space:nowrap; }
-.breadcrumbs ol li.sep { flex:0 0 auto; }
-
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span {
-  display:block;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-/* Cap the LAST crumb so it never crowds Logout, but only as needed */
-.breadcrumbs ol li:last-child { flex: 0 1 55%; min-width: 0; }
-.breadcrumbs ol li:last-child > a,
-.breadcrumbs ol li:last-child > span {
-  display:block;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-/* If some old script injected fixed widths, neutralize them when not needed */
-.breadcrumbs ol a,
-.breadcrumbs ol span {
-  max-width: initial;           /* resets stale inline max-width */
-}
-
-/* === Breadcrumb overflow fix === */
-.breadcrumbs {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.breadcrumbs ol {
-  display: flex;
-  align-items: center;
-  flex: 1 1 auto;
-  min-width: 0;            /* critical: allows shrinking */
-  overflow: hidden;        /* keeps text inside */
-}
-
-.breadcrumbs ol li {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) {
-  flex: 1 1 auto;          /* middle crumbs shrink */
-  min-width: 0;            /* required for ellipsis */
-}
-
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ai-powered-note {
-  text-align: center;
-  font-style: italic;
-  margin-top: 20px;
-  opacity: 0.75;
-  font-size: 0.92rem;
-}
-
-/* Tile grid container */
-.df-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-
-/* Individual tile */
-.df-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  border: 2px solid var(--tile-border, #1B5E20); /* fallback green */
-  border-radius: 12px;
-  text-align: center;
-  background: var(--tile-bg, #fff);
-  color: var(--ink, #222);
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 0.2s, transform 0.1s;
-}
-
-/* Emoji + label spacing */
-.df-tile span {
-  margin-top: 8px;
-  display: block;
-}
-
-/* Hover / active feedback */
-.df-tile:hover {
-  background: #f1f1f1;
-  transform: translateY(-2px);
-}
-.df-tile:active {
-  transform: translateY(0);
-}
-
-/* Color-scheme bridge so user agent controls match the resolved theme
-   while allowing [data-theme="auto"] CSS to keep working */
-:root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"]  { color-scheme: dark;  }
-:root[data-theme="auto"]  { color-scheme: light; } /* default */
-
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="auto"] { color-scheme: dark; }
-}
-
-/* =======================================================================
-   === PATCH A: Auto really follows device for tiles & Theme switches ===
-   - Keeps tiles/switch rows light when device is light
-   - Matches dark styling when device is dark
-   - Only applies while data-theme="auto"
-   ======================================================================= */
-@media (prefers-color-scheme: light) {
-  :root[data-theme="auto"] .df-tile,
-  :root[data-theme="auto"] .menu-card,
-  :root[data-theme="auto"] .hub-card,
-  :root[data-theme="auto"] .report-card,
-  :root[data-theme="auto"] .tool-card,
-  :root[data-theme="auto"] .switch {
-    background: var(--tile-bg);   /* white */
-    color: var(--ink);
-    border-color: var(--tile-border);
-  }
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="auto"] .df-tile,
-  :root[data-theme="auto"] .menu-card,
-  :root[data-theme="auto"] .hub-card,
-  :root[data-theme="auto"] .report-card,
-  :root[data-theme="auto"] .tool-card,
-  :root[data-theme="auto"] .switch {
-    background: var(--tile-bg);   /* #1c1f18 via tokens */
-    color: var(--ink);
-    border-color: var(--tile-border);
-  }
-}
-
-/* Theme page “switch” row styles (safe if not present elsewhere) */
-.switch {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 12px;
-  border: 2px solid var(--brand-green);
-  border-radius: 12px;
-  background: var(--tile-bg);
-}
-.switch input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
-.switch-track {
-  width: 48px; height: 28px; border-radius: 999px;
-  background: #e5e5e5;
-  display: inline-flex; align-items: center;
-  padding: 3px; box-sizing: border-box;
-  transition: background .2s ease, box-shadow .2s ease, border-color .2s ease;
-  border: 1px solid rgba(0,0,0,.12);
-}
-.switch .knob {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25);
-  transform: translateX(0); transition: transform .2s ease;
-}
-.switch input:checked + .switch-track {
-  background: var(--brand-green); border-color: var(--brand-green);
-}
-.switch input:checked + .switch-track .knob { transform: translateX(20px); }
-.switch-label { font-weight: 700; color: var(--brand-green); }
-.switch-desc  { margin-left: auto; font-size: .9rem; color: #666; }
-
-/* =======================================================================
-   === PATCH B: Visible focus ring (Light & Dark) + iOS control tint fix ===
-   - Makes the “box indicator” obvious in Light mode
-   - Uses gold-ish ring in Dark (via tokens you already set)
-   ======================================================================= */
-:root { --df-focus-ring: rgba(27, 94, 32, .55); } /* Light */
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="auto"] { --df-focus-ring: rgba(218,165,32,.55); }
-}
-:root[data-theme="dark"] { --df-focus-ring: rgba(218,165,32,.55); }
-
-input, select, textarea, button {
-  -webkit-appearance: none; /* iOS: stop auto-tinting in Light */
-  outline: none;
-  border-radius: 10px;
-}
-
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-button:focus-visible {
-  box-shadow: 0 0 0 3px var(--df-focus-ring);
-}
-
-/* =========================================
-   Forms render as cards (non-auth pages)
-   ========================================= */
-:not(.auth-page) .content form {
-  background: var(--tile-bg);
-  border: 2px solid var(--tile-border);
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.08);
-
-}
-
-/* =========================================
-   Forms render as cards (non-auth pages)
-   ========================================= */
-
-/* Base (Light) */
-:root {
-  --tile-bg: #FFFFFF;                 /* card background in light */
-  --tile-border: rgba(0, 0, 0, 0.15); /* visible border in light */
-}
-
-/* Dark (always dark toggle) */
-[data-theme="dark"] {
-  --tile-bg: #1e1f1c;
-  --tile-border: rgba(255, 255, 255, 0.14);
-}
-
-/* Auto = follow device */
-[data-theme="auto"] {
-  /* light default for auto; overridden by media queries below */
-  --tile-bg: #FFFFFF;
-  --tile-border: rgba(0, 0, 0, 0.15);
-}
-
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] {
-    --tile-bg: #1e1f1c;
-    --tile-border: rgba(255, 255, 255, 0.14);
-  }
-}
-
-/* Apply to all non-auth forms (e.g., Feedback / Issues) */
-:not(.auth-page) .content form {
-  background: var(--tile-bg);
-  border: 2px solid var(--tile-border, rgba(0,0,0,.15));
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.08);
-}
-
-/* AI Reports polish */
+/* ===========================
+   AI Reports polish
+   =========================== */
 .ai-layout { display: grid; grid-template-columns: 280px 1fr; height: 100%; }
 .ai-sidebar { border-right: 1px solid var(--tile-border); padding: 10px; overflow: auto; background: var(--surface-2); }
 .ai-main { display: grid; grid-template-rows: 1fr auto; }
@@ -1025,82 +768,3 @@ button:focus-visible {
 .ai-inputbar { display:flex; gap: 8px; padding: 10px; border-top:1px solid var(--tile-border); background: var(--surface-1); }
 #ai-input { flex:1; resize:none; padding:10px 12px; border-radius:10px; border:1px solid var(--tile-border); background: var(--tile-bg); }
 .btn.primary { background:#1B5E20; color:#fff; border:none; }
-
-/* ===== Breadcrumbs: single line with middle ellipsis (global, safe override) ===== */
-:root{
-  --crumb-first-ch: 12ch;  /* width hint for first crumb (e.g., "Home") */
-  --crumb-middle-ch: 4ch;  /* 3–5ch -> “…”, “Set…”, “Pro…” */
-}
-
-/* Keep Logout safe at the right; you already set this, reinforcing */
-.breadcrumbs { justify-content: space-between; }
-
-/* Ensure the trail can shrink but never wrap */
-.breadcrumbs ol{
-  display:flex; align-items:center; gap:6px;
-  white-space:nowrap; overflow:hidden; flex:1 1 auto; min-width:0;
-}
-
-/* Base li behavior */
-.breadcrumbs ol li{ flex:0 0 auto; min-width:0; white-space:nowrap; }
-.breadcrumbs ol li.sep{ flex:0 0 auto; }
-
-/* Labels can ellipsize */
-.breadcrumbs ol a,
-.breadcrumbs ol span{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
-/* First crumb gets a little extra room */
-.breadcrumbs ol li:not(.sep):first-child a,
-.breadcrumbs ol li:not(.sep):first-child span{
-  max-width: var(--crumb-first-ch);
-}
-
-/* ⭐ All middle crumbs (not first/last) get a small max width -> forces “…” */
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
-  flex:0 1 auto; min-width:0;
-}
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) a,
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) span{
-  max-width: var(--crumb-middle-ch);
-}
-
-/* Last crumb (current page) takes remaining space, ellipsizes only if truly needed */
-.breadcrumbs ol li:not(.sep):last-child{ flex:1 1 auto; min-width:0; }
-.breadcrumbs ol li:not(.sep):last-child a,
-.breadcrumbs ol li:not(.sep):last-child span{ max-width:100%; }
-
-
-/* =========================================================
-   Breadcrumb polish: tighter middles + capped last label
-   ========================================================= */
-:root{
-  /* Tune these two to taste */
-  --crumb-middle-ch: 4ch;   /* 3–5ch → “…”, “Pro…”, “Chem…” */
-  --crumb-last-max: 52%;    /* last crumb will never exceed this share of the trail */
-}
-
-/* Middle crumbs (anything that's not first/last/sep) */
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
-  flex: 0 1 auto;           /* can shrink */
-  min-width: 0;
-}
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) a,
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) span{
-  max-width: var(--crumb-middle-ch); /* << shorter: forces “Pro…”, “Chem…”, etc. */
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* Last crumb (current page): cap its width so it can't crash into Logout */
-.breadcrumbs ol li:not(.sep):last-child{
-  flex: 0 1 var(--crumb-last-max);   /* hard cap */
-  min-width: 0;
-}
-.breadcrumbs ol li:not(.sep):last-child a,
-.breadcrumbs ol li:not(.sep):last-child span{
-  max-width: 100%;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* Keep a little breathing room before Logout (if not already present) */
-.breadcrumbs ol + .logout-btn{ margin-left: 10px; }
-
