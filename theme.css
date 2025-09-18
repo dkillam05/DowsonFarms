@@ -1025,3 +1025,47 @@ button:focus-visible {
 .ai-inputbar { display:flex; gap: 8px; padding: 10px; border-top:1px solid var(--tile-border); background: var(--surface-1); }
 #ai-input { flex:1; resize:none; padding:10px 12px; border-radius:10px; border:1px solid var(--tile-border); background: var(--tile-bg); }
 .btn.primary { background:#1B5E20; color:#fff; border:none; }
+
+/* ===== Breadcrumbs: single line with middle ellipsis (global, safe override) ===== */
+:root{
+  --crumb-first-ch: 12ch;  /* width hint for first crumb (e.g., "Home") */
+  --crumb-middle-ch: 4ch;  /* 3–5ch -> “…”, “Set…”, “Pro…” */
+}
+
+/* Keep Logout safe at the right; you already set this, reinforcing */
+.breadcrumbs { justify-content: space-between; }
+
+/* Ensure the trail can shrink but never wrap */
+.breadcrumbs ol{
+  display:flex; align-items:center; gap:6px;
+  white-space:nowrap; overflow:hidden; flex:1 1 auto; min-width:0;
+}
+
+/* Base li behavior */
+.breadcrumbs ol li{ flex:0 0 auto; min-width:0; white-space:nowrap; }
+.breadcrumbs ol li.sep{ flex:0 0 auto; }
+
+/* Labels can ellipsize */
+.breadcrumbs ol a,
+.breadcrumbs ol span{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* First crumb gets a little extra room */
+.breadcrumbs ol li:not(.sep):first-child a,
+.breadcrumbs ol li:not(.sep):first-child span{
+  max-width: var(--crumb-first-ch);
+}
+
+/* ⭐ All middle crumbs (not first/last) get a small max width -> forces “…” */
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
+  flex:0 1 auto; min-width:0;
+}
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) a,
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) span{
+  max-width: var(--crumb-middle-ch);
+}
+
+/* Last crumb (current page) takes remaining space, ellipsizes only if truly needed */
+.breadcrumbs ol li:not(.sep):last-child{ flex:1 1 auto; min-width:0; }
+.breadcrumbs ol li:not(.sep):last-child a,
+.breadcrumbs ol li:not(.sep):last-child span{ max-width:100%; }
+
