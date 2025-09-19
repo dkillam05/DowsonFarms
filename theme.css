@@ -1375,4 +1375,44 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   :root[data-theme="auto"] .switch-label { color: #fff !important; }
 }
 
+/* ===== Breadcrumb layout: last crumb pinned right, middles collapse ===== */
 
+/* Make sure the trail is a single flex row */
+.breadcrumbs { display:flex; justify-content:space-between; }
+.breadcrumbs ol { 
+  display:flex; align-items:center; gap:6px;
+  flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap;
+}
+
+/* Base LI behavior */
+.breadcrumbs ol li { flex:0 0 auto; min-width:0; white-space:nowrap; }
+.breadcrumbs ol li.sep { flex:0 0 auto; }
+
+/* ⭐ Push the LAST separator (and therefore the final crumb that follows it)
+   all the way to the right, next to Logout. */
+.breadcrumbs ol li.sep:last-of-type { margin-left:auto; }
+
+/* First crumb keeps natural width; no ellipsis */
+.breadcrumbs ol li:first-child { flex:0 0 auto; }
+
+/* Middle crumbs share remaining space and ellipsize */
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) { flex:1 1 0; min-width:0; }
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
+.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span {
+  display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width: 5ch;      /* tune (3–8ch) for how short “Pro…/Chem…” should be */
+}
+
+/* Last crumb sits at the right and is capped so it never crowds Logout */
+.breadcrumbs ol li:last-child {
+  flex:0 1 38%;        /* cap width; adjust 32–45% to taste */
+  min-width:0;
+  text-align:right;    /* optional, looks nice near Logout */
+}
+.breadcrumbs ol li:last-child > a,
+.breadcrumbs ol li:last-child > span {
+  display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* Give a tiny buffer before the real Logout button in the header */
+.breadcrumbs ol + .logout-btn { margin-left:10px; }
