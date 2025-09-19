@@ -21,19 +21,15 @@
   <script defer src="core.js"></script>
 
   <style>
-    /* page-local utilities */
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
+    .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
-
-    /* iOS no-zoom on phone + mask parity */
     #venPhone, #m_phone { font-size:16px; }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -42,7 +38,6 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -53,7 +48,6 @@
     </ol>
   </nav>
 
-  <!-- Main -->
   <main class="content" data-has-form>
     <div class="line" style="align-items:center; justify-content:space-between;">
       <h1 style="margin:0;">🏭 Vendors</h1>
@@ -61,38 +55,51 @@
     </div>
     <div style="margin-top:12px;"></div>
 
-    <!-- FORM -->
     <form id="ven-form" novalidate>
       <div class="field">
-        <label for="venName">Contact / Rep <span class="req-star">*</span></label>
-        <input id="venName" type="text" required placeholder="Primary contact name…" />
+        <label for="venFirst">Contact — First Name <span class="req-star">*</span></label>
+        <input id="venFirst" type="text" required placeholder="First name" />
       </div>
+
+      <div class="field">
+        <label for="venLast">Contact — Last Name <span class="req-star">*</span></label>
+        <input id="venLast" type="text" required placeholder="Last name" />
+      </div>
+
+      <div class="field">
+        <label for="venEmail">Email <span class="req-star">*</span></label>
+        <input id="venEmail" type="email" inputmode="email" required placeholder="name@example.com" />
+      </div>
+
       <div class="field">
         <label for="venCompany">Company</label>
-        <input id="venCompany" type="text" placeholder="e.g., ADM, John Deere, Bartlett Grain" />
+        <select id="venCompany"></select>
       </div>
+
       <div class="field">
         <label for="venAcct">Account #</label>
         <input id="venAcct" type="text" placeholder="Internal account/reference number" />
       </div>
+
       <div class="field">
         <label for="venPhone">Phone</label>
         <input id="venPhone" type="tel" inputmode="numeric" placeholder="(555) 123-4567" maxlength="14" />
       </div>
+
       <div class="field">
-        <label for="venEmail">Email</label>
-        <input id="venEmail" type="email" inputmode="email" placeholder="name@example.com" />
+        <label for="venRole">Role (Permissions) <span class="req-star">*</span></label>
+        <select id="venRole" required></select>
       </div>
 
       <section class="card" style="padding:12px; margin-top:8px;">
-        <div class="grid2">
+        <div class="grid3">
           <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
           <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+          <button class="btn-secondary" type="button" id="inviteBtn" style="width:92px;height:92px;">Invite</button>
         </div>
       </section>
     </form>
 
-    <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Vendors</h2>
       <div class="line" style="align-items:center;">
@@ -105,7 +112,6 @@
     </section>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -114,27 +120,18 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View -->
-  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
-      <h2 id="qvTitle">Vendors</h2>
-      <ul id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="qvClose">Close</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Manage/Edit Modal -->
   <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Vendor</h2>
       <div id="manageBox" style="display:grid;gap:10px;">
-        <input id="m_name" placeholder="Contact / Rep" />
-        <input id="m_company" placeholder="Company" />
+        <input id="m_first" placeholder="First Name" />
+        <input id="m_last" placeholder="Last Name" />
+        <input id="m_email" placeholder="Email" />
+        <select id="m_company"></select>
         <input id="m_acct" placeholder="Account #" />
         <input id="m_phone" placeholder="Phone" maxlength="14" />
-        <input id="m_email" placeholder="Email" />
+        <select id="m_role" required></select>
         <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
       </div>
       <div class="modal-actions" style="justify-content:space-between;">
@@ -147,10 +144,13 @@
   <script>
   (function VendorsPage(){
     const KEY='df.vendors';
+    const COMP_KEY='df_vendor_companies';
+    const ROLES_PERMS_KEY='df_role_perms';
+
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
 
-    // Toast (uses .df-toast from theme.css if present)
+    // Toast helper
     function showToast(msg){
       let t=document.querySelector('.df-toast');
       if(!t){ t=document.createElement('div'); t.className='df-toast'; document.body.appendChild(t); }
@@ -158,139 +158,149 @@
       setTimeout(()=> t.classList.remove('show'), 2000);
     }
 
-    // Helpers
-    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
-    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
-    function save(v){ localStorage.setItem(KEY, JSON.stringify(v)) }
-    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list); }
-    function byCompanyThenName(a,b){
-      return (a.company||'').localeCompare(b.company||'', undefined, {sensitivity:'base'})
-          || a.name.localeCompare(b.name, undefined, {sensitivity:'base'});
+    const load = (k,def)=> { try{const v=JSON.parse(localStorage.getItem(k)); return v==null?def:v;}catch(_){return def;} };
+    const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+
+    function loadList(){ return load(KEY, []); }
+    function saveList(v){ save(KEY, v); }
+    function upsert(item){ const L=loadList(); const i=L.findIndex(x=>x.id===item.id); if(i>=0) L[i]=item; else L.push(item); saveList(L); }
+
+    // Roles
+    function getRoleNames(){
+      const rp = load(ROLES_PERMS_KEY, null);
+      return rp ? Object.keys(rp) : ["Administrator","Manager","Employee","View Only"];
+    }
+    function fillRoleSelect(sel, value){
+      const roles=getRoleNames();
+      sel.innerHTML = `<option value="" ${value?'':'selected'}>Select role…</option>` +
+        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+      if(value) sel.value=value;
     }
 
-    // Phone mask (like other pages)
-    function fmtPhone(raw){
-      const x=(raw||'').replace(/\D/g,'').slice(0,10);
-      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
-      if(x.length<=3) return x?`(${a}`:'';
-      if(x.length<=6) return `(${a}) ${b}`;
-      return `(${a}) ${b}-${c}`;
+    // Companies select
+    const uniq = a => [...new Set(a)];
+    function getCompanies(){ return load(COMP_KEY, []); }
+    function saveCompanies(arr){ save(COMP_KEY, uniq(arr).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}))); }
+    function fillCompanySelect(sel, value){
+      const companies = getCompanies();
+      const opts = [
+        `<option value="">Select company…</option>`,
+        ...companies.map(c=>`<option value="${c}">${c}</option>`),
+        `<option value="__ADD__">➕ Add a new company…</option>`
+      ].join('');
+      sel.innerHTML = opts;
+      if(value){ sel.value=value; if(sel.value!==value){ sel.value=""; } }
+      sel.onchange = ()=>{
+        if(sel.value==='__ADD__'){
+          const name = prompt('Add new company name:','');
+          if(name && name.trim()){
+            const c = name.trim();
+            saveCompanies([ ...companies, c ]);
+            fillCompanySelect(sel, c);
+            const msel = document.getElementById('m_company'); if(msel) fillCompanySelect(msel, c);
+          }else{
+            sel.value="";
+          }
+        }
+      };
     }
-    function attachPhoneMask(input){
-      if(!input) return;
-      input.addEventListener('input', ()=> input.value = fmtPhone(input.value));
-      input.addEventListener('blur',  ()=> input.value = fmtPhone(input.value));
+
+    // Invite
+    function inviteVendor(id){
+      const L=loadList(); const v=L.find(x=>x.id===id); if(!v){ alert('Vendor not found'); return; }
+      if(!v.email){ alert('Email is required to send an invite.'); return; }
+      alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
+      v.invitedAt=Date.now(); upsert(v); render();
     }
+
+    // Validation helpers
+    function isEmail(s){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim()); }
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
 
     // Render list
     function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      const rows=load()
+      const rows=loadList()
         .filter(x=>showA?true:!x.archived)
-        .filter(x=>!q || [x.name,x.company,x.account,x.phone,x.email].some(v=>v?.toLowerCase().includes(q)))
-        .sort(byCompanyThenName);
+        .filter(x=>{
+          const bag=[x.first,x.last,x.email,x.company,x.account,x.phone,x.role].join(' ').toLowerCase();
+          return !q || bag.includes(q);
+        })
+        .sort((a,b)=> (a.company||'').localeCompare(b.company||'',undefined,{sensitivity:'base'}) || (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}));
 
       const L=$('#savedList');
-      L.innerHTML = rows.length ? rows.map(r=>`
-        <li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line">
-            <strong>${r.name || '(No Name)'}</strong>
-            ${chip(r.company)} ${chip(r.account)} ${chip(r.phone)} ${chip(r.email)}
-            ${r.archived ? '<span class="chip">Archived</span>' : ''}
-          </div>
+      L.innerHTML = rows.length ? rows.map(r=>{
+        const name=[r.first,r.last].filter(Boolean).join(' ')||'(No Name)';
+        const chips=[r.company,r.account,r.phone,r.email,r.role,r.invitedAt?'Invited':'',r.archived?'Archived':'']
+          .filter(Boolean).map(chip).join(' ');
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line"><strong>${name}</strong> ${chips}</div>
           <div class="line" style="margin-top:8px;">
             <button class="btn-secondary" data-edit="${r.id}">Manage</button>
+            <button class="btn-outline" data-invite="${r.id}">Invite</button>
           </div>
-        </li>
-      `).join('') : '<li class="muted">No vendors yet.</li>';
+        </li>`;
+      }).join('') : '<li class="muted">No vendors yet.</li>';
 
       L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
+      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteVendor(b.getAttribute('data-invite'))));
     }
 
     // Manage modal
     function openManage(id){
-      const list=load(); const e=list.find(x=>x.id===id); if(!e) return;
-      $('#manageTitle').textContent = `Edit Vendor — ${e.name || '(No Name)'}`;
-      $('#m_name').value=e.name||'';
-      $('#m_company').value=e.company||'';
-      $('#m_acct').value=e.account||'';
-      $('#m_phone').value=e.phone||'';
-      $('#m_email').value=e.email||'';
-      $('#m_archived').checked=!!e.archived;
-
-      attachPhoneMask($('#m_phone'));
+      const rows=loadList(); const v=rows.find(x=>x.id===id); if(!v) return;
+      $('#manageTitle').textContent = `Edit Vendor — ${[v.first,v.last].filter(Boolean).join(' ')}`;
+      $('#m_first').value=v.first||''; $('#m_last').value=v.last||''; $('#m_email').value=v.email||'';
+      fillCompanySelect($('#m_company'), v.company||'');
+      $('#m_acct').value=v.account||''; $('#m_phone').value=v.phone||'';
+      fillRoleSelect($('#m_role'), v.role||'');
+      $('#m_archived').checked=!!v.archived;
 
       const B=$('#manageBackdrop'); B.style.display='flex';
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
-        e.name=titleCase(($('#m_name').value||'').trim());
-        e.company=($('#m_company').value||'').trim();
-        e.account=($('#m_acct').value||'').trim();
-        e.phone=($('#m_phone').value||'').trim();
-        e.email=($('#m_email').value||'').trim();
-        e.archived=$('#m_archived').checked;
-        e.updatedAt=Date.now();
-        upsert(e); B.style.display='none'; render(); showToast('Saved changes');
+        if(!($('#m_first').value||'').trim() || !($('#m_last').value||'').trim()){ alert('First and Last name are required.'); return; }
+        if(!isEmail($('#m_email').value)){ alert('Valid email is required.'); return; }
+        if(!$('#m_role').value){ alert('Role is required.'); return; }
+        v.first=titleCase($('#m_first').value||''); v.last=titleCase($('#m_last').value||'');
+        v.email=$('#m_email').value.trim(); v.company=$('#m_company').value||''; v.account=$('#m_acct').value||'';
+        v.phone=$('#m_phone').value||''; v.role=$('#m_role').value||''; v.archived=$('#m_archived').checked; v.updatedAt=Date.now();
+        upsert(v); B.style.display='none'; render(); showToast('Saved changes');
       };
-      B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
+      B.addEventListener('click', ev=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Quick View
-    $('#quickViewBtn').addEventListener('click', ()=>{
-      const rows=load().sort(byCompanyThenName);
-      const L=$('#qvList'), B=$('#qvBackdrop');
-      L.innerHTML = rows.length ? rows.map(r=>{
-        const line2 = [r.company, r.account].filter(Boolean).join(' — ');
-        const contact = [r.phone, r.email].filter(Boolean).join(' • ');
-        return `<li class="card" style="padding:10px; margin:8px 0;">
-          <div><strong>${r.name || '(No Name)'}</strong></div>
-          ${ line2 ? `<div class="muted-small">${line2}</div>` : '' }
-          ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
-        </li>`;
-      }).join('') : '<li>No vendors.</li>';
-      B.style.display='flex';
-      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
-      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    // Form
+    $('#inviteBtn').addEventListener('click', ()=>{
+      const first=titleCase(($('#venFirst').value||'').trim());
+      const last=titleCase(($('#venLast').value||'').trim());
+      const email=($('#venEmail').value||'').trim();
+      if(!first||!last||!isEmail(email)||!$('#venRole').value){ alert('First, Last, Email, and Role are required.'); return; }
+      const id=(first+' '+last).toLowerCase();
+      upsert({id,first,last,email,company:$('#venCompany').value||'',account:$('#venAcct').value||'',phone:$('#venPhone').value||'',role:$('#venRole').value,archived:false,createdAt:Date.now(),updatedAt:Date.now()});
+      inviteVendor(id);
     });
 
-    // Save flow
-    attachPhoneMask($('#venPhone'));
-    $('#ven-form').addEventListener('submit',(e)=>{
+    $('#ven-form').addEventListener('submit', e=>{
       e.preventDefault();
-      const name = titleCase(($('#venName').value||'').trim());
-      if(!name){ alert('Contact / Rep is required.'); $('#venName').focus(); return; }
-      const item = {
-        id: name.toLowerCase(),
-        name,
-        company: ($('#venCompany').value||'').trim(),
-        account: ($('#venAcct').value||'').trim(),
-        phone:   ($('#venPhone').value||'').trim(),
-        email:   ($('#venEmail').value||'').trim(),
-        archived:false,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-      upsert(item);
-      $('#ven-form').reset();
-      render();
-      showToast('Vendor saved');
+      const first=titleCase(($('#venFirst').value||'').trim());
+      const last=titleCase(($('#venLast').value||'').trim());
+      const email=($('#venEmail').value||'').trim();
+      if(!first||!last){ alert('Contact First and Last are required.'); return; }
+      if(!isEmail(email)){ alert('Valid email is required.'); return; }
+      if(!$('#venRole').value){ alert('Role is required.'); return; }
+      const id=(first+' '+last).toLowerCase();
+      upsert({id,first,last,email,company:$('#venCompany').value||'',account:$('#venAcct').value||'',phone:$('#venPhone').value||'',role:$('#venRole').value,archived:false,createdAt:Date.now(),updatedAt:Date.now()});
+      $('#ven-form').reset(); fillCompanySelect($('#venCompany')); fillRoleSelect($('#venRole')); render(); showToast('Vendor saved');
     });
 
-    $('#clearBtn').addEventListener('click', ()=> { /* just UI reset */ });
-
-    // Filters
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
 
+    fillCompanySelect($('#venCompany'));
+    fillRoleSelect($('#venRole'));
     render();
-
-    // Breadcrumb helper (if your core.js provides setBreadcrumbs)
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Teams & Partners', href:'teams-partners.html'},
-      {label:'Vendors'}
-    ]);
   })();
   </script>
 </body>
