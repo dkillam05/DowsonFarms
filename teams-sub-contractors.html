@@ -30,19 +30,19 @@
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
 
     /* iOS no-zoom for phone inputs (form + manage modal) */
-    #scBizPhone,
-    #scCellPhone,
-    #m_biz,
-    #m_cell { font-size:16px; }
+    #scBizPhone,#scCellPhone,#m_biz,#m_cell{font-size:16px;}
 
     /* Pills (permission overrides) – same look as Employees */
     .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
     .pill[disabled]{opacity:.45;pointer-events:none}
-    .ex-group {border:1px solid var(--tile-border);border-radius:10px;margin:6px 0;background:var(--tile-bg);}
-    .ex-parent {display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--tile-border);justify-content:space-between}
-    .ex-children {padding:6px 10px 12px}
+    .ex-group{border:1px solid var(--tile-border);border-radius:10px;margin:6px 0;background:var(--tile-bg);}
+    .ex-parent{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--tile-border);justify-content:space-between}
+    .ex-children{padding:6px 10px 12px}
+
+    /* Keep modals on top of footer/back buttons */
+    .auth-modal__backdrop{z-index:4000 !important}
   </style>
 </head>
 <body>
@@ -207,7 +207,6 @@
           <input id="m_cell" placeholder="Cell Phone" maxlength="14" />
         </div>
         <input id="m_email" placeholder="Primary Email" />
-        <!-- Trade select in Manage as well -->
         <select id="m_trade"></select>
         <input id="m_notes" placeholder="Notes" />
         <select id="m_role"></select>
@@ -224,9 +223,9 @@
   <script>
   (function SubcontractorsPage(){
     const KEY='df.subcontractors';
-    const ROLES_PERMS_KEY='df_role_perms'; // from Account Roles
-    const MENUS_MAP_KEY='df_menus_map';    // menus object from Account Roles page
-    const TRADES_KEY='df_trades';          // saved trades
+    const ROLES_PERMS_KEY='df_role_perms';
+    const MENUS_MAP_KEY='df_menus_map';
+    const TRADES_KEY='df_trades';
 
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -238,7 +237,7 @@
     const removeById = (id)=> listSave(listLoad().filter(x=>x.id!==id));
     const uniq = (arr)=> [...new Set(arr)];
 
-    // Toast helper (uses your .df-toast in theme.css)
+    // Toast helper (uses your .df-toast in theme.css; creates one if missing)
     function showToast(msg){
       let t=document.querySelector('.df-toast');
       if(!t){ t=document.createElement('div'); t.className='df-toast'; document.body.appendChild(t); }
@@ -261,7 +260,6 @@
     }
     const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
-    /* ← removed stray closing brace that was here */
 
     // Trades
     function getTrades(){ return load(TRADES_KEY, []); }
@@ -290,7 +288,7 @@
       };
     }
 
-    // Roles and Menus (mirror Employees)
+    // Roles and Menus
     function getRoleNames(){
       const rp = load(ROLES_PERMS_KEY, null);
       return rp ? Object.keys(rp) : ["Admin","Manager","Operator","Viewer"];
@@ -319,7 +317,6 @@
     // ---- Overrides (same shape as Employees) ----
     const exState = { enabled:false, grants:{} };
 
-    // Pill helpers
     function makePill(label, on){
       const b=document.createElement('button');
       b.type='button'; b.className='pill'; b.textContent=label;
@@ -364,7 +361,7 @@
 
       L.innerHTML='';
       Object.keys(MENUS).forEach(menu=>{
-        const group=document.createElement('details'); group.className='ex-group'; group.open=true;
+        const group=document.createElement('details'); group.className='ex-group'; group.open=false; /* collapsed by default */
 
         const parent=document.createElement('div'); parent.className='ex-parent';
         const left=document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
@@ -417,6 +414,7 @@
         B.style.display='none';
         Object.keys(exState.grants).forEach(k=>{ const g=exState.grants[k]; const any=g&&(g.view||g.edit||g.add||g.archive||g.delete); if(!any) delete exState.grants[k]; });
         if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
+        showToast('Overrides saved');
       };
       B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     }
@@ -430,7 +428,7 @@
     // Fill trades on load
     fillTradeSelect($('#scTrade'));
 
-    // Invite
+    // Invite (friendly placeholder)
     function inviteSub(id){
       const all=listLoad(); const r=all.find(x=>x.id===id); if(!r) return alert('Record not found');
       if(!r.email) return alert('Primary email required to send invite.');
