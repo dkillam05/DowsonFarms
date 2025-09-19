@@ -1,48 +1,73 @@
-// reads MENUS from assets/data/menus.js and renders tiles / subnav if targets exist
-(function () {
-  const MENUS = (window.DF?.registry?.get?.("menus")) || window.DF_MENUS;
-  if (!MENUS || !MENUS.tiles) return; // nothing to do
+// ui-nav.js
+// Renders home tiles from global DF_MENUS (assets/data/menus.js)
 
-  function htmlesc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+(() => {
+  if (!window.DF_MENUS) return; // menus.js must load first
 
-  // 1) Home page tiles (if there is .df-tiles[data-source="global"])
-  const homeTiles = document.querySelector('.df-tiles[data-source="global"]');
-  if (homeTiles) {
-    homeTiles.innerHTML = MENUS.tiles.map(t => {
-      const ico = t.iconEmoji ? (htmlesc(t.iconEmoji) + ' ') : '';
-      return `<a href="${htmlesc(t.href)}" class="df-tile">${ico}<span>${htmlesc(t.label)}</span></a>`;
-    }).join('');
+  // Hard-order for Home, with the Field Maintenance shortcut at #2.
+  const ORDER = [
+    "Crop Production",
+    "__FIELD_MAINTENANCE_SHORTCUT__", // points to Crop > Field Maintenance
+    "Grain Tracking",
+    "Equipment",
+    "Calculators",
+    "Team / Partners",
+    "Reports",
+    "Setup / Settings",
+    "Feedback",
+  ];
+
+  // Known routes for top-level menus
+  const ROUTES = {
+    "Crop Production": "crop.html",
+    "Grain Tracking": "grain.html",
+    "Equipment": "equip.html",
+    "Calculators": "calc.html",
+    "Team / Partners": "teams-partners.html",
+    "Reports": "reports.html",
+    "Setup / Settings": "settings.html",
+    "Feedback": "feedback.html",
+  };
+
+  // Emoji for the Field Maintenance shortcut (uses your exact emoji)
+  const FIELD_MAINTENANCE = {
+    emoji: "🛠️",
+    label: "Field Maintenance",
+    href: "crop-maintenance.html"
+  };
+
+  // Pull menu metadata (emoji + label) from DF_MENUS safely
+  function getTopMeta(name) {
+    const row = window.DF_MENUS?.top?.find?.(m => m.name === name);
+    return row ? { emoji: row.emoji || "", label: row.name } : { emoji: "", label: name };
   }
 
-  // 2) Section page tiles (if there is .df-tiles[data-section])
-  const sectionTiles = document.querySelector('.df-tiles[data-section]');
-  if (sectionTiles) {
-    const href = (document.querySelector('nav.breadcrumbs a:last-of-type + .sep') ? '' : '') || '';
-    // pick the section based on current page link in MENUS
-    const here = location.pathname.split('/').pop();
-    const section =
-      MENUS.tiles.find(t => t.href === here) ||
-      MENUS.tiles.find(t => here && t.href.endsWith(here));
-    if (section && Array.isArray(section.children)) {
-      sectionTiles.innerHTML = section.children.map(c => {
-        const ico = c.iconEmoji ? (htmlesc(c.iconEmoji) + ' ') : '';
-        return `<a href="${htmlesc(c.href)}" class="df-tile">${ico}<span>${htmlesc(c.label)}</span></a>`;
-      }).join('');
-    }
+  function makeTile({ emoji, label, href }) {
+    const a = document.createElement("a");
+    a.className = "df-tile";
+    a.href = href;
+    a.innerHTML = `${emoji ? `${emoji} ` : ""}<span>${label}</span>`;
+    return a;
   }
 
-  // 3) Optional inline subnav (if <ul data-menu="children"> exists)
-  const subnav = document.querySelector('ul[data-menu="children"]');
-  if (subnav) {
-    const here = location.pathname.split('/').pop();
-    const section =
-      MENUS.tiles.find(t => t.href === here) ||
-      MENUS.tiles.find(t => here && t.href.endsWith(here));
-    const children = section?.children || [];
-    subnav.innerHTML = children.map(c => {
-      const isHere = c.href.endsWith(here);
-      const ico = c.iconEmoji ? (htmlesc(c.iconEmoji) + ' ') : '';
-      return `<li><a href="${htmlesc(c.href)}" ${isHere?'aria-current="page"':''}>${ico}${htmlesc(c.label)}</a></li>`;
-    }).join('');
+  function render(container) {
+    // Build the tile list in the fixed order above
+    const tiles = [];
+
+    ORDER.forEach(key => {
+      if (key === "__FIELD_MAINTENANCE_SHORTCUT__") {
+        tiles.push(makeTile(FIELD_MAINTENANCE));
+        return;
+      }
+      const meta = getTopMeta(key);
+      const href = ROUTES[key] || "#";
+      tiles.push(makeTile({ emoji: meta.emoji, label: meta.label, href }));
+    });
+
+    container.innerHTML = "";
+    tiles.forEach(t => container.appendChild(t));
   }
+
+  // Find any container that opts in
+  document.querySelectorAll(".df-tiles[data-source='global']").forEach(render);
 })();
