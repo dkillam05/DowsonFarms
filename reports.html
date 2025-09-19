@@ -19,7 +19,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 </head>
 <body>
   <!-- Header -->
@@ -46,14 +46,11 @@
   <main class="content">
     <h1>📖 Reports</h1>
 
-    <div class="df-tiles">
-      <a href="reports-predefined.html" class="df-tile">📁 <span>Pre-Defined Reports</span></a>
-      <a href="reports-ai.html" class="df-tile">🤖 <span>AI Reports</span></a>
-      <a href="reports-ai-history.html" class="df-tile">🕘 <span>AI Report History</span></a>
-    </div>
+    <!-- Pull children from global menus.js for this section -->
+    <div class="df-tiles" data-section></div>
 
     <!-- Powered by note -->
-   <p class="ai-powered-note">AI Reports are powered by ChatGPT.</p>
+    <p class="ai-powered-note">AI Reports are powered by ChatGPT.</p>
   </main>
 
   <!-- Footer -->
@@ -73,5 +70,9 @@
       });
     }
   </script>
+
+  <!-- Global menus + tiny renderer -->
+  <script defer src="assets/data/menus.js"></script>
+  <script defer src="ui-nav.js"></script>
 </body>
 </html>
