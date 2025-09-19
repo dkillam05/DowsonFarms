@@ -24,7 +24,7 @@
     .muted-sm {opacity:.72;font-size:.92rem}
     .tbl {width:100%; border-collapse:collapse}
     .tbl th,.tbl td{border-bottom:1px solid var(--tile-border); padding:6px 8px; text-align:left}
-    /* make all form controls full width for uniform look */
+    /* make all form controls full width for a uniform look */
     .field select,
     .field input[type="text"],
     .field input[type="search"],
@@ -71,16 +71,16 @@
         <input id="acres" type="text" inputmode="decimal" placeholder="e.g., 80 or 80.25" required />
       </div>
 
-      <!-- Farm (dropdown only; "Add…" is final option) -->
+      <!-- Farm (REQUIRED; dropdown only; "Add…" is final option) -->
       <div class="field" id="farmField">
-        <label for="farmSel">Farm</label>
-        <select id="farmSel"></select>
+        <label for="farmSel">Farm <span class="req-star">*</span></label>
+        <select id="farmSel" required></select>
       </div>
 
-      <!-- County (dropdown only; "Add…" is final option) -->
+      <!-- County (REQUIRED; dropdown only; "Add…" is final option) -->
       <div class="field" id="countyField">
-        <label for="countySel">County</label>
-        <select id="countySel"></select>
+        <label for="countySel">County <span class="req-star">*</span></label>
+        <select id="countySel" required></select>
       </div>
 
       <!-- RTK Tower (REQUIRED; dropdown only; "Add…" is final option) -->
@@ -279,7 +279,7 @@
     function renderFarmSelect(selectedId){
       const farms=listFarms();
       $farmSel.innerHTML='';
-      $farmSel.add(new Option('— Unassigned —',''));
+      $farmSel.add(new Option('— Select farm —',''));
       farms.forEach(f=>$farmSel.add(new Option(f.name, f.id)));
       $farmSel.add(new Option('➕ Add New Farm…', ADD_VALUE));
       $farmSel.value = selectedId || '';
@@ -287,7 +287,7 @@
     function renderCountySelect(selected){
       const list=listCounties();
       $countySel.innerHTML='';
-      $countySel.add(new Option('— None —',''));
+      $countySel.add(new Option('— Select county —',''));
       list.forEach(c=>$countySel.add(new Option(c,c)));
       $countySel.add(new Option('➕ Add New County…', ADD_VALUE));
       $countySel.value = selected || '';
@@ -407,7 +407,7 @@
       window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
     }
 
-    // Submit
+    // Submit (Farm & County REQUIRED)
     $('#field-form').addEventListener('submit',(e)=>{
       e.preventDefault();
 
@@ -415,20 +415,25 @@
       const acresRaw=($acres.value||'').trim();
       const acres = acresRaw ? Number(Number(acresRaw).toFixed(2)) : NaN;
 
-      let farmId = $farmSel.value || null; if(farmId===ADD_VALUE){ $farmSel.value=''; const raw=prompt('New farm name:'); if(!raw) return; farmId=upsertFarmByName(raw); }
-      let county = $countySel.value || ''; if(county===ADD_VALUE){ $countySel.value=''; const raw=prompt('New county name:'); if(!raw) return; county=addCountyRaw(raw); }
+      let farmId = $farmSel.value || null;
+      if(farmId===ADD_VALUE){ $farmSel.value=''; const raw=prompt('New farm name:'); if(!raw) return; farmId=upsertFarmByName(raw); }
+      if(!farmId){ alert('Farm is required.'); $farmSel.focus(); return; }
+
+      let county = $countySel.value || '';
+      if(county===ADD_VALUE){ $countySel.value=''; const raw=prompt('New county name:'); if(!raw) return; county=addCountyRaw(raw); }
+      if(!county){ alert('County is required.'); $countySel.focus(); return; }
 
       let rtkTowerId = $rtkSel.value || null;
       if(rtkTowerId===ADD_VALUE){ $rtkSel.value=''; openRtkModal(); return; }
+      if(!rtkTowerId){ alert('RTK Tower location is required.'); $rtkSel.focus(); return; }
 
       if(!name){ alert('Field name is required.'); $name.focus(); return; }
       if(!acresRaw || isNaN(acres)){ alert('Enter tillable acres (up to 2 decimals).'); $acres.focus(); return; }
-      if(!rtkTowerId){ alert('RTK Tower location is required.'); $rtkSel.focus(); return; }
 
       const id=$id.value || name.toLowerCase();
       const prev=getField(id);
       upsertField({
-        id, name, acres, farmId, county: county || null,
+        id, name, acres, farmId, county,
         rtkTowerId,
         archived: prev ? !!prev.archived : false,
         createdAt: prev?.createdAt || Date.now(),
