@@ -29,6 +29,12 @@
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
 
+    /* iOS no-zoom for phone inputs (form + manage modal) */
+    #scBizPhone,
+    #scCellPhone,
+    #m_biz,
+    #m_cell { font-size:16px; }
+
     /* Pills (permission overrides) – same look as Employees */
     .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
@@ -255,14 +261,7 @@
     }
     const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
-    
-    /* iOS no-zoom + consistent sizing for phone inputs on this page */
-#scBizPhone,
-#scCellPhone,
-#m_biz,
-#m_cell {
-  font-size: 16px;   /* stops iOS zoom and matches other fields */
-}
+    /* ← removed stray closing brace that was here */
 
     // Trades
     function getTrades(){ return load(TRADES_KEY, []); }
@@ -275,7 +274,7 @@
         `<option value="__ADD__">➕ Add a new trade…</option>`
       ].join('');
       sel.innerHTML = opts;
-      if(value){ sel.value=value; if(sel.value!==value){ /* if not found */ sel.value=""; } }
+      if(value){ sel.value=value; if(sel.value!==value){ sel.value=""; } }
       sel.onchange = ()=>{
         if(sel.value==='__ADD__'){
           const name = prompt('Add new trade/service (e.g., Electrical, Trucking):','');
@@ -283,7 +282,6 @@
             const t = titleCase(name.trim());
             saveTrades([...trades, t]);
             fillTradeSelect(sel, t);
-            // Also refresh Manage modal select if open
             const msel = document.getElementById('m_trade'); if(msel) fillTradeSelect(msel, t);
           }else{
             sel.value = "";
@@ -318,21 +316,40 @@
       };
     }
 
-    // ---- Overrides (same shape as Employees: {enabled:boolean, grants:{ "Menu>Sub": {view..delete} }} ) ----
+    // ---- Overrides (same shape as Employees) ----
     const exState = { enabled:false, grants:{} };
 
     // Pill helpers
-    function makePill(label, on){ const b=document.createElement('button'); b.type='button'; b.className='pill'; b.textContent=label; b.setAttribute('aria-pressed', on?'true':'false'); b.addEventListener('click',()=>{ const now=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed', now?'false':'true'); }); return b; }
+    function makePill(label, on){
+      const b=document.createElement('button');
+      b.type='button'; b.className='pill'; b.textContent=label;
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.addEventListener('click',()=>{
+        const now=b.getAttribute('aria-pressed')==='true';
+        b.setAttribute('aria-pressed', now?'false':'true');
+      });
+      return b;
+    }
     function pillRowFromObj(obj, disabled){
       const row=document.createElement('div'); row.className='pill-grid';
-      ['View','Edit','Add','Archive','Delete'].forEach(k=>{ const p=makePill(k, !!obj?.[k.toLowerCase()]); if(disabled) p.setAttribute('disabled',''); row.appendChild(p); });
+      ['View','Edit','Add','Archive','Delete'].forEach(k=>{
+        const p=makePill(k, !!obj?.[k.toLowerCase()]);
+        if(disabled) p.setAttribute('disabled','');
+        row.appendChild(p);
+      });
       return row;
     }
-    function rowToObj(row){ const keys=['view','edit','add','archive','delete']; const vals=[...row.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true'); return Object.fromEntries(keys.map((k,i)=>[k,vals[i]])); }
-    function setRow(row,obj){ const keys=['view','edit','add','archive','delete']; [...row.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=> p.setAttribute('aria-pressed', obj?.[keys[i]]?'true':'false')); }
+    function rowToObj(row){
+      const keys=['view','edit','add','archive','delete'];
+      const vals=[...row.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true');
+      return Object.fromEntries(keys.map((k,i)=>[k,vals[i]]));
+    }
+    function setRow(row,obj){
+      const keys=['view','edit','add','archive','delete'];
+      [...row.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=> p.setAttribute('aria-pressed', obj?.[keys[i]]?'true':'false'));
+    }
 
     function openExceptions(existing){
-      // back-compat translate if needed
       let draft = { enabled:false, grants:{} };
       if (existing){
         draft.enabled = !!existing.enabled;
@@ -349,7 +366,6 @@
       Object.keys(MENUS).forEach(menu=>{
         const group=document.createElement('details'); group.className='ex-group'; group.open=true;
 
-        // parent row “Grant all in <menu>”
         const parent=document.createElement('div'); parent.className='ex-parent';
         const left=document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
         const title=document.createElement('strong'); title.textContent=menu;
@@ -392,7 +408,6 @@
 
       enableBtn.onclick=()=>{ exState.enabled=!exState.enabled; enableBtn.setAttribute('aria-pressed', exState.enabled?'true':'false'); setEnabledUI(exState.enabled); };
 
-      // search
       const search=$('#exSearch'); search.value='';
       search.oninput=()=>{ const q=search.value.toLowerCase().trim(); L.querySelectorAll('.ex-group').forEach(d=>{ const txt=d.textContent.toLowerCase(); d.style.display=(!q||txt.includes(q))?'':'none'; }); };
 
@@ -400,7 +415,6 @@
       $('#exCancel').onclick=()=> B.style.display='none';
       $('#exSave').onclick=()=>{
         B.style.display='none';
-        // drop empty grants
         Object.keys(exState.grants).forEach(k=>{ const g=exState.grants[k]; const any=g&&(g.view||g.edit||g.add||g.archive||g.delete); if(!any) delete exState.grants[k]; });
         if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
       };
@@ -420,10 +434,7 @@
     function inviteSub(id){
       const all=listLoad(); const r=all.find(x=>x.id===id); if(!r) return alert('Record not found');
       if(!r.email) return alert('Primary email required to send invite.');
-
-      // Friendly "coming soon" until backend mailer is live
       alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
-
       r.invitedAt=Date.now(); upsert(r); render();
     }
 
@@ -482,7 +493,6 @@
       $('#m_exceptions').onclick=()=>{ exState.onSave = (v)=>{ r.exceptions=v; }; openExceptions(r.exceptions); };
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
-        // basic validation mirrors create flow
         if(!($('#m_company').value||'').trim()){ alert('Company is required.'); return; }
         if(!isValidPhoneUS($('#m_biz').value)||!isValidPhoneUS($('#m_cell').value)){ alert('Phones must be (###) ###-####'); return; }
         if(!isEmail($('#m_email').value)){ alert('Valid primary email is required.'); return; }
