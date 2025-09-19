@@ -42,16 +42,8 @@
   <main class="content">
     <h1>🌽 Crop Production</h1>
 
-    <div class="df-tiles">
-      <a href="crop-planting.html" class="df-tile">🌱 <span>Planting</span></a>
-      <a href="crop-spraying.html" class="df-tile">💦 <span>Spraying</span></a>
-      <a href="crop-aerial.html" class="df-tile">🚁 <span>Aerial Spraying</span></a>
-      <a href="crop-harvest.html" class="df-tile">🌾 <span>Harvest</span></a>
-      <a href="crop-fertilizer.html" class="df-tile">🧪 <span>Fertilizer</span></a>
-      <a href="crop-scouting.html" class="df-tile">🔎 <span>Crop Scouting</span></a>
-      <a href="crop-maintenance.html" class="df-tile">🛠️ <span>Field Maintenance</span></a>
-      <a href="crop-trials.html" class="df-tile">🧬 <span>Trials</span></a>
-    </div>
+    <!-- Pull children from global menus.js for this section -->
+    <div class="df-tiles" data-section></div>
   </main>
 
   <!-- Footer -->
@@ -71,5 +63,9 @@
       });
     }
   </script>
+
+  <!-- Global menus + tiny renderer -->
+  <script defer src="assets/data/menus.js"></script>
+  <script defer src="ui-nav.js"></script>
 </body>
 </html>
