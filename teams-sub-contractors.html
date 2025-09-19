@@ -14,25 +14,28 @@
   })();
   </script>
 
-  <!-- App CSS/JS -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
   <style>
-    /* page-local utilities (keep your global sizing) */
-    .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
+    /* Page-local utilities (no global size changes) */
+    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
+    .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
-    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
 
-    /* iOS no-zoom + larger phone inputs (match Employees) */
-    #scBizPhone, #scCellPhone, #m_biz, #m_cell { font-size:16px; } /* keep theme.css sizing */
+    /* Keep iOS from zooming; keep inputs visually consistent */
+    #scBizPhone,#scCellPhone,#m_biz,#m_cell{font-size:16px}
 
-    /* Cascader (identical to Employees / Account Roles) */
+    /* Manage modal extra buttons (match Employees) */
+    .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
+    .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
+
+    /* Permission Overrides pills (same look as Employees) */
     .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));align-items:center}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
@@ -115,8 +118,12 @@
 
       <div class="field-row">
         <div class="field">
-          <label for="scTradeSel">Trade / Service</label>
-          <select id="scTradeSel"></select>
+          <label for="scTrade">Trade / Service</label>
+          <div class="line" style="gap:8px">
+            <select id="scTrade" style="flex:1;"></select>
+            <button type="button" class="btn-outline" id="addTradeBtn" title="Add trade">Add</button>
+          </div>
+          <div class="field-hint" id="tradeHint" style="display:none;"></div>
         </div>
         <div class="field">
           <label for="scNotes">Notes</label>
@@ -131,8 +138,8 @@
 
       <section class="card" style="padding:12px; margin-top:8px;">
         <div class="grid3">
-          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
-          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+          <button class="btn-primary"  type="submit" id="saveBtn"   style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline"  type="reset"  id="clearBtn"  style="width:92px;height:92px;">Clear</button>
           <button class="btn-secondary" type="button" id="inviteBtn" style="width:92px;height:92px;">Invite</button>
         </div>
       </section>
@@ -171,7 +178,7 @@
     </div>
   </div>
 
-  <!-- Permission Overrides Modal (cascader; identical to Employees) -->
+  <!-- Permission Overrides Modal -->
   <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
       <h2 id="exTitle">Permission Overrides</h2>
@@ -192,6 +199,7 @@
   <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Sub-Contractor</h2>
+
       <div id="manageBox" style="display:grid;gap:10px;">
         <input id="m_company" placeholder="Company Name" />
         <div class="line" style="gap:10px;flex-wrap:wrap">
@@ -203,35 +211,45 @@
           <input id="m_cell" placeholder="Cell Phone" maxlength="14" />
         </div>
         <input id="m_email" placeholder="Primary Email" />
-        <select id="m_tradeSel"></select>
+        <div class="line" style="gap:8px">
+          <select id="m_role" style="flex:1"></select>
+          <select id="m_trade" style="flex:1"></select>
+        </div>
         <input id="m_notes" placeholder="Notes" />
-        <select id="m_role"></select>
-        <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
+
         <div class="line"><button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button></div>
       </div>
-      <div class="modal-actions" style="justify-content:space-between;">
-        <button class="btn-outline" id="manageCancel">Cancel</button>
-        <button class="btn-primary" id="manageSave">Save Changes</button>
+
+      <div class="modal-actions" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div class="line" style="gap:10px;">
+          <button class="btn-danger"  id="m_delete"  type="button">Delete</button>
+          <button class="btn-archive" id="m_archive" type="button">Archive</button>
+          <button class="btn-outline" id="manageCancel" type="button">Cancel</button>
+        </div>
+        <button class="btn-primary" id="manageSave" type="button">Save Changes</button>
       </div>
     </div>
   </div>
 
   <script>
   (function SubcontractorsPage(){
+    /* ---------- KEYS ---------- */
     const KEY='df.subcontractors';
-    const ROLES_PERMS_KEY='df_role_perms'; // from Account Roles
-    const MENUS_MAP_KEY='df_menus';        // menus object from Account Roles page
-    const TRADE_KEY='df.trade_list';       // array of strings
+    const TRADES_KEY='df.sc_trades';
+    const ROLES_PERMS_KEY='df_role_perms';  // shared with Employees / Account Roles
+    const MENUS_MAP_KEY='df_menus_map';     // menus object used by overrides
 
+    /* ---------- DOM helpers ---------- */
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
-    const load = (k,def)=> { try{const v=JSON.parse(localStorage.getItem(k)); return v==null?def:v;}catch(_){return def;} };
+    const load = (k,def)=>{ try{const v=JSON.parse(localStorage.getItem(k)); return v==null?def:v;}catch(_){return def;} };
     const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
     const listLoad = ()=> load(KEY, []);
     const listSave = (rows)=> save(KEY, rows);
     const upsert = (row)=>{ const L=listLoad(); const i=L.findIndex(x=>x.id===row.id); if(i>=0) L[i]=row; else L.push(row); listSave(L); };
+    const removeById=(id)=>{ listSave(listLoad().filter(x=>x.id!==id)); };
 
-    // Utils
+    /* ---------- Utils ---------- */
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
@@ -247,7 +265,15 @@
     const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
 
-    // Roles and Menus (mirror Employees)
+    /* ---------- Toast ---------- */
+    function showToast(msg){
+      let t=document.querySelector('.df-toast');
+      if(!t){ t=document.createElement('div'); t.className='df-toast'; document.body.appendChild(t); }
+      t.textContent=msg; t.classList.add('show');
+      setTimeout(()=> t.classList.remove('show'), 2200);
+    }
+
+    /* ---------- Roles & Menus (mirror Employees) ---------- */
     function getRoleNames(){
       const rp = load(ROLES_PERMS_KEY, null);
       return rp ? Object.keys(rp) : ["Administrator","Owner","Manager","Employee","View Only"];
@@ -273,7 +299,26 @@
       };
     }
 
-    // ---------- Cascader overrides (same as Employees) ----------
+    /* ---------- Trades: persistent dropdown with Add… ---------- */
+    function getTrades(){ return load(TRADES_KEY, []); }
+    function setTrades(arr){ save(TRADES_KEY, [...new Set(arr)].sort((a,b)=>a.localeCompare(b))); }
+    function fillTradeSelect(sel, value){
+      const trades=getTrades();
+      sel.innerHTML =
+        `<option value="" ${value?'':'selected'} disabled>Select trade…</option>` +
+        (trades.length ? trades.map(t=>`<option value="${t}">${t}</option>`).join('') : '') +
+        `<option value="__add">➕ Add trade…</option>`;
+      if(value && trades.includes(value)) sel.value=value;
+    }
+    function handleAddTrade(preset){
+      const name = (preset || prompt('Add trade / service (e.g., Electrician, Trucking):','') || '').trim();
+      if(!name) return null;
+      const list=getTrades(); list.push(titleCase(name)); setTrades(list);
+      return titleCase(name);
+    }
+
+    /* ---------- Overrides (same engine as Employees) ---------- */
+    const MENUS=getMenusObject();
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     const pill = (label, pressed, onToggle)=>{
       const b=document.createElement('button');
@@ -302,8 +347,18 @@
       if(on===subs.length) return 'All submenus';
       return `${on} of ${subs.length} submenus`;
     }
-
-    function buildMenuCard(menuName, ex, MENUS){
+    function countOverrideEntries(ex){
+      if(!ex || !ex.enabled || !ex.grants) return 0;
+      let n=0;
+      Object.values(ex.grants).forEach(menu=>{
+        Object.entries(menu).forEach(([k,v])=>{
+          if(k==='_all') return;
+          if(v.view||v.edit||v.add||v.archive||v.delete) n++;
+        });
+      });
+      return n;
+    }
+    function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
       const head=document.createElement('div'); head.className='menu-head';
       const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
@@ -321,7 +376,7 @@
       const grid=document.createElement('div'); grid.className='pill-grid';
       ['View','Edit','Add','Archive','Delete'].forEach(name=>{
         const k=name.toLowerCase();
-        const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
+        const pBtn=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
           ex.grants[menuName]._all[k]=isOn;
           MENUS[menuName].forEach(sub=>{
             ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
@@ -330,7 +385,7 @@
           body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(b=>b.setAttribute('aria-pressed', isOn?'true':'false'));
           right.textContent = summarizeMenu(ex.grants[menuName]);
         });
-        grid.appendChild(p);
+        grid.appendChild(pBtn);
       });
       body.appendChild(grid);
 
@@ -384,9 +439,7 @@
       card.append(head, body);
       return card;
     }
-
     function openPermissionOverrides(existing, onSave){
-      const MENUS=getMenusObject();
       const B=$('#exBackdrop'), Tree=$('#exTree'), Enable=$('#exEnable'), Search=$('#exSearch');
       const ex = existing && typeof existing==='object'
         ? JSON.parse(JSON.stringify(existing))
@@ -394,7 +447,7 @@
 
       Tree.innerHTML='';
       Object.keys(MENUS).forEach(menu=>{
-        Tree.appendChild(buildMenuCard(menu, ex, MENUS));
+        Tree.appendChild(buildMenuCard(menu, ex));
       });
 
       const setEnable=(v)=>{
@@ -419,66 +472,53 @@
       B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
       B.style.display='flex';
     }
-    window.openPermissionOverrides = openPermissionOverrides;
 
-    // Trade list
-    function getTrades(){ const arr = load(TRADE_KEY, []); return Array.isArray(arr)?arr:[]; }
-    function setTrades(arr){ save(TRADE_KEY, Array.from(new Set(arr)).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}))); }
-    function fillTradeSelect(sel, value){
-      const trades = getTrades();
-      sel.innerHTML =
-        `<option value="" ${value?'':'selected'} disabled>Select trade…</option>` +
-        trades.map(t=>`<option value="${t}">${t}</option>`).join('') +
-        `<option value="__add__">+ Add new…</option>`;
-      if(value && trades.includes(value)) sel.value=value;
-      sel.onchange = ()=>{
-        if(sel.value==='__add__'){
-          const name = prompt('Add new trade / service:','');
-          if(name && name.trim()){
-            const t = titleCase(name.trim());
-            const next = getTrades(); next.push(t); setTrades(next);
-            fillTradeSelect(sel, t);
-          } else {
-            fillTradeSelect(sel, '');
-          }
-        }
-      };
-    }
-
-    // Role select
+    /* ---------- Role + Trade selects ---------- */
     fillRoleSelect($('#scRole'));
-    fillTradeSelect($('#scTradeSel'));
+    function refreshTradeUIs(value){
+      fillTradeSelect($('#scTrade'), value);
+    }
+    refreshTradeUIs('');
 
-    // Phone masks
+    $('#addTradeBtn').addEventListener('click', ()=>{
+      const added = handleAddTrade();
+      if(added){ refreshTradeUIs(added); showToast('Trade added'); }
+    });
+    $('#scTrade').addEventListener('change', (e)=>{
+      if(e.target.value==='__add'){
+        const added = handleAddTrade();
+        refreshTradeUIs(added||'');
+      }
+    });
+
+    /* ---------- Phone masks ---------- */
     attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
 
-    // Invite via API (mock backend endpoint)
+    /* ---------- Invite ---------- */
     async function inviteSub(id){
-      const all=listLoad(); const r=all.find(x=>x.id===id);
-      if(!r){ alert('Record not found'); return; }
+      const all=listLoad(); const r=all.find(x=>x.id===id); if(!r){ alert('Record not found'); return; }
       if(!r.email){ alert('Primary email required to send invite.'); return; }
-
       try{
         const res = await fetch('/api/invite', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
+          method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             email: r.email,
-            name: (r.company || ([r.first,r.last].filter(Boolean).join(' ')) || '').trim(),
+            name: r.company || `${r.first||''} ${r.last||''}`.trim(),
             role: r.role || '',
             continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
           })
         });
-        if(!res.ok){ throw new Error(await res.text() || ('HTTP '+res.status)); }
-        r.invitedAt = Date.now(); upsert(r); render();
-        alert('Invite successfully sent.');
-      }catch(err){
-        console.error(err);
-        alert('Invite failed: ' + err.message);
+        if(res && res.ok){
+          r.invitedAt=Date.now(); upsert(r); render(); showToast('Invite sent');
+          return;
+        }
+        throw new Error('BACKEND_NOT_READY');
+      }catch(_){
+        alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
       }
     }
 
-    // Saved list
+    /* ---------- Saved list render ---------- */
     function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
@@ -495,13 +535,13 @@
         const name = r.company || '(No Company)';
         const person = [r.first,r.last].filter(Boolean).join(' ');
         const rowChips = [person, r.trade, r.phoneBiz, r.phoneCell, r.email].filter(Boolean).map(chip).join(' ');
-        const exCount = r.exceptions?.enabled ? Object.values(r.exceptions?.grants||{}).reduce((n,m)=>n+Object.keys(m).filter(k=>k!=='_all').length,0) : 0;
+        const exCount = countOverrideEntries(r.exceptions);
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name}</strong>
             ${rowChips}
             ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
-            ${r.invitedAt ? `<span class="chip">Invited</span>`:''}
+            ${r.archived ? `<span class="chip">Archived</span>` : (r.invitedAt ? `<span class="chip">Invited</span>`:'')}
           </div>
           <div class="line" style="margin-top:8px;">
             <button class="btn-secondary" data-edit="${r.id}">Manage</button>
@@ -514,44 +554,64 @@
       L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click',()=> inviteSub(b.getAttribute('data-invite'))));
     }
 
-    // Manage modal
+    /* ---------- Manage modal ---------- */
     function openManage(id){
       const rows=listLoad(); const r=rows.find(x=>x.id===id); if(!r) return;
-      $('#manageTitle').textContent = `Edit — ${r.company||''}`;
+      $('#manageTitle').textContent = `Edit Sub-Contractor — ${r.company||''}`;
       $('#m_company').value=r.company||'';
       $('#m_first').value=r.first||''; $('#m_last').value=r.last||'';
       $('#m_biz').value=r.phoneBiz||''; $('#m_cell').value=r.phoneCell||'';
       attachPhoneMask($('#m_biz')); attachPhoneMask($('#m_cell'));
       $('#m_email').value=r.email||'';
-      fillTradeSelect($('#m_tradeSel'), r.trade||'');
-      $('#m_notes').value=r.notes||'';
       fillRoleSelect($('#m_role'), r.role||'');
-      $('#m_archived').checked=!!r.archived;
+      fillTradeSelect($('#m_trade'), r.trade||'');
+      $('#m_notes').value=r.notes||'';
 
       const B=$('#manageBackdrop'); B.style.display='flex';
-      $('#m_exceptions').onclick=()=>{ openPermissionOverrides(r.exceptions, (v)=>{ r.exceptions=v; }); };
+
+      $('#m_exceptions').onclick=()=>{ openPermissionOverrides(r.exceptions, (val)=>{ r.exceptions = val; }); };
+
+      const $archive=$('#m_archive');
+      $archive.textContent = r.archived ? 'Unarchive' : 'Archive';
+
+      $('#m_delete').onclick=()=>{
+        if(confirm('Delete this sub-contractor? This cannot be undone.')){
+          removeById(r.id);
+          B.style.display='none';
+          render();
+        }
+      };
+      $('#m_archive').onclick=()=>{
+        r.archived=!r.archived; r.updatedAt=Date.now(); upsert(r);
+        $archive.textContent = r.archived ? 'Unarchive' : 'Archive';
+        render();
+      };
+
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
         if(!($('#m_company').value||'').trim()){ alert('Company is required.'); return; }
         if(!isValidPhoneUS($('#m_biz').value)||!isValidPhoneUS($('#m_cell').value)){ alert('Phones must be (###) ###-####'); return; }
         if(!isEmail($('#m_email').value)){ alert('Valid primary email is required.'); return; }
         if(!$('#m_role').value){ alert('Role is required.'); return; }
+
+        const tradeVal = $('#m_trade').value==='__add' ? handleAddTrade() : $('#m_trade').value;
+
         r.company=($('#m_company').value||'').trim();
         r.first=titleCase(($('#m_first').value||'').trim());
         r.last=titleCase(($('#m_last').value||'').trim());
         r.phoneBiz=$('#m_biz').value; r.phoneCell=$('#m_cell').value;
         r.email=$('#m_email').value.trim();
-        r.trade=$('#m_tradeSel').value || '';
-        r.notes=$('#m_notes').value||'';
         r.role=$('#m_role').value;
-        r.archived=$('#m_archived').checked;
+        r.trade=(tradeVal||'').trim();
+        r.notes=($('#m_notes').value||'').trim();
         r.updatedAt=Date.now();
-        upsert(r); B.style.display='none'; render();
+
+        upsert(r); B.style.display='none'; render(); showToast('Saved changes');
       };
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Quick View
+    /* ---------- Quick View ---------- */
     $('#quickViewBtn').addEventListener('click', ()=>{
       const rows=listLoad().sort((a,b)=> a.company.localeCompare(b.company,undefined,{sensitivity:'base'}));
       const L=$('#qvList'), B=$('#qvBackdrop');
@@ -570,9 +630,7 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // Create flow
-    attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
-
+    /* ---------- Create / Save flow ---------- */
     $('#exceptionsBtn').addEventListener('click', ()=>{
       const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
       openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
@@ -591,7 +649,7 @@
         phoneCell: $('#scCellPhone').value,
         email,
         role: $('#scRole').value || '',
-        trade: $('#scTradeSel').value || '',
+        trade: ($('#scTrade').value==='__add' ? handleAddTrade() : $('#scTrade').value) || '',
         notes: ($('#scNotes').value||'').trim(),
         archived:false,
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
@@ -616,12 +674,14 @@
       if(!isEmail(email)){ alert('Valid primary email is required.'); return; }
       if(!role){ alert('Role is required.'); return; }
 
+      const tradeVal = $('#scTrade').value==='__add' ? handleAddTrade() : $('#scTrade').value;
+
       const id = company.toLowerCase();
       upsert({
         id, company, first, last,
         phoneBiz: biz, phoneCell: cell,
         email, role,
-        trade: ($('#scTradeSel').value || ''),
+        trade: (tradeVal||'').trim(),
         notes: ($('#scNotes').value||'').trim(),
         archived:false,
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
@@ -629,16 +689,18 @@
       });
       $('#sc-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
-      fillTradeSelect($('#scTradeSel')); // reset to placeholder
+      refreshTradeUIs('');
       render();
+      showToast('Saved sub-contractor');
     });
 
-    $('#clearBtn').addEventListener('click', ()=>{ $('#sc-form').reset(); delete $('#exceptionsBtn').dataset.payload; fillTradeSelect($('#scTradeSel')); });
+    $('#clearBtn').addEventListener('click', ()=>{ $('#sc-form').reset(); delete $('#exceptionsBtn').dataset.payload; refreshTradeUIs(''); });
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
 
     render();
 
+    /* Breadcrumbs helper (optional, if core.js exposes it) */
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Teams & Partners', href:'teams-partners.html'},
