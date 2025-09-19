@@ -1,73 +1,38 @@
-// ui-nav.js
-// Renders home tiles from global DF_MENUS (assets/data/menus.js)
+/* ui-nav.js — renders Home tiles from centralized menu data */
 
-(() => {
-  if (!window.DF_MENUS) return; // menus.js must load first
-
-  // Hard-order for Home, with the Field Maintenance shortcut at #2.
-  const ORDER = [
-    "Crop Production",
-    "__FIELD_MAINTENANCE_SHORTCUT__", // points to Crop > Field Maintenance
-    "Grain Tracking",
-    "Equipment",
-    "Calculators",
-    "Team / Partners",
-    "Reports",
-    "Setup / Settings",
-    "Feedback",
-  ];
-
-  // Known routes for top-level menus
-  const ROUTES = {
-    "Crop Production": "crop.html",
-    "Grain Tracking": "grain.html",
-    "Equipment": "equip.html",
-    "Calculators": "calc.html",
-    "Team / Partners": "teams-partners.html",
-    "Reports": "reports.html",
-    "Setup / Settings": "settings.html",
-    "Feedback": "feedback.html",
-  };
-
-  // Emoji for the Field Maintenance shortcut (uses your exact emoji)
-  const FIELD_MAINTENANCE = {
-    emoji: "🛠️",
-    label: "Field Maintenance",
-    href: "crop-maintenance.html"
-  };
-
-  // Pull menu metadata (emoji + label) from DF_MENUS safely
-  function getTopMeta(name) {
-    const row = window.DF_MENUS?.top?.find?.(m => m.name === name);
-    return row ? { emoji: row.emoji || "", label: row.name } : { emoji: "", label: name };
+(function () {
+  function onReady(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
   }
 
-  function makeTile({ emoji, label, href }) {
-    const a = document.createElement("a");
-    a.className = "df-tile";
-    a.href = href;
-    a.innerHTML = `${emoji ? `${emoji} ` : ""}<span>${label}</span>`;
-    return a;
-  }
+  onReady(function () {
+    const host = document.querySelector('.df-tiles[data-source="global"]');
+    if (!host) return;
 
-  function render(container) {
-    // Build the tile list in the fixed order above
-    const tiles = [];
+    // Expecting assets/data/menus.js to define:
+    //   window.NAV_MENUS: { [key]: { id, label, emoji, href } }
+    //   window.NAV_HOME:  string[] of keys in display order
+    const MENUS = (window.NAV_MENUS && typeof window.NAV_MENUS === 'object') ? window.NAV_MENUS : null;
+    const ORDER = Array.isArray(window.NAV_HOME) ? window.NAV_HOME : null;
 
-    ORDER.forEach(key => {
-      if (key === "__FIELD_MAINTENANCE_SHORTCUT__") {
-        tiles.push(makeTile(FIELD_MAINTENANCE));
-        return;
-      }
-      const meta = getTopMeta(key);
-      const href = ROUTES[key] || "#";
-      tiles.push(makeTile({ emoji: meta.emoji, label: meta.label, href }));
-    });
+    if (!MENUS || !ORDER || !ORDER.length) {
+      console.warn('ui-nav: NAV_MENUS or NAV_HOME missing/empty; nothing to render.');
+      return;
+    }
 
-    container.innerHTML = "";
-    tiles.forEach(t => container.appendChild(t));
-  }
+    // Build the tiles in the specified order
+    const tilesHtml = ORDER
+      .map(key => MENUS[key])
+      .filter(Boolean)
+      .map(item => {
+        const emoji = item.emoji || '';
+        const label = item.label || '';
+        const href  = item.href  || '#';
+        return `<a href="${href}" class="df-tile">${emoji} <span>${label}</span></a>`;
+      })
+      .join('');
 
-  // Find any container that opts in
-  document.querySelectorAll(".df-tiles[data-source='global']").forEach(render);
+    host.innerHTML = tilesHtml;
+  });
 })();
