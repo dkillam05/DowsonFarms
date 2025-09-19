@@ -21,12 +21,14 @@
   <style>
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
-    .row-inline{display:flex; gap:10px; align-items:center}
-    .row-inline select{flex:1}
     .muted-sm {opacity:.72;font-size:.92rem}
     .tbl {width:100%; border-collapse:collapse}
     .tbl th,.tbl td{border-bottom:1px solid var(--tile-border); padding:6px 8px; text-align:left}
-    .tiny-link{font-size:.9rem; text-decoration:underline; margin-left:6px}
+    /* make all form controls full width for uniform look */
+    .field select,
+    .field input[type="text"],
+    .field input[type="search"],
+    .field input[type="number"]{ width:100%; }
   </style>
 </head>
 <body>
@@ -69,32 +71,22 @@
         <input id="acres" type="text" inputmode="decimal" placeholder="e.g., 80 or 80.25" required />
       </div>
 
-      <!-- Farm (dropdown + Add + Manage link) -->
+      <!-- Farm (dropdown only; "Add…" is final option) -->
       <div class="field" id="farmField">
         <label for="farmSel">Farm</label>
-        <div class="row-inline">
-          <select id="farmSel"></select>
-          <button type="button" class="btn-outline" id="farmAddBtn" title="Add farm">+ Add</button>
-          <a class="tiny-link" href="farms.html">Manage</a>
-        </div>
+        <select id="farmSel"></select>
       </div>
 
-      <!-- County (dropdown + Add) -->
+      <!-- County (dropdown only; "Add…" is final option) -->
       <div class="field" id="countyField">
         <label for="countySel">County</label>
-        <div class="row-inline">
-          <select id="countySel"></select>
-          <button type="button" class="btn-outline" id="countyAddBtn" title="Add county">+ Add</button>
-        </div>
+        <select id="countySel"></select>
       </div>
 
-      <!-- RTK Tower (REQUIRED: dropdown + Add) -->
+      <!-- RTK Tower (REQUIRED; dropdown only; "Add…" is final option) -->
       <div class="field" id="rtkField">
         <label for="rtkSel">RTK Tower location <span class="req-star">*</span></label>
-        <div class="row-inline">
-          <select id="rtkSel" required></select>
-          <button type="button" class="btn-outline" id="rtkAddBtn" title="Add RTK Tower">+ Add</button>
-        </div>
+        <select id="rtkSel" required></select>
       </div>
 
       <section class="card" style="padding:12px; margin-top:8px;">
@@ -221,14 +213,17 @@
     const $acres=$('#acres');
     const $saved=$('#savedList');
 
-    // Selects & buttons
-    const $farmSel=$('#farmSel'), $farmAddBtn=$('#farmAddBtn');
-    const $countySel=$('#countySel'), $countyAddBtn=$('#countyAddBtn');
-    const $rtkSel=$('#rtkSel'), $rtkAddBtn=$('#rtkAddBtn');
+    // Selects
+    const $farmSel=$('#farmSel');
+    const $countySel=$('#countySel');
+    const $rtkSel=$('#rtkSel');
 
-    // RTK modal elems
+    // RTK modal
     const rtkBackdrop=$('#rtkBackdrop');
-    const rtkForm=$('#rtkForm'); const rtkName=$('#rtkName'); const rtkNet=$('#rtkNet'); const rtkFreq=$('#rtkFreq');
+    const rtkForm=$('#rtkForm');
+    const rtkName=$('#rtkName');
+    const rtkNet=$('#rtkNet');
+    const rtkFreq=$('#rtkFreq');
 
     // Helpers
     function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
@@ -280,11 +275,11 @@
       save(FIELD_KEY,list);
     }
 
-    // Render dropdowns
+    // Render dropdowns (include "Add…" option at bottom)
     function renderFarmSelect(selectedId){
       const farms=listFarms();
       $farmSel.innerHTML='';
-      const none=new Option('— Unassigned —',''); $farmSel.add(none);
+      $farmSel.add(new Option('— Unassigned —',''));
       farms.forEach(f=>$farmSel.add(new Option(f.name, f.id)));
       $farmSel.add(new Option('➕ Add New Farm…', ADD_VALUE));
       $farmSel.value = selectedId || '';
@@ -322,27 +317,26 @@
       });
     })($acres);
 
-    // Add buttons & “Add” options behavior
-    $farmAddBtn.addEventListener('click', ()=>{
+    // “Add …” option behavior
+    $farmSel.addEventListener('change', ()=>{
+      if($farmSel.value!==ADD_VALUE) return;
+      $farmSel.value='';
       const raw=prompt('New farm name:'); if(!raw) return;
       const id=upsertFarmByName(raw); renderFarmSelect(id);
     });
-    $countyAddBtn.addEventListener('click', ()=>{
+    $countySel.addEventListener('change', ()=>{
+      if($countySel.value!==ADD_VALUE) return;
+      $countySel.value='';
       const raw=prompt('New county name:'); if(!raw) return;
       const val=addCountyRaw(raw); renderCountySelect(val);
     });
-    $rtkAddBtn.addEventListener('click', openRtkModal);
-
-    $farmSel.addEventListener('change', ()=>{
-      if($farmSel.value===ADD_VALUE){ $farmSel.value=''; $farmAddBtn.click(); }
-    });
-    $countySel.addEventListener('change', ()=>{
-      if($countySel.value===ADD_VALUE){ $countySel.value=''; $countyAddBtn.click(); }
-    });
     $rtkSel.addEventListener('change', ()=>{
-      if($rtkSel.value===ADD_VALUE){ $rtkSel.value=''; openRtkModal(); }
+      if($rtkSel.value!==ADD_VALUE) return;
+      $rtkSel.value='';
+      openRtkModal();
     });
 
+    // RTK modal open/close
     function openRtkModal(){ rtkForm.reset(); rtkBackdrop.style.display='flex'; setTimeout(()=>rtkName.focus(), 0); }
     function closeRtkModal(){ rtkBackdrop.style.display='none'; }
     $('#rtkCancel').addEventListener('click', closeRtkModal);
@@ -363,6 +357,7 @@
       rtkFreq.value=v;
     });
 
+    // Save tower
     rtkForm.addEventListener('submit',(e)=>{
       e.preventDefault();
       const rec={ name: rtkName.value, networkId: rtkNet.value, freq: rtkFreq.value };
@@ -420,11 +415,11 @@
       const acresRaw=($acres.value||'').trim();
       const acres = acresRaw ? Number(Number(acresRaw).toFixed(2)) : NaN;
 
-      let farmId = $farmSel.value || null; if(farmId===ADD_VALUE){ $farmSel.value=''; $farmAddBtn.click(); return; }
-      let county = $countySel.value || ''; if(county===ADD_VALUE){ $countySel.value=''; $countyAddBtn.click(); return; }
+      let farmId = $farmSel.value || null; if(farmId===ADD_VALUE){ $farmSel.value=''; const raw=prompt('New farm name:'); if(!raw) return; farmId=upsertFarmByName(raw); }
+      let county = $countySel.value || ''; if(county===ADD_VALUE){ $countySel.value=''; const raw=prompt('New county name:'); if(!raw) return; county=addCountyRaw(raw); }
 
       let rtkTowerId = $rtkSel.value || null;
-      if(rtkTowerId===ADD_VALUE){ $rtkSel.value=''; $rtkAddBtn.click(); return; }
+      if(rtkTowerId===ADD_VALUE){ $rtkSel.value=''; openRtkModal(); return; }
 
       if(!name){ alert('Field name is required.'); $name.focus(); return; }
       if(!acresRaw || isNaN(acres)){ alert('Enter tillable acres (up to 2 decimals).'); $acres.focus(); return; }
@@ -452,7 +447,7 @@
       $name.focus();
     });
 
-    // Import modal wiring (unchanged minimal)
+    // Import (minimal wiring)
     const impB=$('#impBackdrop'); const impFile=$('#impFile');
     const step1=$('#impStep1'), step2=$('#impStep2'), step3=$('#impStep3');
     const mapName=$('#mapName'), mapAcres=$('#mapAcres'), mapFarm=$('#mapFarm'), mapCounty=$('#mapCounty');
@@ -539,13 +534,13 @@
         </li>`).join('') : '<li>No fields.</li>';
       B.style.display='flex';
       L.querySelectorAll('button[data-id]').forEach(b=>{
-        b.addEventListener('click', ()=>{ B.style.display='none'; const id=b.getAttribute('data-id'); const f=getField(id); if(!f) return; $id.value=f.id; $name.value=f.name; $acres.value=String(f.acres??''); renderFarmSelect(f.farmId||''); renderCountySelect(f.county||''); renderRtkSelect(f.rtkTowerId||''); window.scrollTo({top:0, behavior:'smooth'}); $name.focus(); });
+        b.addEventListener('click', ()=>{ B.style.display='none'; openForEdit(b.getAttribute('data-id')); });
       });
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // Breadcrumbs (if provided by core)
+    // Breadcrumbs (if provided)
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Setup / Settings', href:'settings.html'},
