@@ -1,5 +1,5 @@
 /* Dowson Farms — Global Navigation (ordered)
-   Keep this as the one source of truth for menus + submenus + emojis.
+   Single source of truth for menus + submenus + emojis.
    Pages should READ from this, never hardcode.
 */
 const MENUS = {
@@ -137,22 +137,20 @@ const MENUS = {
   ]
 };
 
-/* ---- Export & integrate (works both as ESM and plain <script>) ---- */
-try { export default MENUS; } catch(_) {} // ignored in non-module contexts
+/* ---- Export / Globals ---- */
+try { export default MENUS; } catch (_) {}
 
-// Global fallback
-if (typeof window !== "undefined") {
-  // Make it visible to simple scripts
+if (typeof window !== 'undefined') {
   window.DF_MENUS = MENUS;
 
-  // If your core.js exposes a registry via DF.ready, register it there too
-  if (window.DF && typeof window.DF.ready?.then === "function") {
-    window.DF.ready.then(reg => {
-      try {
-        if (reg && typeof reg.set === "function") reg.set("menus", MENUS);
-        // also allow get() consumers immediately
-        if (typeof reg.get === "function" && !reg.get("menus")) reg.set?.("menus", MENUS);
-      } catch(e) { console.error("menus.js registration failed:", e); }
-    });
+  // Optional shims so legacy renderers don’t no-op:
+  if (!window.NAV_HOME || !window.NAV_MENUS) {
+    window.NAV_HOME  = MENUS.tiles.map((_, i) => `tile${i}`);
+    window.NAV_MENUS = Object.fromEntries(
+      MENUS.tiles.map((t, i) => [
+        `tile${i}`,
+        { id:`tile${i}`, label:t.label, emoji:t.iconEmoji, href:t.href }
+      ])
+    );
   }
 }
