@@ -1237,3 +1237,47 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
     color: #fff !important;
   }
 }
+
+/* ===== FIX 1: Dark mode -> make form labels + all buttons white ===== */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .field label,
+  :root[data-theme="auto"] .form-label,
+  :root[data-theme="auto"] .content form strong { color: #fff !important; }
+
+  :root[data-theme="auto"] .btn-primary,
+  :root[data-theme="auto"] .btn-secondary,
+  :root[data-theme="auto"] .btn-outline { color: #fff !important; }
+}
+:root[data-theme="dark"] .field label,
+:root[data-theme="dark"] .form-label,
+:root[data-theme="dark"] .content form strong { color: #fff !important; }
+:root[data-theme="dark"] .btn-primary,
+:root[data-theme="dark"] .btn-secondary,
+:root[data-theme="dark"] .btn-outline { color: #fff !important; }
+
+/* ===== FIX 2: Force GREEN borders on inputs in dark mode (incl. iOS tel) ===== */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .field input,
+  :root[data-theme="auto"] .field select,
+  :root[data-theme="auto"] .field textarea {
+    border: 2px solid var(--brand-green) !important;
+  }
+  :root[data-theme="auto"] input[type="tel"] {
+    border: 2px solid var(--brand-green) !important;
+    background: var(--tile-bg) !important;
+    color: var(--ink) !important;
+  }
+}
+:root[data-theme="dark"] .field input,
+:root[data-theme="dark"] .field select,
+:root[data-theme="dark"] .field textarea {
+  border: 2px solid var(--brand-green) !important;
+}
+:root[data-theme="dark"] input[type="tel"] {
+  border: 2px solid var(--brand-green) !important;
+  background: var(--tile-bg) !important;
+  color: var(--ink) !important;
+}
+
+/* ===== FIX 3: Hide fixed Back FAB while any modal is open ===== */
+.modal-open .back-fab { display: none !important; }
