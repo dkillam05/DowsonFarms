@@ -481,38 +481,37 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
- async function inviteEmployee(id){
-  const list = loadAll(); 
-  const e = list.find(x=>x.id===id);
-  if(!e){ alert('Employee not found'); return; }
-  if(!e.email){ alert('Employee email is required to send invite.'); return; }
+    /* ---------- INVITE: show friendly "coming soon" while backend is not live ---------- */
+    async function inviteEmployee(id){
+      const list = loadAll();
+      const e = list.find(x=>x.id===id);
+      if(!e){ alert('Employee not found'); return; }
+      if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
-  try {
-    const res = await fetch('/api/invite', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        email: e.email,
-        name: `${e.first||''} ${e.last||''}`.trim(),
-        role: e.role || '',
-        continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
-      })
-    });
+      try {
+        const res = await fetch('/api/invite', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            email: e.email,
+            name: `${e.first||''} ${e.last||''}`.trim(),
+            role: e.role || '',
+            continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
+          })
+        });
 
-    if(!res.ok){
-      const msg = await res.text();
-      throw new Error(msg || ('HTTP '+res.status));
+        if(res && res.ok){
+          e.invitedAt = Date.now();
+          upsert(e);
+          render();
+          alert('Invite successfully sent.');
+          return;
+        }
+        throw new Error('BACKEND_NOT_READY');
+      } catch (_err){
+        alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
+      }
     }
-
-    e.invitedAt = Date.now();
-    upsert(e);
-    render();
-    alert('Invite successfully sent.');
-  } catch (err){
-    console.error(err);
-    alert('Invite failed: ' + err.message);
-  }
-}
 
     // ---- form wiring ----
     attachPhoneMask($('#empPhone'));
