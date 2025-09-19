@@ -1442,21 +1442,3 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   min-width: 0;                 /* enables ellipsis */
 }
 
-/* Labels can ellipsize inside the space they get */
-.breadcrumbs ol a,
-.breadcrumbs ol span{
-  display:block;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-/* Last crumb sits at the right; keep it compact so it doesn't crowd Logout */
-.breadcrumbs ol li:last-child{
-  flex: 0 0 auto;
-  max-width: 36ch;              /* tweak if you want a shorter/longer cap */
-}
-
-/* (Optional) keep a little breathing room before the Logout button */
-.breadcrumbs ol + .logout-btn { margin-left: 10px; }
-
