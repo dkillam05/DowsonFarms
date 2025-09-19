@@ -6,13 +6,14 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Settings — Dowson Farms</title>
   <script>
-(function () {
-  var pref = localStorage.getItem('df_theme') || 'auto';
-  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-  document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-})();
-</script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme =
+      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
 
   <!-- Styles / App -->
   <link rel="stylesheet" href="theme.css" />
@@ -27,7 +28,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/maskable-512.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 </head>
 <body>
   <!-- Header -->
@@ -55,15 +56,8 @@
   <main class="content">
     <h1>⚙️ Setup / Settings</h1>
 
-    <!-- Tile menu -->
-    <div class="df-tiles">
-      <a href="farms.html" class="df-tile">🏡 <span>Farms</span></a>
-      <a href="fields.html" class="df-tile">🗺️ <span>Fields</span></a>
-      <a href="crop-types.html" class="df-tile">🌾 <span>Crop Types</span></a>
-      <a href="theme.html" class="df-tile">🌗 <span>Theme</span></a>
-      <a href="roles.html" class="df-tile">🛡️ <span>Account Roles</span></a>
-      <a href="products.html" class="df-tile">📦 <span>Products</span></a>
-    </div>
+    <!-- Pull children from global menus.js for this section -->
+    <div class="df-tiles" data-section></div>
   </main>
 
   <!-- Footer -->
@@ -83,5 +77,9 @@
       });
     }
   </script>
+
+  <!-- Global menus + tiny renderer -->
+  <script defer src="assets/data/menus.js"></script>
+  <script defer src="ui-nav.js"></script>
 </body>
 </html>
