@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Dictionary — Dowson Farms</title>
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
+
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
+  <style>
+    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+    .cat{padding:2px 10px;border-radius:999px;background:var(--tile-bg);border:1px solid var(--tile-border);font-size:.78rem}
+    .muted-small{opacity:.8;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  </header>
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="teams-partners.html">Teams &amp; Partners</a></li>
+      <li class="sep">›</li>
+      <li><span>Dictionary</span></li>
+    </ol>
+  </nav>
+
+  <main class="content">
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🗂️ Dictionary</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+    </div>
+    <div style="margin-top:12px;"></div>
+
+    <section class="card" id="savedCard">
+      <div class="row" style="align-items:center; gap:12px;">
+        <input id="searchInput" class="search" type="search" placeholder="Search across employees, sub-contractors, vendors…" />
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
+      </div>
+      <ul id="dictList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Quick View -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Dictionary</h2>
+      <ul id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function DictionaryPage(){
+    const KEYS = {
+      emp: 'df.employees',
+      sc:  'df.sub_contractors',
+      ven: 'df.vendors'
+    };
+    const $=s=>document.querySelector(s);
+    const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
+
+    function load(key){ try{return JSON.parse(localStorage.getItem(key)||'[]')}catch(_){return[]} }
+
+    function rowsAll(){
+      const emp = load(KEYS.emp).map(x=>({cat:'Employees', name:x.name, a:x.archived, line:`${x.role||''}`, sub:[x.team,x.phone,x.email].filter(Boolean).join(' • ')}));
+      const sc  = load(KEYS.sc ).map(x=>({cat:'Sub-Contractors', name:x.name, a:x.archived, line:`${x.trade||''}`, sub:[x.company,x.phone,x.email].filter(Boolean).join(' • ')}));
+      const ven = load(KEYS.ven).map(x=>({cat:'Vendors', name:x.name, a:x.archived, line:`${x.company||''} ${x.account?('• '+x.account):''}`, sub:[x.phone,x.email].filter(Boolean).join(' • ')}));
+      return [...emp,...sc,...ven];
+    }
+
+    function render(){
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
+      const rows=rowsAll()
+        .filter(x=>showA?true:!x.a)
+        .filter(x=>!q || [x.name,x.line,x.sub,x.cat].some(v=>v?.toLowerCase().includes(q)))
+        .sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+
+      $('#dictList').innerHTML = rows.length ? rows.map(r=>`
+        <li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line">
+            <span class="cat">${r.cat}</span>
+            <strong>${r.name}</strong>
+            ${chip(r.line)}
+          </div>
+          ${ r.sub ? `<div class="muted-small" style="margin-top:6px;">${r.sub}</div>` : '' }
+        </li>
+      `).join('') : '<li class="muted">No entries yet.</li>';
+    }
+
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', ()=>{
+      const rows=rowsAll().filter(x=>!x.a).sort((a,b)=> a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = rows.length ? rows.map(r=>`
+        <li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line"><span class="cat">${r.cat}</span> <strong>${r.name}</strong> ${chip(r.line)}</div>
+          ${ r.sub ? `<div class="muted-small">${r.sub}</div>` : '' }
+        </li>
+      `).join('') : '<li>No entries.</li>';
+      B.style.display='flex';
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
+
+    $('#searchInput').addEventListener('input', render);
+    $('#toggleShowArchived').addEventListener('change', render);
+    render();
+
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Teams & Partners', href:'teams-partners.html'},
+      {label:'Dictionary'}
+    ]);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Bugs / Issues — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme =
+      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
+
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+
+  <!-- Larger search + prevent iOS zoom (16px) + attachments styling -->
+  <style>
+    #searchInput{
+      font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%; max-width:640px;
+    }
+    .shots-grid{
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(96px,1fr)); gap:10px; margin-top:8px;
+    }
+    .shot{
+      position:relative; border:1px solid var(--tile-border); border-radius:10px; overflow:hidden;
+      background:var(--tile-bg, rgba(0,0,0,.03));
+    }
+    .shot img{ display:block; width:100%; height:100%; object-fit:cover; aspect-ratio:1/1; }
+    .shot button{
+      position:absolute; top:6px; right:6px; border:none; border-radius:8px; padding:4px 6px; font-size:.8rem;
+      background:rgba(0,0,0,.55); color:#fff; cursor:pointer;
+    }
+    .drop-zone{
+      border:1px dashed var(--tile-border); border-radius:10px; padding:10px; text-align:center;
+      background:transparent;
+    }
+    .drop-zone.drag{
+      background:var(--tile-bg, rgba(0,0,0,.04));
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  </header>
+
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="feedback.html">Feedback</a></li>
+      <li class="sep">›</li>
+      <li><span>Bugs / Issues</span></li>
+    </ol>
+  </nav>
+
+  <main class="content" data-has-form>
+    <!-- Title row with Quick View top-right -->
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🐞 Bugs / Issues</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
+    </div>
+    <p class="muted" style="margin-top:8px;">Report and track issues across the app. You can attach screenshots.</p>
+
+    <!-- FORM (stacked fields) -->
+    <form id="bug-form" novalidate>
+      <div class="field">
+        <label for="submittedBy">Submitted by</label>
+        <select id="submittedBy" required></select>
+        <small id="whoHint" class="field-hint" style="color:#666;"></small>
+      </div>
+
+      <div class="field">
+        <label for="submittedDate">Date submitted</label>
+        <input id="submittedDate" type="date" required />
+      </div>
+
+      <div class="field">
+        <label for="menuSel">Menu</label>
+        <select id="menuSel" required></select>
+      </div>
+
+      <div class="field">
+        <label for="submenuSel">Submenu</label>
+        <select id="submenuSel" required></select>
+      </div>
+
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" required placeholder="Describe the bug or issue…"></textarea>
+      </div>
+
+      <!-- Optional Screenshots -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <h3 style="margin:0;">Screenshots (optional)</h3>
+          <label class="btn-outline" for="shotsInput" style="cursor:pointer;">Add images</label>
+          <input id="shotsInput" type="file" accept="image/*" multiple style="display:none" />
+        </div>
+        <div id="dropZone" class="drop-zone" style="margin-top:10px;">Drop images here or use “Add images”</div>
+        <div id="shotsGrid" class="shots-grid"></div>
+        <small class="muted">Images are compressed automatically to keep storage small.</small>
+      </section>
+
+      <!-- 2×2 action buttons -->
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div id="btnGrid" style="
+          --w: 92px;
+          display:grid; gap:10px;
+          grid-template-columns: var(--w) var(--w);
+          justify-content:center;
+        ">
+          <button class="btn-primary" type="submit" id="saveBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Clear</button>
+          <button class="btn-outline" type="button" id="archiveBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Archive</button>
+          <button class="btn-outline" type="button" id="deleteBtn"
+                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Delete</button>
+        </div>
+      </section>
+
+      <input type="hidden" id="editingId" />
+    </form>
+
+    <!-- SAVED -->
+    <section class="card" id="savedCard" style="margin-top:16px;">
+      <h2 style="margin:0 0 8px 0;">Saved Issues</h2>
+      <div class="row" style="align-items:center; gap:12px;">
+        <input id="searchInput" class="search" type="search" placeholder="Search issues…" />
+        <div style="flex:1"></div>
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
+      </div>
+
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Quick View modal -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Open Issues</h2>
+      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="dfToast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+    background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;">
+    <span id="dfToastText">Saved</span>
+  </div>
+
+  <script>
+  (function BugsPage(){
+    const KEY='df.bugs';
+    const MENUS_KEY='df_menus';
+    const PEOPLE_KEY='df_people';
+    const OTHER='Other';
+    const MAX_IMAGES = 6;
+    const MAX_LONG_EDGE = 1400;   // px
+    const JPEG_QUALITY = 0.8;     // 0..1
+    const $=s=>document.querySelector(s);
+
+    // DOM refs
+    const $by=$('#submittedBy'), $date=$('#submittedDate'), $menu=$('#menuSel'), $sub=$('#submenuSel'), $msg=$('#message'), $id=$('#editingId');
+    const $whoHint=$('#whoHint');
+    const $saved=$('#savedList'), $savedCard=$('#savedCard');
+    const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
+    const $shotsInput=$('#shotsInput'), $shotsGrid=$('#shotsGrid'), $dropZone=$('#dropZone');
+
+    // Working attachments for current edit
+    let attachments = [];
+
+    /* -------- Seed people + default menus if missing -------- */
+    if (!localStorage.getItem(PEOPLE_KEY)) {
+      localStorage.setItem(PEOPLE_KEY, JSON.stringify([
+        {name:'John Doe'},{name:'Jane Smith'},{name:'Sam Operator'},{name:'Vendor Co.'}
+      ]));
+    }
+    const DEFAULT_MENUS = {
+      "Home": ["—"],
+      "Crop Production": ["Planting","Spraying","Harvest"],
+      "Grain Tracking": ["Bins","Tickets","Contracts"],
+      "Equipment": ["Maintenance","Repairs","Assignments"],
+      "Calculators": ["Seed Rate","Fertilizer","ROI"],
+      "Reports": ["Crops","Equipment","Financial"],
+      "Team / Partners": ["Employees","Vendors"],
+      "Feedback": ["Ideas","Bugs / Issues"],
+      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+    };
+    function menus(){ return JSON.parse(localStorage.getItem(MENUS_KEY) || 'null') || DEFAULT_MENUS; }
+
+    /* -------- Helpers -------- */
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    function todayCT(){
+      const now = new Date();
+      const p = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+      const y=p.find(x=>x.type==='year').value, m=p.find(x=>x.type==='month').value, d=p.find(x=>x.type==='day').value;
+      return `${y}-${m}-${d}`;
+    }
+    function toast(msg){ const box=$('#dfToast'),txt=$('#dfToastText'); txt.textContent=msg||'Saved'; box.style.display='block'; clearTimeout(window.__t); window.__t=setTimeout(()=>box.style.display='none',2000); }
+    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
+    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
+    function get(id){ return load().find(x=>x.id===id) }
+    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
+    function remove(id){ save(load().filter(x=>x.id!==id)) }
+    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-') }
+
+    /* -------- People -------- */
+    (function fillPeople(){
+      const people = JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]');
+      const you = (window.getCurrentUser?window.getCurrentUser():localStorage.getItem('df_current_user')) || '';
+      $by.innerHTML = people.map(p=>`<option>${p.name}${you && p.name===you?' (You)':''}</option>`).join('');
+      if (you) {
+        const opt=[...$by.options].find(o=>o.value===you || o.textContent.startsWith(you+' '));
+        if (opt) $by.value = opt.value;
+      }
+      $whoHint.textContent = $by.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
+    })();
+    $date.value = todayCT();
+
+    /* -------- Menu/Submenu (NO plus; include "Other") -------- */
+    (function fillMenus(){
+      const m = menus();
+      const names = Object.keys(m);
+      $menu.innerHTML = names.map(k=>`<option>${k}</option>`).join('') + `<option>${OTHER}</option>`;
+
+      function setSubs(menuVal){
+        let subs = [];
+        if (menuVal === OTHER) { subs = [OTHER]; }
+        else {
+          subs = (m[menuVal] || []).slice();
+          if (!subs.includes(OTHER)) subs.push(OTHER);
+        }
+        $sub.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+      }
+
+      const first = names[0] || OTHER;
+      $menu.value = first;
+      setSubs(first);
+
+      $menu.addEventListener('change', ()=>{
+        setSubs($menu.value);
+        if ($menu.value === OTHER) $sub.value = OTHER;
+      });
+    })();
+
+    /* -------- Attachments helpers -------- */
+    function bytesFromDataUrl(dataUrl){
+      const b64 = dataUrl.split(',')[1] || '';
+      return Math.floor((b64.length * 3) / 4) - (b64.endsWith('==')?2:b64.endsWith('=')?1:0);
+    }
+    function fileToImageBitmap(file){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=reader.result; };
+        reader.onerror=reject; reader.readAsDataURL(file);
+      });
+    }
+    async function compressImage(file){
+      try{
+        const img = await fileToImageBitmap(file);
+        const scale = Math.min(1, MAX_LONG_EDGE / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+        return { name: file.name || 'image.jpg', dataUrl, w, h, bytes: bytesFromDataUrl(dataUrl) };
+      }catch(e){ console.error(e); return null; }
+    }
+    function renderShots(){
+      $shotsGrid.innerHTML = attachments.map((a, idx)=>`
+        <div class="shot">
+          <img src="${a.dataUrl}" alt="${a.name}"/>
+          <button type="button" data-idx="${idx}" aria-label="Remove">✕</button>
+        </div>
+      `).join('');
+      $shotsGrid.querySelectorAll('button[data-idx]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const i = Number(btn.dataset.idx);
+          attachments.splice(i,1);
+          renderShots();
+        });
+      });
+    }
+    async function addFiles(fileList){
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+      if (attachments.length + files.length > MAX_IMAGES){
+        alert(`Please attach up to ${MAX_IMAGES} images per issue.`);
+        return;
+      }
+      for (const f of files){
+        const comp = await compressImage(f);
+        if (comp){ attachments.push(comp); }
+      }
+      renderShots();
+    }
+
+    $shotsInput.addEventListener('change', (e)=> addFiles(e.target.files));
+    ;['dragenter','dragover'].forEach(ev=> $dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); $dropZone.classList.add('drag'); }));
+    ;['dragleave','drop'].forEach(ev=> $dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); $dropZone.classList.remove('drag'); }));
+    $dropZone.addEventListener('drop', (e)=> addFiles(e.dataTransfer.files));
+
+    /* -------- Saved list render -------- */
+    function renderSaved(){
+      const q = ($('#searchInput').value||'').toLowerCase().trim();
+      const showA = $('#toggleShowArchived').checked;
+      const rows = load()
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>!q || x.message.toLowerCase().includes(q) || x.menu.toLowerCase().includes(q) || x.submenu.toLowerCase().includes(q) || x.submittedBy.toLowerCase().includes(q))
+        .sort((a,b)=>b.ts-a.ts);
+
+      $saved.innerHTML = rows.length ? rows.map(r=>{
+        const cam = (r.attachments && r.attachments.length) ? ` <span aria-label="attachments">📷 ×${r.attachments.length}</span>` : '';
+        return `
+        <li>
+          <button type="button" class="btn-secondary" data-id="${r.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${r.menu} › ${r.submenu}</strong>${cam}<br>
+            ${r.message}<br>
+            <em>${r.submittedBy}</em> • ${r.date} ${r.archived?'<span style="opacity:.7">• Archived</span>':''}
+          </button>
+        </li>`;
+      }).join('') : '<li class="muted" style="margin-top:8px;">No issues recorded.</li>';
+
+      $saved.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
+      });
+    }
+
+    function showEditButtons(show, archived=false){
+      $archBtn.style.display = show ? 'inline-block' : 'none';
+      $delBtn.style.display  = show ? 'inline-block' : 'none';
+      $archBtn.textContent   = archived ? 'Unarchive' : 'Archive';
+    }
+
+    function openForEdit(id){
+      const item=get(id); if(!item) return;
+      $id.value=item.id;
+      $by.value=item.submittedBy;
+      $date.value=item.date;
+
+      // menu/submenu
+      const m = menus();
+      const names = Object.keys(m);
+      $menu.innerHTML = names.map(k=>`<option>${k}</option>`).join('') + `<option>${OTHER}</option>`;
+      function subsFor(menuVal){
+        if (menuVal === OTHER) return [OTHER];
+        const arr = (m[menuVal] || []).slice();
+        if (!arr.includes(OTHER)) arr.push(OTHER);
+        return arr;
+      }
+      $menu.value=item.menu;
+      $sub.innerHTML = subsFor(item.menu).map(s=>`<option>${s}</option>`).join('');
+      $sub.value=item.submenu;
+
+      $msg.value=item.message;
+
+      attachments = Array.isArray(item.attachments) ? item.attachments.slice() : [];
+      renderShots();
+
+      showEditButtons(true, item.archived);
+      window.scrollTo({top:0, behavior:'smooth'}); $msg.focus();
+    }
+
+    /* -------- Submit / Clear / Archive / Delete -------- */
+    document.getElementById('bug-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      if (!$by.value || !$date.value || !$menu.value || !$sub.value || !$msg.value.trim()){
+        alert('Please complete all required fields.');
+        return;
+      }
+
+      // guard for localStorage budget
+      const attBytes = attachments.reduce((sum,a)=> sum + (a.bytes||0), 0);
+      if (attBytes > 3_500_000){ // ~3.5MB
+        alert('Attachments are too large. Please attach fewer/smaller images.');
+        return;
+      }
+
+      const id = $id.value || slug(`${$date.value}-${$menu.value}-${$sub.value}-${Date.now()}`);
+      const prev = get(id);
+
+      upsert({
+        id,
+        submittedBy: titleCase($by.value.replace(/\s+\(You\)$/,'').trim()),
+        date: $date.value,
+        menu: $menu.value,
+        submenu: $sub.value,
+        message: $msg.value.trim(),
+        attachments: attachments.slice(),
+        archived: prev ? !!prev.archived : false,
+        ts: prev?.ts || Date.now(),
+        updatedAt: Date.now()
+      });
+
+      // Reset view like other forms
+      e.target.reset(); $id.value='';
+      attachments = []; renderShots();
+      showEditButtons(false, false);
+      renderSaved();
+      $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
+      toast('Save successful');
+
+      // Refill defaults
+      (function refill(){
+        const you=(window.getCurrentUser?window.getCurrentUser():localStorage.getItem('df_current_user'))||'';
+        if (you) {
+          const opt=[...$by.options].find(o=>o.value===you || o.textContent.startsWith(you+' ')); if (opt) $by.value=opt.value;
+        }
+        $date.value = todayCT();
+        // Rebuild menus to include "Other" correctly
+        const m = menus(); const names = Object.keys(m);
+        $menu.innerHTML = names.map(k=>`<option>${k}</option>`).join('') + `<option>${OTHER}</option>`;
+        const first = names[0] || OTHER;
+        $menu.value = first;
+        const subs = (first===OTHER) ? [OTHER] : ((m[first]||[]).concat(OTHER).filter((v,i,arr)=>arr.indexOf(v)===i));
+        $sub.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+      })();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      document.getElementById('bug-form').reset(); $id.value='';
+      attachments = []; renderShots();
+      showEditButtons(false,false); $by.focus();
+      $date.value = todayCT();
+    });
+
+    $archBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      const item=get(id); if(!item) return;
+      item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
+      showEditButtons(true, item.archived);
+      renderSaved();
+      toast(item.archived ? 'Archived' : 'Unarchived');
+    });
+
+    $delBtn.addEventListener('click', ()=>{
+      const id=$id.value; if(!id) return;
+      if (confirm('Delete this issue permanently?')){
+        remove(id);
+        document.getElementById('bug-form').reset(); $id.value='';
+        attachments = []; renderShots();
+        showEditButtons(false,false);
+        renderSaved();
+        toast('Deleted');
+      }
+    });
+
+    /* -------- Search / Show archived -------- */
+    document.getElementById('searchInput').addEventListener('input', renderSaved);
+    document.getElementById('toggleShowArchived').addEventListener('change', renderSaved);
+
+    /* -------- Quick View (top-right) -------- */
+    document.getElementById('quickViewBtn').addEventListener('click', ()=>{
+      const list=load().filter(x=>!x.archived).sort((a,b)=>b.ts-a.ts);
+      const $qvL=document.getElementById('qvList'), $qvB=document.getElementById('qvBackdrop');
+      $qvL.innerHTML = list.length ? list.map(i=>{
+        const cam = (i.attachments && i.attachments.length) ? ` <span>📷 ×${i.attachments.length}</span>` : '';
+        return `
+        <li>
+          <button type="button" class="btn-secondary" data-id="${i.id}"
+                  style="width:100%; text-align:left; display:block; margin:8px 0;">
+            <strong>${i.menu} › ${i.submenu}</strong>${cam}<br>
+            ${i.message}<br>
+            <em>${i.submittedBy}</em> • ${i.date}
+          </button>
+        </li>`;
+      }).join('') : '<li>No open issues.</li>';
+      $qvB.style.display='flex';
+      $qvL.querySelectorAll('button[data-id]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          $qvB.style.display='none';
+          openForEdit(b.getAttribute('data-id'));
+        });
+      });
+      document.getElementById('qvClose').addEventListener('click', ()=> $qvB.style.display='none', {once:true});
+      $qvB.addEventListener('click', (e)=>{ if(e.target===$qvB) $qvB.style.display='none'; }, {once:true});
+    });
+
+    /* -------- Initial render -------- */
+    renderSaved();
+
+    /* -------- Breadcrumbs -------- */
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Feedback', href:'feedback.html'},
+      {label:'Bugs / Issues'}
+    ]);
+  })();
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
