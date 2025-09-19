@@ -1281,3 +1281,24 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
 
 /* ===== FIX 3: Hide fixed Back FAB while any modal is open ===== */
 .modal-open .back-fab { display: none !important; }
+
+/* --- Toast (bottom message) --- */
+.df-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 56px);
+  transform: translateX(-50%);
+  background: var(--brand-green);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(0,0,0,.25);
+  z-index: 3000;
+  opacity: 0;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.df-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
