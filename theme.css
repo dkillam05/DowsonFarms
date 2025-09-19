@@ -1417,28 +1417,4 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
 /* Give a tiny buffer before the real Logout button in the header */
 .breadcrumbs ol + .logout-btn { margin-left:10px; }
 
-/* ===== Breadcrumbs: pin first & last, let middle breathe ===== */
-.breadcrumbs { display:flex; justify-content:space-between; }
-
-.breadcrumbs ol{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-/* Separators never flex */
-.breadcrumbs ol li.sep{ flex:0 0 auto; }
-
-/* 👉 Push the trailing "sep + last label" block to the right edge */
-.breadcrumbs ol li.sep:last-of-type { margin-left:auto; }
-
-/* Middle crumbs share the available room */
-.breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
-  flex: 1 1 0;
-  min-width: 0;                 /* enables ellipsis */
-}
 
