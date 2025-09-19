@@ -83,32 +83,62 @@
 
   <script>
   (function DictionaryPage(){
+    // Current keys used by the three pages we have/are building
     const KEYS = {
       emp: 'df.employees',
       sc:  'df.sub_contractors',
-      ven: 'df.vendors'
+      ven: 'df.vendors'         // <- new Vendors storage (first/last/etc.)
     };
+
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
+    const safeJSON = (k, def)=> { try{ const v = JSON.parse(localStorage.getItem(k)); return v==null?def:v; } catch(_){ return def; } };
 
-    function load(key){ try{return JSON.parse(localStorage.getItem(key)||'[]')}catch(_){return[]} }
+    // Name helpers – support both old {name} and new {first,last}
+    const fullName = (row)=> {
+      if (row?.name) return row.name;
+      const f=(row?.first||'').trim(), l=(row?.last||'').trim();
+      const both=[f,l].filter(Boolean).join(' ');
+      return both || '(No Name)';
+    };
 
-    function rowsAll(){
-      const emp = load(KEYS.emp).map(x=>({cat:'Employees', name:x.name, a:x.archived, line:`${x.role||''}`, sub:[x.team,x.phone,x.email].filter(Boolean).join(' • ')}));
-      const sc  = load(KEYS.sc ).map(x=>({cat:'Sub-Contractors', name:x.name, a:x.archived, line:`${x.trade||''}`, sub:[x.company,x.phone,x.email].filter(Boolean).join(' • ')}));
-      const ven = load(KEYS.ven).map(x=>({cat:'Vendors', name:x.name, a:x.archived, line:`${x.company||''} ${x.account?('• '+x.account):''}`, sub:[x.phone,x.email].filter(Boolean).join(' • ')}));
-      return [...emp,...sc,...ven];
+    // Normalize each category into a common shape for rendering/search
+    function rowsEmployees(){
+      const L = safeJSON(KEYS.emp, []);
+      return L.map(x=>{
+        const name = fullName(x);
+        const line = x.role || x.title || '';
+        const sub  = [x.team, x.phone, x.email].filter(Boolean).join(' • ');
+        return { cat:'Employees', name, line, sub, a:!!x.archived };
+      });
     }
 
-    function render(){
-      const q=($('#searchInput').value||'').toLowerCase().trim();
-      const showA=$('#toggleShowArchived').checked;
-      const rows=rowsAll()
-        .filter(x=>showA?true:!x.a)
-        .filter(x=>!q || [x.name,x.line,x.sub,x.cat].some(v=>v?.toLowerCase().includes(q)))
-        .sort((a,b)=> a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+    function rowsSubcontractors(){
+      const L = safeJSON(KEYS.sc, []);
+      return L.map(x=>{
+        const name = fullName(x);
+        const line = x.trade || x.specialty || '';
+        const sub  = [x.company, x.phone, x.email].filter(Boolean).join(' • ');
+        return { cat:'Sub-Contractors', name, line, sub, a:!!x.archived };
+      });
+    }
 
-      $('#dictList').innerHTML = rows.length ? rows.map(r=>`
+    function rowsVendors(){
+      const L = safeJSON(KEYS.ven, []);
+      return L.map(x=>{
+        const name = fullName(x); // uses first/last from new Vendors page
+        const line = [x.company, x.account].filter(Boolean).join(' • ');
+        const sub  = [x.phone, x.email].filter(Boolean).join(' • ');
+        return { cat:'Vendors', name, line, sub, a:!!x.archived };
+      });
+    }
+
+    function rowsAll(){
+      return [...rowsEmployees(), ...rowsSubcontractors(), ...rowsVendors()];
+    }
+
+    function renderList(targetSel, rows){
+      $(targetSel).innerHTML = rows.length ? rows.map(r=>`
         <li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <span class="cat">${r.cat}</span>
@@ -120,25 +150,35 @@
       `).join('') : '<li class="muted">No entries yet.</li>';
     }
 
+    function applyFilters(){
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
+      const rows=rowsAll()
+        .filter(x=>showA?true:!x.a)
+        .filter(x=>!q || [x.name,x.line,x.sub,x.cat].some(v=> (v||'').toLowerCase().includes(q)))
+        .sort((a,b)=> a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      renderList('#dictList', rows);
+      return rows;
+    }
+
     // Quick View
     $('#quickViewBtn').addEventListener('click', ()=>{
-      const rows=rowsAll().filter(x=>!x.a).sort((a,b)=> a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-      const L=$('#qvList'), B=$('#qvBackdrop');
-      L.innerHTML = rows.length ? rows.map(r=>`
-        <li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line"><span class="cat">${r.cat}</span> <strong>${r.name}</strong> ${chip(r.line)}</div>
-          ${ r.sub ? `<div class="muted-small">${r.sub}</div>` : '' }
-        </li>
-      `).join('') : '<li>No entries.</li>';
+      const rows=applyFilters().filter(x=>!x.a);
+      renderList('#qvList', rows);
+      const B=$('#qvBackdrop');
       B.style.display='flex';
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    $('#searchInput').addEventListener('input', render);
-    $('#toggleShowArchived').addEventListener('change', render);
-    render();
+    // Wire filters
+    $('#searchInput').addEventListener('input', applyFilters);
+    $('#toggleShowArchived').addEventListener('change', applyFilters);
 
+    // Initial render
+    applyFilters();
+
+    // Breadcrumbs
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Teams & Partners', href:'teams-partners.html'},
