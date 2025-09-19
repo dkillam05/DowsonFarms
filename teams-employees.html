@@ -20,7 +20,7 @@
   <script defer src="core.js"></script>
 
   <style>
-    /* Page-local utilities only; do NOT change your box sizes */
+    /* Page-local utilities only; do NOT change your global box sizes */
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -30,7 +30,13 @@
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
 
     /* iOS no-zoom without altering your input sizing */
-    #empPhone, #m_phone { font-size:16px; } /* keep same height/padding from theme.css */
+    #empPhone, #m_phone { font-size:16px; }
+
+    /* Manage modal extra buttons */
+    .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
+    .btn-danger:active{transform:translateY(1px)}
+    .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
+    .btn-archive:active{transform:translateY(1px)}
 
     /* -------- Permission Overrides cascader (matches Account Roles) -------- */
     .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));align-items:center}
@@ -171,18 +177,31 @@
   <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Employee</h2>
+
       <div id="manageBox" style="display:grid;gap:10px;">
-        <input id="m_first" placeholder="First Name" />
-        <input id="m_last" placeholder="Last Name" />
-        <input id="m_phone" placeholder="Phone Number" maxlength="14" />
-        <input id="m_email" placeholder="Email" />
-        <select id="m_role"></select>
-        <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
-        <div class="line"><button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button></div>
+        <div class="field"><input id="m_first" placeholder="First Name" /></div>
+        <div class="field"><input id="m_last" placeholder="Last Name" /></div>
+        <div class="field"><input id="m_phone" placeholder="Phone Number" maxlength="14" /></div>
+        <div class="field"><input id="m_email" placeholder="Email" /></div>
+
+        <!-- Normal themed select, no blue link look -->
+        <div class="field">
+          <label for="m_role">Role (Permissions)</label>
+          <select id="m_role"></select>
+        </div>
+
+        <div class="line">
+          <button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button>
+        </div>
       </div>
-      <div class="modal-actions" style="justify-content:space-between;">
-        <button class="btn-outline" id="manageCancel">Cancel</button>
-        <button class="btn-primary" id="manageSave">Save Changes</button>
+
+      <div class="modal-actions" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div class="line" style="gap:10px;">
+          <button class="btn-danger"  id="m_delete"  type="button">Delete</button>
+          <button class="btn-archive" id="m_archive" type="button">Archive</button>
+          <button class="btn-outline" id="manageCancel" type="button">Cancel</button>
+        </div>
+        <button class="btn-primary" id="manageSave" type="button">Save Changes</button>
       </div>
     </div>
   </div>
@@ -193,7 +212,7 @@
     const $=s=>document.querySelector(s);
     const $list=$('#savedList');
 
-    // ----- MENUS used by roles + overrides (source of truth from Account Roles) -----
+    // ----- MENUS used by roles + overrides -----
     const DEFAULT_MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
@@ -207,7 +226,7 @@
     };
     const MENUS = JSON.parse(localStorage.getItem('df_menus')||'null') || DEFAULT_MENUS;
 
-    // ----- roles: read from Account Roles store (keys of df_role_perms) -----
+    // ----- roles -----
     function getRoles(){
       const rp = JSON.parse(localStorage.getItem('df_role_perms')||'{}');
       const names = Object.keys(rp);
@@ -220,14 +239,15 @@
       if(value) sel.value=value;
     }
 
-    // ---- utils ----
+    // utils
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
     const loadAll = ()=> { try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} };
     const saveAll = (v)=> localStorage.setItem(KEY, JSON.stringify(v));
     const upsert = (item)=>{ const list=loadAll(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); saveAll(list); };
+    const removeById = (id)=> { const list=loadAll().filter(x=>x.id!==id); saveAll(list); };
     const byName = (a,b)=> a.last.localeCompare(b.last, undefined, {sensitivity:'base'}) || a.first.localeCompare(b.first, undefined, {sensitivity:'base'});
 
-    // Phone mask: (###) ###-####
+    // phone mask
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -241,8 +261,7 @@
     }
     function isValidPhoneUS(s){ return /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||''); }
 
-    // ---------- Permission Overrides (cascader like Account Roles) ----------
-    // exceptions = { enabled: boolean, grants: { [menu]: { _all:perm, [submenu]:perm } } }
+    // ---------- Permission Overrides ----------
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     const pill = (label, pressed, onToggle)=>{
       const b=document.createElement('button');
@@ -282,7 +301,7 @@
       });
       return n;
     }
-    window.countOverrideEntries = countOverrideEntries; // used in list render
+    window.countOverrideEntries = countOverrideEntries;
 
     function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
@@ -304,7 +323,6 @@
         const k=name.toLowerCase();
         const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
           ex.grants[menuName]._all[k]=isOn;
-          // cascade to children + reflect visuals
           MENUS[menuName].forEach(sub=>{
             ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
             ex.grants[menuName][sub][k]=isOn;
@@ -400,7 +418,6 @@
       B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
       B.style.display='flex';
     }
-    // expose for reuse in manage modal
     window.openPermissionOverrides = openPermissionOverrides;
 
     // ---- render saved ----
@@ -421,7 +438,7 @@
             <strong>${name||'(No Name)'}</strong>
             ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
             ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
-            ${r.invitedAt ? `<span class="chip">Invited</span>`:''}
+            ${r.archived ? `<span class="chip">Archived</span>` : (r.invitedAt ? `<span class="chip">Invited</span>`:'')}
           </div>
           <div class="line" style="margin-top:8px;">
             <button class="btn-secondary" data-edit="${r.id}">Manage</button>
@@ -440,13 +457,32 @@
       $('#manageTitle').textContent = `Edit Employee — ${(e.first||'') + ' ' + (e.last||'')}`.trim();
       $('#m_first').value=e.first||''; $('#m_last').value=e.last||'';
       $('#m_phone').value=e.phone||''; attachPhoneMask($('#m_phone'));
-      $('#m_email').value=e.email||''; fillRoleSelect($('#m_role'), e.role||'');
-      $('#m_archived').checked=!!e.archived;
+      $('#m_email').value=e.email||'';
+      fillRoleSelect($('#m_role'), e.role||'');
 
       const B=$('#manageBackdrop'); B.style.display='flex';
-      $('#m_exceptions').onclick=()=>{
-        openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; });
+      $('#m_exceptions').onclick=()=>{ openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; }); };
+
+      // Archive button label reflects state
+      const $archive=$('#m_archive');
+      $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
+
+      $('#m_delete').onclick=()=>{
+        if(confirm('Delete this employee? This cannot be undone.')){
+          removeById(e.id);
+          B.style.display='none';
+          render();
+        }
       };
+
+      $('#m_archive').onclick=()=>{
+        e.archived = !e.archived;
+        e.updatedAt = Date.now();
+        upsert(e);
+        $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
+        render();
+      };
+
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
         if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
@@ -458,7 +494,6 @@
         e.phone=$('#m_phone').value;
         e.email=$('#m_email').value.trim();
         e.role=$('#m_role').value;
-        e.archived=$('#m_archived').checked;
         e.updatedAt=Date.now();
         upsert(e); B.style.display='none'; render();
       };
@@ -481,7 +516,7 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    /* ---------- INVITE: show friendly "coming soon" while backend is not live ---------- */
+    /* ---------- INVITE: friendly "coming soon" while backend is not live ---------- */
     async function inviteEmployee(id){
       const list = loadAll();
       const e = list.find(x=>x.id===id);
@@ -517,7 +552,6 @@
     attachPhoneMask($('#empPhone'));
     fillRoleSelect($('#empRole'));
 
-    // open overrides from form
     $('#exceptionsBtn').addEventListener('click', ()=>{
       const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
       openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
