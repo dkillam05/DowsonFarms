@@ -1332,3 +1332,47 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
     color: #ddd !important;
   }
 }
+
+/* ========= DARK-MODE FIXES (append to end of theme.css) ========= */
+
+/* 1) Pill buttons: white text in dark & auto(dark) */
+:root[data-theme="dark"] .pill {
+  color: #fff !important;
+  background: var(--tile-bg) !important;
+  border-color: var(--tile-border) !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .pill {
+    color: #fff !important;
+    background: var(--tile-bg) !important;
+    border-color: var(--tile-border) !important;
+  }
+}
+
+/* Pressed (active) pills stay green with white text */
+:root[data-theme="dark"] .pill[aria-pressed="true"] {
+  background: var(--brand-green) !important;
+  border-color: var(--brand-green) !important;
+  color: #fff !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .pill[aria-pressed="true"] {
+    background: var(--brand-green) !important;
+    border-color: var(--brand-green) !important;
+    color: #fff !important;
+  }
+}
+
+/* Optional: ensure the page-level variable used by .pill resolves to white in dark */
+:root[data-theme="dark"] { --btn-secondary-fg: #fff !important; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] { --btn-secondary-fg: #fff !important; }
+}
+
+/* 2) Theme page switch label (“Light / Dark / Auto”) should be white in dark */
+:root[data-theme="dark"] .switch-label { color: #fff !important; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .switch-label { color: #fff !important; }
+}
+
+
