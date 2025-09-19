@@ -255,6 +255,14 @@
     }
     const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
+    
+    /* iOS no-zoom + consistent sizing for phone inputs on this page */
+#scBizPhone,
+#scCellPhone,
+#m_biz,
+#m_cell {
+  font-size: 16px;   /* stops iOS zoom and matches other fields */
+}
 
     // Trades
     function getTrades(){ return load(TRADES_KEY, []); }
