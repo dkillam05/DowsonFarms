@@ -5,27 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Vendors — Dowson Farms</title>
+
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+    var resolved = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.setAttribute('data-theme', resolved);
+    document.documentElement.style.colorScheme = resolved === 'dark' ? 'dark' : 'light';
   })();
   </script>
 
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
+
   <style>
+    /* page-local utilities */
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
+
+    /* iOS no-zoom on phone + mask parity */
+    #venPhone, #m_phone { font-size:16px; }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -34,6 +42,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="index.html">Home</a></li>
@@ -44,13 +53,15 @@
     </ol>
   </nav>
 
+  <!-- Main -->
   <main class="content" data-has-form>
-    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+    <div class="line" style="align-items:center; justify-content:space-between;">
       <h1 style="margin:0;">🏭 Vendors</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
     <div style="margin-top:12px;"></div>
 
+    <!-- FORM -->
     <form id="ven-form" novalidate>
       <div class="field">
         <label for="venName">Contact / Rep <span class="req-star">*</span></label>
@@ -66,7 +77,7 @@
       </div>
       <div class="field">
         <label for="venPhone">Phone</label>
-        <input id="venPhone" type="tel" inputmode="tel" placeholder="(###) ###-####" />
+        <input id="venPhone" type="tel" inputmode="numeric" placeholder="(555) 123-4567" maxlength="14" />
       </div>
       <div class="field">
         <label for="venEmail">Email</label>
@@ -75,16 +86,17 @@
 
       <section class="card" style="padding:12px; margin-top:8px;">
         <div class="grid2">
-          <button class="btn-primary" type="submit" style="width:92px;height:92px;">Save</button>
-          <button class="btn-outline" type="reset" style="width:92px;height:92px;">Clear</button>
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
         </div>
       </section>
     </form>
 
+    <!-- SAVED -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Vendors</h2>
-      <div class="row" style="align-items:center; gap:12px;">
-        <input id="searchInput" class="search" type="search" placeholder="Search…" />
+      <div class="line" style="align-items:center;">
+        <input id="searchInput" class="search" type="search" placeholder="Search vendors…" />
         <label class="muted" for="toggleShowArchived">
           <input type="checkbox" id="toggleShowArchived" /> Show archived
         </label>
@@ -93,6 +105,7 @@
     </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -120,7 +133,7 @@
         <input id="m_name" placeholder="Contact / Rep" />
         <input id="m_company" placeholder="Company" />
         <input id="m_acct" placeholder="Account #" />
-        <input id="m_phone" placeholder="Phone" />
+        <input id="m_phone" placeholder="Phone" maxlength="14" />
         <input id="m_email" placeholder="Email" />
         <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
       </div>
@@ -135,27 +148,56 @@
   (function VendorsPage(){
     const KEY='df.vendors';
     const $=s=>document.querySelector(s);
-    const $list=$('#savedList');
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
 
+    // Toast (uses .df-toast from theme.css if present)
+    function showToast(msg){
+      let t=document.querySelector('.df-toast');
+      if(!t){ t=document.createElement('div'); t.className='df-toast'; document.body.appendChild(t); }
+      t.textContent=msg; t.classList.add('show');
+      setTimeout(()=> t.classList.remove('show'), 2000);
+    }
+
+    // Helpers
     function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
     function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
     function save(v){ localStorage.setItem(KEY, JSON.stringify(v)) }
     function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list); }
+    function byCompanyThenName(a,b){
+      return (a.company||'').localeCompare(b.company||'', undefined, {sensitivity:'base'})
+          || a.name.localeCompare(b.name, undefined, {sensitivity:'base'});
+    }
 
+    // Phone mask (like other pages)
+    function fmtPhone(raw){
+      const x=(raw||'').replace(/\D/g,'').slice(0,10);
+      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
+      if(x.length<=3) return x?`(${a}`:'';
+      if(x.length<=6) return `(${a}) ${b}`;
+      return `(${a}) ${b}-${c}`;
+    }
+    function attachPhoneMask(input){
+      if(!input) return;
+      input.addEventListener('input', ()=> input.value = fmtPhone(input.value));
+      input.addEventListener('blur',  ()=> input.value = fmtPhone(input.value));
+    }
+
+    // Render list
     function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
       const rows=load()
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || [x.name,x.company,x.account,x.phone,x.email].some(v=>v?.toLowerCase().includes(q)))
-        .sort((a,b)=> (a.company||'').localeCompare(b.company||'', undefined, {sensitivity:'base'}) || a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+        .sort(byCompanyThenName);
 
-      $list.innerHTML = rows.length ? rows.map(r=>`
+      const L=$('#savedList');
+      L.innerHTML = rows.length ? rows.map(r=>`
         <li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
-            <strong>${r.name}</strong>
+            <strong>${r.name || '(No Name)'}</strong>
             ${chip(r.company)} ${chip(r.account)} ${chip(r.phone)} ${chip(r.email)}
+            ${r.archived ? '<span class="chip">Archived</span>' : ''}
           </div>
           <div class="line" style="margin-top:8px;">
             <button class="btn-secondary" data-edit="${r.id}">Manage</button>
@@ -163,66 +205,87 @@
         </li>
       `).join('') : '<li class="muted">No vendors yet.</li>';
 
-      $list.querySelectorAll('[data-edit]').forEach(b=>{
-        b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit')));
-      });
+      L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
     }
 
+    // Manage modal
     function openManage(id){
       const list=load(); const e=list.find(x=>x.id===id); if(!e) return;
-      $('#manageTitle').textContent = `Edit Vendor — ${e.name}`;
-      $('#m_name').value=e.name||''; $('#m_company').value=e.company||''; $('#m_acct').value=e.account||'';
-      $('#m_phone').value=e.phone||''; $('#m_email').value=e.email||''; $('#m_archived').checked=!!e.archived;
+      $('#manageTitle').textContent = `Edit Vendor — ${e.name || '(No Name)'}`;
+      $('#m_name').value=e.name||'';
+      $('#m_company').value=e.company||'';
+      $('#m_acct').value=e.account||'';
+      $('#m_phone').value=e.phone||'';
+      $('#m_email').value=e.email||'';
+      $('#m_archived').checked=!!e.archived;
+
+      attachPhoneMask($('#m_phone'));
 
       const B=$('#manageBackdrop'); B.style.display='flex';
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
-        e.name=titleCase($('#m_name').value||'');
-        e.company=$('#m_company').value||'';
-        e.account=$('#m_acct').value||'';
-        e.phone=$('#m_phone').value||'';
-        e.email=$('#m_email').value||'';
+        e.name=titleCase(($('#m_name').value||'').trim());
+        e.company=($('#m_company').value||'').trim();
+        e.account=($('#m_acct').value||'').trim();
+        e.phone=($('#m_phone').value||'').trim();
+        e.email=($('#m_email').value||'').trim();
         e.archived=$('#m_archived').checked;
         e.updatedAt=Date.now();
-        upsert(e); B.style.display='none'; render();
+        upsert(e); B.style.display='none'; render(); showToast('Saved changes');
       };
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
     // Quick View
     $('#quickViewBtn').addEventListener('click', ()=>{
-      const rows=load().sort((a,b)=> (a.company||'').localeCompare(b.company||'', undefined, {sensitivity:'base'}) || a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const rows=load().sort(byCompanyThenName);
       const L=$('#qvList'), B=$('#qvBackdrop');
-      L.innerHTML = rows.length ? rows.map(r=>`
-        <li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line"><strong>${r.name}</strong> ${chip(r.company)} ${chip(r.account)}</div>
-          ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
-        </li>
-      `).join('') : '<li>No vendors.</li>';
+      L.innerHTML = rows.length ? rows.map(r=>{
+        const line2 = [r.company, r.account].filter(Boolean).join(' — ');
+        const contact = [r.phone, r.email].filter(Boolean).join(' • ');
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div><strong>${r.name || '(No Name)'}</strong></div>
+          ${ line2 ? `<div class="muted-small">${line2}</div>` : '' }
+          ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
+        </li>`;
+      }).join('') : '<li>No vendors.</li>';
       B.style.display='flex';
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // Save
+    // Save flow
+    attachPhoneMask($('#venPhone'));
     $('#ven-form').addEventListener('submit',(e)=>{
       e.preventDefault();
-      const name=titleCase(($('#venName').value||'').trim()); if(!name){$('#venName').focus();return;}
-      upsert({
-        id:name.toLowerCase(), name,
-        company:($('#venCompany').value||'').trim(),
-        account:($('#venAcct').value||'').trim(),
-        phone:($('#venPhone').value||'').trim(),
-        email:($('#venEmail').value||'').trim(),
-        archived:false, createdAt:Date.now(), updatedAt:Date.now()
-      });
-      $('#ven-form').reset(); render();
+      const name = titleCase(($('#venName').value||'').trim());
+      if(!name){ alert('Contact / Rep is required.'); $('#venName').focus(); return; }
+      const item = {
+        id: name.toLowerCase(),
+        name,
+        company: ($('#venCompany').value||'').trim(),
+        account: ($('#venAcct').value||'').trim(),
+        phone:   ($('#venPhone').value||'').trim(),
+        email:   ($('#venEmail').value||'').trim(),
+        archived:false,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      upsert(item);
+      $('#ven-form').reset();
+      render();
+      showToast('Vendor saved');
     });
 
+    $('#clearBtn').addEventListener('click', ()=> { /* just UI reset */ });
+
+    // Filters
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
+
     render();
 
+    // Breadcrumb helper (if your core.js provides setBreadcrumbs)
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'index.html'},
       {label:'Teams & Partners', href:'teams-partners.html'},
