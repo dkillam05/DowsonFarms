@@ -27,6 +27,7 @@
     .muted-sm {opacity:.72;font-size:.92rem}
     .tbl {width:100%; border-collapse:collapse}
     .tbl th,.tbl td{border-bottom:1px solid var(--tile-border); padding:6px 8px; text-align:left}
+    .field .hint{font-size:.9rem; opacity:.75; margin-top:4px}
   </style>
 </head>
 <body>
@@ -69,14 +70,10 @@
         <input id="acres" type="text" inputmode="decimal" placeholder="e.g., 80 or 80.25" required />
       </div>
 
-      <!-- Farm picker (with +Add, searchable >10) -->
+      <!-- Farm picker -->
       <div class="field" id="farmField">
         <label for="farmSel">Farm</label>
-
-        <!-- Mode A: <=10 farms -->
         <select id="farmSel" style="display:none"></select>
-
-        <!-- Mode B: >10 farms -->
         <div id="farmSearchWrap" class="inline-grow" style="display:none">
           <input id="farmSearch" list="farmList" placeholder="Search farms…"/>
           <datalist id="farmList"></datalist>
@@ -85,7 +82,7 @@
         <div class="muted-sm">Optional — you can bulk-assign under Farms → Manage Fields.</div>
       </div>
 
-      <!-- County (optional; same behavior as before) -->
+      <!-- County (optional) -->
       <div class="field" id="countyField">
         <label for="countySel">County</label>
         <select id="countySel" style="display:none"></select>
@@ -94,6 +91,20 @@
           <datalist id="countyList"></datalist>
           <button type="button" class="btn-outline" id="countyAddBtn" title="Add county">+ Add</button>
         </div>
+      </div>
+
+      <!-- RTK Tower (REQUIRED) -->
+      <div class="field" id="rtkField">
+        <label for="rtkSel">RTK Tower location <span class="req-star">*</span></label>
+        <!-- <=10 towers -->
+        <select id="rtkSel" style="display:none"></select>
+        <!-- >10 towers -->
+        <div id="rtkSearchWrap" class="inline-grow" style="display:none">
+          <input id="rtkSearch" list="rtkList" placeholder="Search towers…"/>
+          <datalist id="rtkList"></datalist>
+          <button type="button" class="btn-outline" id="rtkAddBtn" title="Add RTK Tower">+ Add</button>
+        </div>
+        <div class="hint">Towers are saved with <strong>Name</strong>, <strong>Network ID (4 digits)</strong>, and <strong>Radio Frequency</strong> (up to 5 decimals).</div>
       </div>
 
       <section class="card" style="padding:12px; margin-top:8px;">
@@ -136,7 +147,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View (fields) -->
+  <!-- Quick View -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Fields</h2>
@@ -147,16 +158,40 @@
     </div>
   </div>
 
-  <!-- Import Modal -->
+  <!-- Add RTK Tower Modal -->
+  <div class="auth-modal__backdrop" id="rtkBackdrop" role="dialog" aria-modal="true" aria-labelledby="rtkTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(520px,94vw);">
+      <h2 id="rtkTitle">Add RTK Tower</h2>
+      <form id="rtkForm">
+        <div class="field">
+          <label for="rtkName">Name <span class="req-star">*</span></label>
+          <input id="rtkName" type="text" required placeholder="e.g., Pittsfield North" />
+        </div>
+        <div class="field">
+          <label for="rtkNet">Network ID (4 digits) <span class="req-star">*</span></label>
+          <input id="rtkNet" type="text" inputmode="numeric" pattern="\\d{4}" maxlength="4" required placeholder="e.g., 1042" />
+        </div>
+        <div class="field">
+          <label for="rtkFreq">Radio frequency (Hz/MHz) <span class="req-star">*</span></label>
+          <input id="rtkFreq" type="text" inputmode="decimal" placeholder="e.g., 462.53715" required />
+          <div class="hint">Digits with optional decimal and up to <strong>5 digits</strong> after the decimal.</div>
+        </div>
+        <div class="modal-actions" style="justify-content:space-between; margin-top:10px;">
+          <button type="button" class="btn-outline" id="rtkCancel">Cancel</button>
+          <button type="submit" class="btn-primary">Save Tower</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Import Modal (unchanged) -->
   <div class="auth-modal__backdrop" id="impBackdrop" role="dialog" aria-modal="true" aria-labelledby="impTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(860px,96vw);">
       <h2 id="impTitle">Import Fields (CSV)</h2>
-
       <div id="impStep1">
         <input id="impFile" type="file" accept=".csv" />
         <div class="muted-sm" style="margin-top:6px;">We’ll auto-detect headers; you can adjust the mapping.</div>
       </div>
-
       <div id="impStep2" style="display:none; margin-top:12px;">
         <h3 style="margin:0 0 8px 0;">Map Columns</h3>
         <div class="row" style="gap:10px; flex-wrap:wrap;">
@@ -167,12 +202,10 @@
         </div>
         <div class="muted-sm" style="margin-top:6px;">Unmapped optional columns will be ignored.</div>
       </div>
-
       <div id="impStep3" style="display:none; margin-top:12px;">
         <h3 style="margin:0 0 8px 0;">Preview</h3>
         <div id="impPreview" style="max-height:min(48vh,460px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px;"></div>
       </div>
-
       <div class="modal-actions" style="justify-content:space-between; margin-top:12px;">
         <button class="btn-outline" id="impCancel">Cancel</button>
         <div>
@@ -189,10 +222,12 @@
     const FIELD_KEY='df.fields';
     const FARM_KEY='df.farms';
     const COUNTY_KEY='df.counties';
+    const TOWER_KEY='df.rtk.towers';
     const ADD_VALUE='__ADD__';
 
     const $=s=>document.querySelector(s);
     const $$=(s)=>Array.from(document.querySelectorAll(s));
+    const setText=(sel,txt)=>{ const el=$(sel); if(el) el.textContent=txt; };
 
     const $id=$('#editingId');
     const $name=$('#fieldName');
@@ -212,6 +247,20 @@
     const $countySearch=$('#countySearch');
     const $countyList=$('#countyList');
     const $countyAddBtn=$('#countyAddBtn');
+
+    // RTK Tower controls
+    const $rtkSel=$('#rtkSel');
+    const $rtkSearchWrap=$('#rtkSearchWrap');
+    const $rtkSearch=$('#rtkSearch');
+    const $rtkList=$('#rtkList');
+    const $rtkAddBtn=$('#rtkAddBtn');
+
+    // RTK Modal elems
+    const rtkBackdrop=$('#rtkBackdrop');
+    const rtkForm=$('#rtkForm');
+    const rtkName=$('#rtkName');
+    const rtkNet=$('#rtkNet');
+    const rtkFreq=$('#rtkFreq');
 
     // Title-case helper
     function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
@@ -242,6 +291,27 @@
       return nm;
     }
 
+    // RTK Towers
+    function listTowers(){
+      return load(TOWER_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+    }
+    function validNetId(v){ return /^\d{4}$/.test(String(v||'')); }
+    function validFreq(v){ return /^\d+(?:\.\d{1,5})?$/.test(String(v||'')); } // up to 5 decimals
+    function upsertTower({name, networkId, freq}){
+      const nm=titleCase((name||'').trim());
+      const net=String(networkId||'').trim();
+      const fq=String(freq||'').trim();
+      if(!nm || !validNetId(net) || !validFreq(fq)) return null;
+      const id = nm.toLowerCase(); // key by name
+      const list=load(TOWER_KEY);
+      const i=list.findIndex(t=>t.id===id);
+      const rec={id, name:nm, networkId:net, freq:fq, createdAt: list[i]?.createdAt || Date.now(), updatedAt: Date.now()};
+      if(i>=0) list[i]=rec; else list.push(rec);
+      save(TOWER_KEY, list);
+      return id;
+    }
+    function towerById(id){ return listTowers().find(t=>t.id===id); }
+
     // Fields CRUD
     function getField(id){ return load(FIELD_KEY).find(x=>x.id===id) }
     function upsertField(item){
@@ -268,7 +338,7 @@
     }
     wireAcres($acres);
 
-    /* ---------- Farm picker (<=10 select, >10 searchable) ---------- */
+    /* ---------- Farm control ---------- */
     function renderFarmControl(selectedIdOrName){
       const farms=listFarms();
       const many=farms.length>10;
@@ -305,7 +375,7 @@
       renderFarmControl(id);
     });
 
-    /* ---------- County control (same pattern) ---------- */
+    /* ---------- County control ---------- */
     function renderCountyControl(selected){
       const counties=listCounties();
       const many=counties.length>10;
@@ -337,28 +407,118 @@
       renderCountyControl(val);
     });
 
+    /* ---------- RTK Tower control (REQUIRED) ---------- */
+    function renderRtkControl(selectedIdOrName){
+      const towers=listTowers();
+      const many=towers.length>10;
+
+      if(!many){
+        $rtkSearchWrap.style.display='none';
+        $rtkSel.style.display='block';
+        $rtkSel.innerHTML='';
+        const empty=document.createElement('option'); empty.value=''; empty.textContent='— Select tower —'; $rtkSel.appendChild(empty);
+        towers.forEach(t=>{
+          const o=document.createElement('option');
+          o.value=t.id;
+          o.textContent=`${t.name}`;
+          $rtkSel.appendChild(o);
+        });
+        const add=document.createElement('option'); add.value=ADD_VALUE; add.textContent='➕ Add New RTK Tower…'; $rtkSel.appendChild(add);
+        if(selectedIdOrName){
+          const id = towers.find(t=>t.id===selectedIdOrName || t.name===selectedIdOrName)?.id || '';
+          $rtkSel.value=id;
+        } else $rtkSel.value='';
+      } else {
+        $rtkSel.style.display='none';
+        $rtkSearchWrap.style.display='flex';
+        $rtkList.innerHTML=towers.map(t=>`<option value="${t.name}">`).join('');
+        $rtkSearch.value = selectedIdOrName && towers.find(t=>t.id===selectedIdOrName)?.name || '';
+      }
+    }
+    $rtkSel.addEventListener('change', ()=>{
+      if($rtkSel.value!==ADD_VALUE) return;
+      openRtkModal();
+    });
+    $rtkAddBtn.addEventListener('click', openRtkModal);
+
+    function openRtkModal(){
+      rtkForm.reset();
+      rtkBackdrop.style.display='flex';
+      setTimeout(()=>rtkName.focus(), 0);
+    }
+    function closeRtkModal(){ rtkBackdrop.style.display='none'; }
+
+    // RTK inputs: enforce formats
+    rtkNet.addEventListener('input', ()=>{
+      rtkNet.value = rtkNet.value.replace(/\D/g,'').slice(0,4);
+    });
+    rtkFreq.addEventListener('keydown',(e)=>{
+      const bad=['e','E','+','-']; if(bad.includes(e.key)) return e.preventDefault();
+      if(['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter'].includes(e.key)) return;
+      if(e.key==='.' && rtkFreq.value.includes('.')) return e.preventDefault();
+      if(!/^\d$/.test(e.key) && e.key!=='.') e.preventDefault();
+    });
+    rtkFreq.addEventListener('input',()=>{
+      let v=rtkFreq.value.replace(/[^0-9.]/g,'');
+      const i=v.indexOf('.');
+      if(i!==-1){ v=v.slice(0,i+1)+v.slice(i+1).replace(/\./g,''); v=v.replace(/^(\d+\.\d{0,5}).*$/,'$1'); }
+      rtkFreq.value=v;
+    });
+
+    $('#rtkCancel').addEventListener('click', closeRtkModal);
+    rtkBackdrop.addEventListener('click', (e)=>{ if(e.target===rtkBackdrop) closeRtkModal(); });
+
+    rtkForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const rec={
+        name: rtkName.value,
+        networkId: rtkNet.value,
+        freq: rtkFreq.value
+      };
+      if(!rec.name.trim()){ alert('Tower name is required.'); rtkName.focus(); return; }
+      if(!validNetId(rec.networkId)){ alert('Network ID must be exactly 4 digits.'); rtkNet.focus(); return; }
+      if(!validFreq(rec.freq)){ alert('Frequency must be digits with optional decimal (up to 5 places).'); rtkFreq.focus(); return; }
+
+      const id = upsertTower(rec);
+      closeRtkModal();
+
+      // reflect into control
+      const towers=listTowers();
+      const t=towers.find(x=>x.id===id);
+      if($rtkSel.style.display==='block'){
+        renderRtkControl(id);
+      } else {
+        $rtkSearch.value = t?.name || '';
+        renderRtkControl(id);
+      }
+    });
+
     /* ---------- Saved list & quick view ---------- */
     function renderSaved(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
       const farmsById=Object.fromEntries(listFarms().map(f=>[f.id,f]));
+      const towersById=Object.fromEntries(listTowers().map(t=>[t.id,t]));
 
       const rows=load(FIELD_KEY)
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || x.name.toLowerCase().includes(q))
         .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
 
-      $saved.innerHTML = rows.length ? rows.map(r=>`
-        <li>
+      $saved.innerHTML = rows.length ? rows.map(r=>{
+        const towerTxt = r.rtkTowerId ? (towersById[r.rtkTowerId]?.name || '—') : '—';
+        return `<li>
           <button type="button" class="btn-secondary" data-id="${r.id}"
                   style="width:100%; text-align:left; display:block; margin:8px 0;">
             <strong>${r.name}</strong>
             • ${Number(r.acres||0).toFixed(r.acres%1?2:0)} ac
             ${r.farmId?`• ${farmsById[r.farmId]?.name || '—'}`:'• Unassigned'}
             ${r.county?`• ${r.county}`:''}
+            • RTK: ${towerTxt}
             ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
           </button>
-        </li>`).join('') : '<li class="muted">No fields yet.</li>';
+        </li>`;
+      }).join('') : '<li class="muted">No fields yet.</li>';
 
       $saved.querySelectorAll('button[data-id]').forEach(b=>{
         b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
@@ -372,6 +532,7 @@
       $acres.value=String(f.acres ?? '');
       renderFarmControl(f.farmId || '');
       renderCountyControl(f.county || '');
+      renderRtkControl(f.rtkTowerId || '');
       window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
     }
 
@@ -392,13 +553,32 @@
         if(nm) farmId = upsertFarmByName(nm);
       }
 
-      // county selection (optional)
+      // county (optional)
       let county='';
       if($countySel.style.display==='block'){
         county = ($countySel.value && $countySel.value!==ADD_VALUE) ? $countySel.value : '';
       } else {
         county = $countySearch.value ? titleCase($countySearch.value) : '';
         if(county) addCountyRaw(county);
+      }
+
+      // RTK tower (REQUIRED)
+      let rtkTowerId=null, rtkNameSel='';
+      if($rtkSel.style.display==='block'){
+        if($rtkSel.value===ADD_VALUE){ openRtkModal(); return; }
+        rtkTowerId = $rtkSel.value || null;
+      } else {
+        rtkNameSel = ($rtkSearch.value||'').trim();
+        if(rtkNameSel){
+          // allow selecting by name if tower exists
+          const t=listTowers().find(x=>x.name.toLowerCase()===rtkNameSel.toLowerCase());
+          rtkTowerId = t?.id || null;
+        }
+      }
+      if(!rtkTowerId){
+        alert('RTK Tower location is required. Please select or add one.');
+        ($rtkSel.style.display==='block' ? $rtkSel : $rtkSearch).focus();
+        return;
       }
 
       if(!name){ alert('Field name is required.'); $name.focus(); return; }
@@ -408,20 +588,21 @@
       const prev=getField(id);
       upsertField({
         id, name, acres, farmId, county: county||null,
+        rtkTowerId,
         archived: prev ? !!prev.archived : false,
         createdAt: prev?.createdAt || Date.now(),
         updatedAt: Date.now()
       });
 
       $('#field-form').reset(); $id.value='';
-      renderFarmControl(); renderCountyControl();
+      renderFarmControl(); renderCountyControl(); renderRtkControl();
       renderSaved();
       $('#savedCard').scrollIntoView({behavior:'smooth', block:'start'});
     });
 
     $('#clearBtn').addEventListener('click', ()=>{
       $('#field-form').reset(); $id.value='';
-      renderFarmControl(); renderCountyControl();
+      renderFarmControl(); renderCountyControl(); renderRtkControl();
       $name.focus();
     });
 
@@ -431,6 +612,7 @@
     // Quick View
     $('#quickViewBtn').addEventListener('click', ()=>{
       const farmsById=Object.fromEntries(listFarms().map(f=>[f.id,f]));
+      const towersById=Object.fromEntries(listTowers().map(t=>[t.id,t]));
       const list=load(FIELD_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = list.length ? list.map(r=>`
@@ -440,6 +622,7 @@
             <strong>${r.name}</strong> • ${Number(r.acres||0).toFixed(r.acres%1?2:0)} ac
             • ${r.farmId ? (farmsById[r.farmId]?.name || '—') : 'Unassigned'}
             ${r.county?`• ${r.county}`:''}
+            • RTK: ${r.rtkTowerId ? (towersById[r.rtkTowerId]?.name || '—') : '—'}
           </button>
         </li>`).join('') : '<li>No fields.</li>';
       B.style.display='flex';
@@ -470,7 +653,6 @@
     }
 
     function parseCSV(text){
-      // Simple CSV parser with quotes
       const rows=[]; let i=0, field='', row=[], inQ=false;
       while(i<text.length){
         const c=text[i];
@@ -482,7 +664,6 @@
         if(c==='"'){ inQ=true; i++; continue; }
         if(c===','){ row.push(field); field=''; i++; continue; }
         if(c==='\n' || c==='\r'){
-          // handle \r\n
           if(c==='\r' && text[i+1]==='\n') i++;
           row.push(field); rows.push(row); field=''; row=[]; i++; continue;
         }
@@ -509,7 +690,6 @@
       sel.value = String(preIdx>=0 ? preIdx : -1);
     }
 
-    // Build preview table
     function renderPreview(){
       const pi = {
         name: Number(mapName.value),
@@ -526,11 +706,9 @@
       const head = `<table class="tbl"><thead><tr>
         <th>Field</th><th>Acres</th><th>Farm</th><th>County</th><th>Status</th></tr></thead><tbody>`;
       let body = '';
-      const farms=listFarms().map(f=>f.name.toLowerCase());
-      const counties=listCounties().map(c=>c.toLowerCase());
       let create=0, update=0, skip=0;
 
-      csvRows.slice(0,200).forEach((r,idx)=>{
+      csvRows.slice(0,200).forEach((r)=>{
         const nm = pi.name>=0 ? r[pi.name] : '';
         const ac = pi.acres>=0 ? r[pi.acres] : '';
         const fm = pi.farm>=0 ? r[pi.farm] : '';
@@ -560,7 +738,6 @@
         `<div class="muted-sm" style="margin-top:8px;">Previewing first ${Math.min(200,csvRows.length)} of ${csvRows.length} rows • Create ${create}, Update ${update}, Skip ${skip}</div>`;
     }
 
-    // Commit import
     function commitImport(){
       const pi = {
         name: Number(mapName.value),
@@ -613,14 +790,39 @@
     }
 
     // Import wiring
-    $('#importBtn').addEventListener('click', openImport);
-    $('#impCancel').addEventListener('click', closeImport);
-    $('#impBackdrop').addEventListener('click', (e)=>{ if(e.target===e.currentTarget) closeImport(); });
+    $('#importBtn').addEventListener('click', ()=>{ const B=$('#impBackdrop'); B.style.display='flex'; resetImport(); });
+    $('#impCancel').addEventListener('click', ()=> $('#impBackdrop').style.display='none');
+    $('#impBackdrop').addEventListener('click', (e)=>{ if(e.target===e.currentTarget) $('#impBackdrop').style.display='none'; });
+
+    const impFile=$('#impFile'); const step1=$('#impStep1'); const step2=$('#impStep2'); const step3=$('#impStep3');
+    const mapName=$('#mapName'), mapAcres=$('#mapAcres'), mapFarm=$('#mapFarm'), mapCounty=$('#mapCounty');
+    const impNext=$('#impNext'), impBack=$('#impBack'), impCommit=$('#impCommit');
+    let csvRows=[], csvHeaders=[];
 
     impFile.addEventListener('change', async ()=>{
       const f=impFile.files?.[0]; if(!f){ impNext.disabled=true; return; }
       const text = await f.text();
-      const rows = parseCSV(text);
+      const rows = (function parseCSV(text){
+        const rows=[]; let i=0, field='', row=[], inQ=false;
+        while(i<text.length){
+          const c=text[i];
+          if(inQ){
+            if(c==='"' && text[i+1]==='"'){ field+='"'; i+=2; continue; }
+            if(c==='"'){ inQ=false; i++; continue; }
+            field+=c; i++; continue;
+          }
+          if(c==='"'){ inQ=true; i++; continue; }
+          if(c===','){ row.push(field); field=''; i++; continue; }
+          if(c==='\n' || c==='\r'){
+            if(c==='\r' && text[i+1]==='\n') i++;
+            row.push(field); rows.push(row); field=''; row=[]; i++; continue;
+          }
+          field+=c; i++;
+        }
+        if(field.length || row.length) { row.push(field); rows.push(row); }
+        return rows;
+      })(text);
+
       if(!rows.length){ alert('Empty file'); return; }
       csvHeaders = rows.shift().map(h=>String(h||'').trim());
       csvRows = rows.filter(r=>r.some(c=>String(c||'').trim().length));
@@ -628,17 +830,69 @@
       step1.style.display='none'; step2.style.display='block'; step3.style.display='none';
       impNext.disabled=false;
 
-      const guess = autoMap(csvHeaders);
-      const fill=(sel, idx)=> fillMappingSelect(sel, csvHeaders, idx);
+      const H=csvHeaders.map(h=>h.trim().toLowerCase());
+      function idx(...names){ for(const n of names){ const i=H.indexOf(n); if(i>=0) return i; } return -1; }
+      const guess = {
+        name:  idx('field','field name','name'),
+        acres: idx('acres','tillable acres','tillable'),
+        farm:  idx('farm','farm name'),
+        county:idx('county')
+      };
+
+      const fill=(sel, idx)=>{ sel.innerHTML = csvHeaders.map((h,i)=>`<option value="${i}">${h}</option>`).join('') + `<option value="-1">— (None)</option>`; sel.value = String(idx>=0 ? idx : -1); };
       fill(mapName, guess.name); fill(mapAcres, guess.acres); fill(mapFarm, guess.farm); fill(mapCounty, guess.county);
     });
 
     $('#impNext').addEventListener('click', ()=>{
       if(step2.style.display==='block'){
         step2.style.display='none'; step3.style.display='block';
-        renderPreview();
-      } else {
-        // from step1 -> step2 handled by file input
+        (function renderPreview(){
+          const pi = {
+            name: Number(mapName.value),
+            acres: Number(mapAcres.value),
+            farm: Number(mapFarm.value),
+            county: Number(mapCounty.value)
+          };
+          const ok = (pi.name>=0 && pi.acres>=0);
+          impNext.style.display='none';
+          impBack.style.display='inline-block';
+          impCommit.style.display='inline-block';
+          impCommit.disabled = !ok;
+
+          const head = `<table class="tbl"><thead><tr>
+            <th>Field</th><th>Acres</th><th>Farm</th><th>County</th><th>Status</th></tr></thead><tbody>`;
+          let body = '';
+          let create=0, update=0, skip=0;
+
+          csvRows.slice(0,200).forEach((r)=>{
+            const nm = pi.name>=0 ? r[pi.name] : '';
+            const ac = pi.acres>=0 ? r[pi.acres] : '';
+            const fm = pi.farm>=0 ? r[pi.farm] : '';
+            const cy = pi.county>=0 ? r[pi.county] : '';
+            const name=titleCase(String(nm||'').trim());
+            const acres = String(ac||'').trim();
+            const farm = String(fm||'').trim();
+            const county = String(cy||'').trim();
+
+            let status='OK';
+            if(!name || !acres) { status='Missing required'; skip++; }
+            else {
+              const ex = getField(name.toLowerCase());
+              status = ex ? 'Will Update' : 'Will Create';
+              ex ? update++ : create++;
+            }
+            body += `<tr>
+              <td>${name||'—'}</td>
+              <td>${acres||'—'}</td>
+              <td>${farm||'—'}</td>
+              <td>${county||'—'}</td>
+              <td class="muted-sm">${status}</td>
+            </tr>`;
+          });
+
+          $('#impPreview').innerHTML = head + body + '</tbody></table>' +
+            `<div class="muted-sm" style="margin-top:8px;">Previewing first ${Math.min(200,csvRows.length)} of ${csvRows.length} rows • Create ${create}, Update ${update}, Skip ${skip}</div>`;
+        })();
       }
     });
     $('#impBack').addEventListener('click', ()=>{
@@ -648,11 +902,12 @@
     $('#impCommit').addEventListener('click', commitImport);
 
     // Initial render
-    renderFarmControl(); renderCountyControl(); renderSaved();
+    renderFarmControl(); renderCountyControl(); renderRtkControl(); renderSaved();
 
-    // Quick View
+    // Quick View wiring
     $('#quickViewBtn').addEventListener('click', ()=>{
       const farmsById=Object.fromEntries(listFarms().map(f=>[f.id,f]));
+      const towersById=Object.fromEntries(listTowers().map(t=>[t.id,t]));
       const list=load(FIELD_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = list.length ? list.map(r=>`
@@ -660,7 +915,9 @@
           <button type="button" class="btn-secondary" data-id="${r.id}"
                   style="width:100%; text-align:left; display:block; margin:8px 0;">
             <strong>${r.name}</strong> • ${Number(r.acres||0).toFixed(r.acres%1?2:0)} ac
-            • ${r.farmId ? (farmsById[r.farmId]?.name || '—') : 'Unassigned'} ${r.county?`• ${r.county}`:''}
+            • ${r.farmId ? (farmsById[r.farmId]?.name || '—') : 'Unassigned'}
+            ${r.county?`• ${r.county}`:''}
+            • RTK: ${r.rtkTowerId ? (towersById[r.rtkTowerId]?.name || '—') : '—'}
           </button>
         </li>`).join('') : '<li>No fields.</li>';
       B.style.display='flex';
@@ -671,11 +928,14 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Setup / Settings', href:'settings.html'},
-      {label:'Fields'}
-    ]);
+    // Footer version/date hook if your core sets them:
+    if(window.setBreadcrumbs){
+      window.setBreadcrumbs([
+        {label:'Home', href:'index.html'},
+        {label:'Setup / Settings', href:'settings.html'},
+        {label:'Fields'}
+      ]);
+    }
   })();
   </script>
 </body>
