@@ -1150,3 +1150,23 @@ button:focus-visible {
   flex-shrink: 0 !important;
   margin-left: 10px !important; /* guardrail so last label never kisses it */
 }
+
+/* Normalize iOS dark-mode styling for telephone inputs */
+input[type="tel"],
+input[type="tel"]:focus {
+  background: var(--tile-bg) !important;   /* matches your inputs */
+  color: var(--text, inherit) !important;
+  caret-color: var(--text, inherit);
+}
+
+/* Kill iOS autofill tint (shows up black/yellow in dark mode) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--tile-bg) inset !important;
+  -webkit-text-fill-color: var(--text, inherit) !important;
+  transition: background-color 9999s ease-out 0s; /* prevents flash */
+}
+
+/* Hide the contacts autofill button bubble that can darken the field */
+input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
