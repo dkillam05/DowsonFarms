@@ -1222,3 +1222,18 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
 [data-theme="dark"] .content form strong {
   color: #fff !important;
 }
+
+/* Dark mode overrides */
+:root[data-theme="dark"] {
+  /* Form text */
+  label, .form-label, form strong {
+    color: #fff !important;
+  }
+
+  /* Button text */
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline {
+    color: #fff !important;
+  }
+}
