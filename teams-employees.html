@@ -48,6 +48,13 @@
     .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px}
+
+    /* Keep modals always on top and freeze background when open (in case theme.css isn't loaded yet) */
+    .auth-modal__backdrop { z-index: 2000; }
+    #manageBackdrop { z-index: 2001; }
+    #exBackdrop { z-index: 2002; }
+    body.modal-open { overflow: hidden; }
+    body.modal-open .back-fab { display: none !important; } /* hide floating Back while any modal is open */
   </style>
 </head>
 <body>
@@ -413,9 +420,11 @@
         });
       };
 
-      $('#exSave').onclick=()=>{ B.style.display='none'; onSave && onSave(ex); };
-      $('#exCancel').onclick=()=>{ B.style.display='none'; };
-      B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+      /* Ensure modal appears above everything and background is frozen */
+      document.body.classList.add('modal-open');
+      $('#exSave').onclick=()=>{ B.style.display='none'; document.body.classList.remove('modal-open'); onSave && onSave(ex); };
+      $('#exCancel').onclick=()=>{ B.style.display='none'; document.body.classList.remove('modal-open'); };
+      B.addEventListener('click',(e)=>{ if(e.target===B){ B.style.display='none'; document.body.classList.remove('modal-open'); } }, {once:true});
       B.style.display='flex';
     }
     window.openPermissionOverrides = openPermissionOverrides;
@@ -460,7 +469,10 @@
       $('#m_email').value=e.email||'';
       fillRoleSelect($('#m_role'), e.role||'');
 
-      const B=$('#manageBackdrop'); B.style.display='flex';
+      const B=$('#manageBackdrop');
+      document.body.classList.add('modal-open');     // freeze background + hide Back FAB
+      B.style.display='flex';
+
       $('#m_exceptions').onclick=()=>{ openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; }); };
 
       // Archive button label reflects state
@@ -471,6 +483,7 @@
         if(confirm('Delete this employee? This cannot be undone.')){
           removeById(e.id);
           B.style.display='none';
+          document.body.classList.remove('modal-open');
           render();
         }
       };
@@ -483,7 +496,7 @@
         render();
       };
 
-      $('#manageCancel').onclick=()=> B.style.display='none';
+      $('#manageCancel').onclick=()=> { B.style.display='none'; document.body.classList.remove('modal-open'); };
       $('#manageSave').onclick=()=>{
         if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
         if(!isValidPhoneUS($('#m_phone').value)){ alert('Phone must be in the format (###) ###-####'); return; }
@@ -495,9 +508,9 @@
         e.email=$('#m_email').value.trim();
         e.role=$('#m_role').value;
         e.updatedAt=Date.now();
-        upsert(e); B.style.display='none'; render();
+        upsert(e); B.style.display='none'; document.body.classList.remove('modal-open'); render();
       };
-      B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
+      B.addEventListener('click', (ev)=>{ if(ev.target===B){ B.style.display='none'; document.body.classList.remove('modal-open'); } }, {once:true});
     }
 
     // ---- Quick view ----
@@ -511,9 +524,13 @@
           ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
         </li>`;
       }).join('') : '<li>No employees.</li>';
+
+      document.body.classList.add('modal-open');
       B.style.display='flex';
-      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
-      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+
+      const closeQV = ()=>{ B.style.display='none'; document.body.classList.remove('modal-open'); };
+      $('#qvClose').addEventListener('click', closeQV, {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) closeQV(); }, {once:true});
     });
 
     /* ---------- INVITE: friendly "coming soon" while backend is not live ---------- */
