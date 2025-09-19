@@ -15,6 +15,10 @@
   </script>
 
   <link rel="stylesheet" href="theme.css" />
+
+  <!-- Global data (menus) -->
+  <script defer src="assets/data/menus.js"></script>
+  <!-- Global app scripts -->
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
@@ -194,7 +198,7 @@
     const KEY='df.vendors';
     const COMP_KEY='df_vendors_companies';  // dropdown companies
     const ROLES_PERMS_KEY='df_role_perms';  // from Account Roles page
-    const MENUS_MAP_KEY='df_menus_map';     // menus object for overrides
+    const MENUS_MAP_KEY='df_menus_map';     // legacy fallback
 
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -270,20 +274,18 @@
       };
     }
 
-    // Menus for permission overrides
+    // Menus for permission overrides — prefer global DF_MENUS
     function getMenusObject(){
-      const obj = load(MENUS_MAP_KEY, null);
-      return obj && typeof obj==='object' ? obj : {
-        "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-        "Grain Tracking": ["Bins","Tickets","Contracts"],
-        "Equipment": ["Maintenance","Repairs","Assignments"],
-        "Calculators": ["Seed Rate","Fertilizer","ROI"],
-        "Reports": ["Crops","Equipment","Financial"],
-        "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-        "Feedback": ["Ideas","Bugs / Issues"],
-        "AI": ["AI","AI History"],
-        "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-      };
+      if (window.DF_MENUS && typeof window.DF_MENUS === 'object') {
+        return window.DF_MENUS;
+      }
+      // Fallback to any legacy localStorage value (keeps page functional if asset missing)
+      try {
+        const obj = JSON.parse(localStorage.getItem(MENUS_MAP_KEY) || 'null');
+        return obj && typeof obj === 'object' ? obj : {};
+      } catch (_) {
+        return {};
+      }
     }
 
     // ---- Permission Overrides shared state ----
@@ -336,7 +338,7 @@
         });
 
         const kidsWrap=document.createElement('div'); kidsWrap.className='ex-children';
-        MENUS[menu].forEach(sub=>{
+        (MENUS[menu]||[]).forEach(sub=>{
           const key=`${menu}>${sub}`;
           const row=document.createElement('div'); row.style.margin='10px 0'; row.setAttribute('data-subrow',''); row.dataset.key=key;
           const label=document.createElement('div'); label.textContent=sub; label.style.margin='0 0 6px';
@@ -371,7 +373,7 @@
         Object.keys(exState.grants).forEach(k=>{ const g=exState.grants[k]; const any=g&&(g.view||g.edit||g.add||g.archive||g.delete); if(!any) delete exState.grants[k]; });
         if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
       };
-      B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     }
 
     // ----- Role & company selects -----
@@ -387,7 +389,6 @@
       if(!v){ alert('Vendor not found'); return; }
       if(!v.email){ alert('Email is required to send invite.'); return; }
 
-      // Show friendly construction message (and toast for consistency)
       alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
       v.invitedAt = Date.now(); upsert(v); render(); showToast('Invite queued');
     }
@@ -444,7 +445,6 @@
 
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
-        // validate same as create
         if(!($('#m_first').value||'').trim()){ alert('First name is required.'); return; }
         if(!($('#m_last').value||'').trim()){ alert('Last name is required.'); return; }
         if(!isEmail($('#m_email').value)){ alert('Valid email is required.'); return; }
@@ -462,6 +462,7 @@
         e.updatedAt = Date.now();
         upsert(e); B.style.display='none'; render(); showToast('Saved changes');
       };
+      B.addEventListener('click, keydown', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
@@ -559,6 +560,15 @@
       {label:'Vendors'}
     ]);
   })();
+  </script>
+
+  <!-- Service worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
   </script>
 </body>
 </html>
