@@ -20,25 +20,6 @@
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
-
-  <style>
-    .tile-grid {
-      display:grid; gap:14px;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      align-items:stretch;
-    }
-    .tile {
-      display:flex; flex-direction:column; justify-content:center; align-items:center;
-      text-align:center; gap:8px;
-      border:1px solid var(--tile-border); border-radius:16px; background:var(--tile-bg);
-      padding:18px 14px; text-decoration:none; color:inherit;
-      box-shadow:0 6px 16px rgba(0,0,0,.06);
-    }
-    .tile:hover { box-shadow:0 10px 24px rgba(0,0,0,.10); transform:translateY(-1px); }
-    .tile__emoji { font-size:32px; line-height:1; }
-    .tile__title { font-weight:700; font-size:1.05rem; }
-    .tile__hint  { opacity:.8; font-size:.92rem; }
-  </style>
 </head>
 <body>
   <!-- Header -->
@@ -66,32 +47,9 @@
       <h1 style="margin:0;">📦 Products</h1>
     </div>
 
+    <!-- Standard tile container; we will render from global menus -->
     <section class="card" style="margin-top:12px;">
-      <div class="tile-grid">
-        <a class="tile" href="products-seed.html">
-          <div class="tile__emoji">🌽</div>
-          <div class="tile__title">Seed</div>
-          <div class="tile__hint">Hybrids • Lots • Bins</div>
-        </a>
-
-        <a class="tile" href="products-fertilizer.html">
-          <div class="tile__emoji">🧂</div>
-          <div class="tile__title">Fertilizer</div>
-          <div class="tile__hint">N • P • K • Blends</div>
-        </a>
-
-        <a class="tile" href="products-chemical.html">
-          <div class="tile__emoji">👨🏼‍🔬</div>
-          <div class="tile__title">Chemical</div>
-          <div class="tile__hint">Herb • Fung • Insect</div>
-        </a>
-
-        <a class="tile" href="products-grain-bags.html">
-          <div class="tile__emoji">🛄</div>
-          <div class="tile__title">Grain Bags</div>
-          <div class="tile__hint">Inventory • Usage</div>
-        </a>
-      </div>
+      <div class="df-tiles" data-section></div>
     </section>
   </main>
 
@@ -115,6 +73,45 @@
         navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
       });
     }
+  </script>
+
+  <!-- Global menus + tiny renderer -->
+  <script defer src="assets/data/menus.js"></script>
+  <script defer src="ui-nav.js"></script>
+
+  <!-- Fallback for nested sections: find "products.html" inside the global menu and render its children -->
+  <script>
+    (function () {
+      const target = document.querySelector('.df-tiles[data-section]');
+      if (!target) return;
+
+      // If ui-nav.js already filled it, do nothing
+      if (target.children.length) return;
+
+      const MENUS = window.DF_MENUS || {};
+      const tiles = Array.isArray(MENUS.tiles) ? MENUS.tiles : [];
+
+      function findByHref(nodeList, href) {
+        for (const n of nodeList) {
+          if (n.href === href) return n;
+          if (n.children) {
+            const hit = findByHref(n.children, href);
+            if (hit) return hit;
+          }
+        }
+        return null;
+      }
+
+      const here = location.pathname.split('/').pop() || 'products.html';
+      const section = findByHref(tiles, here) || findByHref(tiles, 'products.html');
+      if (!section || !Array.isArray(section.children)) return;
+
+      function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+      target.innerHTML = section.children.map(c => {
+        const ico = c.iconEmoji ? (esc(c.iconEmoji) + ' ') : '';
+        return `<a href="${esc(c.href)}" class="df-tile">${ico}<span>${esc(c.label)}</span></a>`;
+      }).join('');
+    })();
   </script>
 </body>
 </html>
