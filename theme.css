@@ -1126,7 +1126,7 @@ button:focus-visible {
 
 /* Middle crumbs collapse to short labels (“Pro…”, “Chem…”, “Seed…”) */
 .breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child){
-  flex: 0 0 auto !important;
+  flex: 0 1 auto !important;
   min-width: 0 !important;
 }
 .breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
