@@ -1131,7 +1131,7 @@ button:focus-visible {
 }
 .breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > a,
 .breadcrumbs ol li:not(.sep):not(:first-child):not(:last-child) > span{
-  max-width: 4ch !important; /* adjust 3–6ch to taste */
+  max-width: 10ch !important; /* adjust 3–6ch to taste */
 }
 
 /* Last crumb capped so it never runs into Logout */
