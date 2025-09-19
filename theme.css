@@ -1170,3 +1170,26 @@ input:-webkit-autofill:focus {
 
 /* Hide the contacts autofill button bubble that can darken the field */
 input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
+
+
+/* =========================
+   Modal stacking fixes
+   ========================= */
+.auth-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  display: none;  /* stays hidden until JS toggles it */
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;  /* base modal layer */
+}
+
+/* Manage modal sits above base */
+#manageBackdrop {
+  z-index: 1001;
+}
+
+/* Permission Overrides should always be on top */
+#exBackdrop {
+  z-index: 1002;
+}
