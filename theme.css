@@ -1216,4 +1216,9 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   display: none; /* hide the extra one */
 }
 
-
+/* In dark mode, make form labels white instead of green */
+[data-theme="dark"] label,
+[data-theme="dark"] .form-label,
+[data-theme="dark"] .content form strong {
+  color: #fff !important;
+}
