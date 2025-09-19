@@ -1302,3 +1302,33 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   opacity: 1;
   transform: translateX(-50%) translateY(-4px);
 }
+
+/* ===== Fix: Pill buttons use white text in dark mode (all pages) ===== */
+/* Covers Account Roles page and Permission Overrides modal  */
+:root[data-theme="dark"] :where(.pill),
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] :where(.pill) {
+    color: #fff !important;                 /* force white label */
+    background: var(--tile-bg) !important;  /* match card bg */
+    border-color: var(--tile-border) !important;
+  }
+}
+
+/* Pressed/active state stays solid green with white text */
+:root[data-theme="dark"] :where(.pill[aria-pressed="true"]),
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] :where(.pill[aria-pressed="true"]) {
+    background: var(--brand-green) !important;
+    border-color: var(--brand-green) !important;
+    color: #fff !important;
+  }
+}
+
+/* Disabled pills remain dim but readable in dark mode */
+:root[data-theme="dark"] :where(.pill[disabled]),
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] :where(.pill[disabled]) {
+    opacity: .6 !important;
+    color: #ddd !important;
+  }
+}
