@@ -1,10 +1,9 @@
 /* Dowson Farms — Global Navigation (ordered)
-   Single source of truth for menus + submenus + emojis.
+   Keep this as the one source of truth for menus + submenus + emojis.
    Pages should READ from this, never hardcode.
 */
 const MENUS = {
   tiles: [
-    // 1
     {
       label: "Crop Production",
       href: "crop.html",
@@ -20,16 +19,7 @@ const MENUS = {
         { label: "Trials",            href: "crop-trials.html",      iconEmoji: "🧬" }
       ]
     },
-
-    // 2 — shortcut tile (quick link into Crop Production → Field Maintenance)
-    {
-      label: "Field Maintenance",
-      href: "crop-maintenance.html",
-      iconEmoji: "🛠️",
-      children: []
-    },
-
-    // 3
+    { label: "Field Maintenance", href: "crop-maintenance.html", iconEmoji: "🛠️", children: [] },
     {
       label: "Grain Tracking",
       href: "grain.html",
@@ -41,8 +31,6 @@ const MENUS = {
         { label: "Grain Ticket (OCR)", href: "grain-ticket-ocr.html",  iconEmoji: "🎫" }
       ]
     },
-
-    // 4
     {
       label: "Equipment",
       href: "equip.html",
@@ -58,8 +46,6 @@ const MENUS = {
         { label: "Trailers",              href: "equipment-trailers.html",     iconEmoji: "🚚" }
       ]
     },
-
-    // 5
     {
       label: "Calculators",
       href: "calculators.html",
@@ -73,8 +59,6 @@ const MENUS = {
         { label: "Grain Shrink",  href: "calc-grain-shrink.html",  iconEmoji: "📉" }
       ]
     },
-
-    // 6
     {
       label: "Teams & Partners",
       href: "team.html",
@@ -86,8 +70,6 @@ const MENUS = {
         { label: "Dictionary",      href: "teams-dictionary.html",      iconEmoji: "🗂️" }
       ]
     },
-
-    // 7
     {
       label: "Reports",
       href: "reports.html",
@@ -98,8 +80,6 @@ const MENUS = {
         { label: "AI Report History",   href: "reports-ai-history.html", iconEmoji: "🕘" }
       ]
     },
-
-    // 8
     {
       label: "Setup / Settings",
       href: "settings.html",
@@ -123,8 +103,6 @@ const MENUS = {
         }
       ]
     },
-
-    // 9
     {
       label: "Feedback",
       href: "feedback.html",
@@ -137,20 +115,7 @@ const MENUS = {
   ]
 };
 
-/* ---- Export / Globals ---- */
-try { export default MENUS; } catch (_) {}
-
-if (typeof window !== 'undefined') {
+/* Make available to the app (classic script) */
+if (typeof window !== "undefined") {
   window.DF_MENUS = MENUS;
-
-  // Optional shims so legacy renderers don’t no-op:
-  if (!window.NAV_HOME || !window.NAV_MENUS) {
-    window.NAV_HOME  = MENUS.tiles.map((_, i) => `tile${i}`);
-    window.NAV_MENUS = Object.fromEntries(
-      MENUS.tiles.map((t, i) => [
-        `tile${i}`,
-        { id:`tile${i}`, label:t.label, emoji:t.iconEmoji, href:t.href }
-      ])
-    );
-  }
 }
