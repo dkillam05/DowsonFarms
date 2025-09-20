@@ -1375,13 +1375,13 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   :root[data-theme="auto"] .switch-label { color: #fff !important; }
 }
 
-/* Back button (scrolls with page, not fixed) */
-.back-btn{
+/* Back button — bottom left, scrolls with page */
+.back-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  margin: 6px 0 10px 4px;   /* small offset from content edges */
+  padding: 8px 14px;
+  margin: 16px 0 0 6px;  /* push down a little, align left */
   background: var(--tile-bg);
   color: var(--brand-green);
   border: 2px solid var(--brand-green);
@@ -1390,12 +1390,18 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   text-decoration: none;
   box-shadow: 0 4px 12px rgba(0,0,0,.10);
 }
-.back-btn .chev{ font-size: 1.1rem; line-height: 1; transform: translateY(-1px); }
-.back-btn:hover, .back-btn:focus-visible{
-  background:#fefefe;
+.back-btn .chev { font-size: 1.1rem; line-height: 1; transform: translateY(-1px); }
+.back-btn:hover,
+.back-btn:focus-visible {
+  background: #fefefe;
   outline: none;
 }
 
-/* Dark / Auto theme harmony */
+/* Dark/Auto theme harmony */
 :root[data-theme="dark"] .back-btn,
-:root[data-theme="auto"] .back-btn { background: var(--tile-bg); color: var(--brand-green); }
+:root[data-theme="auto"] .back-btn {
+  background: var(--tile-bg);
+  color: var(--brand-green);
+}
+
+
