@@ -1,22 +1,13 @@
-/* Dowson Farms — core.js
-   - Clock (HH:MM)
-   - Report date footer
-   - Version stamp (from version.js if present)
-   - Breadcrumb helper + Logout button injection
-   - Tiny app registry: DF.ready.then(reg => reg.get()/set())
-*/
-
+/* Dowson Farms — core.js */
 (function Core(){
   const $ = (s, r=document) => r.querySelector(s);
 
-  /* ---------- Tiny registry so other scripts can share state ---------- */
+  // tiny registry
   const registry = new Map();
-  function regSet(k,v){ registry.set(k,v); }
-  function regGet(k){ return registry.get(k); }
-  const ready = Promise.resolve({ set: regSet, get: regGet });
+  const ready = Promise.resolve({ set:(k,v)=>registry.set(k,v), get:(k)=>registry.get(k) });
   window.DF = Object.assign(window.DF || {}, { ready });
 
-  /* ---------- Clock (HH:MM, local time) ---------- */
+  // clock
   function two(n){ return n<10 ? '0'+n : ''+n; }
   function drawClock(){
     const el = $('#clock'); if(!el) return;
@@ -24,23 +15,22 @@
     el.textContent = `${two(d.getHours())}:${two(d.getMinutes())}`;
   }
   drawClock();
-  // tick at the top of each minute
   (function scheduleClock(){
     const now = new Date();
     const msToNextMin = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(250, msToNextMin));
   })();
 
-  /* ---------- Report date (footer) ---------- */
+  // footer date
   (function setReportDate(){
     const el = $('#report-date'); if(!el) return;
     try{
       const d = new Date();
-      el.textContent = d.toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'});
+      el.textContent = d.toLocaleDateString(undefined,{weekday:'short',year:'numeric',month:'short',day:'numeric'});
     }catch(_){ el.textContent = new Date().toDateString(); }
   })();
 
-  /* ---------- Version (from version.js if available) ---------- */
+  // version
   (function setVersion(){
     const el = $('#version'); if(!el) return;
     const v =
@@ -52,7 +42,7 @@
     el.textContent = v || el.textContent || 'v0.0.0';
   })();
 
-  /* ---------- Breadcrumbs helper ---------- */
+  // breadcrumbs helper
   window.setBreadcrumbs = function setBreadcrumbs(trail){
     try{
       let nav = $('.breadcrumbs');
@@ -76,9 +66,7 @@
         const isLast = idx === items.length-1;
         const label = (item && item.label) ? String(item.label) : '';
         const href  = (!isLast && item && item.href) ? String(item.href) : null;
-        parts.push(
-          href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>`
-        );
+        parts.push(href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>`);
       });
       ol.innerHTML = parts.join('');
 
@@ -88,6 +76,7 @@
 
   function ensureLogoutButton(nav){
     if ($('.breadcrumbs .logout-btn')) return;
+
     const btn = document.createElement('button');
     btn.className = 'logout-btn';
     btn.type = 'button';
@@ -96,17 +85,26 @@
 
     btn.addEventListener('click', ()=>{
       try {
+        // clear any local “session”
         localStorage.removeItem('df_current_user');
-        // location.href = '/auth/index.html'; // enable when real auth wired
-        alert('Logged out (frontend only). Wire this to real auth later.');
-      } catch(e) { console.error(e); }
+
+        // Compute a safe prefix to the site root regardless of depth (/a/b/c → ../../)
+        const depth = location.pathname.split('/').filter(Boolean).length - 1; // minus current file
+        const up = depth > 0 ? '../'.repeat(depth) : './';
+
+        // Always go to login page
+        location.assign(up + 'auth/index.html');
+      } catch(e) {
+        console.error(e);
+        // last resort: try relative
+        location.assign('auth/index.html');
+      }
     });
   }
 
-  /* ---------- Auto breadcrumbs (skip on auth pages) ---------- */
+  // auto breadcrumbs (skip on auth pages)
   document.addEventListener('DOMContentLoaded', ()=>{
-    // 🚫 Do not inject breadcrumbs on login/signup/etc
-    if (document.body.classList.contains('auth-page')) return;
+    if (document.body.classList.contains('auth-page')) return; // no crumbs on login
 
     const hasStatic = !!$('.breadcrumbs ol li');
     if (!hasStatic) {
@@ -122,8 +120,5 @@
     }
   });
 
-  /* ---------- Utility: root-friendly href ---------- */
-  function relativeHrefFromRoot(file){
-    return file; // browser resolves relative automatically
-  }
+  function relativeHrefFromRoot(file){ return file; }
 })();
