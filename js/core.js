@@ -1,48 +1,25 @@
+<!-- /js/core.js -->
+<script>
 /* Dowson Farms — core.js
    - Clock (HH:MM)
-   - Footer report date + version
-   - Breadcrumb helper + Logout injection
-   - Repo-aware navigation helpers (DF.root()/DF.go())
-   - Auth guard: redirect to /auth/index.html when not logged in
+   - Report date footer
+   - Version stamp (from version.js if present)
+   - Breadcrumb helper + Logout button injection
+   - Back button on non-home pages (scrolls with page)
+   - Tiny app registry: DF.ready.then(reg => reg.get()/set()); DF.go(href)
 */
-
 (function Core(){
   const $ = (s, r=document) => r.querySelector(s);
 
-  /* ---------- Tiny shared registry ---------- */
+  /* ---------- Tiny registry so other scripts can share state ---------- */
   const registry = new Map();
   function regSet(k,v){ registry.set(k,v); }
   function regGet(k){ return registry.get(k); }
+  function go(href){ location.href = href; }
   const ready = Promise.resolve({ set: regSet, get: regGet });
+  window.DF = Object.assign(window.DF || {}, { ready, go });
 
-  /* ---------- Repo-aware navigation helpers ---------- */
-  function repoBase() {
-    // Works on GitHub Pages: /<repo>/...  (and also locally)
-    const parts = location.pathname.split('/').filter(Boolean);
-    // when served as /<repo>/... take first segment; otherwise empty
-    const first = parts.length ? `/${parts[0]}/` : '/';
-    return first;
-  }
-  function root(href) { return repoBase() + href.replace(/^\//,''); }
-  function go(href)   { location.href = root(href); }
-
-  // expose small API
-  window.DF = Object.assign(window.DF || {}, {
-    ready, root, go
-  });
-
-  /* ---------- Auth helpers ---------- */
-  const AUTH_PATH_PREFIX = '/auth/';  // folder that contains login
-  function isAuthPage(){ return location.pathname.includes(AUTH_PATH_PREFIX); }
-  function isLoggedIn(){ return !!localStorage.getItem('df_current_user'); }
-  function requireAuth(){
-    if (isAuthPage()) return;               // never guard the auth pages
-    if (!isLoggedIn()) location.replace(root('auth/index.html'));
-  }
-  // Run guard ASAP
-  requireAuth();
-
-  /* ---------- Clock ---------- */
+  /* ---------- Clock (HH:MM, local time) ---------- */
   function two(n){ return n<10 ? '0'+n : ''+n; }
   function drawClock(){
     const el = $('#clock'); if(!el) return;
@@ -56,7 +33,7 @@
     setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(250, msToNextMin));
   })();
 
-  /* ---------- Footer date ---------- */
+  /* ---------- Report date (footer) ---------- */
   (function setReportDate(){
     const el = $('#report-date'); if(!el) return;
     try{
@@ -65,7 +42,7 @@
     }catch(_){ el.textContent = new Date().toDateString(); }
   })();
 
-  /* ---------- Version (from version.js) ---------- */
+  /* ---------- Version (from version.js if available) ---------- */
   (function setVersion(){
     const el = $('#version'); if(!el) return;
     const v =
@@ -78,9 +55,8 @@
   })();
 
   /* ---------- Breadcrumbs helper ---------- */
-  // Usage: window.setBreadcrumbs([{label:'Home', href:'index.html'}, {label:'Settings'}, ...])
+  // Usage: window.setBreadcrumbs([{label:'Home', href:'/'}, {label:'Settings'}, ...])
   window.setBreadcrumbs = function setBreadcrumbs(trail){
-    if (document.body.classList.contains('auth-page')) return; // no crumbs on auth
     try{
       let nav = $('.breadcrumbs');
       if(!nav){
@@ -91,10 +67,17 @@
         nav.innerHTML = '<ol></ol>';
         (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
       }
-      let ol = $('ol', nav) || nav.appendChild(document.createElement('ol'));
+      let ol = $('ol', nav);
+      if(!ol){ ol = document.createElement('ol'); nav.appendChild(ol); }
 
-      const items = Array.isArray(trail) ? trail.slice() : [];
+      let items = Array.isArray(trail) ? trail.slice() : [];
       if (!items.length) return;
+
+      /* --- SPECIAL: Home page should NOT show “Dashboard” --- */
+      if (document.body.classList.contains('home-page')) {
+        // Accept either ["Home", "Dashboard"] or anything that ends in "Dashboard"
+        items = [{ label: 'Home' }]; // current page only
+      }
 
       const parts = [];
       items.forEach((item, idx)=>{
@@ -111,37 +94,76 @@
   };
 
   function ensureLogoutButton(nav){
-    if (document.body.classList.contains('auth-page')) return; // none on auth
     if ($('.breadcrumbs .logout-btn')) return;
-
     const btn = document.createElement('button');
     btn.className = 'logout-btn';
     btn.type = 'button';
     btn.textContent = 'Logout';
     nav.appendChild(btn);
-
     btn.addEventListener('click', ()=>{
-      try{
+      try {
         localStorage.removeItem('df_current_user');
-        location.replace(root('auth/index.html'));
-      }catch(e){ console.error(e); }
+        alert('Logged out (frontend only). Wire this to real auth later.');
+      } catch(e) { console.error(e); }
     });
   }
 
-  /* ---------- Apply default breadcrumbs if page provided none ---------- */
+  /* ---------- Back button (scrolls with page, not fixed) ---------- */
+  function renderBackButton(){
+    // Never show on home; only show when there’s somewhere to go
+    if (document.body.classList.contains('home-page')) return;
+
+    const content = $('.content'); if (!content) return;
+    if (content.querySelector('.back-btn')) return;
+
+    const btn = document.createElement('a');
+    btn.href = 'javascript:void(0)';
+    btn.className = 'back-btn';
+    btn.innerHTML = '<span class="chev">‹</span> Back';
+
+    // Insert at the very top of the content area
+    content.insertBefore(btn, content.firstChild);
+
+    btn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      // Prefer real back if we have history and came from same origin
+      const ref = document.referrer;
+      const sameOrigin = ref && ref.startsWith(location.origin);
+      if (sameOrigin && history.length > 1) {
+        history.back();
+      } else {
+        // Fallback to home
+        if (window.DF && window.DF.go) window.DF.go(relativeHrefFromRoot('index.html'));
+        else location.href = 'index.html';
+      }
+    });
+  }
+
+  /* ---------- Apply defaults on DOM ready ---------- */
   document.addEventListener('DOMContentLoaded', ()=>{
-    if (document.body.classList.contains('auth-page')) return; // skip on login
-    const hasStatic = !!$('.breadcrumbs ol li');
+    // If page didn’t provide crumbs, create a simple one.
+    const hasStatic = !!document.querySelector('.breadcrumbs ol li');
     if (!hasStatic) {
       const title = (document.title || '').replace(/\s*—.*$/,'').trim();
-      const h1 = $('.content h1')?.textContent?.trim();
+      const h1 = document.querySelector('.content h1')?.textContent?.trim();
       const page = h1 || title || 'Page';
-      window.setBreadcrumbs([
-        {label:'Home', href: root('index.html') },
-        {label: page}
-      ]);
+      const trail = document.body.classList.contains('home-page')
+        ? [{label:'Home'}]
+        : [{label:'Home', href: relativeHrefFromRoot('index.html')}, {label: page}];
+      window.setBreadcrumbs(trail);
+    } else if (document.body.classList.contains('home-page')) {
+      // If Home had static crumbs, normalize them to just “Home”
+      window.setBreadcrumbs([{label:'Home'}]);
     } else {
-      const nav = $('.breadcrumbs'); if (nav) ensureLogoutButton(nav);
+      const nav = document.querySelector('.breadcrumbs');
+      if (nav) ensureLogoutButton(nav);
     }
+
+    // Back button on non-home pages
+    renderBackButton();
   });
+
+  /* ---------- Utility ---------- */
+  function relativeHrefFromRoot(file){ return file; }
 })();
+</script>
