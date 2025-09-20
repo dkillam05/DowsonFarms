@@ -2,9 +2,9 @@
    - Tiny registry (DF.ready.then(reg => reg.get()/set()))
    - Clock (HH:MM)
    - Report date (footer)
-   - Version stamp (reads window.APP_VERSION, DF_VERSION, etc.)
-   - Breadcrumb helper (+ inject Logout)
-   - Default breadcrumbs (Home only on index)
+   - Version stamp
+   - Breadcrumb helper (+ Logout)
+   - Default breadcrumbs (no “Dashboard” on Home)
    - Global Back button (scrolls with page, just above footer)
 */
 
@@ -24,7 +24,11 @@
     const file = (location.pathname.split('/').pop() || '').toLowerCase();
     return file === '' || file === 'index.html';
   }
-  function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }
+  function esc(s){
+    return String(s || '').replace(/[&<>"]/g, c => (
+      { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]
+    ));
+  }
 
   /* ---------- Clock ---------- */
   function drawClock(){
@@ -74,7 +78,8 @@
         nav.innerHTML = '<ol></ol>';
         (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
       }
-      const ol = $('ol', nav) || nav.appendChild(document.createElement('ol'));
+      let ol = $('ol', nav);
+      if (!ol){ ol = document.createElement('ol'); nav.appendChild(ol); }
 
       const parts = [];
       trail.forEach((item, idx)=>{
@@ -116,7 +121,7 @@
       if (isHomePage()){
         window.setBreadcrumbs([{ label:'Home', href:'index.html' }]);
       } else {
-        const homeHref = location.pathname.includes('/') ? (location.pathname.replace(/\/[^\/]*$/, '/index.html')) : 'index.html';
+        const homeHref = location.pathname.replace(/\/[^\/]*$/, '/index.html');
         window.setBreadcrumbs([{label:'Home', href: homeHref}, {label: page}]);
       }
     } else if (isHomePage()){
