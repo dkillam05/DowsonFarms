@@ -17,7 +17,7 @@
   })();
   </script>
 
-  <!-- Styles / App (note ../ because we are in /equip/) -->
+  <!-- We are in /equipment/, so use ../ to reach shared assets -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
@@ -25,7 +25,7 @@
   <!-- PWA -->
   <link rel="manifest" href="../manifest.webmanifest" />
 
-  <!-- iOS PWA icons -->
+  <!-- iOS icons -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
@@ -33,18 +33,14 @@
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
 </head>
 <body>
-  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
-    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -53,24 +49,18 @@
     </ol>
   </nav>
 
-  <!-- Main -->
   <main class="content">
     <h1>🚜 Equipment</h1>
-
-    <!-- Sub-tiles auto-filled from menus.js for this section -->
     <div class="df-tiles" data-section="Equipment"></div>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
-    <span>Dowson Farms</span>
-    <span class="dot">•</span>
-    <span id="report-date">—</span>
-    <span class="dot">•</span>
+    <span>Dowson Farms</span><span class="dot">•</span>
+    <span id="report-date">—</span><span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker (file at /js/serviceworker.js) -->
+  <!-- Your SW is in /js/ -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -79,7 +69,6 @@
     }
   </script>
 
-  <!-- Menus + subnav renderer -->
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 </body>
