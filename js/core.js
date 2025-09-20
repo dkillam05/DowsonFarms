@@ -1,29 +1,22 @@
 /* Dowson Farms — core.js
-   - Clock, footer date, version stamp
-   - Breadcrumb helper + Logout button
-   - Registry + DF.go() for safe cross-page navigation on GitHub Pages
+   - Clock (HH:MM)
+   - Report date footer
+   - Version stamp (from version.js if present)
+   - Breadcrumb helper + Logout button injection
+   - Tiny app registry: DF.ready.then(reg => reg.get()/set())
 */
+
 (function Core(){
   const $ = (s, r=document) => r.querySelector(s);
 
-  // --- Registry & helper navigation that respects repo subfolder ---
+  /* ---------- Tiny registry so other scripts can share state ---------- */
   const registry = new Map();
   function regSet(k,v){ registry.set(k,v); }
   function regGet(k){ return registry.get(k); }
-  function basePath(){
-    // Works for GitHub Pages repo sites: /RepoName/...
-    // and for custom domains (root) as well.
-    const parts = location.pathname.split('/').filter(Boolean);
-    // If first segment looks like a repo folder (e.g., DowsonFarms), use it
-    return parts.length ? `/${parts[0]}/` : '/';
-  }
-  function fromRoot(file){ return basePath() + String(file).replace(/^\//,''); }
-  function go(file){ location.href = fromRoot(file); }
-
   const ready = Promise.resolve({ set: regSet, get: regGet });
-  window.DF = Object.assign(window.DF || {}, { ready, go, fromRoot });
+  window.DF = Object.assign(window.DF || {}, { ready });
 
-  // --- Clock ---
+  /* ---------- Clock (HH:MM, local time) ---------- */
   function two(n){ return n<10 ? '0'+n : ''+n; }
   function drawClock(){
     const el = $('#clock'); if(!el) return;
@@ -31,13 +24,14 @@
     el.textContent = `${two(d.getHours())}:${two(d.getMinutes())}`;
   }
   drawClock();
+  // tick at the top of each minute
   (function scheduleClock(){
     const now = new Date();
     const msToNextMin = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(250, msToNextMin));
   })();
 
-  // --- Report date ---
+  /* ---------- Report date (footer) ---------- */
   (function setReportDate(){
     const el = $('#report-date'); if(!el) return;
     try{
@@ -46,7 +40,7 @@
     }catch(_){ el.textContent = new Date().toDateString(); }
   })();
 
-  // --- Version from version.js (optional globals) ---
+  /* ---------- Version (from version.js if available) ---------- */
   (function setVersion(){
     const el = $('#version'); if(!el) return;
     const v =
@@ -58,7 +52,7 @@
     el.textContent = v || el.textContent || 'v0.0.0';
   })();
 
-  // --- Breadcrumbs + Logout button ---
+  /* ---------- Breadcrumbs helper ---------- */
   window.setBreadcrumbs = function setBreadcrumbs(trail){
     try{
       let nav = $('.breadcrumbs');
@@ -70,7 +64,9 @@
         nav.innerHTML = '<ol></ol>';
         (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
       }
-      let ol = $('ol', nav) || nav.appendChild(document.createElement('ol'));
+      let ol = $('ol', nav);
+      if(!ol){ ol = document.createElement('ol'); nav.appendChild(ol); }
+
       const items = Array.isArray(trail) ? trail.slice() : [];
       if (!items.length) return;
 
@@ -80,9 +76,12 @@
         const isLast = idx === items.length-1;
         const label = (item && item.label) ? String(item.label) : '';
         const href  = (!isLast && item && item.href) ? String(item.href) : null;
-        parts.push( href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>` );
+        parts.push(
+          href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>`
+        );
       });
       ol.innerHTML = parts.join('');
+
       ensureLogoutButton(nav);
     }catch(e){ console.error('setBreadcrumbs error:', e); }
   };
@@ -94,28 +93,37 @@
     btn.type = 'button';
     btn.textContent = 'Logout';
     nav.appendChild(btn);
+
     btn.addEventListener('click', ()=>{
       try {
         localStorage.removeItem('df_current_user');
-        go('auth/index.html'); // ✅ respects GitHub Pages base path
-      } catch(e) {
-        console.error(e);
-      }
+        // location.href = '/auth/index.html'; // enable when real auth wired
+        alert('Logged out (frontend only). Wire this to real auth later.');
+      } catch(e) { console.error(e); }
     });
   }
 
+  /* ---------- Auto breadcrumbs (skip on auth pages) ---------- */
   document.addEventListener('DOMContentLoaded', ()=>{
+    // 🚫 Do not inject breadcrumbs on login/signup/etc
+    if (document.body.classList.contains('auth-page')) return;
+
     const hasStatic = !!$('.breadcrumbs ol li');
     if (!hasStatic) {
       const title = (document.title || '').replace(/\s*—.*$/,'').trim();
       const h1 = $('.content h1')?.textContent?.trim();
       const page = h1 || title || 'Page';
       window.setBreadcrumbs([
-        {label:'Home', href: fromRoot('index.html') },
+        {label:'Home', href: relativeHrefFromRoot('index.html') },
         {label: page}
       ]);
     } else {
       const nav = $('.breadcrumbs'); if (nav) ensureLogoutButton(nav);
     }
   });
+
+  /* ---------- Utility: root-friendly href ---------- */
+  function relativeHrefFromRoot(file){
+    return file; // browser resolves relative automatically
+  }
 })();
