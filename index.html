@@ -22,17 +22,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Theme (moved) -->
+  <!-- Theme (PATH: assets/css/theme.css) -->
   <link rel="stylesheet" href="assets/css/theme.css" />
 
-  <!-- Global app scripts (moved) -->
+  <!-- Global app scripts (PATHS: js/...) -->
   <script defer src="js/version.js"></script>
   <script defer src="js/core.js"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
 
-  <!-- iOS PWA icons -->
+  <!-- iOS PWA icons (PATH: assets/icons/...) -->
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
@@ -75,16 +75,16 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker (keep at root for scope of the whole site) -->
+  <!-- Service worker (PATH: js/serviceworker.js) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("./js/serviceworker.js").catch(console.error);
       });
     }
   </script>
 
-  <!-- Global menus + tiny renderers (moved) -->
+  <!-- Global menus + renderer (PATHS: assets/data/menus.js, js/ui-nav.js) -->
   <script defer src="assets/data/menus.js"></script>
   <script defer src="js/ui-nav.js"></script>
 </body>
