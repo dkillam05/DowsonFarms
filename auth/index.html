@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Sign in — Dowson Farms</title>
+
+  <!-- Apply saved theme (or default to AUTO) before CSS paints -->
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('df_theme') || 'auto';
+        document.documentElement.setAttribute('data-theme', mode);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'auto');
+      }
+    })();
+  </script>
+
+  <!-- Theme + core (UPDATED PATHS) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+
+  <!-- PWA / iOS (UPDATED PATHS) -->
+  <link rel="manifest" href="../manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+
+  <!-- Elegant heading font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
+</head>
+<body class="auth-page">
+
+  <main class="auth-wrap">
+    <!-- Brand on background -->
+    <div class="auth-hero">
+      <div class="auth-hero__logo">
+        <img src="../assets/icons/icon-192.png" alt="Dowson Farms" />
+      </div>
+      <h1 class="auth-hero__title">Dowson Farms</h1>
+      <p class="auth-hero__subtitle">Welcome back. Sign in to continue.</p>
+    </div>
+
+    <!-- Compact login card -->
+    <div class="auth-card auth-card--compact">
+      <form id="loginForm" class="auth-form" novalidate>
+        <div class="field">
+          <label for="username">Username</label>
+          <input
+            id="username"
+            name="username"
+            type="email"
+            inputmode="email"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            placeholder="Email"
+            required
+          />
+          <p class="field-hint" id="usernameHint" hidden>Please enter a valid email.</p>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="password-wrap">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="Password"
+              required
+              minlength="6"
+            />
+            <!-- Eye button: SVG will be injected by JS -->
+            <button type="button" class="eye" aria-label="Show password" aria-pressed="false" id="togglePw"></button>
+          </div>
+          <p class="field-hint" id="passwordHint" hidden>Password must be at least 6 characters.</p>
+        </div>
+
+        <div class="form-row">
+          <label class="checkbox">
+            <input type="checkbox" id="remember" name="remember" />
+            <span>Remember me</span>
+          </label>
+          <a class="muted-link" href="#" id="forgotLink">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-primary">Log In</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer with date/version (shorter on auth page via CSS) -->
+  <footer class="app-footer app-footer--auth">
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Forgot password modal (overlay) -->
+  <div class="auth-modal__backdrop" id="fpModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle" style="display:none">
+    <div class="auth-modal">
+      <h2 id="fpTitle">Reset your password</h2>
+      <p>Enter the email you use for Dowson Farms. If it matches an account, you’ll get a reset link.</p>
+      <div class="field">
+        <label for="fpEmail">Email</label>
+        <input id="fpEmail" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" />
+        <p class="field-hint" id="fpHint" hidden>Please enter a valid email address.</p>
+        <p class="field-hint" id="fpError" hidden style="color:#b00020"></p>
+        <p class="field-hint" id="fpSuccess" hidden style="color:#0a7a28">If the email exists, a reset link has been sent.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-link" id="fpCancel">Cancel</button>
+        <button type="button" class="btn-secondary" id="fpSend">Send reset link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page scripts -->
+  <script>
+    // Password eye toggle
+    (function(){
+      const input = document.getElementById('password');
+      const btn = document.getElementById('togglePw');
+      if (!input || !btn) return;
+
+      const ICON_EYE = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/>
+          <circle cx="12" cy="12" r="3.5"/>
+        </svg>`;
+      const ICON_EYE_OFF = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 3l18 18M10.6 10.6A3.5 3.5 0 0115 12m6-0c0 0-4 7-11 7-2.1 0-3.9-.6-5.4-1.5M4.3 7.7C6.2 6 8.8 5 12 5c7 0 11 7 11 7"/>
+        </svg>`;
+
+      function render(showing){
+        btn.innerHTML = showing ? ICON_EYE_OFF : ICON_EYE;
+        btn.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+        btn.setAttribute('aria-pressed', String(showing));
+      }
+
+      let showing = false;
+      render(showing);
+
+      btn.addEventListener('click', () => {
+        showing = !showing;
+        input.type = showing ? 'text' : 'password';
+        render(showing);
+      });
+    })();
+
+    // Simple client-side validation + redirect to site root
+    document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('username');
+      const pass  = document.getElementById('password');
+      const emailOK = /\S+@\S+\.\S+/.test(email.value);
+      const passOK  = pass.value && pass.value.length >= 6;
+
+      document.getElementById('usernameHint').hidden = emailOK;
+      document.getElementById('passwordHint').hidden = passOK;
+
+      if (!emailOK || !passOK) return;
+
+      // TODO: replace with real auth
+      window.location.replace('../index.html'); // <-- back to Home
+    });
+
+    // Forgot password modal open/close
+    (function(){
+      const openBtn   = document.getElementById('forgotLink');
+      const modal     = document.getElementById('fpModal');
+      const cancelBtn = document.getElementById('fpCancel');
+      const emailIn   = document.getElementById('fpEmail');
+
+      openBtn?.addEventListener('click', (e)=>{ e.preventDefault(); modal.style.display='flex'; emailIn.focus(); });
+      cancelBtn?.addEventListener('click', ()=>{ modal.style.display='none'; });
+      modal?.addEventListener('click', (e)=>{ if (e.target === modal) modal.style.display='none'; });
+    })();
+  </script>
+
+  <!-- Firebase App + Auth (optional; leave as-is unless you will wire real auth) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script>
+    // Replace with your Firebase config only if you plan to use reset emails
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID",
+    };
+    try {
+      if (window.firebase && !firebase.apps?.length) { firebase.initializeApp(firebaseConfig); }
+      const auth = firebase?.auth?.();
+      (function forgotFlow(){
+        const sendBtn = document.getElementById('fpSend');
+        const emailIn = document.getElementById('fpEmail');
+        const hint    = document.getElementById('fpHint');
+        const success = document.getElementById('fpSuccess');
+        const err     = document.getElementById('fpError');
+
+        function validEmail(v){ return /\S+@\S+\.\S+/.test(v); }
+        async function send(){
+          const email = emailIn.value.trim();
+          const ok = validEmail(email);
+          hint.hidden = ok;
+          success.hidden = true;
+          err.hidden = true;
+          if (!ok || !auth) return;
+          try {
+            await auth.sendPasswordResetEmail(email);
+            success.hidden = false;
+          } catch (e) {
+            if (e?.code === 'auth/user-not-found') err.textContent = 'That email is not recognized.';
+            else if (e?.code === 'auth/invalid-email') err.textContent = 'Please enter a valid email address.';
+            else err.textContent = 'Sorry, we could not send the reset email right now.';
+            err.hidden = false;
+          }
+        }
+        sendBtn?.addEventListener('click', send);
+      })();
+    } catch(_) {}
+  </script>
+
+  <!-- Service worker (UPDATED PATH) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
