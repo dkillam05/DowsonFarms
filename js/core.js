@@ -5,7 +5,8 @@
    - Version stamp (reads window.APP_VERSION, DF_VERSION, etc.)
    - Breadcrumb helper (+ inject Logout)
    - Default breadcrumbs (Home only on index)
-   - Global Back button (scrolls with page, inserted above footer)
+   - Global Back button (scrolls with page, just above footer)
+   - DF.go() helper for safe navigation between folders
 */
 
 (function Core(){
@@ -25,9 +26,23 @@
     return file === '' || file === 'index.html';
   }
   function esc(s){
-    const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'};
-    return String(s || '').replace(/[&<>"]/g, c => map[c]);
+    return String(s || '').replace(/[&<>"]/g, c => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]
+    ));
   }
+
+  // Build a relative path to a known file from *this* page
+  function hrefTo(file){
+    // If we're inside a folder (e.g., /equipment/), replace the last segment
+    const base = location.pathname.replace(/[^/]*$/, '');
+    return base + file;
+  }
+
+  // Public navigation helper so pages can call DF.go('index.html')
+  window.DF.go = function(file){
+    const target = hrefTo(file);
+    location.href = target;
+  };
 
   /* ---------- Clock ---------- */
   function drawClock(){
@@ -65,6 +80,7 @@
   })();
 
   /* ---------- Breadcrumbs helper ---------- */
+  // Usage: window.setBreadcrumbs([{label:'Home', href:'../index.html'}, {label:'Page'}])
   window.setBreadcrumbs = function setBreadcrumbs(trail){
     try{
       if (!Array.isArray(trail) || !trail.length) return;
@@ -104,6 +120,8 @@
       try{
         localStorage.removeItem('df_current_user');
         alert('Logged out (frontend only). Wire this to real auth later.');
+        // Optionally go to /auth/:
+        // location.href = location.pathname.includes('/auth/') ? hrefTo('index.html') : '/auth/index.html';
       }catch(e){ console.error(e); }
     });
   }
@@ -117,40 +135,25 @@
       const page  = h1 || title || 'Page';
 
       if (isHomePage()){
-        // Home = just "Home"
-        let nav = $('.breadcrumbs');
-        if (!nav) {
-          const hdr = $('.app-header');
-          nav = document.createElement('nav');
-          nav.className = 'breadcrumbs';
-          nav.setAttribute('aria-label','Breadcrumb');
-          nav.innerHTML = '<ol></ol>';
-          (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
-        }
-        $('ol', nav).innerHTML = '<li><span>Home</span></li>';
-        ensureLogoutButton(nav);
+        window.setBreadcrumbs([{ label:'Home', href:'index.html' }]);
       } else {
+        // Build a link back to the *sibling* index.html relative to this folder
         const homeHref = location.pathname.includes('/') ? (location.pathname.replace(/\/[^\/]*$/, '/index.html')) : 'index.html';
         window.setBreadcrumbs([{label:'Home', href: homeHref}, {label: page}]);
       }
     } else if (isHomePage()){
-      // Normalize any "Dashboard" crumb to "Home"
-      const nav = $('.breadcrumbs');
-      if (nav) {
-        $('ol', nav).innerHTML = '<li><span>Home</span></li>';
-        ensureLogoutButton(nav);
-      }
+      window.setBreadcrumbs([{label:'Home', href:'index.html'}]);
     }
   });
 
-  /* ---------- Global Back button (scrolls with page, above footer) ---------- */
+  /* ---------- Global Back button (scrolls above footer) ---------- */
   document.addEventListener('DOMContentLoaded', ()=>{
     if (isAuthPage() || isHomePage()) return;
     if ($('.back-fab')) return;
 
     const a = document.createElement('a');
     a.href = 'javascript:void(0)';
-    a.className = 'back-fab'; // style comes from theme.css
+    a.className = 'back-fab';
     a.innerHTML = '<span class="chev">‹</span> Back';
     a.addEventListener('click', (e)=>{
       e.preventDefault();
