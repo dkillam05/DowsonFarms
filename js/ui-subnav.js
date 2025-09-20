@@ -1,56 +1,44 @@
-<script>
-// Renders submenu tiles from window.DF_MENUS based on a label or href
+// /js/ui-subnav.js
+// Renders submenu tiles for a section hub (like crop/index.html).
+// Looks for <div class="df-tiles" data-section="Crop Production"></div>
+// If data-section is omitted, will try to infer from <h1> text.
+
 (function () {
-  function ready(fn){ document.readyState !== 'loading' ? fn() : document.addEventListener('DOMContentLoaded', fn); }
-
-  function byBase(href){ try{ return href.split('/').pop().toLowerCase(); }catch(_){ return href||''; } }
-
-  // depth-first search by label or href
-  function findNode({label, href}, nodes){
-    for (const n of nodes){
-      if ((label && n.label === label) || (href && byBase(n.href) === byBase(href))) return n;
-      if (Array.isArray(n.children) && n.children.length){
-        const hit = findNode({label, href}, n.children);
-        if (hit) return hit;
-      }
-    }
-    return null;
-  }
-
-  function renderTiles(host, items){
-    host.innerHTML = items.map(t => {
-      const emoji = t.iconEmoji || '';
-      const text  = t.label || '';
-      const url   = t.href  || '#';
-      return `<a href="${url}" class="df-tile">${emoji} <span>${text}</span></a>`;
-    }).join('');
+  function ready(fn){
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
   }
 
   ready(function () {
-    if (!window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles)) return;
+    const host = document.querySelector('.df-tiles[data-section]');
+    if (!host) return;
 
-    // 1) Explicit target: <div class="df-tiles" data-menu="Setup / Settings">
-    document.querySelectorAll('.df-tiles[data-menu]').forEach(host => {
-      const label = host.getAttribute('data-menu');
-      const node  = findNode({label}, window.DF_MENUS.tiles) || {};
-      if (Array.isArray(node.children) && node.children.length) renderTiles(host, node.children);
-    });
+    // Which section?
+    let sectionName = host.getAttribute('data-section');
+    if (!sectionName) {
+      const h1 = document.querySelector('main h1');
+      sectionName = h1 ? h1.textContent.replace(/^.*?(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*/u, '').trim() : '';
+    }
+    if (!sectionName) {
+      console.warn("ui-subnav: no section name found.");
+      return;
+    }
 
-    // 2) Auto target (optional): <div class="df-tiles" data-auto-submenu>
-    document.querySelectorAll('.df-tiles[data-auto-submenu]').forEach(host => {
-      // Try breadcrumb last item → fallback to H1 → fallback to document.title prefix
-      const crumbLast = document.querySelector('.breadcrumbs ol li:last-child')?.textContent?.trim();
-      const h1        = document.querySelector('main h1')?.textContent?.trim();
-      const tPrefix   = (document.title || '').split('—')[0].trim();
-      const guess     = crumbLast || h1 || tPrefix;
+    const menus = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles))
+      ? window.DF_MENUS.tiles
+      : [];
 
-      // Also try matching by current file name
-      const hrefNode  = findNode({href: location.pathname}, window.DF_MENUS.tiles);
-      const labelNode = guess ? findNode({label: guess}, window.DF_MENUS.tiles) : null;
-      const node = labelNode || hrefNode || null;
+    const parent = menus.find(m => m.label === sectionName);
+    if (!parent || !Array.isArray(parent.children)) {
+      console.warn("ui-subnav: section not found in DF_MENUS:", sectionName);
+      return;
+    }
 
-      if (node && Array.isArray(node.children) && node.children.length) renderTiles(host, node.children);
-    });
+    host.innerHTML = parent.children.map(c => {
+      const emoji = c.iconEmoji || '';
+      const label = c.label || '';
+      const href  = c.href  || '#';
+      return `<a href="${href}" class="df-tile">${emoji} <span>${label}</span></a>`;
+    }).join('');
   });
 })();
-</script>
