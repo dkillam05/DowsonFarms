@@ -1,6 +1,7 @@
+// /js/ui-nav.js
 // Renders the Home page tiles from window.DF_MENUS.tiles
 (function () {
-  function ready(fn){ 
+  function ready(fn){
     if (document.readyState !== 'loading') fn();
     else document.addEventListener('DOMContentLoaded', fn);
   }
