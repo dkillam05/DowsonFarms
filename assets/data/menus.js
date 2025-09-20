@@ -13,11 +13,10 @@ const DF_MENUS = {
         { label: "Fertilizer",        href: "crop-production/fertilizer.html",  iconEmoji: "🧪" },
         { label: "Crop Scouting",     href: "crop-production/scouting.html",    iconEmoji: "🔎" },
         { label: "Field Maintenance", href: "field-maintenance/index.html",     iconEmoji: "🛠️" },
-        { label: "Trials",            href: "crop-production/trials.html",      iconEmoji: "🧬" } // If your file is named crop-trials.html, change this href.
+        { label: "Trials",            href: "crop-production/trials.html",      iconEmoji: "🧬" }
       ]
     },
 
-    // Optional shortcut
     {
       label: "Field Maintenance",
       href: "field-maintenance/index.html",
@@ -68,14 +67,17 @@ const DF_MENUS = {
     },
 
     {
+      /* IMPORTANT: if your folder name literally has an ampersand (&),
+         the href below must match EXACTLY (case-sensitive).
+         Example folder: teams&partners/ (not recommended, but supported). */
       label: "Teams & Partners",
-      href: "teams-partners/index.html",
+      href: "teams&partners/index.html",
       iconEmoji: "🫱🏼‍🫲🏽",
       children: [
-        { label: "Employees",       href: "teams-partners/employees.html",       iconEmoji: "👥" },
-        { label: "Sub-Contractors", href: "teams-partners/sub-contractors.html", iconEmoji: "🧰" },
-        { label: "Vendors",         href: "teams-partners/vendors.html",         iconEmoji: "🏭" },
-        { label: "Dictionary",      href: "teams-partners/dictionary.html",      iconEmoji: "🗂️" }
+        { label: "Employees",       href: "teams&partners/employees.html",       iconEmoji: "👥" },
+        { label: "Sub-Contractors", href: "teams&partners/sub-contractors.html", iconEmoji: "🧰" },
+        { label: "Vendors",         href: "teams&partners/vendors.html",         iconEmoji: "🏭" },
+        { label: "Dictionary",      href: "teams&partners/dictionary.html",      iconEmoji: "🗂️" }
       ]
     },
 
@@ -91,24 +93,25 @@ const DF_MENUS = {
     },
 
     {
+      /* Same note as above if your folder is literally "settings&setup" */
       label: "Setup / Settings",
-      href: "settings/index.html",
+      href: "settings&setup/index.html",
       iconEmoji: "⚙️",
       children: [
-        { label: "Farms",         href: "settings/farms.html",      iconEmoji: "🏡" },
-        { label: "Fields",        href: "settings/fields.html",     iconEmoji: "🗺️" },
-        { label: "Crop Types",    href: "settings/crop-types.html", iconEmoji: "🌾" },
-        { label: "Theme",         href: "settings/theme.html",      iconEmoji: "🌗" },
-        { label: "Account Roles", href: "settings/roles.html",      iconEmoji: "🛡️" },
+        { label: "Farms",         href: "settings&setup/farms.html",      iconEmoji: "🏡" },
+        { label: "Fields",        href: "settings&setup/fields.html",     iconEmoji: "🗺️" },
+        { label: "Crop Types",    href: "settings&setup/crop-types.html", iconEmoji: "🌾" },
+        { label: "Theme",         href: "settings&setup/theme.html",      iconEmoji: "🌗" },
+        { label: "Account Roles", href: "settings&setup/roles.html",      iconEmoji: "🛡️" },
         {
           label: "Products",
-          href: "settings/products/index.html",
+          href: "settings&setup/products/index.html",
           iconEmoji: "📦",
           children: [
-            { label: "Seed",        href: "settings/products/seed.html",        iconEmoji: "🌽" },
-            { label: "Fertilizer",  href: "settings/products/fertilizer.html",  iconEmoji: "🧂" },
-            { label: "Chemical",    href: "settings/products/chemical.html",    iconEmoji: "👨🏼‍🔬" },
-            { label: "Grain Bags",  href: "settings/products/grain-bags.html",  iconEmoji: "🛄" }
+            { label: "Seed",        href: "settings&setup/products/seed.html",        iconEmoji: "🌽" },
+            { label: "Fertilizer",  href: "settings&setup/products/fertilizer.html",  iconEmoji: "🧂" },
+            { label: "Chemical",    href: "settings&setup/products/chemical.html",    iconEmoji: "👨🏼‍🔬" },
+            { label: "Grain Bags",  href: "settings&setup/products/grain-bags.html",  iconEmoji: "🛄" }
           ]
         }
       ]
@@ -127,16 +130,13 @@ const DF_MENUS = {
 };
 
 /* Expose (ESM friendly and <script> friendly) */
-try { export default DF_MENUS; } catch (_) {}
+try { export default DF_MENUS; } catch(_) {}
 if (typeof window !== "undefined") {
   window.DF_MENUS = DF_MENUS;
   if (window.DF && typeof window.DF.ready?.then === "function") {
     window.DF.ready.then(reg => {
-      try {
-        if (reg && typeof reg.set === "function") reg.set("menus", DF_MENUS);
-      } catch (e) {
-        console.error("menus.js registration failed:", e);
-      }
+      try { if (reg && typeof reg.set === "function") reg.set("menus", DF_MENUS); }
+      catch(e) { console.error("menus.js registration failed:", e); }
     });
   }
 }
