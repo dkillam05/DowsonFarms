@@ -6,24 +6,29 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Production — Dowson Farms</title>
 
-  <!-- Global styles + scripts -->
-  <link rel="stylesheet" href="theme.css" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- Theme CSS  →  assets/css/theme.css (relative to /crop/) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
+  <!-- Global app scripts  →  js/version.js & js/core.js -->
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+
+  <!-- PWA bits (still at repo root) -->
+  <link rel="manifest" href="../manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+
+  <!-- Icons  →  assets/icons/... -->
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
 </head>
 <body>
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <!-- Logo  →  assets/icons/icon-192.png -->
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right">
@@ -31,10 +36,10 @@
     </div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- Breadcrumbs (Home must step back up one folder) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
       <li><span>Crop Production</span></li>
     </ol>
@@ -44,8 +49,9 @@
   <main class="content">
     <h1>🌽 Crop Production</h1>
 
-    <!-- Sub-tiles auto-filled from menus.js -->
-    <div class="df-tiles" data-section></div>
+    <!-- Sub-tiles auto-filled from menus.js
+         data-section is set explicitly to avoid auto-detect issues -->
+    <div class="df-tiles" data-section="Crop Production"></div>
   </main>
 
   <!-- Footer -->
@@ -57,17 +63,19 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker -->
+  <!-- Service worker (your SW lives in /js/, so step back one) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
       });
     }
   </script>
 
-  <!-- Menus + nav renderer -->
-  <script defer src="assets/data/menus.js"></script>
-  <script defer src="ui-nav.js"></script>
+  <!-- Menus + subnav renderer (order matters: menus first) -->
+  <!-- menus.js  →  assets/data/menus.js -->
+  <script defer src="../assets/data/menus.js"></script>
+  <!-- ui-subnav.js  →  js/ui-subnav.js -->
+  <script defer src="../js/ui-subnav.js"></script>
 </body>
 </html>
