@@ -1404,4 +1404,37 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   color: var(--brand-green);
 }
 
+/* Back button (scrolls with page, not fixed) */
+.back-fab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin: 24px 0 8px 8px;   /* pushes it down into the content flow */
+  background: var(--tile-bg);
+  color: var(--brand-green);
+  border: 2px solid var(--brand-green);
+  border-radius: 12px;
+  font: 600 .95rem 'Playfair Display', serif;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,.10);
+}
 
+.back-fab .chev {
+  font-size: 1.1rem;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.back-fab:hover,
+.back-fab:focus-visible {
+  background:#fefefe;
+  outline: none;
+}
+
+/* Dark / Auto theme harmony */
+:root[data-theme="dark"] .back-fab,
+:root[data-theme="auto"] .back-fab {
+  background: var(--tile-bg);
+  color: var(--brand-green);
+}
