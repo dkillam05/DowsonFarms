@@ -18,7 +18,7 @@
     })();
   </script>
 
-  <!-- Theme + core (NOTE: we're inside /auth, so use ../ ) -->
+  <!-- Theme + core (we're inside /auth, so use ../ ) -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
@@ -178,11 +178,11 @@
     })();
   </script>
 
-  <!-- Service worker (note ../) -->
+  <!-- Service worker (PATH from /auth -> ../js/serviceworker.js) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
       });
     }
   </script>
