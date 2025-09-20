@@ -40,17 +40,27 @@
     }catch(_){ el.textContent = new Date().toDateString(); }
   })();
 
-  /* ---------- Version (from version.js if available) ---------- */
+  /* ---------- Version (prefer version.js -> window.APP_VERSION) ---------- */
   (function setVersion(){
     const el = $('#version'); if(!el) return;
-    // Accept any of these globals: DF_VERSION, window.VERSION, {major,minor,patch}
-    const v =
+
+    // Prefer your version.js global if present
+    const ver =
+      (typeof window.APP_VERSION === 'string' && window.APP_VERSION) ||
       (typeof window.DF_VERSION === 'string' && window.DF_VERSION) ||
       (typeof window.VERSION === 'string' && window.VERSION) ||
       (window.DF_VERSION && typeof window.DF_VERSION === 'object'
         ? `v${window.DF_VERSION.major||0}.${window.DF_VERSION.minor||0}.${window.DF_VERSION.patch||0}`
         : null);
-    el.textContent = v || el.textContent || 'v0.0.0';
+
+    // Only write if footer is empty or still default; don't fight version.js
+    const current = (el.textContent || '').trim();
+    if (ver && (!current || /^v0\.0\.0$/i.test(current))) {
+      el.textContent = ver;
+    }
+
+    // Expose to registry for anyone else
+    ready.then(reg => reg.set('version', ver || current || 'v0.0.0'));
   })();
 
   /* ---------- Breadcrumbs helper ---------- */
@@ -80,7 +90,13 @@
         if (idx>0) parts.push('<li class="sep">›</li>');
         const isLast = idx === items.length-1;
         const label = (item && item.label) ? String(item.label) : '';
-        const href  = (!isLast && item && item.href) ? String(item.href) : null;
+        let href  = (!isLast && item && item.href) ? String(item.href) : null;
+
+        // If they passed "index.html" as a root-y link, normalize to the actual root from here
+        if (href && href.replace(/^\.\/+/,'') === 'index.html') {
+          href = relativeHrefFromRoot('index.html');
+        }
+
         parts.push(
           href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>`
         );
@@ -96,7 +112,6 @@
     // if a logout button already exists in .breadcrumbs, leave it
     if ($('.breadcrumbs .logout-btn')) return;
 
-    // if your app has its own auth, wire this handler later
     const btn = document.createElement('button');
     btn.className = 'logout-btn';
     btn.type = 'button';
@@ -110,7 +125,7 @@
         // Hook point: clear local session keys or call your sign-out flow
         localStorage.removeItem('df_current_user');
         // Optional: navigate to login page if you have one
-        // location.href = '/auth/login.html';
+        // location.href = relativeHrefFromRoot('auth/login.html');
         alert('Logged out (frontend only). Wire this to real auth later.');
       } catch(e) {
         console.error(e);
@@ -122,7 +137,7 @@
   document.addEventListener('DOMContentLoaded', ()=>{
     const hasStatic = !!$('.breadcrumbs ol li');
     if (!hasStatic) {
-      // Try to infer from <title> or <h1>
+      // Infer current page from <title> or <h1>
       const title = (document.title || '').replace(/\s*—.*$/,'').trim();
       const h1 = $('.content h1')?.textContent?.trim();
       const page = h1 || title || 'Page';
@@ -136,12 +151,21 @@
     }
   });
 
-  /* ---------- Utility: build a path to root-friendly href ---------- */
+  /* ---------- Utility: build a root-relative href from the current depth ---------- */
   function relativeHrefFromRoot(file){
-    // Works regardless of nesting depth:
-    // If current URL ends with "/crop/index.html", root is likely "/"
-    // For static GitHub Pages or subfolders you may want to tweak this helper.
-    // For now we return the plain file which browsers resolve relative to current doc.
-    return file;
+    // e.g. /, /crop/index.html, /settings/products/seed.html
+    // We need to walk "up" to the site root regardless of depth, then add file (usually index.html).
+    try{
+      const path = location.pathname.replace(/\/+$/,''); // trim trailing slash
+      const parts = path.split('/').filter(Boolean);
+      // If last segment is a file (has a dot), depth is (parts.length - 1); else it's a directory path
+      const last = parts[parts.length - 1] || '';
+      const isFile = /\.[a-z0-9]+$/i.test(last);
+      const dirDepth = isFile ? (parts.length - 1) : parts.length;
+      const up = '../'.repeat(Math.max(0, dirDepth));
+      return up + (file || '');
+    }catch(_){
+      return file || 'index.html';
+    }
   }
 })();
