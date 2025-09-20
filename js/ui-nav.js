@@ -1,27 +1,43 @@
-// Render the Home page tiles from window.DF_MENUS.tiles
+// Renders the Home page tiles from window.DF_MENUS.tiles
 (function () {
   function ready(fn){
     if (document.readyState !== 'loading') fn();
     else document.addEventListener('DOMContentLoaded', fn);
   }
 
-  ready(function () {
+  function haveMenus(){
+    return (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles));
+  }
+
+  // Small retry loop to avoid race if menus.js loads slowly
+  function waitForMenus(max = 20){
+    return new Promise(resolve=>{
+      let tries = 0;
+      (function tick(){
+        if (haveMenus()) return resolve(true);
+        if (tries++ >= max) return resolve(false);
+        setTimeout(tick, 75);
+      })();
+    });
+  }
+
+  ready(async function () {
     const host = document.querySelector('.df-tiles[data-source="global"]');
     if (!host) return;
 
-    const tiles = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles))
-      ? window.DF_MENUS.tiles
-      : [];
-
-    if (!tiles.length) {
-      console.warn('ui-nav: DF_MENUS.tiles missing/empty; nothing to render.');
+    const ok = await waitForMenus();
+    if (!ok) {
+      console.warn('ui-nav: DF_MENUS not available; nothing to render.');
       return;
     }
 
-    function esc(s){
-      const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'};
-      return String(s || '').replace(/[&<>"]/g, c => map[c]);
+    const tiles = window.DF_MENUS.tiles || [];
+    if (!tiles.length) {
+      console.warn('ui-nav: DF_MENUS.tiles empty.');
+      return;
     }
+
+    function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
     host.innerHTML = tiles.map(t => {
       const emoji = t.iconEmoji ? esc(t.iconEmoji) + ' ' : '';
