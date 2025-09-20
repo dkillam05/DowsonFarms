@@ -6,19 +6,19 @@
   <meta name="format-detection" content="telephone=no" />
   <title>Sign in — Dowson Farms</title>
 
-  <!-- Prepaint theme (reads df_theme=light/dark/auto) -->
+  <!-- Apply saved theme (before CSS paints) -->
   <script>
     (function () {
       try {
-        var mode = localStorage.getItem('df_theme') || 'auto';
-        document.documentElement.setAttribute('data-theme', mode);
+        var pref = localStorage.getItem('df_theme') || 'auto';
+        document.documentElement.setAttribute('data-theme', pref);
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'auto');
       }
     })();
   </script>
 
-  <!-- Theme + core (paths from /auth/) -->
+  <!-- Theme + core -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
@@ -30,7 +30,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
 
-  <!-- Elegant heading font -->
+  <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
@@ -38,7 +38,7 @@
 <body class="auth-page">
 
   <main class="auth-wrap">
-    <!-- Brand -->
+    <!-- Brand on background -->
     <div class="auth-hero">
       <div class="auth-hero__logo">
         <img src="../assets/icons/icon-192.png" alt="Dowson Farms" />
@@ -51,16 +51,14 @@
     <div class="auth-card auth-card--compact">
       <form id="loginForm" class="auth-form" novalidate>
         <div class="field">
-          <label for="username">Username</label>
+          <label for="username">Email</label>
           <input
             id="username"
             name="username"
             type="email"
             inputmode="email"
             autocomplete="username"
-            autocapitalize="none"
-            spellcheck="false"
-            placeholder="Email"
+            placeholder="you@example.com"
             required
           />
           <p class="field-hint" id="usernameHint" hidden>Please enter a valid email.</p>
@@ -74,8 +72,6 @@
               name="password"
               type="password"
               autocomplete="current-password"
-              autocapitalize="none"
-              spellcheck="false"
               placeholder="Password"
               required
               minlength="6"
@@ -98,22 +94,23 @@
     </div>
   </main>
 
-  <!-- Footer (date/version auto-filled by core.js) -->
+  <!-- Footer -->
   <footer class="app-footer app-footer--auth">
     <span id="report-date">—</span>
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Forgot password modal (UI only for now) -->
+  <!-- Forgot password modal -->
   <div class="auth-modal__backdrop" id="fpModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle" style="display:none;">
     <div class="auth-modal">
       <h2 id="fpTitle">Reset your password</h2>
-      <p>Enter the email you use for Dowson Farms. If it matches an account, you’ll get a reset link.</p>
+      <p>Enter your email. If it matches an account, you’ll get a reset link.</p>
       <div class="field">
         <label for="fpEmail">Email</label>
-        <input id="fpEmail" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" />
+        <input id="fpEmail" type="email" inputmode="email" placeholder="you@example.com" />
         <p class="field-hint" id="fpHint" hidden>Please enter a valid email address.</p>
+        <p class="field-hint" id="fpError" hidden style="color:#b00020"></p>
         <p class="field-hint" id="fpSuccess" hidden style="color:#0a7a28">If the email exists, a reset link has been sent.</p>
       </div>
       <div class="modal-actions">
@@ -125,94 +122,64 @@
 
   <!-- Page scripts -->
   <script>
-    // Password eye toggle
+    // Toggle password visibility
     (function(){
       const input = document.getElementById('password');
       const btn = document.getElementById('togglePw');
       if (!input || !btn) return;
 
-      const ICON_EYE = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/>
-          <circle cx="12" cy="12" r="3.5"/>
-        </svg>`;
-      const ICON_EYE_OFF = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 3l18 18M10.6 10.6A3.5 3.5 0 0115 12m6-0c0 0-4 7-11 7-2.1 0-3.9-.6-5.4-1.5M4.3 7.7C6.2 6 8.8 5 12 5c7 0 11 7 11 7"/>
-        </svg>`;
-
-      function render(showing){
-        btn.innerHTML = showing ? ICON_EYE_OFF : ICON_EYE;
-        btn.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
-        btn.setAttribute('aria-pressed', String(showing));
-      }
+      const ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3.5"/></svg>';
+      const ICON_EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.6A3.5 3.5 0 0115 12m6-0c0 0-4 7-11 7-2.1 0-3.9-.6-5.4-1.5M4.3 7.7C6.2 6 8.8 5 12 5c7 0 11 7 11 7"/></svg>';
 
       let showing = false;
-      render(showing);
+      function render(){ btn.innerHTML = showing ? ICON_EYE_OFF : ICON_EYE; }
+      render();
+
       btn.addEventListener('click', () => {
         showing = !showing;
         input.type = showing ? 'text' : 'password';
-        render(showing);
+        render();
       });
     })();
 
-    // Client-side validation + "login"
+    // Login form demo redirect
     document.getElementById('loginForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
-      const emailEl = document.getElementById('username');
-      const passEl  = document.getElementById('password');
-
-      const emailOK = /\S+@\S+\.\S+/.test(emailEl.value);
-      const passOK  = (passEl.value || '').length >= 6;
+      const email = document.getElementById('username');
+      const pass  = document.getElementById('password');
+      const emailOK = /\S+@\S+\.\S+/.test(email.value);
+      const passOK  = pass.value && pass.value.length >= 6;
 
       document.getElementById('usernameHint').hidden = emailOK;
       document.getElementById('passwordHint').hidden = passOK;
+
       if (!emailOK || !passOK) return;
 
-      // "Sign in": store current user for the app shell (used by pages like Bugs)
-      try {
-        localStorage.setItem('df_current_user', emailEl.value.trim());
-        if (document.getElementById('remember')?.checked) {
-          localStorage.setItem('df_remember', '1');
-        } else {
-          localStorage.removeItem('df_remember');
-        }
-      } catch (_) {}
-
-      // Go to Home
-      window.location.replace('../index.html');
+      // TODO: real auth
+      window.location.replace("../index.html");
     });
 
-    // Forgot password (UI only demo)
+    // Forgot password modal
     (function(){
-      const openBtn   = document.getElementById('forgotLink');
-      const modal     = document.getElementById('fpModal');
+      const openBtn = document.getElementById('forgotLink');
+      const modal = document.getElementById('fpModal');
       const cancelBtn = document.getElementById('fpCancel');
-      const sendBtn   = document.getElementById('fpSend');
-      const emailIn   = document.getElementById('fpEmail');
-      const hint      = document.getElementById('fpHint');
-      const okEmail   = v => /\S+@\S+\.\S+/.test(v);
+      const emailIn = document.getElementById('fpEmail');
 
       openBtn?.addEventListener('click', (e)=>{ e.preventDefault(); modal.style.display='flex'; emailIn.focus(); });
       cancelBtn?.addEventListener('click', ()=>{ modal.style.display='none'; });
-      modal?.addEventListener('click', (e)=>{ if (e.target === modal) modal.style.display='none'; });
-      sendBtn?.addEventListener('click', ()=>{
-        const good = okEmail(emailIn.value.trim());
-        hint.hidden = good;
-        if (good) {
-          document.getElementById('fpSuccess').hidden = false;
-        }
-      });
+      modal?.addEventListener('click', (e)=>{ if (e.target===modal) modal.style.display='none'; });
     })();
   </script>
 
-  <!-- Service worker (path from /auth/) -->
+  <!-- Service worker (auth folder is one level deep) -->
   <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
-      });
-    }
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("../js/serviceworker.js", { scope: "../" })
+        .catch(console.error);
+    });
+  }
   </script>
 </body>
 </html>
