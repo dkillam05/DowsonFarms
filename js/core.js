@@ -4,15 +4,15 @@
    - Report date (footer)
    - Version stamp (reads window.APP_VERSION, DF_VERSION, etc.)
    - Breadcrumb helper (+ inject Logout)
-   - Default breadcrumbs (Home only on index)
-   - Global Back button (fixed bottom-left via .back-fab) on all non-Home, non-auth pages
+   - Default breadcrumbs (no “Dashboard” on Home)
+   - Global Back button (fixed bottom-left) on all non-Home, non-auth pages
 */
 
 (function Core(){
   const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-  /* ---------- Tiny registry (for sharing state across scripts) ---------- */
+  /* ---------- Tiny registry ---------- */
   const registry = new Map();
   const ready = Promise.resolve({ set:(k,v)=>registry.set(k,v), get:(k)=>registry.get(k) });
   window.DF = Object.assign(window.DF || {}, { ready });
@@ -20,14 +20,11 @@
   /* ---------- Helpers ---------- */
   function two(n){ return n<10 ? '0'+n : ''+n; }
   function isAuthPage(){ return document.body.classList.contains('auth-page'); }
-  function isHomePage(){
-    // treat repo root index.html as home
-    const file = (location.pathname.split('/').pop() || '').toLowerCase();
-    return file === '' || file === 'index.html';
-  }
-  function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }
+  // ✅ Rely on a class you control (set only on the true home page)
+  function isHomePage(){ return document.body.classList.contains('home-page'); }
+  function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-  /* ---------- Clock (HH:MM) ---------- */
+  /* ---------- Clock ---------- */
   function drawClock(){
     const el = $('#clock'); if(!el) return;
     const d = new Date();
@@ -40,7 +37,7 @@
     setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(250, msToNextMin));
   })();
 
-  /* ---------- Report date (footer) ---------- */
+  /* ---------- Report date ---------- */
   (function setReportDate(){
     const el = $('#report-date'); if(!el) return;
     try{
@@ -49,7 +46,7 @@
     }catch(_){ el.textContent = new Date().toDateString(); }
   })();
 
-  /* ---------- Version (from version.js if available) ---------- */
+  /* ---------- Version ---------- */
   (function setVersion(){
     const el = $('#version'); if(!el) return;
     const v =
@@ -78,7 +75,8 @@
         nav.innerHTML = '<ol></ol>';
         (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
       }
-      const ol = $('ol', nav) || nav.appendChild(document.createElement('ol'));
+      let ol = $('ol', nav);
+      if(!ol){ ol = document.createElement('ol'); nav.appendChild(ol); }
 
       const parts = [];
       trail.forEach((item, idx)=>{
@@ -105,13 +103,12 @@
       try{
         localStorage.removeItem('df_current_user');
         alert('Logged out (frontend only). Wire this to real auth later.');
-        // Optionally bounce to login:
-        // location.href = (isAuthPage() ? './index.html' : './auth/index.html');
+        // Optionally: location.href = '../auth/index.html';
       }catch(e){ console.error(e); }
     });
   }
 
-  /* ---------- Default breadcrumbs (if page didn't provide any) ---------- */
+  /* ---------- Default breadcrumbs ---------- */
   document.addEventListener('DOMContentLoaded', ()=>{
     const hasTrail = !!$('.breadcrumbs ol li');
     if (!hasTrail){
@@ -120,26 +117,23 @@
       const page  = h1 || title || 'Page';
 
       if (isHomePage()){
-        // Home should be just “Home” (no “Dashboard”)
+        // Home should be just “Home”
         window.setBreadcrumbs([{ label:'Home', href:'index.html' }]);
       } else {
-        // Non-home: Home → Current
-        const homeHref = location.pathname.includes('/') ? (location.pathname.replace(/\/[^\/]*$/, '/index.html')) : 'index.html';
+        // Non-home: derive a relative link back to the local index
+        const homeHref = location.pathname.replace(/\/[^/]*$/, '/index.html');
         window.setBreadcrumbs([{label:'Home', href: homeHref}, {label: page}]);
       }
     } else if (isHomePage()){
-      // If Home has a second crumb like “Dashboard”, normalize to just “Home”
-      const nav = $('.breadcrumbs');
-      if (nav) window.setBreadcrumbs([{label:'Home', href:'index.html'}]);
+      // If someone left an extra crumb on Home, normalize it
+      window.setBreadcrumbs([{label:'Home', href:'index.html'}]);
     }
   });
 
   /* ---------- Global Back button (fixed bottom-left) ---------- */
   document.addEventListener('DOMContentLoaded', ()=>{
     if (isAuthPage() || isHomePage()) return;
-
-    // Don’t duplicate if a page hard-coded one
-    if ($('.back-fab')) return;
+    if ($('.back-fab')) return; // don’t duplicate
 
     const a = document.createElement('a');
     a.href = 'javascript:void(0)';
@@ -147,12 +141,10 @@
     a.innerHTML = '<span class="chev">‹</span> Back';
     a.addEventListener('click', (e)=>{
       e.preventDefault();
-      // If we have history to go back to, use it; otherwise, go Home
       if (history.length > 1) history.back();
-      else location.href = (location.pathname.includes('/') ? (location.pathname.replace(/\/[^\/]*$/, '/index.html')) : 'index.html');
+      else location.href = location.pathname.replace(/\/[^/]*$/, '/index.html');
     });
 
-    // Append near the end so it sits visually above content but below modals
     document.body.appendChild(a);
   });
 
