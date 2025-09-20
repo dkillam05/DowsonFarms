@@ -1,32 +1,29 @@
 /* Dowson Farms — core.js
-   - Session check (redirect to /auth if not signed in)
-   - Clock (HH:MM)
-   - Report date footer
-   - Version stamp (from version.js if present)
-   - Breadcrumb helper + Logout button injection
-   - Tiny app registry: DF.ready.then(reg => reg.get()/set())
+   - Clock, footer date, version stamp
+   - Breadcrumb helper + Logout button
+   - Registry + DF.go() for safe cross-page navigation on GitHub Pages
 */
-
 (function Core(){
   const $ = (s, r=document) => r.querySelector(s);
 
-  /* ---------- Session check ---------- */
-  (function enforceAuth(){
-    const loggedIn = !!localStorage.getItem('df_current_user');
-    const onAuthPage = location.pathname.includes('/auth/');
-    if (!loggedIn && !onAuthPage) {
-      location.replace('/auth/index.html'); // adjust path if needed
-    }
-  })();
-
-  /* ---------- Tiny registry ---------- */
+  // --- Registry & helper navigation that respects repo subfolder ---
   const registry = new Map();
   function regSet(k,v){ registry.set(k,v); }
   function regGet(k){ return registry.get(k); }
-  const ready = Promise.resolve({ set: regSet, get: regGet });
-  window.DF = Object.assign(window.DF || {}, { ready });
+  function basePath(){
+    // Works for GitHub Pages repo sites: /RepoName/...
+    // and for custom domains (root) as well.
+    const parts = location.pathname.split('/').filter(Boolean);
+    // If first segment looks like a repo folder (e.g., DowsonFarms), use it
+    return parts.length ? `/${parts[0]}/` : '/';
+  }
+  function fromRoot(file){ return basePath() + String(file).replace(/^\//,''); }
+  function go(file){ location.href = fromRoot(file); }
 
-  /* ---------- Clock (HH:MM) ---------- */
+  const ready = Promise.resolve({ set: regSet, get: regGet });
+  window.DF = Object.assign(window.DF || {}, { ready, go, fromRoot });
+
+  // --- Clock ---
   function two(n){ return n<10 ? '0'+n : ''+n; }
   function drawClock(){
     const el = $('#clock'); if(!el) return;
@@ -40,7 +37,7 @@
     setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(250, msToNextMin));
   })();
 
-  /* ---------- Report date ---------- */
+  // --- Report date ---
   (function setReportDate(){
     const el = $('#report-date'); if(!el) return;
     try{
@@ -49,7 +46,7 @@
     }catch(_){ el.textContent = new Date().toDateString(); }
   })();
 
-  /* ---------- Version ---------- */
+  // --- Version from version.js (optional globals) ---
   (function setVersion(){
     const el = $('#version'); if(!el) return;
     const v =
@@ -61,7 +58,7 @@
     el.textContent = v || el.textContent || 'v0.0.0';
   })();
 
-  /* ---------- Breadcrumbs ---------- */
+  // --- Breadcrumbs + Logout button ---
   window.setBreadcrumbs = function setBreadcrumbs(trail){
     try{
       let nav = $('.breadcrumbs');
@@ -73,9 +70,7 @@
         nav.innerHTML = '<ol></ol>';
         (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
       }
-      let ol = $('ol', nav);
-      if(!ol){ ol = document.createElement('ol'); nav.appendChild(ol); }
-
+      let ol = $('ol', nav) || nav.appendChild(document.createElement('ol'));
       const items = Array.isArray(trail) ? trail.slice() : [];
       if (!items.length) return;
 
@@ -85,12 +80,9 @@
         const isLast = idx === items.length-1;
         const label = (item && item.label) ? String(item.label) : '';
         const href  = (!isLast && item && item.href) ? String(item.href) : null;
-        parts.push(
-          href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>`
-        );
+        parts.push( href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>` );
       });
       ol.innerHTML = parts.join('');
-
       ensureLogoutButton(nav);
     }catch(e){ console.error('setBreadcrumbs error:', e); }
   };
@@ -102,16 +94,16 @@
     btn.type = 'button';
     btn.textContent = 'Logout';
     nav.appendChild(btn);
-
     btn.addEventListener('click', ()=>{
       try {
         localStorage.removeItem('df_current_user');
-        location.replace('/auth/index.html'); // go back to login
-      } catch(e) { console.error(e); }
+        go('auth/index.html'); // ✅ respects GitHub Pages base path
+      } catch(e) {
+        console.error(e);
+      }
     });
   }
 
-  /* ---------- Apply default breadcrumbs if missing ---------- */
   document.addEventListener('DOMContentLoaded', ()=>{
     const hasStatic = !!$('.breadcrumbs ol li');
     if (!hasStatic) {
@@ -119,7 +111,7 @@
       const h1 = $('.content h1')?.textContent?.trim();
       const page = h1 || title || 'Page';
       window.setBreadcrumbs([
-        {label:'Home', href:'index.html' },
+        {label:'Home', href: fromRoot('index.html') },
         {label: page}
       ]);
     } else {
