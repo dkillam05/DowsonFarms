@@ -1,44 +1,65 @@
-// /js/ui-subnav.js
-// Renders submenu tiles for a section hub (like crop/index.html).
-// Looks for <div class="df-tiles" data-section="Crop Production"></div>
-// If data-section is omitted, will try to infer from <h1> text.
-
+// Render sub-tiles for a section (e.g., Equipment, Reports) from DF_MENUS
 (function () {
   function ready(fn){
     if (document.readyState !== 'loading') fn();
     else document.addEventListener('DOMContentLoaded', fn);
   }
 
+  function esc(s){
+    const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'};
+    return String(s || '').replace(/[&<>"]/g, c => map[c]);
+  }
+
+  function lastSegment(path){
+    const trimmed = path.replace(/\/+$/,'');
+    const segs = trimmed.split('/');
+    return segs[segs.length - 1] || '';
+  }
+
   ready(function () {
     const host = document.querySelector('.df-tiles[data-section]');
     if (!host) return;
 
-    // Which section?
-    let sectionName = host.getAttribute('data-section');
+    // Resolve the section:
+    // 1) explicit data-section="Equipment"
+    // 2) from <h1> text (strip emoji)
+    // 3) from URL folder name (equipment/, reports/, etc.)
+    let sectionName = host.getAttribute('data-section') || '';
     if (!sectionName) {
-      const h1 = document.querySelector('main h1');
-      sectionName = h1 ? h1.textContent.replace(/^.*?(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*/u, '').trim() : '';
+      const h1 = document.querySelector('.content h1')?.textContent || '';
+      sectionName = h1.replace(/^[^\w]+/,'').trim(); // remove leading emoji/symbols
     }
     if (!sectionName) {
-      console.warn("ui-subnav: no section name found.");
+      // e.g., /equipment/index.html -> "equipment"
+      const folder = lastSegment(location.pathname.replace(/\/index\.html?$/i, ''));
+      sectionName = (folder || '').replace(/[-_]+/g, ' ').replace(/\b\w/g, c=>c.toUpperCase());
+    }
+
+    const MENUS = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
+    if (!MENUS.length) {
+      console.warn('ui-subnav: DF_MENUS missing.');
       return;
     }
 
-    const menus = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles))
-      ? window.DF_MENUS.tiles
-      : [];
+    function findSectionByNameOrHref(tiles, nameGuess){
+      const guessLower = (nameGuess || '').toLowerCase();
+      for (const t of tiles) {
+        const labelMatch = (t.label || '').toLowerCase() === guessLower;
+        const hrefMatch  = (t.href || '').toLowerCase().includes(guessLower.replace(/\s+/g,'-'));
+        if (labelMatch || hrefMatch) return t;
+      }
+      return null;
+    }
 
-    const parent = menus.find(m => m.label === sectionName);
-    if (!parent || !Array.isArray(parent.children)) {
-      console.warn("ui-subnav: section not found in DF_MENUS:", sectionName);
+    const section = findSectionByNameOrHref(MENUS, sectionName);
+    if (!section || !Array.isArray(section.children) || !section.children.length) {
+      console.warn('ui-subnav: section not found or no children for', sectionName);
       return;
     }
 
-    host.innerHTML = parent.children.map(c => {
-      const emoji = c.iconEmoji || '';
-      const label = c.label || '';
-      const href  = c.href  || '#';
-      return `<a href="${href}" class="df-tile">${emoji} <span>${label}</span></a>`;
+    host.innerHTML = section.children.map(c => {
+      const ico = c.iconEmoji ? (esc(c.iconEmoji) + ' ') : '';
+      return `<a href="${esc(c.href)}" class="df-tile">${ico}<span>${esc(c.label)}</span></a>`;
     }).join('');
   });
 })();
