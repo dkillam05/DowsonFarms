@@ -23,19 +23,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet" />
 
   <!-- Theme (PATH: assets/css/theme.css) -->
-  <link rel="stylesheet" href="assets/css/theme.css" />
-
-  <!-- Global app scripts (PATHS: js/...) -->
-  <script defer src="js/version.js"></script>
-  <script defer src="js/core.js"></script>
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
-
-  <!-- iOS PWA icons (PATH: assets/icons/...) -->
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+  <link rel="stylesheet" href="assets/css/theme.css?v=7" />
 </head>
 <body class="home-page">
   <!-- Header -->
@@ -50,11 +38,11 @@
   </header>
 
   <!-- Breadcrumbs -->
-<nav class="breadcrumbs" aria-label="Breadcrumb">
-  <ol>
-    <li><span>Home</span></li>
-  </ol>
-</nav>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><span>Home</span></li>
+    </ol>
+  </nav>
 
   <!-- Main -->
   <main class="content">
@@ -82,8 +70,10 @@
     }
   </script>
 
-  <!-- Global menus + renderer (PATHS: assets/data/menus.js, js/ui-nav.js) -->
-  <script defer src="assets/data/menus.js"></script>
-  <script defer src="js/ui-nav.js"></script>
+  <!-- Global menus + app scripts (PATHS: assets/data, js/...) -->
+  <script defer src="assets/data/menus.js?v=7"></script>
+  <script defer src="js/version.js?v=7"></script>
+  <script defer src="js/core.js?v=7"></script>
+  <script defer src="js/ui-nav.js?v=7"></script>
 </body>
 </html>
