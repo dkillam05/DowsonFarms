@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
   <title>Feedback — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -14,25 +17,25 @@
   })();
   </script>
 
-  <!-- Shared styles/scripts -->
-  <link rel="stylesheet" href="theme.css" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- Shared styles/scripts (note ../ because we are in /feedback/) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="manifest" href="../manifest.webmanifest" />
   <meta name="theme-color" content="#1B5E20" />
 
   <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
 </head>
 <body>
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right">
@@ -43,7 +46,7 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
       <li><span>Feedback</span></li>
     </ol>
@@ -54,7 +57,7 @@
     <h1>💬 Feedback</h1>
 
     <!-- Pull children from global menus.js for this section -->
-    <div class="df-tiles" data-section></div>
+    <div class="df-tiles" data-section="Feedback"></div>
   </main>
 
   <!-- Footer -->
@@ -66,17 +69,17 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker -->
+  <!-- Service worker (file is in /js/) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
       });
     }
   </script>
 
-  <!-- Global menus + tiny renderer -->
-  <script defer src="assets/data/menus.js"></script>
-  <script defer src="ui-nav.js"></script>
+  <!-- Menus + subnav renderer -->
+  <script defer src="../assets/data/menus.js"></script>
+  <script defer src="../js/ui-subnav.js"></script>
 </body>
 </html>
