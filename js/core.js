@@ -1,13 +1,48 @@
-/* Dowson Farms — core.js */
+/* Dowson Farms — core.js
+   - Clock (HH:MM)
+   - Footer report date + version
+   - Breadcrumb helper + Logout injection
+   - Repo-aware navigation helpers (DF.root()/DF.go())
+   - Auth guard: redirect to /auth/index.html when not logged in
+*/
+
 (function Core(){
   const $ = (s, r=document) => r.querySelector(s);
 
-  // tiny registry
+  /* ---------- Tiny shared registry ---------- */
   const registry = new Map();
-  const ready = Promise.resolve({ set:(k,v)=>registry.set(k,v), get:(k)=>registry.get(k) });
-  window.DF = Object.assign(window.DF || {}, { ready });
+  function regSet(k,v){ registry.set(k,v); }
+  function regGet(k){ return registry.get(k); }
+  const ready = Promise.resolve({ set: regSet, get: regGet });
 
-  // clock
+  /* ---------- Repo-aware navigation helpers ---------- */
+  function repoBase() {
+    // Works on GitHub Pages: /<repo>/...  (and also locally)
+    const parts = location.pathname.split('/').filter(Boolean);
+    // when served as /<repo>/... take first segment; otherwise empty
+    const first = parts.length ? `/${parts[0]}/` : '/';
+    return first;
+  }
+  function root(href) { return repoBase() + href.replace(/^\//,''); }
+  function go(href)   { location.href = root(href); }
+
+  // expose small API
+  window.DF = Object.assign(window.DF || {}, {
+    ready, root, go
+  });
+
+  /* ---------- Auth helpers ---------- */
+  const AUTH_PATH_PREFIX = '/auth/';  // folder that contains login
+  function isAuthPage(){ return location.pathname.includes(AUTH_PATH_PREFIX); }
+  function isLoggedIn(){ return !!localStorage.getItem('df_current_user'); }
+  function requireAuth(){
+    if (isAuthPage()) return;               // never guard the auth pages
+    if (!isLoggedIn()) location.replace(root('auth/index.html'));
+  }
+  // Run guard ASAP
+  requireAuth();
+
+  /* ---------- Clock ---------- */
   function two(n){ return n<10 ? '0'+n : ''+n; }
   function drawClock(){
     const el = $('#clock'); if(!el) return;
@@ -21,16 +56,16 @@
     setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(250, msToNextMin));
   })();
 
-  // footer date
+  /* ---------- Footer date ---------- */
   (function setReportDate(){
     const el = $('#report-date'); if(!el) return;
     try{
       const d = new Date();
-      el.textContent = d.toLocaleDateString(undefined,{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+      el.textContent = d.toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'});
     }catch(_){ el.textContent = new Date().toDateString(); }
   })();
 
-  // version
+  /* ---------- Version (from version.js) ---------- */
   (function setVersion(){
     const el = $('#version'); if(!el) return;
     const v =
@@ -42,8 +77,10 @@
     el.textContent = v || el.textContent || 'v0.0.0';
   })();
 
-  // breadcrumbs helper
+  /* ---------- Breadcrumbs helper ---------- */
+  // Usage: window.setBreadcrumbs([{label:'Home', href:'index.html'}, {label:'Settings'}, ...])
   window.setBreadcrumbs = function setBreadcrumbs(trail){
+    if (document.body.classList.contains('auth-page')) return; // no crumbs on auth
     try{
       let nav = $('.breadcrumbs');
       if(!nav){
@@ -54,8 +91,7 @@
         nav.innerHTML = '<ol></ol>';
         (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
       }
-      let ol = $('ol', nav);
-      if(!ol){ ol = document.createElement('ol'); nav.appendChild(ol); }
+      let ol = $('ol', nav) || nav.appendChild(document.createElement('ol'));
 
       const items = Array.isArray(trail) ? trail.slice() : [];
       if (!items.length) return;
@@ -75,6 +111,7 @@
   };
 
   function ensureLogoutButton(nav){
+    if (document.body.classList.contains('auth-page')) return; // none on auth
     if ($('.breadcrumbs .logout-btn')) return;
 
     const btn = document.createElement('button');
@@ -84,41 +121,27 @@
     nav.appendChild(btn);
 
     btn.addEventListener('click', ()=>{
-      try {
-        // clear any local “session”
+      try{
         localStorage.removeItem('df_current_user');
-
-        // Compute a safe prefix to the site root regardless of depth (/a/b/c → ../../)
-        const depth = location.pathname.split('/').filter(Boolean).length - 1; // minus current file
-        const up = depth > 0 ? '../'.repeat(depth) : './';
-
-        // Always go to login page
-        location.assign(up + 'auth/index.html');
-      } catch(e) {
-        console.error(e);
-        // last resort: try relative
-        location.assign('auth/index.html');
-      }
+        location.replace(root('auth/index.html'));
+      }catch(e){ console.error(e); }
     });
   }
 
-  // auto breadcrumbs (skip on auth pages)
+  /* ---------- Apply default breadcrumbs if page provided none ---------- */
   document.addEventListener('DOMContentLoaded', ()=>{
-    if (document.body.classList.contains('auth-page')) return; // no crumbs on login
-
+    if (document.body.classList.contains('auth-page')) return; // skip on login
     const hasStatic = !!$('.breadcrumbs ol li');
     if (!hasStatic) {
       const title = (document.title || '').replace(/\s*—.*$/,'').trim();
       const h1 = $('.content h1')?.textContent?.trim();
       const page = h1 || title || 'Page';
       window.setBreadcrumbs([
-        {label:'Home', href: relativeHrefFromRoot('index.html') },
+        {label:'Home', href: root('index.html') },
         {label: page}
       ]);
     } else {
       const nav = $('.breadcrumbs'); if (nav) ensureLogoutButton(nav);
     }
   });
-
-  function relativeHrefFromRoot(file){ return file; }
 })();
