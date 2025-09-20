@@ -145,7 +145,12 @@
       else location.href = location.pathname.replace(/\/[^/]*$/, '/index.html');
     });
 
-    document.body.appendChild(a);
+    // Instead of:
+document.body.appendChild(a);
+
+// Use:
+const footer = document.querySelector('.app-footer');
+footer ? footer.parentNode.insertBefore(a, footer) : document.body.appendChild(a);
   });
 
 })();
