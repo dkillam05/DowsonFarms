@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Products — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- Prepaint theme (no flash) -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -17,15 +17,26 @@
   })();
   </script>
 
-  <link rel="stylesheet" href="theme.css" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- Styles / App (we're in /settings/products → use ../../) -->
+  <link rel="stylesheet" href="../../assets/css/theme.css" />
+  <script defer src="../../js/version.js"></script>
+  <script defer src="../../js/core.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="../../manifest.webmanifest" />
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="../../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="../../assets/icons/maskable-512.png" />
 </head>
 <body>
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="../../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
@@ -34,22 +45,24 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="settings.html">Setup / Settings</a></li>
+      <li><a href="../index.html">Setup / Settings</a></li>
       <li class="sep">›</li>
       <li><span>Products</span></li>
     </ol>
   </nav>
 
+  <!-- Main -->
   <main class="content">
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">📦 Products</h1>
     </div>
 
-    <!-- Standard tile container; we will render from global menus -->
+    <!-- Sub-tiles rendered from global menus.js.
+         IMPORTANT: data-section must EXACTLY match the menu label ("Products"). -->
     <section class="card" style="margin-top:12px;">
-      <div class="df-tiles" data-section></div>
+      <div class="df-tiles" data-section="Products"></div>
     </section>
   </main>
 
@@ -62,56 +75,17 @@
     <span id="version">v0.0.0</span>
   </footer>
 
+  <!-- Service worker (yours is in /js/) -->
   <script>
-    window.setBreadcrumbs?.([
-      {label:'Home', href:'index.html'},
-      {label:'Setup / Settings', href:'settings.html'},
-      {label:'Products'}
-    ]);
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../../js/serviceworker.js").catch(console.error);
       });
     }
   </script>
 
-  <!-- Global menus + tiny renderer -->
-  <script defer src="assets/data/menus.js"></script>
-  <script defer src="ui-nav.js"></script>
-
-  <!-- Fallback for nested sections: find "products.html" inside the global menu and render its children -->
-  <script>
-    (function () {
-      const target = document.querySelector('.df-tiles[data-section]');
-      if (!target) return;
-
-      // If ui-nav.js already filled it, do nothing
-      if (target.children.length) return;
-
-      const MENUS = window.DF_MENUS || {};
-      const tiles = Array.isArray(MENUS.tiles) ? MENUS.tiles : [];
-
-      function findByHref(nodeList, href) {
-        for (const n of nodeList) {
-          if (n.href === href) return n;
-          if (n.children) {
-            const hit = findByHref(n.children, href);
-            if (hit) return hit;
-          }
-        }
-        return null;
-      }
-
-      const here = location.pathname.split('/').pop() || 'products.html';
-      const section = findByHref(tiles, here) || findByHref(tiles, 'products.html');
-      if (!section || !Array.isArray(section.children)) return;
-
-      function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-      target.innerHTML = section.children.map(c => {
-        const ico = c.iconEmoji ? (esc(c.iconEmoji) + ' ') : '';
-        return `<a href="${esc(c.href)}" class="df-tile">${ico}<span>${esc(c.label)}</span></a>`;
-      }).join('');
-    })();
-  </script>
+  <!-- Menus + SUBNAV renderer (note ../../ and ui-subnav) -->
+  <script defer src="../../assets/data/menus.js"></script>
+  <script defer src="../../js/ui-subnav.js"></script>
 </body>
 </html>
