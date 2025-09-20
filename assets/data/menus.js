@@ -1,6 +1,9 @@
-/* Dowson Farms — Global Navigation (one source of truth) */
+/* Dowson Farms — Global Menus (one source of truth)
+   Pathing matches your reorganized repo:
+   - crop/, grain/, equip/, calculators/, team/, reports/, settings/, feedback/
+*/
 
-window.DF_MENUS = {
+const MENUS = {
   tiles: [
     {
       label: "Crop Production",
@@ -98,10 +101,10 @@ window.DF_MENUS = {
           href: "settings/products/index.html",
           iconEmoji: "📦",
           children: [
-            { label: "Seed",        href: "settings/products/seed.html",        iconEmoji: "🌽" },
-            { label: "Fertilizer",  href: "settings/products/fertilizer.html",  iconEmoji: "🧂" },
-            { label: "Chemical",    href: "settings/products/chemical.html",    iconEmoji: "👨🏼‍🔬" },
-            { label: "Grain Bags",  href: "settings/products/grain-bags.html",  iconEmoji: "🛄" }
+            { label: "Seed",        href: "settings/products/seed.html",       iconEmoji: "🌽" },
+            { label: "Fertilizer",  href: "settings/products/fertilizer.html", iconEmoji: "🧂" },
+            { label: "Chemical",    href: "settings/products/chemical.html",   iconEmoji: "👨🏼‍🔬" },
+            { label: "Grain Bags",  href: "settings/products/grain-bags.html", iconEmoji: "🛄" }
           ]
         }
       ]
@@ -118,3 +121,16 @@ window.DF_MENUS = {
     }
   ]
 };
+
+/* ---- Export & integrate ---- */
+try { export default MENUS; } catch (_) {}
+if (typeof window !== "undefined") {
+  window.DF_MENUS = MENUS;
+  if (window.DF && typeof window.DF.ready?.then === "function") {
+    window.DF.ready.then(reg => {
+      try {
+        if (reg && typeof reg.set === "function") reg.set("menus", MENUS);
+      } catch (e) { console.error("menus.js registration failed:", e); }
+    });
+  }
+}
