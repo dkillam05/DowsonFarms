@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Vendors — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -14,13 +16,11 @@
   })();
   </script>
 
-  <link rel="stylesheet" href="theme.css" />
-
-  <!-- Global data (menus) -->
-  <script defer src="assets/data/menus.js"></script>
-  <!-- Global app scripts -->
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- Correct relative paths from /teams-partners/ -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
 
   <style>
     /* Page-local utilities only */
@@ -44,7 +44,7 @@
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
@@ -53,9 +53,9 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="teams-partners.html">Teams &amp; Partners</a></li>
+      <li><a href="index.html">Teams &amp; Partners</a></li>
       <li class="sep">›</li>
       <li><span>Vendors</span></li>
     </ol>
@@ -196,9 +196,9 @@
   <script>
   (function VendorsPage(){
     const KEY='df.vendors';
-    const COMP_KEY='df_vendors_companies';  // dropdown companies
-    const ROLES_PERMS_KEY='df_role_perms';  // from Account Roles page
-    const MENUS_MAP_KEY='df_menus_map';     // legacy fallback
+    const COMP_KEY='df_vendors_companies';
+    const ROLES_PERMS_KEY='df_role_perms';
+    const MENUS_MAP_KEY='df_menus_map';
 
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -207,10 +207,9 @@
     const listLoad = ()=> load(KEY, []);
     const listSave = (rows)=> save(KEY, rows);
     const upsert = (row)=>{ const L=listLoad(); const i=L.findIndex(x=>x.id===row.id); if(i>=0) L[i]=row; else L.push(row); listSave(L); };
-    const removeById = (id)=> listSave(listLoad().filter(x=>x.id!==id));
     const uniq = (arr)=> [...new Set(arr)];
 
-    // Toast helper (relies on .df-toast in theme.css)
+    // Toast (uses .df-toast in theme.css; creates one if missing)
     function showToast(msg){
       let t=document.querySelector('.df-toast');
       if(!t){ t=document.createElement('div'); t.className='df-toast'; document.body.appendChild(t); }
@@ -265,7 +264,6 @@
             const c = titleCase(name.trim());
             saveCompanies([...companies, c]);
             fillCompanySelect(sel, c);
-            // mirror into manage modal if open
             const msel = document.getElementById('m_company'); if(msel) fillCompanySelect(msel, c);
           }else{
             sel.value = "";
@@ -274,32 +272,63 @@
       };
     }
 
-    // Menus for permission overrides — prefer global DF_MENUS
+    // Build a simple { "Menu": ["Sub 1","Sub 2"] } map from DF_MENUS
     function getMenusObject(){
-      if (window.DF_MENUS && typeof window.DF_MENUS === 'object') {
-        return window.DF_MENUS;
-      }
-      // Fallback to any legacy localStorage value (keeps page functional if asset missing)
-      try {
-        const obj = JSON.parse(localStorage.getItem(MENUS_MAP_KEY) || 'null');
-        return obj && typeof obj === 'object' ? obj : {};
-      } catch (_) {
-        return {};
-      }
+      try{
+        const tiles = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
+        if (tiles.length){
+          const obj = {};
+          tiles.forEach(t=>{
+            if (t && t.label) {
+              obj[t.label] = Array.isArray(t.children) ? t.children.map(c=>c.label).filter(Boolean) : [];
+            }
+          });
+          return obj;
+        }
+      }catch(_){}
+      // Legacy fallback keeps page usable if asset missing
+      return load(MENUS_MAP_KEY, {
+        "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
+        "Grain Tracking": ["Bins","Tickets","Contracts"],
+        "Equipment": ["Maintenance","Repairs","Assignments"],
+        "Calculators": ["Seed Rate","Fertilizer","ROI"],
+        "Reports": ["Crops","Equipment","Financial"],
+        "Teams & Partners": ["Employees","Vendors","Sub-Contractors","Dictionary"],
+        "Feedback": ["Ideas","Bugs / Issues"],
+        "AI": ["AI","AI History"],
+        "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+      });
     }
 
-    // ---- Permission Overrides shared state ----
+    // ---- Permission Overrides state ----
     const exState = { enabled:false, grants:{} };
 
     // Pills
-    function makePill(label, on){ const b=document.createElement('button'); b.type='button'; b.className='pill'; b.textContent=label; b.setAttribute('aria-pressed', on?'true':'false'); b.addEventListener('click',()=>{ const now=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed', now?'false':'true'); }); return b; }
+    function makePill(label, on){
+      const b=document.createElement('button');
+      b.type='button'; b.className='pill'; b.textContent=label;
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.addEventListener('click',()=>{ const now=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed', now?'false':'true'); });
+      return b;
+    }
     function pillRowFromObj(obj, disabled){
       const row=document.createElement('div'); row.className='pill-grid';
-      ['View','Edit','Add','Archive','Delete'].forEach(k=>{ const p=makePill(k, !!obj?.[k.toLowerCase()]); if(disabled) p.setAttribute('disabled',''); row.appendChild(p); });
+      ['View','Edit','Add','Archive','Delete'].forEach(k=>{
+        const p=makePill(k, !!obj?.[k.toLowerCase()]);
+        if(disabled) p.setAttribute('disabled','');
+        row.appendChild(p);
+      });
       return row;
     }
-    function rowToObj(row){ const keys=['view','edit','add','archive','delete']; const vals=[...row.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true'); return Object.fromEntries(keys.map((k,i)=>[k,vals[i]])); }
-    function setRow(row,obj){ const keys=['view','edit','add','archive','delete']; [...row.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=> p.setAttribute('aria-pressed', obj?.[keys[i]]?'true':'false')); }
+    function rowToObj(row){
+      const keys=['view','edit','add','archive','delete'];
+      const vals=[...row.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true');
+      return Object.fromEntries(keys.map((k,i)=>[k,vals[i]]));
+    }
+    function setRow(row,obj){
+      const keys=['view','edit','add','archive','delete'];
+      [...row.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=> p.setAttribute('aria-pressed', obj?.[keys[i]]?'true':'false'));
+    }
 
     function openExceptions(existing){
       let draft = { enabled:false, grants:{} };
@@ -367,9 +396,7 @@
 
       B.style.display='flex';
       $('#exCancel').onclick=()=> B.style.display='none';
-      $('#exSave').onclick=()=>{
-        B.style.display='none';
-        // drop empty grants
+      $('#exSave').onclick=()=>{ B.style.display='none';
         Object.keys(exState.grants).forEach(k=>{ const g=exState.grants[k]; const any=g&&(g.view||g.edit||g.add||g.archive||g.delete); if(!any) delete exState.grants[k]; });
         if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
       };
@@ -383,12 +410,11 @@
     // Phone mask
     attachPhoneMask($('#venPhone'));
 
-    // Invite flow (friendly message until backend is live)
+    // Invite (placeholder until backend)
     function inviteVendor(id){
       const rows=listLoad(); const v=rows.find(x=>x.id===id);
       if(!v){ alert('Vendor not found'); return; }
       if(!v.email){ alert('Email is required to send invite.'); return; }
-
       alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
       v.invitedAt = Date.now(); upsert(v); render(); showToast('Invite queued');
     }
@@ -440,9 +466,7 @@
 
       const B=$('#manageBackdrop'); B.style.display='flex';
 
-      // Exceptions
       $('#m_exceptions').onclick=()=>{ exState.onSave = (v)=>{ e.exceptions=v; }; openExceptions(e.exceptions); };
-
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=()=>{
         if(!($('#m_first').value||'').trim()){ alert('First name is required.'); return; }
@@ -462,13 +486,16 @@
         e.updatedAt = Date.now();
         upsert(e); B.style.display='none'; render(); showToast('Saved changes');
       };
-      B.addEventListener('click, keydown', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
     // Quick View
     $('#quickViewBtn').addEventListener('click', ()=>{
-      const rows=listLoad().sort((a,b)=> (a.company||'').localeCompare(b.company||'', undefined, {sensitivity:'base'}) || a.last.localeCompare(b.last, undefined, {sensitivity:'base'}) || a.first.localeCompare(b.first, undefined, {sensitivity:'base'}));
+      const rows=listLoad().sort((a,b)=>
+        (a.company||'').localeCompare(b.company||'', undefined, {sensitivity:'base'}) ||
+        a.last.localeCompare(b.last, undefined, {sensitivity:'base'}) ||
+        a.first.localeCompare(b.first, undefined, {sensitivity:'base'})
+      );
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = [r.first,r.last].filter(Boolean).map(titleCase).join(' ') || '(No Name)';
@@ -555,18 +582,18 @@
     render();
 
     window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Teams & Partners', href:'teams-partners.html'},
+      {label:'Home', href:'../index.html'},
+      {label:'Teams & Partners', href:'index.html'},
       {label:'Vendors'}
     ]);
   })();
   </script>
 
-  <!-- Service worker -->
+  <!-- Service worker (root-level sw from subfolder) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
   </script>
