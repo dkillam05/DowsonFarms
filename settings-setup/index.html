@@ -74,11 +74,12 @@
   <!-- Toast node (theme.css should style .df-toast) -->
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
-  <!-- Service worker (PATH from /settings-setup -> ../js/serviceworker.js) -->
+  <!-- Service worker (ROOT path now) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
+        // From /settings-setup/, root SW is at ../serviceworker.js
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
   </script>
@@ -87,7 +88,7 @@
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
-  <!-- Update checker wiring (fixed) -->
+  <!-- Update checker wiring (root SW aware) -->
   <script>
   (function(){
     const $ = s => document.querySelector(s);
@@ -116,17 +117,16 @@
       try {
         const res = await fetch('../js/version.js?ts=' + Date.now(), { cache: 'no-store' });
         const txt = await res.text();
-        // Accept forms like: window.DF_VERSION = 'v9.7.0'  or  const DF_VERSION = 'v9.7.0'
         const m = txt.match(/DF_VERSION\s*=\s*['"]([^'"]+)['"]/i);
         return m ? m[1] : null;
       } catch { return null; }
     }
 
-    async function getSWRegistration() {
+    async function getRootSWRegistration() {
       if (!('serviceWorker' in navigator)) return null;
       try {
-        // Registration for current scope (this page)
-        return await navigator.serviceWorker.getRegistration();
+        // Ask explicitly for the ROOT scope ('/'), since SW lives at /
+        return await navigator.serviceWorker.getRegistration('/');
       } catch { return null; }
     }
 
@@ -155,10 +155,9 @@
         return true;
       }
 
-      // Listen briefly in case updatefound fires after we looked
       let used = false;
       await new Promise(resolve => {
-        let timer = setTimeout(resolve, 1200);
+        const timer = setTimeout(resolve, 5000);
         reg.addEventListener('updatefound', function onUF(){
           const sw = reg.installing;
           if (!sw) return;
@@ -175,62 +174,60 @@
       return used;
     }
 
+    function reloadSoon() {
+      toast('Update installed — reloading…');
+      setTimeout(()=>location.reload(), 400);
+    }
+
+    function attachSWReloadHooks() {
+      if (!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.addEventListener('controllerchange', reloadSoon, { once:true });
+      navigator.serviceWorker.addEventListener('message', (ev) => {
+        if (ev?.data?.type === 'DF_SW_ACTIVATED') reloadSoon();
+      });
+    }
+
     async function checkForUpdates(){
+      attachSWReloadHooks();
+
       const current = (typeof window !== 'undefined' && window.DF_VERSION) ? String(window.DF_VERSION) : 'v0.0.0';
       const network = await fetchNetworkVersion();
-
       const serverHasNewer = network && isNewer(network, current);
 
-      let reg = await getSWRegistration();
-
+      const reg = await getRootSWRegistration();
       try { if (reg && reg.update) await reg.update(); } catch {}
 
       if (serverHasNewer) {
+        toast('Update found — applying…');
         const swapped = await activateWaitingSW(reg);
-        if (swapped) {
-          toast('Update found — applying…');
-          navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerchange', () => {
-            toast('Update installed — reloading…');
-            setTimeout(()=>location.reload(), 400);
-          }, { once:true });
-          return;
+        if (!swapped) {
+          const url = location.href.split('#')[0] + (location.search ? '&' : '?') + 'v=' + Date.now();
+          location.assign(url);
         }
-        // No SW swap available — just reload cache-busted
-        toast('Update found — reloading…');
-        setTimeout(()=>{ location.href = location.href.split('#')[0] + '?v=' + Date.now(); }, 200);
         return;
       }
 
-      // Otherwise, rely on SW signals; show “No updates” if nothing appears soon
-      if (reg) {
-        let showed = false;
+      let announced = false;
 
+      if (reg) {
         reg.addEventListener('updatefound', () => {
           const sw = reg.installing;
           if (!sw) return;
           sw.addEventListener('statechange', () => {
             if (sw.state === 'installed') {
-              showed = true;
-              if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
+              announced = true;
               toast('Update found — applying…');
+              if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
             }
           });
         }, { once:true });
-
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          toast('Update installed — reloading…');
-          setTimeout(()=>location.reload(), 400);
-        }, { once:true });
-
-        setTimeout(() => {
-          if (!showed) toast('No updates found');
-        }, 1200);
-      } else {
-        toast('No service worker — updates load next visit');
       }
+
+      setTimeout(() => {
+        if (!announced) toast('No updates found');
+      }, 5000);
     }
 
-    // Handle clicks on the “Check For Updates” tile
     function wireTileClicks(){
       const host = document.querySelector('.df-tiles[data-section]');
       if (!host) return;
@@ -238,7 +235,6 @@
         const a = e.target.closest('a');
         if (!a) return;
         const href = a.getAttribute('href') || '';
-        // supports "#check-updates" and "index.html#check-updates"
         if (/#check-updates$/i.test(href)) {
           e.preventDefault();
           checkForUpdates();
@@ -247,7 +243,6 @@
       });
     }
 
-    // If user lands with the hash already in the URL, auto-run once
     function maybeRunFromHash(){
       if (/#check-updates$/i.test(location.hash)) {
         setTimeout(checkForUpdates, 250);
@@ -259,7 +254,6 @@
       maybeRunFromHash();
     });
 
-    // Optional: keyboard shortcut U on this page
     document.addEventListener('keydown', (e) => {
       if ((e.key === 'u' || e.key === 'U') && !/input|textarea|select/i.test(e.target.tagName)) {
         e.preventDefault();
