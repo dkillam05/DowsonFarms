@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
+
+  <!-- 👇 IMPORTANT: all relative URLs now resolve under /DowsonFarms/ -->
+  <base href="/DowsonFarms/">
 
   <!-- Prepaint theme (no flash) -->
   <script>
@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Theme (ROOT → assets/css/...) -->
+  <!-- Theme (resolves to /DowsonFarms/assets/css/theme.css) -->
   <link rel="stylesheet" href="assets/css/theme.css" />
 </head>
 <body class="home-page">
@@ -70,7 +70,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 
-  <!-- Service worker (ROOT → ./serviceworker.js) -->
+  <!-- Service worker (resolves to /DowsonFarms/serviceworker.js) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -79,7 +79,7 @@
     }
   </script>
 
-  <!-- App scripts (ROOT → js/... and assets/data/...) -->
+  <!-- App scripts (resolves under /DowsonFarms/ thanks to <base>) -->
   <script defer src="js/version.js"></script>
   <script defer src="js/core.js"></script>
   <script defer src="assets/data/menus.js"></script>
