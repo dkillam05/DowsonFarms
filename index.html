@@ -74,13 +74,14 @@
   </footer>
 
   <!-- Service worker (PATH: js/serviceworker.js) -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./js/serviceworker.js?v=7").catch(console.error);
-      });
-    }
-  </script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/serviceworker.js')  // works on GH Pages too
+      .catch(console.error);
+  });
+}
+</script>
 
   <!-- Global menus + renderer (PATHS: assets/data/menus.js, js/ui-nav.js) -->
   <script defer src="assets/data/menus.js?v=7"></script>
