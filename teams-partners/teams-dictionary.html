@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Dictionary — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -14,9 +16,11 @@
   })();
   </script>
 
-  <link rel="stylesheet" href="theme.css" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- App CSS/JS (we're in /teams-partners → use ../) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+
   <style>
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -26,24 +30,27 @@
   </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="teams-partners.html">Teams &amp; Partners</a></li>
+      <li><a href="index.html">Teams &amp; Partners</a></li>
       <li class="sep">›</li>
       <li><span>Dictionary</span></li>
     </ol>
   </nav>
 
+  <!-- Main -->
   <main class="content">
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">🗂️ Dictionary</h1>
@@ -62,6 +69,7 @@
     </section>
   </main>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -81,20 +89,20 @@
     </div>
   </div>
 
+  <!-- Page logic -->
   <script>
   (function DictionaryPage(){
-    // Current keys used by the three pages we have/are building
+    // Keys used by the three pages
     const KEYS = {
       emp: 'df.employees',
       sc:  'df.sub_contractors',
-      ven: 'df.vendors'         // <- new Vendors storage (first/last/etc.)
+      ven: 'df.vendors'
     };
 
     const $=s=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
     const safeJSON = (k, def)=> { try{ const v = JSON.parse(localStorage.getItem(k)); return v==null?def:v; } catch(_){ return def; } };
 
-    // Name helpers – support both old {name} and new {first,last}
     const fullName = (row)=> {
       if (row?.name) return row.name;
       const f=(row?.first||'').trim(), l=(row?.last||'').trim();
@@ -102,7 +110,6 @@
       return both || '(No Name)';
     };
 
-    // Normalize each category into a common shape for rendering/search
     function rowsEmployees(){
       const L = safeJSON(KEYS.emp, []);
       return L.map(x=>{
@@ -126,7 +133,7 @@
     function rowsVendors(){
       const L = safeJSON(KEYS.ven, []);
       return L.map(x=>{
-        const name = fullName(x); // uses first/last from new Vendors page
+        const name = fullName(x);
         const line = [x.company, x.account].filter(Boolean).join(' • ');
         const sub  = [x.phone, x.email].filter(Boolean).join(' • ');
         return { cat:'Vendors', name, line, sub, a:!!x.archived };
@@ -178,13 +185,22 @@
     // Initial render
     applyFilters();
 
-    // Breadcrumbs
+    // Breadcrumbs helper
     window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Teams & Partners', href:'teams-partners.html'},
+      {label:'Home', href:'../index.html'},
+      {label:'Teams & Partners', href:'index.html'},
       {label:'Dictionary'}
     ]);
   })();
+  </script>
+
+  <!-- Service worker (from /teams-partners → project root) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+      });
+    }
   </script>
 </body>
 </html>
