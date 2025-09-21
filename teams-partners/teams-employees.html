@@ -16,12 +16,17 @@
   })();
   </script>
 
-  <!-- App CSS/JS (paths match your rule) -->
+  <!-- App CSS/JS (unchanged paths) -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
+  <!-- Firebase bootstrap (uses Hosting-injected config or DF_FB_CONFIG) -->
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/fb-data.js"></script>
+
   <style>
+    /* page-local utilities only */
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
@@ -29,9 +34,15 @@
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+
+    /* iOS no-zoom for phone inputs */
     #empPhone, #m_phone { font-size:16px; }
+
+    /* Manage modal extra buttons */
     .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
     .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
+
+    /* Permission Overrides pills & cards */
     .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
@@ -41,12 +52,10 @@
     .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:10px;margin-top:12px}
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 4px}
     .subbody{padding:8px 2px 2px}
+
+    /* Modal z-index guard */
     .auth-modal__backdrop{z-index:4000 !important}
   </style>
-
-  <!-- Firebase (module) -->
-  <script type="module" src="js/firebase.js"></script>
-  <script type="module" src="js/fb-data.js"></script>
 </head>
 <body>
   <!-- Header -->
@@ -154,7 +163,7 @@
     </div>
   </div>
 
-  <!-- Permission Overrides Modal (unchanged UI) -->
+  <!-- Permission Overrides Modal -->
   <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
       <h2 id="exTitle">Permission Overrides</h2>
@@ -171,7 +180,7 @@
     </div>
   </div>
 
-  <!-- Manage/Edit Modal (unchanged UI) -->
+  <!-- Manage/Edit Modal -->
   <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Employee</h2>
@@ -199,22 +208,21 @@
     </div>
   </div>
 
-  <!-- Toast -->
+  <!-- Toast node -->
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
-  <!-- Page logic (now using Firestore + Auth email link invites) -->
+  <!-- Page logic (Firestore + email-link invites) -->
   <script type="module">
+    import { rememberInviteEmail } from "/js/fb-data.js";
     import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
     import {
       collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    // Firebase handles
     const { auth, db } = window.DF_FB;
 
     // Collections
-    const EMP  = collection(db, "employees");
-    const ROLE = collection(db, "roles"); // stores your df_role_perms if you want to sync it later
+    const EMP = collection(db, "employees");
 
     const $=s=>document.querySelector(s);
 
@@ -227,10 +235,8 @@
       setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 1800);
     }
 
-    /* ---------- Roles ---------- */
+    /* ---------- Roles (static list for now) ---------- */
     async function getRoleNames(){
-      // If you want roles from Firestore later, read the "roles" collection.
-      // For now, keep the same list you used before:
       return ["Administrator","Owner","Manager","Employee","View Only"];
     }
     async function fillRoleSelect(sel, value){
@@ -257,13 +263,12 @@
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    /* ---------- Firestore helpers specific to this page ---------- */
+    /* ---------- Firestore helpers ---------- */
     async function listEmployees(){
       const snap = await getDocs(query(EMP, orderBy("last")));
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
     async function upsertEmployee(item){
-      // Use their email (lowercased) as doc ID for idempotent writes
       const id = (item.email || crypto.randomUUID()).toLowerCase();
       await setDoc(doc(EMP, id), {
         ...item,
@@ -275,7 +280,7 @@
     }
     async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    /* ---------- Permission Overrides UI (same as before) ---------- */
+    /* ---------- Permission Overrides UI ---------- */
     const DEFAULT_MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
@@ -287,7 +292,7 @@
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
-    const MENUS = DEFAULT_MENUS; // keep local for now; can be moved to Firestore later
+    const MENUS = DEFAULT_MENUS;
 
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     function pill(label, pressed, onToggle){
@@ -315,6 +320,7 @@
     }
     function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
+
       const head=document.createElement('div'); head.className='menu-head';
       const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='8px';
       const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
@@ -322,6 +328,7 @@
       left.append(caret,title);
       const right=document.createElement('span'); right.className='muted-small'; right.textContent=' ';
       head.append(left,right);
+
       const body=document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
       ex.grants[menuName]=ex.grants[menuName]||{};
@@ -397,7 +404,6 @@
         Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v);
       };
       setEnable(!!ex.enabled);
-
       Enable.onclick=()=> setEnable(!(Enable.getAttribute('aria-pressed')==='true'));
 
       Search.value='';
@@ -483,20 +489,20 @@
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Email-link invite (real)
+    // Real invite flow (email link)
     async function inviteEmployee(id){
       const rows=await listEmployees();
       const e = rows.find(x=>x.id===id);
       if(!e){ alert('Employee not found'); return; }
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
-      // Make sure your Firebase Auth → Authorized domains include your domain.
       const actionCodeSettings = {
         url: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html',
         handleCodeInApp: true
       };
 
       try{
+        rememberInviteEmail(e.email);
         await sendSignInLinkToEmail(auth, e.email, actionCodeSettings);
         e.invitedAt = Date.now();
         await upsertEmployee(e);
@@ -504,7 +510,7 @@
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Could not send invite. Check your Firebase Auth settings and authorized domain.');
+        alert('Could not send invite. Check Firebase Auth → Email link & Authorized domains.');
       }
     }
 
@@ -538,7 +544,7 @@
     $('#emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim());
+      const last  = titleCase(($('#empLast').value||'').trim()));
       const phone = $('#empPhone').value;
       const email = ($('#empEmail').value||'').trim().toLowerCase();
       const role  = $('#empRole').value;
