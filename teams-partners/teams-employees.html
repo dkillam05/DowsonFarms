@@ -16,15 +16,12 @@
   })();
   </script>
 
-  <!-- App CSS/JS (we are in /teams-partners → use ../) -->
-  <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js"></script>
-  <!-- Firebase bootstrap (must be before core.js) -->
-  <script defer src="../js/firebase-init.js"></script>
-  <script defer src="../js/core.js"></script>
+  <!-- App CSS/JS (paths match your rule) -->
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
 
   <style>
-    /* ------- Local utilities (don’t alter global sizing) ------- */
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
@@ -32,15 +29,9 @@
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-
-    /* iOS no-zoom for phone inputs */
     #empPhone, #m_phone { font-size:16px; }
-
-    /* Manage modal extra buttons */
     .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
     .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
-
-    /* -------- Permission Overrides pills & cards -------- */
     .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
@@ -50,16 +41,18 @@
     .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:10px;margin-top:12px}
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 4px}
     .subbody{padding:8px 2px 2px}
-
-    /* Modal z-index guard so footer/back buttons never overlay */
     .auth-modal__backdrop{z-index:4000 !important}
   </style>
+
+  <!-- Firebase (module) -->
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/fb-data.js"></script>
 </head>
 <body>
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
@@ -68,9 +61,9 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="../index.html">Home</a></li>
+      <li><a href="index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="index.html">Teams &amp; Partners</a></li>
+      <li><a href="teams-partners.html">Teams &amp; Partners</a></li>
       <li class="sep">›</li>
       <li><span>Employees</span></li>
     </ol>
@@ -161,7 +154,7 @@
     </div>
   </div>
 
-  <!-- Permission Overrides Modal -->
+  <!-- Permission Overrides Modal (unchanged UI) -->
   <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
       <h2 id="exTitle">Permission Overrides</h2>
@@ -178,7 +171,7 @@
     </div>
   </div>
 
-  <!-- Manage/Edit Modal -->
+  <!-- Manage/Edit Modal (unchanged UI) -->
   <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Employee</h2>
@@ -206,25 +199,49 @@
     </div>
   </div>
 
-  <!-- Toast node (uses .df-toast from theme.css) -->
+  <!-- Toast -->
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
-  <script>
-  (function TeamsEmployeesPage(){
-    // ---------- AUTH GUARD ----------
-    document.addEventListener('DOMContentLoaded', async () => {
-      if (window.DF_FB_API?.requireAuth) { await window.DF_FB_API.requireAuth(); }
-    });
+  <!-- Page logic (now using Firestore + Auth email link invites) -->
+  <script type="module">
+    import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+    import {
+      collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    // ---------- Shortcuts ----------
+    // Firebase handles
+    const { auth, db } = window.DF_FB;
+
+    // Collections
+    const EMP  = collection(db, "employees");
+    const ROLE = collection(db, "roles"); // stores your df_role_perms if you want to sync it later
+
     const $=s=>document.querySelector(s);
-    const showToast=(msg)=>{
-      const el=$('#dfToast'); el.textContent=msg; el.style.display='block';
+
+    /* ---------- Toast ---------- */
+    function showToast(msg){
+      const el = $('#dfToast');
+      el.textContent = msg;
+      el.style.display = 'block';
       requestAnimationFrame(()=> el.classList.add('show'));
       setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 1800);
-    };
+    }
 
-    // ---------- Phone mask & validators ----------
+    /* ---------- Roles ---------- */
+    async function getRoleNames(){
+      // If you want roles from Firestore later, read the "roles" collection.
+      // For now, keep the same list you used before:
+      return ["Administrator","Owner","Manager","Employee","View Only"];
+    }
+    async function fillRoleSelect(sel, value){
+      if(!sel) return;
+      const roles=await getRoleNames();
+      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
+        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+      if(value) sel.value=value;
+    }
+
+    /* ---------- Phone & validation ---------- */
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -233,7 +250,6 @@
       return `(${a}) ${b}-${c}`;
     }
     function attachPhoneMask(input){
-      if(!input) return;
       input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
       input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
     }
@@ -241,9 +257,25 @@
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    attachPhoneMask($('#empPhone'));
+    /* ---------- Firestore helpers specific to this page ---------- */
+    async function listEmployees(){
+      const snap = await getDocs(query(EMP, orderBy("last")));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    async function upsertEmployee(item){
+      // Use their email (lowercased) as doc ID for idempotent writes
+      const id = (item.email || crypto.randomUUID()).toLowerCase();
+      await setDoc(doc(EMP, id), {
+        ...item,
+        id,
+        updatedAt: serverTimestamp(),
+        createdAt: item.createdAt || serverTimestamp()
+      }, { merge:true });
+      return id;
+    }
+    async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    // ---------- Menus map (for Overrides UI only) ----------
+    /* ---------- Permission Overrides UI (same as before) ---------- */
     const DEFAULT_MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
@@ -255,9 +287,8 @@
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
-    const MENUS = DEFAULT_MENUS;
+    const MENUS = DEFAULT_MENUS; // keep local for now; can be moved to Firestore later
 
-    // ---------- Overrides UI helpers ----------
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     function pill(label, pressed, onToggle){
       const b=document.createElement('button');
@@ -267,7 +298,7 @@
       return b;
     }
     function summarizeMenu(menuObj){
-      const subs=Object.keys(menuObj).filter(k=>k!=='_all');
+      const subs=Object.keys(menuObj||{}).filter(k=>k!=='_all');
       if(!subs.length) return 'No access';
       const allTrue=subs.every(s=>{const p=menuObj[s];return p.view&&p.edit&&p.add&&p.archive&&p.delete;});
       const allFalse=subs.every(s=>{const p=menuObj[s];return !p.view&&!p.edit&&!p.add&&!p.archive&&!p.delete;});
@@ -276,41 +307,39 @@
       return 'Custom';
     }
     function summarizeChildren(menuObj){
-      const subs=Object.keys(menuObj).filter(k=>k!=='_all');
+      const subs=Object.keys(menuObj||{}).filter(k=>k!=='_all');
       const on=subs.filter(s=>{const p=menuObj[s];return p.view||p.edit||p.add||p.archive||p.delete;}).length;
       if(!on) return 'None';
       if(on===subs.length) return 'All submenus';
       return `${on} of ${subs.length} submenus`;
     }
-    function countOverrideEntries(ex){
-      if(!ex || !ex.enabled || !ex.grants) return 0;
-      let n=0;
-      Object.values(ex.grants).forEach(menu=>{ Object.entries(menu).forEach(([k,v])=>{ if(k==='_all') return; if(v.view||v.edit||v.add||v.archive||v.delete) n++; }); });
-      return n;
-    }
     function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
-
       const head=document.createElement('div'); head.className='menu-head';
       const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='8px';
       const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
-      const title=document.createElement('strong'); title.textContent=menuName; left.append(caret,title);
-      const right=document.createElement('span'); right.className='muted-small'; right.textContent=' '; head.append(left,right);
+      const title=document.createElement('strong'); title.textContent=menuName;
+      left.append(caret,title);
+      const right=document.createElement('span'); right.className='muted-small'; right.textContent=' ';
+      head.append(left,right);
+      const body=document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
-      const body=document.createElement('div'); body.className='menu-body'; body.style.display='none'; caret.style.transform='rotate(0deg)';
-
-      ex.grants[menuName]=ex.grants[menuName]||{}; ex.grants[menuName]._all=ex.grants[menuName]._all||blankPerm();
+      ex.grants[menuName]=ex.grants[menuName]||{};
+      ex.grants[menuName]._all=ex.grants[menuName]._all||blankPerm();
 
       const grid=document.createElement('div'); grid.className='pill-grid';
       ['View','Edit','Add','Archive','Delete'].forEach(name=>{
         const k=name.toLowerCase();
-        const pBtn=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
+        const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
           ex.grants[menuName]._all[k]=isOn;
-          (MENUS[menuName]||[]).forEach(sub=>{ ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm(); ex.grants[menuName][sub][k]=isOn; });
+          MENUS[menuName].forEach(sub=>{
+            ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
+            ex.grants[menuName][sub][k]=isOn;
+          });
           body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(b=>b.setAttribute('aria-pressed', isOn?'true':'false'));
           right.textContent = summarizeMenu(ex.grants[menuName]);
         });
-        grid.appendChild(pBtn);
+        grid.appendChild(p);
       });
       body.appendChild(grid);
 
@@ -318,11 +347,13 @@
       const sh=document.createElement('div'); sh.className='subhead';
       const shL=document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='6px';
       const subCaret=document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
-      const shT=document.createElement('strong'); shT.textContent='Manage submenus'; shL.append(subCaret,shT);
-      const shR=document.createElement('span'); shR.className='muted-small'; shR.textContent=' '; sh.append(shL,shR);
-      const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none'; subCaret.style.transform='rotate(0deg)';
+      const shT=document.createElement('strong'); shT.textContent='Manage submenus';
+      shL.append(subCaret,shT);
+      const shR=document.createElement('span'); shR.className='muted-small'; shR.textContent=' ';
+      sh.append(shL,shR);
+      const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
 
-      (MENUS[menuName]||[]).forEach(sub=>{
+      MENUS[menuName].forEach(sub=>{
         ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
         const sec=document.createElement('section'); sec.style.margin='10px 0 12px';
         const h=document.createElement('h3'); h.style.margin='0 0 6px'; h.textContent=`${menuName} › ${sub}`;
@@ -334,146 +365,70 @@
             shR.textContent = summarizeChildren(ex.grants[menuName]);
             right.textContent = summarizeMenu(ex.grants[menuName]);
           });
-          btn.setAttribute('data-sub', `${menuName}::${k}`); grid2.appendChild(btn);
+          btn.setAttribute('data-sub', `${menuName}::${k}`);
+          grid2.appendChild(btn);
         });
-        sec.append(h,grid2); subBody.appendChild(sec);
+        sec.append(h,grid2);
+        subBody.appendChild(sec);
       });
 
       sh.addEventListener('click', ()=>{ const open=subBody.style.display!=='none'; subBody.style.display=open?'none':'block'; subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
       head.addEventListener('click', ()=>{ const open=body.style.display!=='none'; body.style.display=open?'none':'block'; caret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
 
-      right.textContent = summarizeMenu(ex.grants[menuName]); shR.textContent = summarizeChildren(ex.grants[menuName]);
-      subWrap.append(sh, subBody); body.appendChild(subWrap); card.append(head, body);
+      right.textContent = summarizeMenu(ex.grants[menuName]);
+      shR.textContent   = summarizeChildren(ex.grants[menuName]);
+
+      subWrap.append(sh, subBody);
+      body.appendChild(subWrap);
+      card.append(head, body);
       return card;
     }
     function openPermissionOverrides(existing, onSave){
       const B=$('#exBackdrop'), Tree=$('#exTree'), Enable=$('#exEnable'), Search=$('#exSearch');
       const ex = existing && typeof existing==='object' ? JSON.parse(JSON.stringify(existing)) : {enabled:false,grants:{}};
-      Tree.innerHTML=''; Object.keys(MENUS).forEach(menu=> Tree.appendChild(buildMenuCard(menu, ex)) );
-      const setEnable=(v)=>{ ex.enabled=!!v; Enable.setAttribute('aria-pressed', v?'true':'false'); Tree.style.opacity=v?1:.45; Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v); };
+
+      Tree.innerHTML='';
+      Object.keys(MENUS).forEach(menu=> Tree.appendChild(buildMenuCard(menu, ex)) );
+
+      const setEnable=(v)=>{
+        ex.enabled=!!v;
+        Enable.setAttribute('aria-pressed', v?'true':'false');
+        Tree.style.opacity=v?1:.45;
+        Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v);
+      };
       setEnable(!!ex.enabled);
+
       Enable.onclick=()=> setEnable(!(Enable.getAttribute('aria-pressed')==='true'));
-      Search.value=''; Search.oninput=()=>{ const q=Search.value.toLowerCase().trim(); Tree.querySelectorAll('.menu-card').forEach(card=>{ card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none'; }); };
+
+      Search.value='';
+      Search.oninput=()=>{ const q=Search.value.toLowerCase().trim(); Tree.querySelectorAll('.menu-card').forEach(card=>{ card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none'; }); };
+
       $('#exSave').onclick=()=>{ B.style.display='none'; onSave && onSave(ex); showToast('Overrides saved'); };
       $('#exCancel').onclick=()=>{ B.style.display='none'; };
       B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
       B.style.display='flex';
     }
 
-    // ---------- Firebase handles ----------
-    const FB = { db: null };
-    async function fbReady(){
-      if (!FB.db) {
-        if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
-        FB.db = window.DF_FB?.db || window.DF_FB_API?.db?.();
-      }
-      return FB.db;
-    }
+    /* ---------- Render / Manage / Invite ---------- */
+    function chip(s){ return s?`<span class="chip">${s}</span>`:''; }
 
-    // ---------- Roles (from Firestore) ----------
-    async function fetchRoles(){
-      const db = await fbReady();
-      const qs = await db.collection('roles').orderBy('label').get();
-      const out = []; qs.forEach(doc=> { const d=doc.data()||{}; if(d.label) out.push(d.label); });
-      return out.length ? out : ["Administrator","Owner","Manager","Employee","View Only"];
-    }
-    async function fillRoleSelect(sel, value){
-      const roles = await fetchRoles();
-      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` + roles.map(r=>`<option value="${r}">${r}</option>`).join('');
-      if(value) sel.value=value;
-    }
-
-    // ---------- Employees CRUD (Firestore) ----------
-    function mapDoc(doc){
-      const d = doc.data()||{};
-      return {
-        id: doc.id,
-        first: d.first || '',
-        last: d.last || '',
-        phone: d.phone || '',
-        email: d.email || '',
-        role: d.role || '',
-        archived: !!d.archived,
-        exceptions: d.exceptions || {enabled:false,grants:{}},
-        invitedAt: d.invitedAt || null,
-        createdAt: d.createdAt || null,
-        updatedAt: d.updatedAt || null
-      };
-    }
-
-    async function listEmployees(){
-      const db = await fbReady();
-      const qs = await db.collection('employees').orderBy('last').orderBy('first').get();
-      const out=[]; qs.forEach(doc=> out.push(mapDoc(doc)));
-      return out;
-    }
-    async function createEmployee(payload){
-      const db = await fbReady();
-      const now = firebase.firestore.FieldValue.serverTimestamp();
-      const ref = await db.collection('employees').add({ ...payload, createdAt: now, updatedAt: now });
-      const snap = await ref.get(); return mapDoc(snap);
-    }
-    async function updateEmployee(id, updates){
-      const db = await fbReady();
-      const now = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection('employees').doc(id).set({ ...updates, updatedAt: now }, { merge: true });
-    }
-    async function deleteEmployee(id){
-      const db = await fbReady();
-      await db.collection('employees').doc(id).delete();
-    }
-    async function readEmployee(id){
-      const db = await fbReady();
-      const snap = await db.collection('employees').doc(id).get();
-      return snap.exists ? mapDoc(snap) : null;
-    }
-
-    // ---------- Invite (placeholder → Cloud Function later) ----------
-    async function inviteEmployeeById(id){
-      const emp = await readEmployee(id);
-      if(!emp){ alert('Employee not found'); return; }
-      if(!emp.email){ alert('Employee email is required to send invite.'); return; }
-
-      try {
-        if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
-        const res = await window.DF_FB_API.dfSendInviteEmail({
-          email: emp.email,
-          role: emp.role || '',
-          displayName: `${emp.first||''} ${emp.last||''}`.trim()
-        });
-        await updateEmployee(id, { invitedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        showToast('Invite triggered');
-        await render();
-      } catch (e) {
-        console.error(e);
-        alert('Invite not ready yet — will be wired via Cloud Function.');
-      }
-    }
-
-    // ---------- UI state ----------
-    let EMP_CACHE = [];
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      EMP_CACHE = await listEmployees();
-
-      const rows = EMP_CACHE
+      const rows=(await listEmployees())
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
-        .sort((a,b)=> a.last.localeCompare(b.last,undefined,{sensitivity:'base'}) || a.first.localeCompare(b.first,undefined,{sensitivity:'base'}));
-
-      const chip=(s)=> s?`<span class="chip">${s}</span>`:'';
-      const exCount=(e)=> countOverrideEntries(e.exceptions);
+        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) || (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
 
       const L=$('#savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const nEx = exCount(r);
+        const exCount = r.exceptions?.enabled ? Object.values(r.exceptions.grants||{}).reduce((n,g)=> n + ((g.view||g.edit||g.add||g.archive||g.delete)?1:0), 0) : 0;
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name}</strong>
             ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
-            ${nEx? `<span class="chip">${nEx} override${nEx>1?'s':''}</span>`: '' }
+            ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
             ${r.archived ? `<span class="chip">Archived</span>` : (r.invitedAt ? `<span class="chip">Invited</span>`:'')}
           </div>
           <div class="line" style="margin-top:8px;">
@@ -484,12 +439,11 @@
       }).join('') : '<li class="muted">No employees yet.</li>';
 
       L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
-      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployeeById(b.getAttribute('data-invite'))));
+      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
     }
 
-    // ---------- Manage Modal ----------
     async function openManage(id){
-      const e = await readEmployee(id); if(!e) return;
+      const rows=await listEmployees(); const e=rows.find(x=>x.id===id); if(!e) return;
       $('#manageTitle').textContent = `Edit Employee — ${(e.first||'') + ' ' + (e.last||'')}`.trim();
       $('#m_first').value=e.first||''; $('#m_last').value=e.last||'';
       $('#m_phone').value=e.phone||''; attachPhoneMask($('#m_phone'));
@@ -503,70 +457,82 @@
 
       $('#m_delete').onclick=async ()=>{
         if(confirm('Delete this employee? This cannot be undone.')){
-          await deleteEmployee(e.id);
+          await removeById(e.id);
           B.style.display='none'; await render(); showToast('Employee deleted');
         }
       };
       $('#m_archive').onclick=async ()=>{
-        await updateEmployee(e.id, { archived: !e.archived });
-        $archive.textContent = (!e.archived) ? 'Unarchive' : 'Archive';
-        await render(); showToast((!e.archived)?'Archived':'Unarchived');
+        e.archived = !e.archived; e.updatedAt = Date.now(); await upsertEmployee(e);
+        $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
+        await render(); showToast(e.archived?'Archived':'Unarchived');
       };
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=async ()=>{
-        const first = titleCase($('#m_first').value||'');
-        const last  = titleCase($('#m_last').value||'');
-        const phone = $('#m_phone').value;
-        const email = ($('#m_email').value||'').trim();
-        const role  = $('#m_role').value;
-
-        if(!first || !last){ alert('First and Last name are required.'); return; }
-        if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
-        if(!isEmail(email)){ alert('Valid email is required.'); return; }
-        if(!role){ alert('Role is required.'); return; }
-
-        await updateEmployee(e.id, {
-          first, last, phone, email, role,
-          exceptions: e.exceptions || {enabled:false,grants:{}}
-        });
-        B.style.display='none'; await render(); showToast('Changes saved');
+        if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
+        if(!isValidPhoneUS($('#m_phone').value)){ alert('Phone must be (###) ###-####'); return; }
+        if(!isEmail($('#m_email').value)){ alert('Valid email is required.'); return; }
+        if(!$('#m_role').value){ alert('Role is required.'); return; }
+        e.first=titleCase($('#m_first').value);
+        e.last =titleCase($('#m_last').value);
+        e.phone=$('#m_phone').value;
+        e.email=$('#m_email').value.trim().toLowerCase();
+        e.role =$('#m_role').value;
+        e.updatedAt=Date.now();
+        await upsertEmployee(e); B.style.display='none'; await render(); showToast('Changes saved');
       };
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // ---------- Quick View ----------
-    $('#quickViewBtn').addEventListener('click', async ()=>{
-      const rows = await listEmployees();
-      const L=$('#qvList'), B=$('#qvBackdrop');
-      const chip=(s)=> s?`<span class="chip">${s}</span>`:'';
-      L.innerHTML = rows.length ? rows.map(r=>{
-        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        return `<li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line"><strong>${name}</strong> ${chip(r.role)}</div>
-          ${ (r.phone||r.email) ? `<div class="muted-small">${[r.phone,r.email].filter(Boolean).join(' • ')}</div>` : '' }
-        </li>`;
-      }).join('') : '<li>No employees.</li>';
-      B.style.display='flex';
-      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
-      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    // Email-link invite (real)
+    async function inviteEmployee(id){
+      const rows=await listEmployees();
+      const e = rows.find(x=>x.id===id);
+      if(!e){ alert('Employee not found'); return; }
+      if(!e.email){ alert('Employee email is required to send invite.'); return; }
+
+      // Make sure your Firebase Auth → Authorized domains include your domain.
+      const actionCodeSettings = {
+        url: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html',
+        handleCodeInApp: true
+      };
+
+      try{
+        await sendSignInLinkToEmail(auth, e.email, actionCodeSettings);
+        e.invitedAt = Date.now();
+        await upsertEmployee(e);
+        await render();
+        showToast('Invite sent');
+      }catch(err){
+        console.error(err);
+        alert('Could not send invite. Check your Firebase Auth settings and authorized domain.');
+      }
+    }
+
+    /* ---------- Create flow ---------- */
+    attachPhoneMask($('#empPhone'));
+    await fillRoleSelect($('#empRole'));
+
+    $('#exceptionsBtn').addEventListener('click', ()=>{
+      const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
+      openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
     });
 
-    // ---------- Create + Invite ----------
     $('#inviteBtn').addEventListener('click', async ()=>{
       const first = titleCase(($('#empFirst').value||'').trim());
       const last  = titleCase(($('#empLast').value||'').trim());
-      const email = ($('#empEmail').value||'').trim();
-      const phone = $('#empPhone').value;
-      const role  = $('#empRole').value || '';
-      const exceptions = ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}});
-
-      if(!first || !last || !email){ alert('Enter First, Last, and Email to send an invite.'); return; }
-      if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
-
-      const created = await createEmployee({ first, last, phone, email, role, archived:false, exceptions });
-      $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload;
-      await inviteEmployeeById(created.id);
-      await render();
+      const email = ($('#empEmail').value||'').trim().toLowerCase();
+      if(!first || !last || !email || !isEmail(email)){ alert('Enter First, Last, and valid Email to send an invite.'); return; }
+      const item = {
+        first, last,
+        phone: $('#empPhone').value,
+        email,
+        role: $('#empRole').value || '',
+        archived:false,
+        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
+        createdAt: Date.now(), updatedAt: Date.now()
+      };
+      const id = await upsertEmployee(item);
+      await inviteEmployee(id);
     });
 
     $('#emp-form').addEventListener('submit', async (e)=>{
@@ -574,50 +540,45 @@
       const first = titleCase(($('#empFirst').value||'').trim());
       const last  = titleCase(($('#empLast').value||'').trim());
       const phone = $('#empPhone').value;
-      const email = ($('#empEmail').value||'').trim();
+      const email = ($('#empEmail').value||'').trim().toLowerCase();
       const role  = $('#empRole').value;
-      const exceptions = ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}});
 
       if(!first || !last){ alert('First and Last name are required.'); return; }
       if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
       if(!isEmail(email)){ alert('Valid email is required.'); return; }
       if(!role){ alert('Role is required.'); return; }
 
-      await createEmployee({ first, last, phone, email, role, archived:false, exceptions });
-      $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload;
+      await upsertEmployee({
+        first, last, phone, email, role,
+        archived:false,
+        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
+        createdAt: Date.now(), updatedAt: Date.now()
+      });
+      $('#emp-form').reset();
+      delete $('#exceptionsBtn').dataset.payload;
       await render();
       showToast('Employee saved');
     });
 
-    // ---------- Exceptions modal from create form ----------
-    $('#exceptionsBtn').addEventListener('click', ()=>{
-      const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
-      openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
-    });
-
     $('#clearBtn').addEventListener('click', ()=>{ $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload; });
-    $('#searchInput').addEventListener('input', ()=>render());
-    $('#toggleShowArchived').addEventListener('change', ()=>render());
+    $('#searchInput').addEventListener('input', render);
+    $('#toggleShowArchived').addEventListener('change', render);
 
-    // ---------- Initial role select + render ----------
-    (async function start(){
-      await fillRoleSelect($('#empRole'));
-      await render();
-      // Breadcrumbs helper (optional)
-      window.setBreadcrumbs && window.setBreadcrumbs([
-        {label:'Home', href:'../index.html'},
-        {label:'Teams & Partners', href:'index.html'},
-        {label:'Employees'}
-      ]);
-    })();
-  })();
+    // Initial render
+    await render();
+
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Teams & Partners', href:'teams-partners.html'},
+      {label:'Employees'}
+    ]);
   </script>
 
-  <!-- Service worker (from /teams-partners/ → root) -->
+  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
       });
     }
   </script>
