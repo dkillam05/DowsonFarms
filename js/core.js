@@ -4,7 +4,7 @@
    - Clock (HH:MM AM/PM, America/Chicago) → supports #clock and #df-clock
    - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
    - Honors <base href="/DowsonFarms/"> so relative redirects work anywhere
-   - NEW: Back button (scrolls with page) above footer; hidden on home page
+   - NEW: Back button (scrolls with page) above footer; hidden on true home page only
    =========================== */
 
 (function () {
@@ -149,15 +149,34 @@
   }
 
   /* ---------------------------------------
+     Helpers to detect "home" accurately on GitHub Pages
+  ----------------------------------------*/
+  function isHome() {
+    var p = window.location.pathname.replace(/\/+$/, ''); // strip trailing slash
+    var seg = p.split('/').filter(Boolean);               // path segments
+
+    // Cases to treat as "home":
+    // 1) "/"              -> seg.length === 0
+    // 2) "/index.html"    -> ['index.html']
+    // 3) "/<repo>/"       -> ['<repo>']
+    // 4) "/<repo>/index.html" -> ['<repo>', 'index.html']
+    if (seg.length === 0) return true;
+    if (seg.length === 1 && (seg[0] === 'index.html')) return true;
+    if (seg.length === 1) return true; // project root "/<repo>"
+    if (seg.length === 2 && seg[1] === 'index.html') return true;
+
+    return false;
+  }
+
+  /* ---------------------------------------
      Back Button (in-flow, above footer)
-     - Hidden on home page (index.html)
+     - Hidden on true home page only
   ----------------------------------------*/
   function installBackButtonFlow() {
     if (document.getElementById('df-back-flow')) return;
 
-    var path = window.location.pathname;
-    if (/\/(index\.html)?$/.test(path)) {
-      return; // skip on home page
+    if (isHome()) {
+      return; // skip only on real home
     }
 
     var footer = document.querySelector('footer, .app-footer');
