@@ -1,29 +1,20 @@
 /* ===========================
-   Dowson Farms — core.js  (FULL REPLACEMENT)
-   - Logout (no Firebase; clears storage but preserves df_theme; unregisters SW; redirects)
-   - Clock (HH:MM AM/PM, America/Chicago) → supports #clock and #df-clock
-   - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
-   - Back button (in-flow inside .content, above footer; hidden on true home)
-   - Logout button injected into the Breadcrumb bar (right-aligned) on ALL pages
-     * 20% smaller than the last version
-     * Consistent font, size, and color everywhere (home + sub pages)
-     * Replaces any small/blue link versions inside the breadcrumbs
+   /js/core.js  (FULL REPLACEMENT)
+   - Logout (no Firebase; preserves df_theme; unregisters SW; redirects)
+   - Clock (America/Chicago)
+   - Version/Build Date injection
+   - Back button (in-flow above footer) — HIDDEN on home and on /auth/*
+   - Logout button in Breadcrumb bar (right-aligned, consistent everywhere)
    - Honors <base href="/DowsonFarms/">
    =========================== */
 
 (function () {
   'use strict';
 
-  /* ---------------------------------------
-     URL helpers
-  ----------------------------------------*/
+  /* ---------- URL helpers ---------- */
   function resolveAuthURL() {
     try { return new URL('auth/index.html', document.baseURI).href; }
     catch (_) { return 'auth/index.html'; }
-  }
-  function resolveURL(rel) {
-    try { return new URL(rel, document.baseURI).href; }
-    catch (_) { return rel; }
   }
   function getRepoRootPath() {
     var baseEl = document.querySelector('base');
@@ -37,22 +28,23 @@
     if (seg.length > 0) return '/' + seg[0] + '/';
     return '/';
   }
-  function getHomeURL() {
-    return getRepoRootPath() + 'index.html';
-  }
+  function getHomeURL() { return getRepoRootPath() + 'index.html'; }
+
   function isHome() {
     var p = window.location.pathname.replace(/\/+$/, '');
     var seg = p.split('/').filter(Boolean);
-    if (seg.length === 0) return true;
+    if (seg.length === 0) return true;                         // "/"
     if (seg.length === 1 && seg[0] === 'index.html') return true;
-    if (seg.length === 1) return true;
-    if (seg.length === 2 && seg[1] === 'index.html') return true;
+    if (seg.length === 1) return true;                         // "/<repo>"
+    if (seg.length === 2 && seg[1] === 'index.html') return true; // "/<repo>/index.html"
     return false;
   }
+  function isAuthPage() {
+    var p = window.location.pathname.toLowerCase();
+    return /\/auth(\/|$)/.test(p);
+  }
 
-  /* ---------------------------------------
-     LOGOUT (no Firebase)
-  ----------------------------------------*/
+  /* ---------- LOGOUT ---------- */
   function handleLogout(ev) {
     if (ev && ev.preventDefault) ev.preventDefault();
 
@@ -82,46 +74,31 @@
       } else {
         go();
       }
-    } catch (_) {
-      go();
-    }
+    } catch (_) { go(); }
   }
 
-  /* ---------------------------------------
-     Inject Logout BUTTON into Breadcrumb bar
-     - Right-aligned; same style everywhere
-     - Removes any small/blue logout links within the breadcrumbs
-     - Button is 20% smaller than last version
-  ----------------------------------------*/
+  /* ---------- Breadcrumb Logout (consistent, small) ---------- */
   function injectBreadcrumbLogout() {
     var bc = document.querySelector('nav.breadcrumbs, .breadcrumbs');
     if (!bc) return;
 
+    // Remove any link-style logout in the breadcrumbs
     var old = bc.querySelectorAll('#logout-btn, [data-action="logout"], .logout, a[href*="logout"]');
-    for (var i = 0; i < old.length; i++) {
-      if (bc.contains(old[i])) old[i].remove();
-    }
+    for (var i = 0; i < old.length; i++) if (bc.contains(old[i])) old[i].remove();
 
-    if (getComputedStyle(bc).position === 'static') {
-      bc.style.position = 'relative';
-    }
-
-    var pr = parseInt(getComputedStyle(bc).paddingRight || '0', 10);
-    var needed = 100; // shrink space for smaller button
+    // Position host
+    var cs = getComputedStyle(bc);
+    if (cs.position === 'static') bc.style.position = 'relative';
+    var pr = parseInt(cs.paddingRight || '0', 10);
+    var needed = 100;
     if (pr < needed) bc.style.paddingRight = needed + 'px';
-
     if (bc.querySelector('#df-logout-host')) return;
 
     var host = document.createElement('div');
     host.id = 'df-logout-host';
     host.setAttribute('style', [
-      'position:absolute',
-      'right:12px',
-      'top:50%',
-      'transform:translateY(-50%)',
-      'display:flex',
-      'align-items:center',
-      'z-index:2'
+      'position:absolute','right:12px','top:50%','transform:translateY(-50%)',
+      'display:flex','align-items:center','z-index:2'
     ].join(';'));
 
     var brand = getComputedStyle(document.documentElement).getPropertyValue('--brand-green').trim() || '#1B5E20';
@@ -132,11 +109,11 @@
     btn.textContent = 'Logout';
     btn.setAttribute('aria-label', 'Log out');
     btn.setAttribute('style', [
-      'padding:5px 10px',         // 20% smaller
-      'font-size:12px',           // 20% smaller
+      'padding:5px 10px',
+      'font-size:12px',
       'font-weight:700',
       'line-height:1',
-      'border-radius:8px',        // slightly reduced
+      'border-radius:8px',
       'border:2px solid ' + brand,
       'background:#fff',
       'color:' + brand,
@@ -153,75 +130,51 @@
     }
 
     btn.addEventListener('click', handleLogout, { passive: false });
-
     host.appendChild(btn);
     bc.appendChild(host);
   }
 
-  /* ---------------------------------------
-     CLOCK
-  ----------------------------------------*/
+  /* ---------- Clock ---------- */
   function installClock() {
     var clockEl = document.getElementById('clock') || document.getElementById('df-clock');
     var dateEl  = document.getElementById('report-date') || document.getElementById('df-date');
     if (!clockEl && !dateEl) return;
 
     var tz = 'America/Chicago';
-
     function render() {
       var now = new Date();
-      if (clockEl) {
-        clockEl.textContent = now.toLocaleTimeString('en-US', {
-          hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz
-        });
-      }
-      if (dateEl) {
-        dateEl.textContent = now.toLocaleDateString('en-US', {
-          weekday: 'short', month: 'short', day: '2-digit', year: 'numeric', timeZone: tz
-        });
-      }
+      if (clockEl) clockEl.textContent = now.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz
+      });
+      if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: '2-digit', year: 'numeric', timeZone: tz
+      });
     }
-
     render();
     var now = new Date();
     var msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-    setTimeout(function () {
-      render();
-      setInterval(render, 60000);
-    }, Math.max(0, msToNextMinute));
+    setTimeout(function () { render(); setInterval(render, 60000); }, Math.max(0, msToNextMinute));
   }
 
-  /* ---------------------------------------
-     VERSION + BUILD DATE
-  ----------------------------------------*/
+  /* ---------- Version + Build Date ---------- */
   function injectVersionAndBuildDate() {
     var verEl = document.getElementById('version') || document.getElementById('df-version');
     var buildDateEl = document.getElementById('df-build-date') || null;
-
-    var version = (typeof window !== 'undefined' && window.DF_VERSION)
-      ? String(window.DF_VERSION)
-      : 'v0.0.0';
-
-    if (verEl) {
-      try { verEl.textContent = version; } catch (_) {}
-    }
-
+    var version = (typeof window !== 'undefined' && window.DF_VERSION) ? String(window.DF_VERSION) : 'v0.0.0';
+    if (verEl) { try { verEl.textContent = version; } catch (_) {} }
     if (buildDateEl) {
       try {
         buildDateEl.textContent = new Date().toLocaleDateString('en-US', {
-          year: 'numeric', month: '2-digit', day: '2-digit',
-          timeZone: 'America/Chicago'
+          year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Chicago'
         });
       } catch (_) {}
     }
   }
 
-  /* ---------------------------------------
-     Back Button
-  ----------------------------------------*/
+  /* ---------- Back Button (skip home + login) ---------- */
   function installBackButtonFlow() {
     if (document.getElementById('df-back-flow')) return;
-    if (isHome()) return;
+    if (isHome() || isAuthPage()) return; // ← hide on login/auth pages and true home
 
     var content = document.querySelector('.content') || document.body;
 
@@ -233,21 +186,12 @@
     btn.type = 'button';
     btn.textContent = '← Back';
     btn.setAttribute('style', [
-      'font: inherit',
-      'font-weight:600',
-      'padding:8px 14px',
-      'border-radius:10px',
-      'border:2px solid var(--brand-green, #1B5E20)',
-      'background:#fff',
-      'color:#222',
-      'box-shadow:0 2px 6px rgba(0,0,0,.08)',
-      'cursor:pointer'
+      'font: inherit','font-weight:600','padding:8px 14px',
+      'border-radius:10px','border:2px solid var(--brand-green, #1B5E20)',
+      'background:#fff','color:#222','box-shadow:0 2px 6px rgba(0,0,0,.08)','cursor:pointer'
     ].join(';'));
-
-    if (document.documentElement.getAttribute('data-theme') === 'dark') {
-      btn.style.background = '#15181b';
-      btn.style.color = '#eaeaea';
-      btn.style.borderColor = '#2d7b35';
+    if ((document.documentElement.getAttribute('data-theme') || '').toLowerCase() === 'dark') {
+      btn.style.background = '#15181b'; btn.style.color = '#eaeaea'; btn.style.borderColor = '#2d7b35';
     }
 
     var isMenuGrid = !!document.querySelector('.df-tiles[data-section]');
@@ -277,18 +221,14 @@
         var footer = document.querySelector('footer, .app-footer');
         var h = footer ? Math.ceil(footer.getBoundingClientRect().height) : 0;
         host.style.marginBottom = (h ? (h + 12) : 12) + 'px';
-      } catch (_) {
-        host.style.marginBottom = '12px';
-      }
+      } catch (_) { host.style.marginBottom = '12px'; }
     }
     pushAboveFooter();
     window.addEventListener('resize', pushAboveFooter);
     window.addEventListener('orientationchange', pushAboveFooter);
   }
 
-  /* ---------------------------------------
-     DOM Ready
-  ----------------------------------------*/
+  /* ---------- DOM Ready ---------- */
   document.addEventListener('DOMContentLoaded', function () {
     injectBreadcrumbLogout();
     installClock();
@@ -296,16 +236,11 @@
     installBackButtonFlow();
   });
 
-  /* ---------------------------------------
-     Keep legacy logout triggers working
-  ----------------------------------------*/
+  /* Keep legacy logout triggers working anywhere */
   document.addEventListener('click', function (e) {
     var t = e.target;
     if (!t) return;
-    if (t.matches('[data-action="logout"], .logout')) {
-      e.preventDefault();
-      handleLogout(e);
-    }
+    if (t.matches('[data-action="logout"], .logout')) { e.preventDefault(); handleLogout(e); }
   }, { passive: false });
 
 })();
