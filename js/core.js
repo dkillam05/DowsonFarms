@@ -1,180 +1,178 @@
 /* ===========================
-   Dowson Farms — core.js
-   - Logout (no Firebase; safe local/session cleanup)
-   - Global HH:MM AM/PM clock (Central Time, minute-synced)
-   - Footer version + date injection (reads window.DF_VERSION from js/version.js if present)
+   Dowson Farms — core.js  (FULL REPLACEMENT)
+   Purpose (safe, minimal, non-destructive):
+   1) Logout button works from any page (no Firebase required)
+      - Clears storage but preserves df_theme
+      - Unregisters service workers
+      - Redirects to auth/index.html using a robust path resolver
+   2) Optional live clock (HH:MM AM/PM, America/Chicago)
+      - Renders only if #df-clock (and/or #df-date) exists
+      - Minute-synced
+   3) Optional footer version + date
+      - Reads window.DF_VERSION (from js/version.js) if present
+      - Renders only if #df-version / #df-build-date exist
+
+   This file avoids changing any other UI/logic.
+   Keep <script defer src="js/version.js"></script> before this file if you want version to show.
    =========================== */
 
 (function () {
   'use strict';
 
-  /* ---------------------------
-     Project Root Resolver
-     - Works from any subfolder (calculators, reports, etc.)
-     - Returns "/<repo>/" + "" when on GitHub Pages or just "/" locally
-  ----------------------------*/
-  function getProjectRoot() {
-    // Normalize trailing slash
-    let path = location.pathname;
-    // If we are at the repo root file (index.html in root), root is the folder containing it.
-    // Otherwise strip known top-level directories to find the root.
-    const topFolders = [
-      'auth','assets','calculators','crop-production','equipment','feedback',
-      'field-maintenance','.github','grain-tracking','js','reports','settings-setup','teams-partners'
-    ];
-
-    // If path already ends with '/', it's probably a directory listing or index.
-    // We want the root that contains those top-level dirs.
-    // Try to detect the earliest occurrence of any known top-level folder and cut there.
-    const parts = path.split('/').filter(Boolean); // removes empty pieces
-    if (parts.length === 0) return '/';
-
-    // On GitHub Pages it’s typically /<user>/<repo>/...
-    // We’ll build a root by walking until (but not including) a known top-level dir.
-    let cutIndex = parts.length; // default: no cut
-    for (let i = 0; i < parts.length; i++) {
-      if (topFolders.includes(parts[i])) {
-        cutIndex = i; break;
+  /* ---------------------------------------
+     Resolve absolute URL to /auth/index.html
+     Works no matter which folder current page is in.
+     We compute based on where THIS file (js/core.js) lives.
+  ----------------------------------------*/
+  function resolveAuthURL() {
+    try {
+      // Find the <script src=".../js/core.js">
+      var scripts = document.getElementsByTagName('script');
+      var src = null;
+      for (var i = 0; i < scripts.length; i++) {
+        var s = scripts[i].getAttribute('src') || '';
+        if (/(^|\/)js\/core\.js(\?|#|$)/.test(s)) { src = s; break; }
       }
-    }
+      // Fallback: if not found, assume relative "js/core.js"
+      if (!src) src = 'js/core.js';
 
-    // If the current file is in root (e.g., /<repo>/index.html), we still want "/<repo>/".
-    // So we keep up to cutIndex (or all parts if no known folder present), then join with trailing slash.
-    const rootParts = parts.slice(0, cutIndex);
-    const root = '/' + rootParts.join('/') + (rootParts.length ? '/' : '/');
-    return root;
+      // Build absolute URL for core.js, then hop to ../auth/index.html
+      var coreAbs = new URL(src, window.location.href);
+      var authAbs = new URL('../auth/index.html', coreAbs.href);
+      return authAbs.href;
+    } catch (e) {
+      // Ultimate fallback
+      return 'auth/index.html';
+    }
   }
 
-  /* ---------------------------
-     Logout (no Firebase)
-     - Clears storage (preserves theme choice)
-     - Unregisters service workers
-     - Redirects to auth/index.html at project root
-  ----------------------------*/
-  function installLogoutHandler() {
-    const root = getProjectRoot();
-    const logoutTargets = [
-      document.querySelector('#logout-btn'),
-      ...document.querySelectorAll('[data-action="logout"]')
-    ].filter(Boolean);
+  /* ---------------------------------------
+     LOGOUT (no Firebase)
+     - Binds to #logout-btn and [data-action="logout"]
+     - Clears storages (preserving df_theme), unregisters SW, redirects.
+  ----------------------------------------*/
+  function installLogout() {
+    var targets = [];
+    var byId = document.getElementById('logout-btn');
+    if (byId) targets.push(byId);
+    var byAttr = document.querySelectorAll('[data-action="logout"]');
+    for (var i = 0; i < byAttr.length; i++) targets.push(byAttr[i]);
+    if (!targets.length) return;
 
-    if (logoutTargets.length === 0) return;
+    var authURL = resolveAuthURL();
 
-    const handler = function (ev) {
-      ev.preventDefault();
+    function handleLogout(ev) {
+      if (ev && ev.preventDefault) ev.preventDefault();
 
-      // Preserve theme preference if present
-      const preserve = {};
-      try {
-        const keysToKeep = ['df_theme'];
-        keysToKeep.forEach(k => {
-          if (localStorage.getItem(k) !== null) preserve[k] = localStorage.getItem(k);
-        });
-      } catch (_) {}
+      // Preserve theme preference
+      var keepTheme = null;
+      try { keepTheme = localStorage.getItem('df_theme'); } catch (_) {}
 
-      // Clear storages
+      // Clear storage
       try { localStorage.clear(); } catch (_) {}
       try { sessionStorage.clear(); } catch (_) {}
 
-      // Restore preserved keys
-      try {
-        Object.keys(preserve).forEach(k => localStorage.setItem(k, preserve[k]));
-      } catch (_) {}
+      // Restore preserved preference
+      try { if (keepTheme !== null) localStorage.setItem('df_theme', keepTheme); } catch (_) {}
 
-      // Unregister service workers, then redirect
-      const redirectToAuth = () => {
-        const dest = root + 'auth/index.html';
-        window.location.replace(dest);
-      };
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations()
-          .then(regs => Promise.allSettled(regs.map(r => r.unregister())))
-          .finally(redirectToAuth)
-          .catch(redirectToAuth);
-      } else {
-        redirectToAuth();
+      // Unregister any service workers, then redirect
+      function go() {
+        try { window.location.replace(authURL); }
+        catch (_) { window.location.href = authURL; }
       }
-    };
 
-    logoutTargets.forEach(el => {
-      el.addEventListener('click', handler, { passive: false });
-    });
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+          navigator.serviceWorker.getRegistrations()
+            .then(function (regs) {
+              var ops = [];
+              for (var i = 0; i < regs.length; i++) ops.push(regs[i].unregister());
+              return Promise.allSettled(ops);
+            })
+            .then(go)
+            .catch(go);
+        } else {
+          go();
+        }
+      } catch (_) {
+        go();
+      }
+    }
+
+    for (var j = 0; j < targets.length; j++) {
+      targets[j].addEventListener('click', handleLogout, { passive: false });
+    }
   }
 
-  /* ---------------------------
-     Clock (HH:MM AM/PM) — Central Time
-     - Put <span id="df-clock"></span> somewhere in your header if you want it visible.
-     - Also supports <span id="df-date"></span> for a friendly date.
-  ----------------------------*/
+  /* ---------------------------------------
+     CLOCK (optional)
+     - HH:MM AM/PM in America/Chicago
+     - Renders if #df-clock exists
+     - Friendly date if #df-date exists
+  ----------------------------------------*/
   function installClock() {
-    const clockEl = document.getElementById('df-clock');
-    const dateEl  = document.getElementById('df-date');
-    if (!clockEl && !dateEl) return; // nothing to render
+    var clockEl = document.getElementById('df-clock');
+    var dateEl  = document.getElementById('df-date');
+    if (!clockEl && !dateEl) return; // no-op if not present
 
-    const tz = 'America/Chicago';
+    var tz = 'America/Chicago';
 
     function render() {
-      const now = new Date();
-      // Format time as HH:MM AM/PM
-      const time = now.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: tz
-      });
-      // Friendly date like "Sun, Sep 21, 2025"
-      const date = now.toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        timeZone: tz
-      });
-      if (clockEl) clockEl.textContent = time;
-      if (dateEl)  dateEl.textContent  = date;
+      var now = new Date();
+      if (clockEl) {
+        clockEl.textContent = now.toLocaleTimeString('en-US', {
+          hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz
+        });
+      }
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString('en-US', {
+          weekday: 'short', month: 'short', day: '2-digit', year: 'numeric', timeZone: tz
+        });
+      }
     }
 
-    function startMinuteSyncedTick() {
+    // Minute-synced updates
+    render();
+    var now = new Date();
+    var msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    setTimeout(function () {
       render();
-      const now = new Date();
-      const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-      setTimeout(() => {
-        render();
-        setInterval(render, 60 * 1000);
-      }, Math.max(0, msToNextMinute));
+      setInterval(render, 60 * 1000);
+    }, Math.max(0, msToNextMinute));
+  }
+
+  /* ---------------------------------------
+     VERSION + DATE (optional)
+     - Renders if #df-version / #df-build-date exist
+     - Uses window.DF_VERSION if defined (from js/version.js)
+  ----------------------------------------*/
+  function injectVersionAndBuildDate() {
+    var verEl  = document.getElementById('df-version');
+    var bdtEl  = document.getElementById('df-build-date');
+    if (!verEl && !bdtEl) return;
+
+    var version = (typeof window !== 'undefined' && window.DF_VERSION)
+      ? String(window.DF_VERSION)
+      : 'v0.0.0';
+
+    if (verEl) {
+      try { verEl.textContent = version; } catch (_) {}
     }
-
-    startMinuteSyncedTick();
+    if (bdtEl) {
+      try {
+        bdtEl.textContent = new Date().toLocaleDateString('en-US', {
+          year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Chicago'
+        });
+      } catch (_) {}
+    }
   }
 
-  /* ---------------------------
-     Footer Version + Date
-     - Expects window.DF_VERSION (set in js/version.js), else falls back to "v0.0.0"
-     - Put <span id="df-version"></span> and/or <span id="df-build-date"></span> in your footer.
-  ----------------------------*/
-  function injectVersionAndDate() {
-    const verEl = document.getElementById('df-version');
-    const dateEl = document.getElementById('df-build-date');
-
-    const version = (typeof window !== 'undefined' && window.DF_VERSION) ? String(window.DF_VERSION) : 'v0.0.0';
-
-    const tz = 'America/Chicago';
-    const today = new Date().toLocaleDateString('en-US', {
-      year: 'numeric', month: '2-digit', day: '2-digit', timeZone: tz
-    });
-
-    if (verEl) verEl.textContent = version;
-    if (dateEl) dateEl.textContent = today;
-  }
-
-  /* ---------------------------
+  /* ---------------------------------------
      DOM Ready
-  ----------------------------*/
+  ----------------------------------------*/
   document.addEventListener('DOMContentLoaded', function () {
-    installLogoutHandler();
+    installLogout();
     installClock();
-    injectVersionAndDate();
+    injectVersionAndBuildDate();
   });
-
 })();
