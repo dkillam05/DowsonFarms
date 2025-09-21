@@ -5,7 +5,8 @@
    - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
    - Back button (in-flow inside .content, above footer; hidden on true home)
    - Logout button injected into the Breadcrumb bar (right-aligned) on ALL pages
-     * Same size, font, and color everywhere (home + sub pages)
+     * 20% smaller than the last version
+     * Consistent font, size, and color everywhere (home + sub pages)
      * Replaces any small/blue link versions inside the breadcrumbs
    - Honors <base href="/DowsonFarms/">
    =========================== */
@@ -42,10 +43,10 @@
   function isHome() {
     var p = window.location.pathname.replace(/\/+$/, '');
     var seg = p.split('/').filter(Boolean);
-    if (seg.length === 0) return true;                         // "/"
+    if (seg.length === 0) return true;
     if (seg.length === 1 && seg[0] === 'index.html') return true;
-    if (seg.length === 1) return true;                         // "/<repo>"
-    if (seg.length === 2 && seg[1] === 'index.html') return true; // "/<repo>/index.html"
+    if (seg.length === 1) return true;
+    if (seg.length === 2 && seg[1] === 'index.html') return true;
     return false;
   }
 
@@ -88,35 +89,29 @@
 
   /* ---------------------------------------
      Inject Logout BUTTON into Breadcrumb bar
-     - Right-aligned; same style on home + subs
+     - Right-aligned; same style everywhere
      - Removes any small/blue logout links within the breadcrumbs
-     - Button is a bit smaller than before (per your request)
+     - Button is 20% smaller than last version
   ----------------------------------------*/
   function injectBreadcrumbLogout() {
-    // Support both <nav class="breadcrumbs"> and <div class="breadcrumbs">
     var bc = document.querySelector('nav.breadcrumbs, .breadcrumbs');
     if (!bc) return;
 
-    // Remove any existing logout nodes INSIDE the breadcrumbs (blue link versions)
     var old = bc.querySelectorAll('#logout-btn, [data-action="logout"], .logout, a[href*="logout"]');
     for (var i = 0; i < old.length; i++) {
       if (bc.contains(old[i])) old[i].remove();
     }
 
-    // Ensure the bar can anchor an absolutely-positioned child
     if (getComputedStyle(bc).position === 'static') {
       bc.style.position = 'relative';
     }
 
-    // Reserve space on the right so breadcrumb text doesn't run under the button
     var pr = parseInt(getComputedStyle(bc).paddingRight || '0', 10);
-    var needed = 108; // width allowance for the button (smaller style)
+    var needed = 100; // shrink space for smaller button
     if (pr < needed) bc.style.paddingRight = needed + 'px';
 
-    // If host already present, do nothing (prevents duplicates)
     if (bc.querySelector('#df-logout-host')) return;
 
-    // Host (absolute right, vertically centered)
     var host = document.createElement('div');
     host.id = 'df-logout-host';
     host.setAttribute('style', [
@@ -129,31 +124,28 @@
       'z-index:2'
     ].join(';'));
 
-    // Brand color (falls back to #1B5E20)
     var brand = getComputedStyle(document.documentElement).getPropertyValue('--brand-green').trim() || '#1B5E20';
 
-    // Button (smaller size but same look everywhere)
     var btn = document.createElement('button');
     btn.id = 'logout-btn';
     btn.type = 'button';
     btn.textContent = 'Logout';
     btn.setAttribute('aria-label', 'Log out');
     btn.setAttribute('style', [
-      'padding:7px 12px',
-      'font-size:14px',
+      'padding:5px 10px',         // 20% smaller
+      'font-size:12px',           // 20% smaller
       'font-weight:700',
       'line-height:1',
-      'border-radius:9px',
+      'border-radius:8px',        // slightly reduced
       'border:2px solid ' + brand,
       'background:#fff',
       'color:' + brand,
       'cursor:pointer',
-      'box-shadow:0 2px 5px rgba(0,0,0,.08)',
+      'box-shadow:0 1px 4px rgba(0,0,0,.08)',
       'touch-action:manipulation',
       '-webkit-tap-highlight-color:transparent'
     ].join(';'));
 
-    // Dark mode tweak
     if ((document.documentElement.getAttribute('data-theme') || '').toLowerCase() === 'dark') {
       btn.style.background = '#15181b';
       btn.style.color = '#dff1e1';
@@ -225,11 +217,7 @@
   }
 
   /* ---------------------------------------
-     Back Button (in-flow inside .content)
-     - Always sits ABOVE the footer (accounts for footer height)
-     - Hidden on true home page
-     - On menu/grid pages (.df-tiles[data-section]) → go to repo-root Home
-       Else → history.back() or Home fallback
+     Back Button
   ----------------------------------------*/
   function installBackButtonFlow() {
     if (document.getElementById('df-back-flow')) return;
@@ -302,14 +290,14 @@
      DOM Ready
   ----------------------------------------*/
   document.addEventListener('DOMContentLoaded', function () {
-    injectBreadcrumbLogout();   // consistent Logout in breadcrumb bar (home + subs)
+    injectBreadcrumbLogout();
     installClock();
     injectVersionAndBuildDate();
-    installBackButtonFlow();    // Back button present again
+    installBackButtonFlow();
   });
 
   /* ---------------------------------------
-     Keep legacy logout triggers working anywhere in the DOM
+     Keep legacy logout triggers working
   ----------------------------------------*/
   document.addEventListener('click', function (e) {
     var t = e.target;
