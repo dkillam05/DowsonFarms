@@ -1,4 +1,4 @@
-<!-- /settings-setup/index.html  (FULL FILE) -->
+<!-- /settings-setup/index.html  (FULL FILE; longer toast durations) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -90,18 +90,23 @@
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
-  <!-- Update checker wiring (root SW aware) -->
+  <!-- Update checker wiring (root SW aware; longer toasts) -->
   <script>
   (function(){
     const $ = s => document.querySelector(s);
 
-    function toast(msg){
+    // Toast with configurable duration (default 3.5s; longer on updates)
+    function toast(msg, ms = 3500){
       const el = $('#dfToast');
       if (!el) return alert(msg);
       el.textContent = msg;
       el.style.display = 'block';
       requestAnimationFrame(()=> el.classList.add('show'));
-      setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 2000);
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(()=>{
+        el.classList.remove('show');
+        setTimeout(()=>{ el.style.display='none'; }, 220);
+      }, ms);
     }
 
     // --- version helpers ---
@@ -176,8 +181,9 @@
     }
 
     function reloadSoon() {
-      toast('Update installed — reloading…');
-      setTimeout(()=>location.reload(), 400);
+      // Keep this visible long enough to read it
+      toast('Update installed — reloading…', 6000);
+      setTimeout(()=>location.reload(), 800);
     }
 
     function attachSWReloadHooks() {
@@ -199,9 +205,11 @@
       try { if (reg && reg.update) await reg.update(); } catch {}
 
       if (serverHasNewer) {
-        toast('Update found — applying…');
+        // Keep the "found" toast visible longer while SW swaps
+        toast('Update found — applying…', 6000);
         const swapped = await activateWaitingSW(reg);
         if (!swapped) {
+          // If we couldn’t swap via SW, hard reload (message above stays long)
           const url = location.href.split('#')[0] + (location.search ? '&' : '?') + 'v=' + Date.now();
           location.assign(url);
         }
@@ -217,7 +225,7 @@
           sw.addEventListener('statechange', () => {
             if (sw.state === 'installed') {
               announced = true;
-              toast('Update found — applying…');
+              toast('Update found — applying…', 6000);
               if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
             }
           });
@@ -225,7 +233,7 @@
       }
 
       setTimeout(() => {
-        if (!announced) toast('No updates found');
+        if (!announced) toast('No updates found', 4000);
       }, 5000);
     }
 
