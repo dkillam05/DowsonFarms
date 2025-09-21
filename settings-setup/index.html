@@ -1,3 +1,4 @@
+<!-- /settings-setup/index.html  (FULL FILE) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,12 +75,13 @@
   <!-- Toast node (theme.css should style .df-toast) -->
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
-  <!-- Service worker (ROOT path now) -->
+  <!-- Service worker (ROOT path; explicit root scope) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        // From /settings-setup/, root SW is at ../serviceworker.js
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+        navigator.serviceWorker
+          .register("../serviceworker.js", { scope: "/" })
+          .catch(console.error);
       });
     }
   </script>
@@ -125,7 +127,6 @@
     async function getRootSWRegistration() {
       if (!('serviceWorker' in navigator)) return null;
       try {
-        // Ask explicitly for the ROOT scope ('/'), since SW lives at /
         return await navigator.serviceWorker.getRegistration('/');
       } catch { return null; }
     }
