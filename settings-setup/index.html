@@ -17,7 +17,7 @@
   })();
   </script>
 
-  <!-- Styles / App (we're in /settings → use ../) -->
+  <!-- Styles / App -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
@@ -83,16 +83,8 @@
   <main class="content">
     <h1>⚙️ Setup / Settings</h1>
 
-    <!-- Existing auto-tiles -->
+    <!-- Tiles auto-filled from menus.js -->
     <div class="df-tiles" data-section="Setup / Settings"></div>
-
-    <!-- New: Check For Updates tile styled like all the others -->
-    <div class="df-tiles">
-      <div id="tile-check-updates" class="tile" role="button" tabindex="0">
-        <span class="tile-emoji" aria-hidden="true">🔄</span>
-        <span class="tile-title">Check For Updates</span>
-      </div>
-    </div>
   </main>
 
   <!-- Footer -->
@@ -107,7 +99,7 @@
   <!-- Toast element -->
   <div id="df-toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Service worker (yours lives in /js/) -->
+  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -120,7 +112,7 @@
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
-  <!-- Page script: Check For Updates -->
+  <!-- Page script: bind Check For Updates tile -->
   <script>
     (function () {
       'use strict';
@@ -130,7 +122,7 @@
         if (!t) { alert(msg); return; }
         t.textContent = msg;
         t.classList.add('show');
-        setTimeout(function () { t.classList.remove('show'); }, 2400);
+        setTimeout(() => t.classList.remove('show'), 2400);
       }
 
       function extractVersion(jsText) {
@@ -142,9 +134,9 @@
 
       async function fetchLatestVersion() {
         var url = new URL('../js/version.js', document.baseURI);
-        url.searchParams.set('_', String(Date.now()));
+        url.searchParams.set('_', Date.now());
         var res = await fetch(url.href, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed fetching version.js: ' + res.status);
+        if (!res.ok) throw new Error('Failed to fetch version.js');
         var text = await res.text();
         return extractVersion(text);
       }
@@ -154,28 +146,26 @@
         try {
           var reg = await navigator.serviceWorker.getRegistration();
           if (reg) await reg.update();
-        } catch (e) {}
+        } catch {}
       }
 
-      async function handleCheckForUpdates() {
+      async function handleCheckForUpdates(ev) {
+        ev.preventDefault();
         try {
-          var current = (window.DF_VERSION) ? String(window.DF_VERSION)
-                      : (window.APP_VERSION) ? String(window.APP_VERSION)
-                      : 'v0.0.0';
-
+          var current = window.DF_VERSION || window.APP_VERSION || 'v0.0.0';
           var latest = await fetchLatestVersion();
+
           if (!latest) {
             showToast('Could not determine latest version.');
             return;
           }
-
           if (latest === current) {
             await updateServiceWorker();
             showToast('No updates available (current ' + current + ').');
           } else {
             await updateServiceWorker();
             showToast('Update found (' + latest + ') — cache refreshed.');
-            setTimeout(function () { location.reload(); }, 800);
+            setTimeout(() => location.reload(), 800);
           }
         } catch (e) {
           console.error(e);
@@ -183,16 +173,10 @@
         }
       }
 
-      document.addEventListener('DOMContentLoaded', function () {
-        var btn = document.getElementById('tile-check-updates');
-        if (btn) {
-          btn.addEventListener('click', handleCheckForUpdates);
-          btn.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleCheckForUpdates();
-            }
-          });
+      document.addEventListener('DOMContentLoaded', () => {
+        const link = document.querySelector('.df-tiles a[href="#check-updates"]');
+        if (link) {
+          link.addEventListener('click', handleCheckForUpdates, { passive: false });
         }
       });
     })();
