@@ -38,6 +38,24 @@
     catch (_) { return rel; }
   }
 
+  /* Repo-aware Home URL (works with or without <base>) */
+  function getHomeURL() {
+    try {
+      // Respect <base> if present
+      return new URL('index.html', document.baseURI).href;
+    } catch (_) {}
+
+    // Heuristic for GitHub Pages project sites: "/<user>.github.io/<repo>/...”
+    try {
+      var seg = window.location.pathname.split('/').filter(Boolean);
+      if (seg.length > 0) {
+        return '/' + seg[0] + '/index.html';
+      }
+    } catch (_) {}
+    // Fallback
+    return '/index.html';
+  }
+
   /* ---------------------------------------
      LOGOUT (no Firebase)
   ----------------------------------------*/
@@ -154,16 +172,10 @@
   function isHome() {
     var p = window.location.pathname.replace(/\/+$/, ''); // strip trailing slash
     var seg = p.split('/').filter(Boolean);               // path segments
-
-    // Cases to treat as "home":
-    // 1) "/"                        -> []
-    // 2) "/index.html"              -> ['index.html']
-    // 3) "/<repo>/"                 -> ['<repo>']
-    // 4) "/<repo>/index.html"       -> ['<repo>','index.html']
-    if (seg.length === 0) return true;
+    if (seg.length === 0) return true;                       // "/"
     if (seg.length === 1 && (seg[0] === 'index.html')) return true;
-    if (seg.length === 1) return true; // project root
-    if (seg.length === 2 && seg[1] === 'index.html') return true;
+    if (seg.length === 1) return true;                      // "/<repo>"
+    if (seg.length === 2 && seg[1] === 'index.html') return true; // "/<repo>/index.html"
     return false;
   }
 
@@ -171,15 +183,13 @@
      Back Button (in-flow inside .content)
      - Always sits ABOVE the footer (accounts for footer height)
      - Hidden on true home page
-     - On "menu/grid" pages (have .df-tiles[data-section]) → goes to Home
+     - On menu/grid pages (.df-tiles[data-section]) → go Home
        Else → history.back() or Home fallback
   ----------------------------------------*/
   function installBackButtonFlow() {
     if (document.getElementById('df-back-flow')) return;
     if (isHome()) return;
 
-    // Where to place it: at the END of .content so it appears near bottom,
-    // but still above the footer. If there's no .content, append to body.
     var content = document.querySelector('.content') || document.body;
 
     var host = document.createElement('div');
@@ -201,30 +211,27 @@
       'cursor:pointer'
     ].join(';'));
 
-    // Dark mode tweak
     if (document.documentElement.getAttribute('data-theme') === 'dark') {
       btn.style.background = '#15181b';
       btn.style.color = '#eaeaea';
       btn.style.borderColor = '#2d7b35';
     }
 
-    // Determine click behavior
     var isMenuGrid = !!document.querySelector('.df-tiles[data-section]');
     btn.addEventListener('click', function () {
       if (isMenuGrid) {
-        // Menu pages: go to Home explicitly
-        window.location.href = resolveURL('index.html');
+        window.location.href = getHomeURL();        // <-- fixed: go to repo root home
       } else if (document.referrer && window.history.length > 1) {
         window.history.back();
       } else {
-        window.location.href = resolveURL('index.html');
+        window.location.href = getHomeURL();        // <-- fixed fallback
       }
     });
 
     host.appendChild(btn);
     content.appendChild(host);
 
-    // Make sure it's visibly above the footer even if the footer is fixed/sticky.
+    // Keep it visibly above your footer
     function pushAboveFooter() {
       try {
         var footer = document.querySelector('footer, .app-footer');
@@ -234,7 +241,6 @@
         host.style.marginBottom = '12px';
       }
     }
-    // Initial + on resize/orientation changes (iOS Safari quirks)
     pushAboveFooter();
     window.addEventListener('resize', pushAboveFooter);
     window.addEventListener('orientationchange', pushAboveFooter);
