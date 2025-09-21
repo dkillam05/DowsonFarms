@@ -16,10 +16,12 @@
   })();
   </script>
 
-  <!-- App CSS/JS -->
-  <link rel="stylesheet" href="theme.css" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- App CSS/JS (we are in /teams-partners → use ../) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <!-- Firebase bootstrap (must be before core.js) -->
+  <script defer src="../js/firebase-init.js"></script>
+  <script defer src="../js/core.js"></script>
 
   <style>
     /* ------- Local utilities (don’t alter global sizing) ------- */
@@ -57,7 +59,7 @@
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
@@ -66,9 +68,9 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="teams-partners.html">Teams &amp; Partners</a></li>
+      <li><a href="index.html">Teams &amp; Partners</a></li>
       <li class="sep">›</li>
       <li><span>Employees</span></li>
     </ol>
@@ -209,36 +211,39 @@
 
   <script>
   (function EmployeesPage(){
-    const KEY='df.employees';
-    const MENUS_KEY='df_menus_map';
-    const $=s=>document.querySelector(s);
+    // ---------- AUTH GUARD ----------
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (window.DF_FB_API?.requireAuth) { await window.DF_FB_API.requireAuth(); }
+    });
 
-    /* ---------- Toast ---------- */
-    function showToast(msg){
-      const el = $('#dfToast');
-      el.textContent = msg;
-      el.style.display = 'block';
+    // ---------- Shortcuts ----------
+    const $=s=>document.querySelector(s);
+    const showToast=(msg)=>{
+      const el=$('#dfToast'); el.textContent=msg; el.style.display='block';
       requestAnimationFrame(()=> el.classList.add('show'));
       setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 1800);
-    }
+    };
 
-    /* ---------- Roles ---------- */
-    function getRoles(){
-      try{
-        const obj = JSON.parse(localStorage.getItem('df_role_perms')||'null');
-        const names = obj && typeof obj==='object' ? Object.keys(obj) : [];
-        return names.length ? names : ["Administrator","Owner","Manager","Employee","View Only"];
-      }catch(_){ return ["Administrator","Owner","Manager","Employee","View Only"]; }
+    // ---------- Phone mask & validators ----------
+    function formatPhoneDigits(d){
+      const x=d.replace(/\D/g,'').slice(0,10);
+      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
+      if(x.length<=3) return x ? `(${a}` : '';
+      if(x.length<=6) return `(${a}) ${b}`;
+      return `(${a}) ${b}-${c}`;
     }
-    function fillRoleSelect(sel, value){
-      if(!sel) return;
-      const roles=getRoles();
-      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
-        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
-      if(value) sel.value=value;
+    function attachPhoneMask(input){
+      if(!input) return;
+      input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
+      input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
     }
+    const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
+    const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
+    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    /* ---------- Menus (for overrides) ---------- */
+    attachPhoneMask($('#empPhone'));
+
+    // ---------- Menus map (for Overrides UI only) ----------
     const DEFAULT_MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
@@ -250,51 +255,15 @@
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
-    function getMenusObject(){
-      try{
-        const fromMap = JSON.parse(localStorage.getItem(MENUS_KEY)||'null');
-        if(fromMap && typeof fromMap==='object') return fromMap;
-      }catch(_){}
-      return DEFAULT_MENUS;
-    }
-    const MENUS = getMenusObject();
+    const MENUS = DEFAULT_MENUS;
 
-    /* ---------- Storage helpers ---------- */
-    const loadAll = ()=> { try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} };
-    const saveAll = (v)=> localStorage.setItem(KEY, JSON.stringify(v));
-    const upsert = (item)=>{ const list=loadAll(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); saveAll(list); };
-    const removeById = (id)=> saveAll(loadAll().filter(x=>x.id!==id));
-    const byName = (a,b)=> a.last.localeCompare(b.last,undefined,{sensitivity:'base'}) || a.first.localeCompare(b.first,undefined,{sensitivity:'base'});
-
-    /* ---------- Phone mask ---------- */
-    function formatPhoneDigits(d){
-      const x=d.replace(/\D/g,'').slice(0,10);
-      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
-      if(x.length<=3) return x ? `(${a}` : '';
-      if(x.length<=6) return `(${a}) ${b}`;
-      return `(${a}) ${b}-${c}`;
-    }
-    function attachPhoneMask(input){
-      input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
-      input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
-    }
-    const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
-    const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
-    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
-
-    /* ===========================================================
-       buildMenuCard — COLLAPSED BY DEFAULT (menus + submenus)
-       =========================================================== */
+    // ---------- Overrides UI helpers ----------
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     function pill(label, pressed, onToggle){
       const b=document.createElement('button');
       b.type='button'; b.className='pill'; b.textContent=label;
       b.setAttribute('aria-pressed', pressed?'true':'false');
-      b.addEventListener('click', ()=>{
-        const on=b.getAttribute('aria-pressed')==='true';
-        b.setAttribute('aria-pressed', on?'false':'true');
-        onToggle(!on,b);
-      });
+      b.addEventListener('click', ()=>{ const on=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed', on?'false':'true'); onToggle(!on,b); });
       return b;
     }
     function summarizeMenu(menuObj){
@@ -316,62 +285,44 @@
     function countOverrideEntries(ex){
       if(!ex || !ex.enabled || !ex.grants) return 0;
       let n=0;
-      Object.values(ex.grants).forEach(menu=>{
-        Object.entries(menu).forEach(([k,v])=>{
-          if(k==='_all') return;
-          if(v.view||v.edit||v.add||v.archive||v.delete) n++;
-        });
-      });
+      Object.values(ex.grants).forEach(menu=>{ Object.entries(menu).forEach(([k,v])=>{ if(k==='_all') return; if(v.view||v.edit||v.add||v.archive||v.delete) n++; }); });
       return n;
     }
-
     function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
 
-      // header
       const head=document.createElement('div'); head.className='menu-head';
       const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='8px';
       const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
-      const title=document.createElement('strong'); title.textContent=menuName;
-      left.append(caret,title);
-      const right=document.createElement('span'); right.className='muted-small'; right.textContent=' ';
-      head.append(left,right);
+      const title=document.createElement('strong'); title.textContent=menuName; left.append(caret,title);
+      const right=document.createElement('span'); right.className='muted-small'; right.textContent=' '; head.append(left,right);
 
-      // body (collapsed by default)
       const body=document.createElement('div'); body.className='menu-body'; body.style.display='none'; caret.style.transform='rotate(0deg)';
 
-      ex.grants[menuName]=ex.grants[menuName]||{};
-      ex.grants[menuName]._all=ex.grants[menuName]._all||blankPerm();
+      ex.grants[menuName]=ex.grants[menuName]||{}; ex.grants[menuName]._all=ex.grants[menuName]._all||blankPerm();
 
-      // top all-pills
       const grid=document.createElement('div'); grid.className='pill-grid';
       ['View','Edit','Add','Archive','Delete'].forEach(name=>{
         const k=name.toLowerCase();
-        const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
+        const pBtn=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
           ex.grants[menuName]._all[k]=isOn;
-          MENUS[menuName].forEach(sub=>{
-            ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
-            ex.grants[menuName][sub][k]=isOn;
-          });
+          (MENUS[menuName]||[]).forEach(sub=>{ ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm(); ex.grants[menuName][sub][k]=isOn; });
           body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(b=>b.setAttribute('aria-pressed', isOn?'true':'false'));
           right.textContent = summarizeMenu(ex.grants[menuName]);
         });
-        grid.appendChild(p);
+        grid.appendChild(pBtn);
       });
       body.appendChild(grid);
 
-      // submenus section (collapsed by default)
       const subWrap=document.createElement('div'); subWrap.className='subwrap';
       const sh=document.createElement('div'); sh.className='subhead';
       const shL=document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='6px';
       const subCaret=document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
-      const shT=document.createElement('strong'); shT.textContent='Manage submenus';
-      shL.append(subCaret,shT);
-      const shR=document.createElement('span'); shR.className='muted-small'; shR.textContent=' ';
-      sh.append(shL,shR);
+      const shT=document.createElement('strong'); shT.textContent='Manage submenus'; shL.append(subCaret,shT);
+      const shR=document.createElement('span'); shR.className='muted-small'; shR.textContent=' '; sh.append(shL,shR);
       const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none'; subCaret.style.transform='rotate(0deg)';
 
-      MENUS[menuName].forEach(sub=>{
+      (MENUS[menuName]||[]).forEach(sub=>{
         ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
         const sec=document.createElement('section'); sec.style.margin='10px 0 12px';
         const h=document.createElement('h3'); h.style.margin='0 0 6px'; h.textContent=`${menuName} › ${sub}`;
@@ -383,84 +334,149 @@
             shR.textContent = summarizeChildren(ex.grants[menuName]);
             right.textContent = summarizeMenu(ex.grants[menuName]);
           });
-          btn.setAttribute('data-sub', `${menuName}::${k}`);
-          grid2.appendChild(btn);
+          btn.setAttribute('data-sub', `${menuName}::${k}`); grid2.appendChild(btn);
         });
-        sec.append(h,grid2);
-        subBody.appendChild(sec);
+        sec.append(h,grid2); subBody.appendChild(sec);
       });
 
-      sh.addEventListener('click', ()=>{
-        const open=subBody.style.display!=='none';
-        subBody.style.display=open?'none':'block';
-        subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
-      });
+      sh.addEventListener('click', ()=>{ const open=subBody.style.display!=='none'; subBody.style.display=open?'none':'block'; subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
+      head.addEventListener('click', ()=>{ const open=body.style.display!=='none'; body.style.display=open?'none':'block'; caret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
 
-      head.addEventListener('click', ()=>{
-        const open=body.style.display!=='none';
-        body.style.display=open?'none':'block';
-        caret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
-      });
-
-      right.textContent = summarizeMenu(ex.grants[menuName]);
-      shR.textContent   = summarizeChildren(ex.grants[menuName]);
-
-      subWrap.append(sh, subBody);
-      body.appendChild(subWrap);
-      card.append(head, body);
+      right.textContent = summarizeMenu(ex.grants[menuName]); shR.textContent = summarizeChildren(ex.grants[menuName]);
+      subWrap.append(sh, subBody); body.appendChild(subWrap); card.append(head, body);
       return card;
     }
-
     function openPermissionOverrides(existing, onSave){
       const B=$('#exBackdrop'), Tree=$('#exTree'), Enable=$('#exEnable'), Search=$('#exSearch');
       const ex = existing && typeof existing==='object' ? JSON.parse(JSON.stringify(existing)) : {enabled:false,grants:{}};
-
-      Tree.innerHTML='';
-      Object.keys(MENUS).forEach(menu=> Tree.appendChild(buildMenuCard(menu, ex)) );
-
-      const setEnable=(v)=>{
-        ex.enabled=!!v;
-        Enable.setAttribute('aria-pressed', v?'true':'false');
-        Tree.style.opacity=v?1:.45;
-        Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v);
-      };
+      Tree.innerHTML=''; Object.keys(MENUS).forEach(menu=> Tree.appendChild(buildMenuCard(menu, ex)) );
+      const setEnable=(v)=>{ ex.enabled=!!v; Enable.setAttribute('aria-pressed', v?'true':'false'); Tree.style.opacity=v?1:.45; Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v); };
       setEnable(!!ex.enabled);
       Enable.onclick=()=> setEnable(!(Enable.getAttribute('aria-pressed')==='true'));
-
-      Search.value='';
-      Search.oninput=()=>{
-        const q=Search.value.toLowerCase().trim();
-        Tree.querySelectorAll('.menu-card').forEach(card=>{
-          card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none';
-        });
-      };
-
+      Search.value=''; Search.oninput=()=>{ const q=Search.value.toLowerCase().trim(); Tree.querySelectorAll('.menu-card').forEach(card=>{ card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none'; }); };
       $('#exSave').onclick=()=>{ B.style.display='none'; onSave && onSave(ex); showToast('Overrides saved'); };
       $('#exCancel').onclick=()=>{ B.style.display='none'; };
       B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
       B.style.display='flex';
     }
 
-    /* ---------- Render list ---------- */
-    function chip(s){ return s?`<span class="chip">${s}</span>`:''; }
+    // ---------- Firebase handles ----------
+    const FB = { db: null };
+    async function fbReady(){
+      if (!FB.db) {
+        if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
+        FB.db = window.DF_FB?.db || window.DF_FB_API?.db?.();
+      }
+      return FB.db;
+    }
 
-    function render(){
+    // ---------- Roles (from Firestore) ----------
+    async function fetchRoles(){
+      const db = await fbReady();
+      const qs = await db.collection('roles').orderBy('label').get();
+      const out = []; qs.forEach(doc=> { const d=doc.data()||{}; if(d.label) out.push(d.label); });
+      // Fallback if empty (should have been seeded by ss-roles)
+      return out.length ? out : ["Administrator","Owner","Manager","Employee","View Only"];
+    }
+    async function fillRoleSelect(sel, value){
+      const roles = await fetchRoles();
+      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` + roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+      if(value) sel.value=value;
+    }
+
+    // ---------- Employees CRUD (Firestore) ----------
+    function mapDoc(doc){
+      const d = doc.data()||{};
+      return {
+        id: doc.id,
+        first: d.first || '',
+        last: d.last || '',
+        phone: d.phone || '',
+        email: d.email || '',
+        role: d.role || '',
+        archived: !!d.archived,
+        exceptions: d.exceptions || {enabled:false,grants:{}},
+        invitedAt: d.invitedAt || null,
+        createdAt: d.createdAt || null,
+        updatedAt: d.updatedAt || null
+      };
+    }
+
+    async function listEmployees(){
+      const db = await fbReady();
+      const qs = await db.collection('employees').orderBy('last').orderBy('first').get();
+      const out=[]; qs.forEach(doc=> out.push(mapDoc(doc)));
+      return out;
+    }
+    async function createEmployee(payload){
+      const db = await fbReady();
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+      const ref = await db.collection('employees').add({ ...payload, createdAt: now, updatedAt: now });
+      const snap = await ref.get(); return mapDoc(snap);
+    }
+    async function updateEmployee(id, updates){
+      const db = await fbReady();
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('employees').doc(id).set({ ...updates, updatedAt: now }, { merge: true });
+    }
+    async function deleteEmployee(id){
+      const db = await fbReady();
+      await db.collection('employees').doc(id).delete();
+    }
+    async function readEmployee(id){
+      const db = await fbReady();
+      const snap = await db.collection('employees').doc(id).get();
+      return snap.exists ? mapDoc(snap) : null;
+    }
+
+    // ---------- Invite (calls placeholder; switch to Cloud Function later) ----------
+    async function inviteEmployeeById(id){
+      const emp = await readEmployee(id);
+      if(!emp){ alert('Employee not found'); return; }
+      if(!emp.email){ alert('Employee email is required to send invite.'); return; }
+
+      try {
+        if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
+        // Placeholder — returns {ok:false} until we wire the Cloud Function
+        const res = await window.DF_FB_API.dfSendInviteEmail({
+          email: emp.email,
+          role: emp.role || '',
+          displayName: `${emp.first||''} ${emp.last||''}`.trim()
+        });
+        // For now, consider any return as "sent" to mark invitedAt, so UI behaves
+        await updateEmployee(id, { invitedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        showToast('Invite triggered');
+        await render(); // refresh chips
+      } catch (e) {
+        console.error(e);
+        alert('Invite not ready yet — will be wired via Cloud Function.');
+      }
+    }
+
+    // ---------- UI state ----------
+    let EMP_CACHE = [];
+    async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      const rows=loadAll()
+      EMP_CACHE = await listEmployees();
+
+      const rows = EMP_CACHE
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
-        .sort(byName);
+        .sort((a,b)=> a.last.localeCompare(b.last,undefined,{sensitivity:'base'}) || a.first.localeCompare(b.first,undefined,{sensitivity:'base'}));
+
+      const chip=(s)=> s?`<span class="chip">${s}</span>`:'';
+      const exCount=(e)=> countOverrideEntries(e.exceptions);
 
       const L=$('#savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const exCount = countOverrideEntries(r.exceptions);
+        const nEx = exCount(r);
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name}</strong>
             ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
-            ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
+            ${nEx? `<span class="chip">${nEx} override${nEx>1?'s':''}</span>`: '' }
             ${r.archived ? `<span class="chip">Archived</span>` : (r.invitedAt ? `<span class="chip">Invited</span>`:'')}
           </div>
           <div class="line" style="margin-top:8px;">
@@ -471,55 +487,61 @@
       }).join('') : '<li class="muted">No employees yet.</li>';
 
       L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
-      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
+      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployeeById(b.getAttribute('data-invite'))));
     }
 
-    /* ---------- Manage Modal ---------- */
-    function openManage(id){
-      const rows=loadAll(); const e=rows.find(x=>x.id===id); if(!e) return;
+    // ---------- Manage Modal ----------
+    async function openManage(id){
+      const e = await readEmployee(id); if(!e) return;
       $('#manageTitle').textContent = `Edit Employee — ${(e.first||'') + ' ' + (e.last||'')}`.trim();
       $('#m_first').value=e.first||''; $('#m_last').value=e.last||'';
       $('#m_phone').value=e.phone||''; attachPhoneMask($('#m_phone'));
       $('#m_email').value=e.email||'';
-      fillRoleSelect($('#m_role'), e.role||'');
+      await fillRoleSelect($('#m_role'), e.role||'');
 
       const B=$('#manageBackdrop'); B.style.display='flex';
       $('#m_exceptions').onclick=()=>{ openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; }); };
 
       const $archive=$('#m_archive'); $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
 
-      $('#m_delete').onclick=()=>{
+      $('#m_delete').onclick=async ()=>{
         if(confirm('Delete this employee? This cannot be undone.')){
-          removeById(e.id);
-          B.style.display='none'; render(); showToast('Employee deleted');
+          await deleteEmployee(e.id);
+          B.style.display='none'; await render(); showToast('Employee deleted');
         }
       };
-      $('#m_archive').onclick=()=>{
-        e.archived = !e.archived; e.updatedAt = Date.now(); upsert(e);
-        $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
-        render(); showToast(e.archived?'Archived':'Unarchived');
+      $('#m_archive').onclick=async ()=>{
+        await updateEmployee(e.id, { archived: !e.archived });
+        $archive.textContent = (!e.archived) ? 'Unarchive' : 'Archive';
+        await render(); showToast((!e.archived)?'Archived':'Unarchived');
       };
       $('#manageCancel').onclick=()=> B.style.display='none';
-      $('#manageSave').onclick=()=>{
-        if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
-        if(!isValidPhoneUS($('#m_phone').value)){ alert('Phone must be (###) ###-####'); return; }
-        if(!isEmail($('#m_email').value)){ alert('Valid email is required.'); return; }
-        if(!$('#m_role').value){ alert('Role is required.'); return; }
-        e.first=titleCase($('#m_first').value);
-        e.last =titleCase($('#m_last').value);
-        e.phone=$('#m_phone').value;
-        e.email=$('#m_email').value.trim();
-        e.role =$('#m_role').value;
-        e.updatedAt=Date.now();
-        upsert(e); B.style.display='none'; render(); showToast('Changes saved');
+      $('#manageSave').onclick=async ()=>{
+        const first = titleCase($('#m_first').value||'');
+        const last  = titleCase($('#m_last').value||'');
+        const phone = $('#m_phone').value;
+        const email = ($('#m_email').value||'').trim();
+        const role  = $('#m_role').value;
+
+        if(!first || !last){ alert('First and Last name are required.'); return; }
+        if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
+        if(!isEmail(email)){ alert('Valid email is required.'); return; }
+        if(!role){ alert('Role is required.'); return; }
+
+        await updateEmployee(e.id, {
+          first, last, phone, email, role,
+          exceptions: e.exceptions || {enabled:false,grants:{}}
+        });
+        B.style.display='none'; await render(); showToast('Changes saved');
       };
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    /* ---------- Quick View ---------- */
-    $('#quickViewBtn').addEventListener('click', ()=>{
-      const rows=loadAll().sort(byName);
+    // ---------- Quick View ----------
+    $('#quickViewBtn').addEventListener('click', async ()=>{
+      const rows = await listEmployees();
       const L=$('#qvList'), B=$('#qvBackdrop');
+      const chip=(s)=> s?`<span class="chip">${s}</span>`:'';
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
         return `<li class="card" style="padding:10px; margin:8px 0;">
@@ -532,99 +554,75 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    /* ---------- Invite (placeholder) ---------- */
-    async function inviteEmployee(id){
-      const list = loadAll();
-      const e = list.find(x=>x.id===id);
-      if(!e){ alert('Employee not found'); return; }
-      if(!e.email){ alert('Employee email is required to send invite.'); return; }
-
-      try{
-        const res = await fetch('/api/invite', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({
-            email: e.email,
-            name: `${e.first||''} ${e.last||''}`.trim(),
-            role: e.role || '',
-            continueUrl: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html'
-          })
-        });
-        if(res && res.ok){
-          e.invitedAt = Date.now(); upsert(e); render(); showToast('Invite sent');
-          return;
-        }
-        throw new Error('BACKEND_NOT_READY');
-      }catch(_){
-        alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
-      }
-    }
-
-    /* ---------- Create flow ---------- */
-    attachPhoneMask($('#empPhone'));
-    fillRoleSelect($('#empRole'));
-
-    $('#exceptionsBtn').addEventListener('click', ()=>{
-      const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
-      openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
-    });
-
-    $('#inviteBtn').addEventListener('click', ()=>{
+    // ---------- Create + Invite ----------
+    $('#inviteBtn').addEventListener('click', async ()=>{
       const first = titleCase(($('#empFirst').value||'').trim());
       const last  = titleCase(($('#empLast').value||'').trim());
       const email = ($('#empEmail').value||'').trim();
+      const phone = $('#empPhone').value;
+      const role  = $('#empRole').value || '';
+      const exceptions = ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}});
+
       if(!first || !last || !email){ alert('Enter First, Last, and Email to send an invite.'); return; }
-      const id = (first + ' ' + last).toLowerCase();
-      const item = {
-        id, first, last,
-        phone: $('#empPhone').value,
-        email,
-        role: $('#empRole').value || '',
-        archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
-        createdAt: Date.now(), updatedAt: Date.now()
-      };
-      upsert(item); inviteEmployee(id);
+      if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
+
+      const created = await createEmployee({ first, last, phone, email, role, archived:false, exceptions });
+      $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload;
+      await inviteEmployeeById(created.id);
+      await render();
     });
 
-    $('#emp-form').addEventListener('submit',(e)=>{
+    $('#emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const first = titleCase(($('#empFirst').value||'').trim());
       const last  = titleCase(($('#empLast').value||'').trim());
       const phone = $('#empPhone').value;
       const email = ($('#empEmail').value||'').trim();
       const role  = $('#empRole').value;
+      const exceptions = ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}});
 
       if(!first || !last){ alert('First and Last name are required.'); return; }
       if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
       if(!isEmail(email)){ alert('Valid email is required.'); return; }
       if(!role){ alert('Role is required.'); return; }
 
-      const id = (first + ' ' + last).toLowerCase();
-      upsert({
-        id, first, last, phone, email, role,
-        archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
-        createdAt: Date.now(), updatedAt: Date.now()
-      });
-      $('#emp-form').reset();
-      delete $('#exceptionsBtn').dataset.payload;
-      render();
+      await createEmployee({ first, last, phone, email, role, archived:false, exceptions });
+      $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload;
+      await render();
       showToast('Employee saved');
     });
 
+    // ---------- Exceptions modal from create form ----------
+    $('#exceptionsBtn').addEventListener('click', ()=>{
+      const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
+      openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
+    });
+
     $('#clearBtn').addEventListener('click', ()=>{ $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload; });
-    $('#searchInput').addEventListener('input', render);
-    $('#toggleShowArchived').addEventListener('change', render);
+    $('#searchInput').addEventListener('input', ()=>render());
+    $('#toggleShowArchived').addEventListener('change', ()=>render());
 
-    render();
-
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Teams & Partners', href:'teams-partners.html'},
-      {label:'Employees'}
-    ]);
+    // ---------- Initial role select + render ----------
+    (async function start(){
+      await fillRoleSelect($('#empRole'));
+      await render();
+      // Breadcrumbs helper (optional)
+      window.setBreadcrumbs && window.setBreadcrumbs([
+        {label:'Home', href:'../index.html'},
+        {label:'Teams & Partners', href:'index.html'},
+        {label:'Employees'}
+      ]);
+    })();
   })();
+  </script>
+
+  <!-- Service worker (from /teams-partners/ → root) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+      });
+    }
   </script>
 </body>
 </html>
