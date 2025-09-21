@@ -1,6 +1,7 @@
-// /js/version.js  (FULL FILE)
-// Expose the same version to both window (pages) and self (service worker)
+// /js/version.js  (FULL FILE; ensures version pushes after reload)
 (function (g) {
-  g.DF_VERSION = 'v10.0.4';       // <-- set your real version here (e.g., 'v9.7.3')
-  g.APP_VERSION = g.DF_VERSION;  // keep legacy alias in sync if referenced anywhere
+  // 🔁 Bump this on each deploy:
+  g.DF_VERSION = 'v10.10.0';       // e.g., 'v9.7.5'
+  // Keep legacy alias in sync if referenced anywhere
+  g.APP_VERSION = g.DF_VERSION;
 })(typeof self !== 'undefined' ? self : window);
