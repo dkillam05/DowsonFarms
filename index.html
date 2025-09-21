@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
 
-  <!-- 👇 IMPORTANT: all relative URLs now resolve under /DowsonFarms/ -->
+  <!-- IMPORTANT: resolve every href/src from your repo root on GitHub Pages -->
   <base href="/DowsonFarms/">
 
   <!-- Prepaint theme (no flash) -->
@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Theme (resolves to /DowsonFarms/assets/css/theme.css) -->
+  <!-- Theme -->
   <link rel="stylesheet" href="assets/css/theme.css" />
 </head>
 <body class="home-page">
@@ -42,9 +42,7 @@
 
   <!-- Breadcrumbs (Home only) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><span>Home</span></li>
-    </ol>
+    <ol><li><span>Home</span></li></ol>
   </nav>
 
   <!-- Main -->
@@ -70,19 +68,20 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
 
-  <!-- Service worker (resolves to /DowsonFarms/serviceworker.js) -->
+  <!-- Service worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./serviceworker.js').catch(console.error);
+        navigator.serviceWorker.register('serviceworker.js').catch(console.error);
       });
     }
   </script>
 
-  <!-- App scripts (resolves under /DowsonFarms/ thanks to <base>) -->
+  <!-- App scripts -->
   <script defer src="js/version.js"></script>
   <script defer src="js/core.js"></script>
-  <script defer src="assets/data/menus.js"></script>
-  <script defer src="js/ui-nav.js"></script>
+  <!-- Bump ?v any time menus.js changes to defeat caches -->
+  <script defer src="assets/data/menus.js?v=901"></script>
+  <script defer src="js/ui-nav.js?v=901"></script>
 </body>
 </html>
