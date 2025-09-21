@@ -17,7 +17,12 @@ const DF_MENUS = {
       ]
     },
 
-    { label: "Field Maintenance", href: "field-maintenance/index.html", iconEmoji: "🛠️", children: [] },
+    { // optional shortcut
+      label: "Field Maintenance",
+      href: "field-maintenance/index.html",
+      iconEmoji: "🛠️",
+      children: []
+    },
 
     {
       label: "Grain Tracking",
@@ -74,6 +79,17 @@ const DF_MENUS = {
     },
 
     {
+      label: "Reports",
+      href: "reports/index.html",
+      iconEmoji: "📖",
+      children: [
+        { label: "Pre-Defined Reports", href: "reports/predefined.html", iconEmoji: "📁" },
+        { label: "AI Reports",          href: "reports/ai.html",         iconEmoji: "🤖" },
+        { label: "AI Report History",   href: "reports/ai-history.html", iconEmoji: "🕘" }
+      ]
+    },
+
+    {
       label: "Setup / Settings",
       href: "settings-setup/index.html",
       iconEmoji: "⚙️",
@@ -109,10 +125,14 @@ const DF_MENUS = {
   ]
 };
 
-try { export default DF_MENUS; } catch(_) {}
+/* Expose (ESM friendly and <script> friendly) */
+try { export default DF_MENUS; } catch (_) {}
 if (typeof window !== "undefined") {
   window.DF_MENUS = DF_MENUS;
   if (window.DF && typeof window.DF.ready?.then === "function") {
-    window.DF.ready.then(reg => { try { reg.set?.("menus", DF_MENUS); } catch(e){} });
+    window.DF.ready.then(reg => {
+      try { reg?.set?.("menus", DF_MENUS); } catch(e){ console.error("menus.js registration failed:", e); }
+    });
   }
 }
+console.log("[menus.js] loaded", DF_MENUS);
