@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
 
-  <!-- Page-scoped toast style (tiles use your global theme.css) -->
+  <!-- Toast style -->
   <style>
     .toast {
       position: fixed;
@@ -56,8 +56,6 @@
       transform: translateX(-50%) translateY(0);
       pointer-events: auto;
     }
-    /* Optional: ensure our extra tile grid matches spacing of your auto grid */
-    .df-tiles-extra { margin-top: 14px; }
   </style>
 </head>
 <body>
@@ -85,16 +83,15 @@
   <main class="content">
     <h1>⚙️ Setup / Settings</h1>
 
-    <!-- Sub-tiles auto-filled from menus.js
-         IMPORTANT: data-section must exactly match your top-level label -->
+    <!-- Existing auto-tiles -->
     <div class="df-tiles" data-section="Setup / Settings"></div>
 
-    <!-- NEW: Manual tile that looks like the others -->
-    <div class="df-tiles df-tiles-extra">
-      <a href="#" id="tile-check-updates" class="tile" role="button" aria-label="Check For Updates">
+    <!-- New: Check For Updates tile styled like all the others -->
+    <div class="df-tiles">
+      <div id="tile-check-updates" class="tile" role="button" tabindex="0">
         <span class="tile-emoji" aria-hidden="true">🔄</span>
         <span class="tile-title">Check For Updates</span>
-      </a>
+      </div>
     </div>
   </main>
 
@@ -119,7 +116,7 @@
     }
   </script>
 
-  <!-- Menus + subnav renderer (note ../ and ui-subnav) -->
+  <!-- Menus + subnav renderer -->
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
@@ -137,7 +134,6 @@
       }
 
       function extractVersion(jsText) {
-        // Prefer DF_VERSION; fall back to APP_VERSION
         var m = jsText.match(/DF_VERSION\s*=\s*['"]([^'"]+)['"]/);
         if (m && m[1]) return m[1];
         m = jsText.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
@@ -146,7 +142,7 @@
 
       async function fetchLatestVersion() {
         var url = new URL('../js/version.js', document.baseURI);
-        url.searchParams.set('_', String(Date.now())); // cache-bust
+        url.searchParams.set('_', String(Date.now()));
         var res = await fetch(url.href, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed fetching version.js: ' + res.status);
         var text = await res.text();
@@ -161,8 +157,7 @@
         } catch (e) {}
       }
 
-      async function handleCheckForUpdates(ev) {
-        if (ev) ev.preventDefault();
+      async function handleCheckForUpdates() {
         try {
           var current = (window.DF_VERSION) ? String(window.DF_VERSION)
                       : (window.APP_VERSION) ? String(window.APP_VERSION)
@@ -175,7 +170,7 @@
           }
 
           if (latest === current) {
-            await updateServiceWorker(); // still nudge SW to refresh assets
+            await updateServiceWorker();
             showToast('No updates available (current ' + current + ').');
           } else {
             await updateServiceWorker();
@@ -190,7 +185,15 @@
 
       document.addEventListener('DOMContentLoaded', function () {
         var btn = document.getElementById('tile-check-updates');
-        if (btn) btn.addEventListener('click', handleCheckForUpdates, { passive: false });
+        if (btn) {
+          btn.addEventListener('click', handleCheckForUpdates);
+          btn.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCheckForUpdates();
+            }
+          });
+        }
       });
     })();
   </script>
