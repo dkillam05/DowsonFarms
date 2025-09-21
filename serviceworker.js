@@ -1,39 +1,28 @@
-/* /serviceworker.js
-   Uses /js/version.js to derive cache version
-   Repo structure it expects:
+/* /serviceworker.js  (FULL FILE at site ROOT)
+   Uses /js/version.js to derive cache version.
+   Expects:
    - assets/css/theme.css
    - assets/data/menus.js
    - assets/icons/...
    - js/core.js, js/version.js, js/ui-nav.js, js/ui-subnav.js
 */
 
-// 1) Pull the version from the same file the pages use
 try { importScripts('./js/version.js'); } catch (e) { /* ignore */ }
-const SW_VERSION   = (self.APP_VERSION || 'v0');     // e.g. v8.0.2
-const CACHE_PREFIX = 'df-cache';
-const STATIC_CACHE = `${CACHE_PREFIX}-static-${SW_VERSION}`;
-const RUNTIME_CACHE= `${CACHE_PREFIX}-rt-${SW_VERSION}`;
+const SW_VERSION    = (self.DF_VERSION || self.APP_VERSION || 'v0');
+const CACHE_PREFIX  = 'df-cache';
+const STATIC_CACHE  = `${CACHE_PREFIX}-static-${SW_VERSION}`;
+const RUNTIME_CACHE = `${CACHE_PREFIX}-rt-${SW_VERSION}`;
 
-// 2) App shell to precache
 const STATIC_ASSETS = [
-  // root
   './',
   './index.html',
   './manifest.webmanifest',
-
-  // styles
   './assets/css/theme.css',
-
-  // scripts
   './js/version.js',
   './js/core.js',
   './js/ui-nav.js',
   './js/ui-subnav.js',
-
-  // data
   './assets/data/menus.js',
-
-  // icons
   './assets/icons/icon-192.png',
   './assets/icons/maskable-512.png',
 ];
@@ -56,7 +45,7 @@ function isImage(req) {
          /\.(png|jpe?g|gif|webp|svg)$/i.test(new URL(req.url).pathname);
 }
 
-// 3) Install
+// Install
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then(c => c.addAll(STATIC_ASSETS))
@@ -64,26 +53,27 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// 4) Activate: drop old versions
+// Activate (clean old caches + claim + notify)
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(k => k.startsWith(CACHE_PREFIX) && ![STATIC_CACHE, RUNTIME_CACHE].includes(k))
-          .map(k => caches.delete(k))
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(k => k.startsWith(CACHE_PREFIX) && ![STATIC_CACHE, RUNTIME_CACHE].includes(k))
+        .map(k => caches.delete(k))
+    );
+    await self.clients.claim();
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of all) {
+      try { client.postMessage({ type: 'DF_SW_ACTIVATED' }); } catch (_) {}
+    }
+  })());
 });
 
-// 5) Fetch strategies
+// Fetch
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
-
-  // same-origin only
   if (url.origin !== self.location.origin) return;
 
   if (isHTML(req)) {
@@ -98,12 +88,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(imageStaleWhileRevalidate(req));
     return;
   }
-
-  // default
   event.respondWith(caches.match(req).then(res => res || fetch(req)));
 });
 
-// --- strategies ---
+// Messages (allow page to trigger skipWaiting explicitly)
+self.addEventListener('message', (event) => {
+  if (event?.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// Strategies
 async function htmlNetworkFirst(req) {
   try {
     const fresh = await fetch(req, { cache: 'no-store' });
@@ -119,7 +112,6 @@ async function htmlNetworkFirst(req) {
     });
   }
 }
-
 async function staticCacheFirst(req) {
   const cached = await caches.match(req);
   if (cached) return cached;
@@ -128,7 +120,6 @@ async function staticCacheFirst(req) {
   st.put(req, res.clone());
   return res;
 }
-
 async function imageStaleWhileRevalidate(req) {
   const rt = await caches.open(RUNTIME_CACHE);
   const cached = await rt.match(req);
