@@ -17,7 +17,7 @@
   })();
   </script>
 
-  <!-- Styles / App -->
+  <!-- Styles / App (we're in /settings-setup → use ../) -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
@@ -31,32 +31,6 @@
   <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
-
-  <!-- Toast style -->
-  <style>
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: 22px;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(0,0,0,.86);
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-size: .95rem;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .18s ease, transform .18s ease;
-      z-index: 9999;
-      max-width: 90vw;
-      text-align: center;
-    }
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-      pointer-events: auto;
-    }
-  </style>
 </head>
 <body>
   <!-- Header -->
@@ -83,7 +57,8 @@
   <main class="content">
     <h1>⚙️ Setup / Settings</h1>
 
-    <!-- Tiles auto-filled from menus.js -->
+    <!-- Sub-tiles auto-filled from menus.js
+         IMPORTANT: data-section must exactly match your top-level label -->
     <div class="df-tiles" data-section="Setup / Settings"></div>
   </main>
 
@@ -96,10 +71,10 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Toast element -->
-  <div id="df-toast" class="toast" role="status" aria-live="polite"></div>
+  <!-- Toast node (theme.css should style .df-toast) -->
+  <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
-  <!-- Service worker -->
+  <!-- Service worker (PATH from /settings-setup -> ../js/serviceworker.js) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -108,78 +83,99 @@
     }
   </script>
 
-  <!-- Menus + subnav renderer -->
+  <!-- Menus + subnav renderer (note ../ and ui-subnav) -->
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
-  <!-- Page script: bind Check For Updates tile -->
+  <!-- Update checker wiring -->
   <script>
-    (function () {
-      'use strict';
+  (function(){
+    const $ = s => document.querySelector(s);
 
-      function showToast(msg) {
-        var t = document.getElementById('df-toast');
-        if (!t) { alert(msg); return; }
-        t.textContent = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2400);
+    function toast(msg){
+      const el = $('#dfToast');
+      if (!el) return alert(msg);
+      el.textContent = msg;
+      el.style.display = 'block';
+      requestAnimationFrame(()=> el.classList.add('show'));
+      setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 2000);
+    }
+
+    async function checkForUpdates(){
+      if (!('serviceWorker' in navigator)) {
+        toast('No service worker — updates will load next visit');
+        return;
       }
+      try {
+        const reg = await navigator.serviceWorker.getRegistration('../js/serviceworker.js') ||
+                    await navigator.serviceWorker.getRegistration();
 
-      function extractVersion(jsText) {
-        var m = jsText.match(/DF_VERSION\s*=\s*['"]([^'"]+)['"]/);
-        if (m && m[1]) return m[1];
-        m = jsText.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
-        return (m && m[1]) ? m[1] : null;
-      }
+        // Kick the SW to check for a new version
+        if (reg && reg.update) await reg.update();
 
-      async function fetchLatestVersion() {
-        var url = new URL('../js/version.js', document.baseURI);
-        url.searchParams.set('_', Date.now());
-        var res = await fetch(url.href, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to fetch version.js');
-        var text = await res.text();
-        return extractVersion(text);
-      }
+        // If there’s an installing or waiting worker, we have an update
+        const sw = (reg && (reg.installing || reg.waiting)) || null;
 
-      async function updateServiceWorker() {
-        if (!('serviceWorker' in navigator)) return;
-        try {
-          var reg = await navigator.serviceWorker.getRegistration();
-          if (reg) await reg.update();
-        } catch {}
-      }
+        if (sw) {
+          // Ask the new worker to take control ASAP
+          sw.postMessage({ type: 'SKIP_WAITING' });
 
-      async function handleCheckForUpdates(ev) {
-        ev.preventDefault();
-        try {
-          var current = window.DF_VERSION || window.APP_VERSION || 'v0.0.0';
-          var latest = await fetchLatestVersion();
+          // When controller changes, the new SW is active
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            toast('Update installed — reload to use it');
+          });
 
-          if (!latest) {
-            showToast('Could not determine latest version');
-            return;
-          }
-          if (latest === current) {
-            await updateServiceWorker();
-            showToast('No updates available (current ' + current + ')');
-          } else {
-            await updateServiceWorker();
-            showToast('Update found (' + latest + ') cache refreshed');
-            setTimeout(() => location.reload(), 800);
-          }
-        } catch (e) {
-          console.error(e);
-          showToast('Update check failed');
+          toast('Update found — applying…');
+        } else {
+          // Fallback: cache-bust a core file to ensure freshness
+          await fetch('../js/version.js?v=' + Date.now(), { cache: 'no-store' }).catch(() => {});
+          toast('No updates found');
         }
+      } catch (e) {
+        console.error(e);
+        toast('Update check failed');
       }
+    }
 
-      document.addEventListener('DOMContentLoaded', () => {
-        const link = document.querySelector('.df-tiles a[href="#check-updates"]');
-        if (link) {
-          link.addEventListener('click', handleCheckForUpdates, { passive: false });
+    // Handle clicks on the “Check For Updates” tile
+    function wireTileClicks(){
+      const host = document.querySelector('.df-tiles[data-section]');
+      if (!host) return;
+      host.addEventListener('click', (e) => {
+        const a = e.target.closest('a');
+        if (!a) return;
+
+        const href = a.getAttribute('href') || '';
+        // supports "#check-updates" and "index.html#check-updates"
+        if (/#check-updates$/i.test(href)) {
+          e.preventDefault();
+          checkForUpdates();
+          history.replaceState(null, '', '#check-updates');
         }
       });
-    })();
+    }
+
+    // If user lands with the hash already in the URL, auto-run once
+    function maybeRunFromHash(){
+      if (/#check-updates$/i.test(location.hash)) {
+        // Delay slightly to allow SW/menus to settle
+        setTimeout(checkForUpdates, 250);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      wireTileClicks();
+      maybeRunFromHash();
+    });
+
+    // Optional: keyboard shortcut U on this page
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'u' || e.key === 'U') && !/input|textarea|select/i.test(e.target.tagName)) {
+        e.preventDefault();
+        checkForUpdates();
+      }
+    });
+  })();
   </script>
 </body>
 </html>
