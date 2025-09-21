@@ -1,10 +1,10 @@
 /* ===========================
-   Dowson Farms — core.js  (FULL REPLACEMENT, in-flow Back button)
+   Dowson Farms — core.js  (FULL REPLACEMENT, Back button above footer)
    - Logout (no Firebase; clears storage but preserves df_theme; unregisters SW; redirects)
    - Clock (HH:MM AM/PM, America/Chicago) → supports #clock and #df-clock
    - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
    - Honors <base href="/DowsonFarms/"> so relative redirects work anywhere
-   - NEW: Back button that SCROLLS WITH THE PAGE (in flow, lower-left near bottom)
+   - NEW: Back button (scrolls with page) above footer; hidden on home page
    =========================== */
 
 (function () {
@@ -33,7 +33,6 @@
     }
   }
 
-  /* Base-aware resolver for generic links (e.g., index.html fallback) */
   function resolveURL(rel) {
     try { return new URL(rel, document.baseURI).href; }
     catch (_) { return rel; }
@@ -41,7 +40,6 @@
 
   /* ---------------------------------------
      LOGOUT (no Firebase)
-     Binds to: #logout-btn, [data-action="logout"], .logout
   ----------------------------------------*/
   function installLogout() {
     var candidates = [];
@@ -56,18 +54,14 @@
     function handleLogout(ev) {
       if (ev && ev.preventDefault) ev.preventDefault();
 
-      // Preserve theme preference
       var keepTheme = null;
       try { keepTheme = localStorage.getItem('df_theme'); } catch (_) {}
 
-      // Clear storages
       try { localStorage.clear(); } catch (_) {}
       try { sessionStorage.clear(); } catch (_) {}
 
-      // Restore preserved preference
       try { if (keepTheme !== null) localStorage.setItem('df_theme', keepTheme); } catch (_) {}
 
-      // Unregister SW then redirect
       function go() {
         try { window.location.replace(authURL); }
         catch (_) { window.location.href = authURL; }
@@ -97,8 +91,7 @@
   }
 
   /* ---------------------------------------
-     CLOCK (HH:MM AM/PM, America/Chicago)
-     Supports #clock and #df-clock; optional #report-date/#df-date
+     CLOCK
   ----------------------------------------*/
   function installClock() {
     var clockEl = document.getElementById('clock') || document.getElementById('df-clock');
@@ -121,24 +114,21 @@
       }
     }
 
-    // Minute-synced
     render();
     var now = new Date();
     var msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     setTimeout(function () {
       render();
-      setInterval(render, 60 * 1000);
+      setInterval(render, 60000);
     }, Math.max(0, msToNextMinute));
   }
 
   /* ---------------------------------------
      VERSION + BUILD DATE
-     Supports #version/#df-version and #report-date/#df-build-date
-     (We only write date if element exists and wasn't already filled by clock)
   ----------------------------------------*/
   function injectVersionAndBuildDate() {
     var verEl = document.getElementById('version') || document.getElementById('df-version');
-    var buildDateEl = document.getElementById('df-build-date') || null; // avoid double-writing #report-date (clock owns it)
+    var buildDateEl = document.getElementById('df-build-date') || null;
 
     var version = (typeof window !== 'undefined' && window.DF_VERSION)
       ? String(window.DF_VERSION)
@@ -159,48 +149,42 @@
   }
 
   /* ---------------------------------------
-     In-flow Back Button (scrolls with page)
-     - Appended near bottom of page so it never overlays content.
-     - Left-aligned, simple inline style; no external CSS edits.
+     Back Button (in-flow, above footer)
+     - Hidden on home page (index.html)
   ----------------------------------------*/
   function installBackButtonFlow() {
-    if (document.getElementById('df-back-flow')) return; // avoid duplicates
+    if (document.getElementById('df-back-flow')) return;
 
-    // Choose insertion point: just above footer if present, else end of body.
+    var path = window.location.pathname;
+    if (/\/(index\.html)?$/.test(path)) {
+      return; // skip on home page
+    }
+
     var footer = document.querySelector('footer, .app-footer');
     var host = document.createElement('div');
     host.id = 'df-back-flow';
-    // Minimal inline styles to keep it tidy and left-aligned without touching theme.css
-    host.setAttribute('style',
-      'margin:20px 16px 16px; display:block;'
-    );
+    host.setAttribute('style','margin:12px 16px; text-align:left;');
 
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.setAttribute('aria-label', 'Go back');
-    btn.title = 'Back';
     btn.textContent = '← Back';
     btn.setAttribute('style', [
-      // Neutral styles that blend with existing themes
       'font: inherit',
       'font-weight:600',
-      'padding:10px 14px',
-      'border-radius:12px',
-      'border:2px solid #1B5E20',   // your brand green — inline to avoid theme.css
+      'padding:8px 14px',
+      'border-radius:10px',
+      'border:2px solid #1B5E20',
       'background:#fff',
       'color:#222',
-      'box-shadow:0 4px 10px rgba(0,0,0,.08)',
+      'box-shadow:0 2px 6px rgba(0,0,0,.08)',
       'cursor:pointer'
     ].join(';'));
 
-    // Dark mode tweak if site sets data-theme=dark on <html>
-    try {
-      if (document.documentElement.getAttribute('data-theme') === 'dark') {
-        btn.style.background = '#15181b';
-        btn.style.color = '#eaeaea';
-        btn.style.borderColor = '#2d7b35';
-      }
-    } catch (_) {}
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      btn.style.background = '#15181b';
+      btn.style.color = '#eaeaea';
+      btn.style.borderColor = '#2d7b35';
+    }
 
     btn.addEventListener('click', function () {
       if (document.referrer && window.history.length > 1) {
@@ -213,9 +197,8 @@
     host.appendChild(btn);
 
     if (footer && footer.parentNode) {
-      footer.parentNode.insertBefore(host, footer);
+      footer.parentNode.insertBefore(host, footer); // place above footer
     } else {
-      // If no footer, put at the very end of body so it’s at the bottom of the page
       document.body.appendChild(host);
     }
   }
@@ -227,6 +210,6 @@
     installLogout();
     installClock();
     injectVersionAndBuildDate();
-    installBackButtonFlow(); // <- in-flow, scroll-with-page Back button
+    installBackButtonFlow();
   });
 })();
