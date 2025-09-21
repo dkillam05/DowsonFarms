@@ -109,7 +109,9 @@ const DF_MENUS = {
             { label: "Chemical",    href: "settings-setup/products/chemical.html",    iconEmoji: "👨🏼‍🔬" },
             { label: "Grain Bags",  href: "settings-setup/products/grain-bags.html",  iconEmoji: "🛄" }
           ]
-        }
+        },
+        // NEW tile: action-style for update check
+        { label: "Check For Updates", href: "#check-updates", iconEmoji: "🔄" }
       ]
     },
 
@@ -128,7 +130,6 @@ const DF_MENUS = {
 /* Attach for <script> usage */
 if (typeof window !== "undefined") {
   window.DF_MENUS = DF_MENUS;
-  // Optional: share via DF.ready registry if you use it
   if (window.DF && window.DF.ready?.then) {
     window.DF.ready.then(reg => reg?.set?.('menus', DF_MENUS));
   }
