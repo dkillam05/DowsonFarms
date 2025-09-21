@@ -6,20 +6,21 @@ const DF_MENUS = {
       href: "crop-production/index.html",
       iconEmoji: "🌽",
       children: [
-        { label: "Planting",          href: "crop-production/planting.html",    iconEmoji: "🌱" },
-        { label: "Spraying",          href: "crop-production/spraying.html",    iconEmoji: "💦" },
-        { label: "Aerial Spraying",   href: "crop-production/aerial.html",      iconEmoji: "🚁" },
-        { label: "Harvest",           href: "crop-production/harvest.html",     iconEmoji: "🌾" },
-        { label: "Fertilizer",        href: "crop-production/fertilizer.html",  iconEmoji: "🧪" },
-        { label: "Crop Scouting",     href: "crop-production/scouting.html",    iconEmoji: "🔎" },
-        { label: "Field Maintenance", href: "field-maintenance/index.html",     iconEmoji: "🛠️" },
-        { label: "Trials",            href: "crop-production/trials.html",      iconEmoji: "🧬" }
+        { label: "Planting",          href: "crop-production/crop-planting.html",     iconEmoji: "🌱" },
+        { label: "Spraying",          href: "crop-production/crop-spraying.html",     iconEmoji: "💦" },
+        { label: "Aerial Spraying",   href: "crop-production/crop-aerial.html",       iconEmoji: "🚁" },
+        { label: "Harvest",           href: "crop-production/crop-harvest.html",      iconEmoji: "🌾" },
+        { label: "Fertilizer",        href: "crop-production/crop-fertilizer.html",   iconEmoji: "🧪" },
+        { label: "Crop Scouting",     href: "crop-production/crop-scouting.html",     iconEmoji: "🔎" },
+        { label: "Maintenance",       href: "crop-production/crop-maintenance.html",  iconEmoji: "🛠️" },
+        { label: "Field Maintenance", href: "field-maintenance/field-maintenance.html", iconEmoji: "🛠️" },
+        { label: "Trials",            href: "crop-production/crop-trials.html",       iconEmoji: "🧬" }
       ]
     },
 
-    { // optional shortcut to same section
+    { // Optional shortcut to single page
       label: "Field Maintenance",
-      href: "field-maintenance/index.html",
+      href: "field-maintenance/field-maintenance.html",
       iconEmoji: "🛠️",
       children: []
     },
@@ -29,10 +30,10 @@ const DF_MENUS = {
       href: "grain-tracking/index.html",
       iconEmoji: "🌾",
       children: [
-        { label: "Grain Bags",         href: "grain-tracking/bags.html",        iconEmoji: "👝" },
-        { label: "Grain Bins",         href: "grain-tracking/bins.html",        iconEmoji: "🛢️" },
-        { label: "Grain Contracts",    href: "grain-tracking/contracts.html",   iconEmoji: "🧾" },
-        { label: "Grain Ticket (OCR)", href: "grain-tracking/ticket-ocr.html",  iconEmoji: "🎫" }
+        { label: "Grain Bags",         href: "grain-tracking/grain-bags.html",        iconEmoji: "👝" },
+        { label: "Grain Bins",         href: "grain-tracking/grain-bins.html",        iconEmoji: "🛢️" },
+        { label: "Grain Contracts",    href: "grain-tracking/grain-contracts.html",   iconEmoji: "🧾" },
+        { label: "Grain Ticket (OCR)", href: "grain-tracking/grain-ticket-ocr.html",  iconEmoji: "🎫" }
       ]
     },
 
@@ -41,14 +42,14 @@ const DF_MENUS = {
       href: "equipment/index.html",
       iconEmoji: "🚜",
       children: [
-        { label: "Starfire / Technology", href: "equipment/starfire.html",     iconEmoji: "🛰️" },
-        { label: "Tractors",              href: "equipment/tractors.html",     iconEmoji: "🚜" },
-        { label: "Combines",              href: "equipment/combines.html",     iconEmoji: "🌽" },
-        { label: "Sprayers / Spreaders",  href: "equipment/sprayers.html",     iconEmoji: "💦" },
-        { label: "Implements",            href: "equipment/implements.html",   iconEmoji: "⚙️" },
-        { label: "Construction",          href: "equipment/construction.html", iconEmoji: "🏗️" },
-        { label: "Trucks",                href: "equipment/trucks.html",       iconEmoji: "🚛" },
-        { label: "Trailers",              href: "equipment/trailers.html",     iconEmoji: "🚚" }
+        { label: "Starfire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
+        { label: "Tractors",              href: "equipment/equipment-tractors.html",     iconEmoji: "🚜" },
+        { label: "Combines",              href: "equipment/equipment-combines.html",     iconEmoji: "🌽" },
+        { label: "Sprayers / Spreaders",  href: "equipment/equipment-sprayers.html",     iconEmoji: "💦" },
+        { label: "Implements",            href: "equipment/equipment-implements.html",   iconEmoji: "⚙️" },
+        { label: "Construction",          href: "equipment/equipment-construction.html", iconEmoji: "🏗️" },
+        { label: "Trucks",                href: "equipment/equipment-trucks.html",       iconEmoji: "🚛" },
+        { label: "Trailers",              href: "equipment/equipment-trailers.html",     iconEmoji: "🚚" }
       ]
     },
 
@@ -57,12 +58,12 @@ const DF_MENUS = {
       href: "calculators/index.html",
       iconEmoji: "🔢",
       children: [
-        { label: "Combine Yield", href: "calculators/combine-yield.html", iconEmoji: "🌽" },
-        { label: "Trial Yields",  href: "calculators/trial-yields.html",  iconEmoji: "🧬" },
-        { label: "Area",          href: "calculators/area.html",          iconEmoji: "📐" },
-        { label: "Grain Bin",     href: "calculators/grain-bin.html",     iconEmoji: "🛢️" },
-        { label: "Chemical Mix",  href: "calculators/chemical-mix.html",  iconEmoji: "🧪" },
-        { label: "Grain Shrink",  href: "calculators/grain-shrink.html",  iconEmoji: "📉" }
+        { label: "Combine Yield", href: "calculators/calc-combine-yield.html", iconEmoji: "🌽" },
+        { label: "Trial Yields",  href: "calculators/calc-trial-yields.html",  iconEmoji: "🧬" },
+        { label: "Area",          href: "calculators/calc-area.html",          iconEmoji: "📐" },
+        { label: "Grain Bin",     href: "calculators/calc-grain-bin.html",     iconEmoji: "🛢️" },
+        { label: "Chemical Mix",  href: "calculators/calc-chemical-mix.html",  iconEmoji: "🧪" },
+        { label: "Grain Shrink",  href: "calculators/calc-grain-shrink.html",  iconEmoji: "📉" }
       ]
     },
 
@@ -71,10 +72,10 @@ const DF_MENUS = {
       href: "teams-partners/index.html",
       iconEmoji: "🫱🏼‍🫲🏽",
       children: [
-        { label: "Employees",       href: "teams-partners/employees.html",       iconEmoji: "👥" },
-        { label: "Sub-Contractors", href: "teams-partners/sub-contractors.html", iconEmoji: "🧰" },
-        { label: "Vendors",         href: "teams-partners/vendors.html",         iconEmoji: "🏭" },
-        { label: "Dictionary",      href: "teams-partners/dictionary.html",      iconEmoji: "🗂️" }
+        { label: "Employees",       href: "teams-partners/teams-employees.html",       iconEmoji: "👥" },
+        { label: "Sub-Contractors", href: "teams-partners/teams-sub-contractors.html", iconEmoji: "🧰" },
+        { label: "Vendors",         href: "teams-partners/teams-vendors.html",         iconEmoji: "🏭" },
+        { label: "Dictionary",      href: "teams-partners/teams-dictionary.html",      iconEmoji: "🗂️" }
       ]
     },
 
@@ -83,9 +84,9 @@ const DF_MENUS = {
       href: "reports/index.html",
       iconEmoji: "📖",
       children: [
-        { label: "Pre-Defined Reports", href: "reports/predefined.html", iconEmoji: "📁" },
-        { label: "AI Reports",          href: "reports/ai.html",         iconEmoji: "🤖" },
-        { label: "AI Report History",   href: "reports/ai-history.html", iconEmoji: "🕘" }
+        { label: "Pre-Defined Reports", href: "reports/reports-predefined.html",  iconEmoji: "📁" },
+        { label: "AI Reports",          href: "reports/reports-ai.html",          iconEmoji: "🤖" },
+        { label: "AI Report History",   href: "reports/reports-ai-history.html",  iconEmoji: "🕘" }
       ]
     },
 
@@ -94,24 +95,23 @@ const DF_MENUS = {
       href: "settings-setup/index.html",
       iconEmoji: "⚙️",
       children: [
-        { label: "Farms",         href: "settings-setup/farms.html",      iconEmoji: "🏡" },
-        { label: "Fields",        href: "settings-setup/fields.html",     iconEmoji: "🗺️" },
-        { label: "Crop Types",    href: "settings-setup/crop-types.html", iconEmoji: "🌾" },
-        { label: "Theme",         href: "settings-setup/theme.html",      iconEmoji: "🌗" },
-        { label: "Account Roles", href: "settings-setup/roles.html",      iconEmoji: "🛡️" },
+        { label: "Farms",         href: "settings-setup/ss-farms.html",        iconEmoji: "🏡" },
+        { label: "Fields",        href: "settings-setup/ss-fields.html",       iconEmoji: "🗺️" },
+        { label: "Crop Types",    href: "settings-setup/ss-crop-types.html",   iconEmoji: "🌾" },
+        { label: "Theme",         href: "settings-setup/ss-theme.html",        iconEmoji: "🌗" },
+        { label: "Account Roles", href: "settings-setup/ss-roles.html",        iconEmoji: "🛡️" },
+        { label: "Check for Updates", href: "settings-setup/index.html#check-updates", iconEmoji: "🔄" },
         {
           label: "Products",
           href: "settings-setup/products/index.html",
           iconEmoji: "📦",
           children: [
-            { label: "Seed",        href: "settings-setup/products/seed.html",        iconEmoji: "🌽" },
-            { label: "Fertilizer",  href: "settings-setup/products/fertilizer.html",  iconEmoji: "🧂" },
-            { label: "Chemical",    href: "settings-setup/products/chemical.html",    iconEmoji: "👨🏼‍🔬" },
-            { label: "Grain Bags",  href: "settings-setup/products/grain-bags.html",  iconEmoji: "🛄" }
+            { label: "Seed",        href: "settings-setup/products/products-seed.html",        iconEmoji: "🌽" },
+            { label: "Fertilizer",  href: "settings-setup/products/products-fertilizer.html",  iconEmoji: "🧂" },
+            { label: "Chemical",    href: "settings-setup/products/products-chemical.html",    iconEmoji: "👨🏼‍🔬" },
+            { label: "Grain Bags",  href: "settings-setup/products/products-grain-bags.html",  iconEmoji: "🛄" }
           ]
-        },
-        // NEW tile: action-style for update check
-        { label: "Check For Updates", href: "#check-updates", iconEmoji: "🔄" }
+        }
       ]
     },
 
@@ -120,8 +120,8 @@ const DF_MENUS = {
       href: "feedback/index.html",
       iconEmoji: "💬",
       children: [
-        { label: "Ideas",         href: "feedback/ideas.html", iconEmoji: "💡" },
-        { label: "Bugs / Issues", href: "feedback/bugs.html",  iconEmoji: "🐞" }
+        { label: "Ideas",         href: "feedback/fb-ideas.html", iconEmoji: "💡" },
+        { label: "Bugs / Issues", href: "feedback/fb-bugs.html",  iconEmoji: "🐞" }
       ]
     }
   ]
@@ -130,6 +130,7 @@ const DF_MENUS = {
 /* Attach for <script> usage */
 if (typeof window !== "undefined") {
   window.DF_MENUS = DF_MENUS;
+  // Optional: share via DF.ready registry if you use it
   if (window.DF && window.DF.ready?.then) {
     window.DF.ready.then(reg => reg?.set?.('menus', DF_MENUS));
   }
