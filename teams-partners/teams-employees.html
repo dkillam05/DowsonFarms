@@ -210,7 +210,7 @@
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
   <script>
-  (function EmployeesPage(){
+  (function TeamsEmployeesPage(){
     // ---------- AUTH GUARD ----------
     document.addEventListener('DOMContentLoaded', async () => {
       if (window.DF_FB_API?.requireAuth) { await window.DF_FB_API.requireAuth(); }
@@ -375,7 +375,6 @@
       const db = await fbReady();
       const qs = await db.collection('roles').orderBy('label').get();
       const out = []; qs.forEach(doc=> { const d=doc.data()||{}; if(d.label) out.push(d.label); });
-      // Fallback if empty (should have been seeded by ss-roles)
       return out.length ? out : ["Administrator","Owner","Manager","Employee","View Only"];
     }
     async function fillRoleSelect(sel, value){
@@ -429,7 +428,7 @@
       return snap.exists ? mapDoc(snap) : null;
     }
 
-    // ---------- Invite (calls placeholder; switch to Cloud Function later) ----------
+    // ---------- Invite (placeholder → Cloud Function later) ----------
     async function inviteEmployeeById(id){
       const emp = await readEmployee(id);
       if(!emp){ alert('Employee not found'); return; }
@@ -437,16 +436,14 @@
 
       try {
         if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
-        // Placeholder — returns {ok:false} until we wire the Cloud Function
         const res = await window.DF_FB_API.dfSendInviteEmail({
           email: emp.email,
           role: emp.role || '',
           displayName: `${emp.first||''} ${emp.last||''}`.trim()
         });
-        // For now, consider any return as "sent" to mark invitedAt, so UI behaves
         await updateEmployee(id, { invitedAt: firebase.firestore.FieldValue.serverTimestamp() });
         showToast('Invite triggered');
-        await render(); // refresh chips
+        await render();
       } catch (e) {
         console.error(e);
         alert('Invite not ready yet — will be wired via Cloud Function.');
