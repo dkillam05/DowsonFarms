@@ -1,87 +1,75 @@
-/* Dowson Farms — Firebase bootstrap (FULL FILE)
-   Static PWA edition — loads Firebase via CDN and initializes Auth/Firestore/Storage.
-*/
+<!-- Include on every page that needs Firebase, BEFORE core.js -->
+<script type="module">
+  // Firebase Web SDK (modular). No build tools needed.
+  // NOTE: You MUST replace the firebaseConfig values with your own from Firebase console.
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+    signOut, setPersistence, browserLocalPersistence
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-(function () {
-  'use strict';
-
-  // ---------------------------
-  // Firebase SDK (compat builds, v10+)
-  // ---------------------------
-  const sdkUrls = [
-    'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
-    'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js',
-    'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
-    'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
-    'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js'
-  ];
-
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = src;
-      s.defer = true;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error('Failed to load ' + src));
-      document.head.appendChild(s);
-    });
-  }
-
-  async function loadFirebaseSdks() {
-    for (const url of sdkUrls) { await loadScript(url); }
-  }
-
-  // ---------------------------
-  // Config (your values from Firebase Console)
-  // ---------------------------
-  const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyA2QgzfthK3EhIyQsuX3hb4WU-i-tbFVv8",
-    authDomain: "dowsonfarms-528ab.firebaseapp.com",
-    projectId: "dowsonfarms-528ab",
-    storageBucket: "dowsonfarms-528ab.firebasestorage.app",
-    messagingSenderId: "921602446527",
-    appId: "1:921602446527:web:11bc4bf326bc3dee4be20a",
-    measurementId: "G-E82B957E0K"
+  const firebaseConfig = {
+    apiKey:        "YOUR_API_KEY",
+    authDomain:    "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId:     "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId:         "YOUR_APP_ID"
   };
 
-  // ---------------------------
-  // Initialize + expose
-  // ---------------------------
-  async function init() {
-    await loadFirebaseSdks();
+  // Init
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
 
-    if (window.firebase?.apps?.length) {
-      return window.DF_FB;
+  // Persist login across tabs/sessions
+  await setPersistence(auth, browserLocalPersistence);
+
+  // Expose minimal helpers globally so your existing core.js can call them.
+  window.dfFirebase = {
+    auth,
+    db,
+
+    // AUTH
+    signIn: async (email, password) => {
+      return signInWithEmailAndPassword(auth, email, password);
+    },
+    signOut: async () => {
+      return signOut(auth);
+    },
+    onAuth: (cb) => onAuthStateChanged(auth, cb),
+
+    // DATA
+    // upsert a document and attach serverTimestamp on 'updatedAt'
+    saveDoc: async (path, data) => {
+      const ref = doc(db, path);
+      await setDoc(ref, { ...data, updatedAt: serverTimestamp() }, { merge: true });
+      return ref;
+    },
+    getDoc: async (path) => {
+      const snap = await getDoc(doc(db, path));
+      return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    },
+    // simple list helper: list all docs in a collection, optional where equals
+    list: async (colPath, whereField=null, equals=null) => {
+      let qy = collection(db, colPath);
+      if (whereField && equals !== null) {
+        qy = query(qy, where(whereField, "==", equals));
+      }
+      const out = [];
+      const snaps = await getDocs(qy);
+      snaps.forEach(s => out.push({ id: s.id, ...s.data() }));
+      return out;
     }
-
-    const app = firebase.initializeApp(FIREBASE_CONFIG);
-    const analytics = firebase.analytics(app);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const storage = firebase.storage();
-
-    // Persist login
-    try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch (e) {}
-
-    // Listen for auth state
-    auth.onAuthStateChanged(user => {
-      window.DF_CURRENT_USER = user || null;
-    });
-
-    window.DF_FB = { app, analytics, auth, db, storage };
-    return window.DF_FB;
-  }
-
-  // Run on DOM ready
-  document.addEventListener('DOMContentLoaded', () => { init().catch(console.error); });
-
-  // Expose helpers
-  window.DF_FB_API = {
-    init,
-    signInEmail: (email, pw) => window.DF_FB.auth.signInWithEmailAndPassword(email, pw),
-    signUpEmail: (email, pw) => window.DF_FB.auth.createUserWithEmailAndPassword(email, pw),
-    signOut: () => window.DF_FB.auth.signOut(),
-    db: () => window.DF_FB.db,
-    storage: () => window.DF_FB.storage
   };
-})();
+
+  // Optional: reflect auth state so your UI can react without changing core.js
+  window.dfFirebase.onAuth(user => {
+    document.documentElement.dataset.authed = user ? "yes" : "no";
+    // If your existing logout button calls some core.js code,
+    // it can now also call: window.dfFirebase.signOut()
+  });
+</script>
