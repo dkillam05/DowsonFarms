@@ -5,7 +5,7 @@
            : (typeof window !== 'undefined') ? window
            : {};
 
-  root.APP_VERSION = "v8.0.3";   // <- bump here only
+  root.APP_VERSION = "v8.0.4";   // <- bump here only
 
   // Only touch the DOM if we’re in a page (not in SW)
   if (typeof document !== 'undefined') {
