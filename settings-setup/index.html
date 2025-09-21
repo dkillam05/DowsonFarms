@@ -31,6 +31,34 @@
   <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+
+  <!-- Page-scoped toast style (tiles use your global theme.css) -->
+  <style>
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0,0,0,.86);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: .95rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 9999;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    /* Optional: ensure our extra tile grid matches spacing of your auto grid */
+    .df-tiles-extra { margin-top: 14px; }
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -60,6 +88,14 @@
     <!-- Sub-tiles auto-filled from menus.js
          IMPORTANT: data-section must exactly match your top-level label -->
     <div class="df-tiles" data-section="Setup / Settings"></div>
+
+    <!-- NEW: Manual tile that looks like the others -->
+    <div class="df-tiles df-tiles-extra">
+      <a href="#" id="tile-check-updates" class="tile" role="button" aria-label="Check For Updates">
+        <span class="tile-emoji" aria-hidden="true">🔄</span>
+        <span class="tile-title">Check For Updates</span>
+      </a>
+    </div>
   </main>
 
   <!-- Footer -->
@@ -70,6 +106,9 @@
     <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
+
+  <!-- Toast element -->
+  <div id="df-toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- Service worker (yours lives in /js/) -->
   <script>
@@ -83,5 +122,77 @@
   <!-- Menus + subnav renderer (note ../ and ui-subnav) -->
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
+
+  <!-- Page script: Check For Updates -->
+  <script>
+    (function () {
+      'use strict';
+
+      function showToast(msg) {
+        var t = document.getElementById('df-toast');
+        if (!t) { alert(msg); return; }
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(function () { t.classList.remove('show'); }, 2400);
+      }
+
+      function extractVersion(jsText) {
+        // Prefer DF_VERSION; fall back to APP_VERSION
+        var m = jsText.match(/DF_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        if (m && m[1]) return m[1];
+        m = jsText.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        return (m && m[1]) ? m[1] : null;
+      }
+
+      async function fetchLatestVersion() {
+        var url = new URL('../js/version.js', document.baseURI);
+        url.searchParams.set('_', String(Date.now())); // cache-bust
+        var res = await fetch(url.href, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed fetching version.js: ' + res.status);
+        var text = await res.text();
+        return extractVersion(text);
+      }
+
+      async function updateServiceWorker() {
+        if (!('serviceWorker' in navigator)) return;
+        try {
+          var reg = await navigator.serviceWorker.getRegistration();
+          if (reg) await reg.update();
+        } catch (e) {}
+      }
+
+      async function handleCheckForUpdates(ev) {
+        if (ev) ev.preventDefault();
+        try {
+          var current = (window.DF_VERSION) ? String(window.DF_VERSION)
+                      : (window.APP_VERSION) ? String(window.APP_VERSION)
+                      : 'v0.0.0';
+
+          var latest = await fetchLatestVersion();
+          if (!latest) {
+            showToast('Could not determine latest version.');
+            return;
+          }
+
+          if (latest === current) {
+            await updateServiceWorker(); // still nudge SW to refresh assets
+            showToast('No updates available (current ' + current + ').');
+          } else {
+            await updateServiceWorker();
+            showToast('Update found (' + latest + ') — cache refreshed.');
+            setTimeout(function () { location.reload(); }, 800);
+          }
+        } catch (e) {
+          console.error(e);
+          showToast('Update check failed.');
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('tile-check-updates');
+        if (btn) btn.addEventListener('click', handleCheckForUpdates, { passive: false });
+      });
+    })();
+  </script>
 </body>
 </html>
