@@ -156,20 +156,20 @@
           var latest = await fetchLatestVersion();
 
           if (!latest) {
-            showToast('Could not determine latest version.');
+            showToast('Could not determine latest version');
             return;
           }
           if (latest === current) {
             await updateServiceWorker();
-            showToast('No updates available (current ' + current + ').');
+            showToast('No updates available (current ' + current + ')');
           } else {
             await updateServiceWorker();
-            showToast('Update found (' + latest + ') — cache refreshed.');
+            showToast('Update found (' + latest + ') cache refreshed');
             setTimeout(() => location.reload(), 800);
           }
         } catch (e) {
           console.error(e);
-          showToast('Update check failed.');
+          showToast('Update check failed');
         }
       }
 
