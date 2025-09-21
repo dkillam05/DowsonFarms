@@ -4,7 +4,7 @@
    - Clock (HH:MM AM/PM, America/Chicago) → supports #clock and #df-clock
    - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
    - Honors <base href="/DowsonFarms/"> so relative redirects work anywhere
-   - NEW: Back button (scrolls with page) above footer; hidden on true home page only
+   - Back button (scrolls with page) INSIDE .content, always above footer; hidden on true home page
    =========================== */
 
 (function () {
@@ -91,7 +91,7 @@
   }
 
   /* ---------------------------------------
-     CLOCK
+     CLOCK (HH:MM AM/PM)
   ----------------------------------------*/
   function installClock() {
     var clockEl = document.getElementById('clock') || document.getElementById('df-clock');
@@ -156,30 +156,32 @@
     var seg = p.split('/').filter(Boolean);               // path segments
 
     // Cases to treat as "home":
-    // 1) "/"              -> seg.length === 0
-    // 2) "/index.html"    -> ['index.html']
-    // 3) "/<repo>/"       -> ['<repo>']
-    // 4) "/<repo>/index.html" -> ['<repo>', 'index.html']
+    // 1) "/"                        -> []
+    // 2) "/index.html"              -> ['index.html']
+    // 3) "/<repo>/"                 -> ['<repo>']
+    // 4) "/<repo>/index.html"       -> ['<repo>','index.html']
     if (seg.length === 0) return true;
     if (seg.length === 1 && (seg[0] === 'index.html')) return true;
-    if (seg.length === 1) return true; // project root "/<repo>"
+    if (seg.length === 1) return true; // project root
     if (seg.length === 2 && seg[1] === 'index.html') return true;
-
     return false;
   }
 
   /* ---------------------------------------
-     Back Button (in-flow, above footer)
-     - Hidden on true home page only
+     Back Button (in-flow inside .content)
+     - Always sits ABOVE the footer (accounts for footer height)
+     - Hidden on true home page
+     - On "menu/grid" pages (have .df-tiles[data-section]) → goes to Home
+       Else → history.back() or Home fallback
   ----------------------------------------*/
   function installBackButtonFlow() {
     if (document.getElementById('df-back-flow')) return;
+    if (isHome()) return;
 
-    if (isHome()) {
-      return; // skip only on real home
-    }
+    // Where to place it: at the END of .content so it appears near bottom,
+    // but still above the footer. If there's no .content, append to body.
+    var content = document.querySelector('.content') || document.body;
 
-    var footer = document.querySelector('footer, .app-footer');
     var host = document.createElement('div');
     host.id = 'df-back-flow';
     host.setAttribute('style','margin:12px 16px; text-align:left;');
@@ -199,14 +201,20 @@
       'cursor:pointer'
     ].join(';'));
 
+    // Dark mode tweak
     if (document.documentElement.getAttribute('data-theme') === 'dark') {
       btn.style.background = '#15181b';
       btn.style.color = '#eaeaea';
       btn.style.borderColor = '#2d7b35';
     }
 
+    // Determine click behavior
+    var isMenuGrid = !!document.querySelector('.df-tiles[data-section]');
     btn.addEventListener('click', function () {
-      if (document.referrer && window.history.length > 1) {
+      if (isMenuGrid) {
+        // Menu pages: go to Home explicitly
+        window.location.href = resolveURL('index.html');
+      } else if (document.referrer && window.history.length > 1) {
         window.history.back();
       } else {
         window.location.href = resolveURL('index.html');
@@ -214,12 +222,22 @@
     });
 
     host.appendChild(btn);
+    content.appendChild(host);
 
-    if (footer && footer.parentNode) {
-      footer.parentNode.insertBefore(host, footer); // place above footer
-    } else {
-      document.body.appendChild(host);
+    // Make sure it's visibly above the footer even if the footer is fixed/sticky.
+    function pushAboveFooter() {
+      try {
+        var footer = document.querySelector('footer, .app-footer');
+        var h = footer ? Math.ceil(footer.getBoundingClientRect().height) : 0;
+        host.style.marginBottom = (h ? (h + 12) : 12) + 'px';
+      } catch (_) {
+        host.style.marginBottom = '12px';
+      }
     }
+    // Initial + on resize/orientation changes (iOS Safari quirks)
+    pushAboveFooter();
+    window.addEventListener('resize', pushAboveFooter);
+    window.addEventListener('orientationchange', pushAboveFooter);
   }
 
   /* ---------------------------------------
