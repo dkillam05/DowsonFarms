@@ -1,82 +1,95 @@
-<!-- /js/core.js -->
-<script>(function Core(){
-  const $  = (s, r=document) => r.querySelector(s);
+/* Dowson Farms — core.js (stable)
+   - Clock (12-hour AM/PM)
+   - Footer report date
+   - Version (from window.APP_VERSION)
+   - Breadcrumb helper + inject Logout button
+   - Default breadcrumbs (Home only on index)
+*/
 
-  // Tiny shared registry
-  const registry = new Map();
-  const ready = Promise.resolve({ set:(k,v)=>registry.set(k,v), get:(k)=>registry.get(k) });
-  window.DF = Object.assign(window.DF || {}, { ready });
+(function Core(){
+  const $ = (s, r=document) => r.querySelector(s);
 
-  // Helpers
-  const two = n => (n<10?'0':'')+n;
-  const isAuth = () => document.body.classList.contains('auth-page');
-  const isHome = () => {
-    const file = (location.pathname.split('/').pop()||'').toLowerCase();
+  /* ---------------- Time helpers ---------------- */
+  function two(n){ return n < 10 ? '0' + n : '' + n; }
+  function isHomePage(){
+    const file = (location.pathname.split('/').pop() || '').toLowerCase();
     return file === '' || file === 'index.html';
-  };
+  }
 
-  // Clock
+  /* ---------------- Clock (12-hour AM/PM) ---------------- */
   function drawClock(){
-    const el = $('#clock'); if(!el) return;
+    const el = $('#clock'); if (!el) return;
     const d = new Date();
-    el.textContent = `${two(d.getHours())}:${two(d.getMinutes())}`;
+    let h = d.getHours();
+    const m = two(d.getMinutes());
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    el.textContent = `${h}:${m} ${ampm}`;
   }
   drawClock();
-  (function tick(){
+  (function scheduleClock(){
     const now = new Date();
-    const wait = (60 - now.getSeconds())*1000 - now.getMilliseconds();
-    setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(wait, 250));
+    const wait = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    setTimeout(()=>{ drawClock(); setInterval(drawClock, 60_000); }, Math.max(250, wait));
   })();
 
-  // Footer report date
+  /* ---------------- Footer date ---------------- */
   (function setReportDate(){
-    const el = $('#report-date'); if(!el) return;
-    try {
-      const d = new Date();
-      el.textContent = d.toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'});
-    } catch { el.textContent = new Date().toDateString(); }
-  })();
-
-  // Version (reads window.APP_VERSION or DF_VERSION)
-  (function setVersion(){
-    const el = $('#version'); if(!el) return;
-    const v =
-      (typeof window.APP_VERSION === 'string' && window.APP_VERSION) ||
-      (typeof window.DF_VERSION  === 'string' && window.DF_VERSION)  ||
-      (typeof window.VERSION     === 'string' && window.VERSION)     ||
-      (window.DF_VERSION && typeof window.DF_VERSION === 'object'
-        ? `v${window.DF_VERSION.major||0}.${window.DF_VERSION.minor||0}.${window.DF_VERSION.patch||0}`
-        : null);
-    el.textContent = v || el.textContent || 'v0.0.0';
-  })();
-
-  // Breadcrumbs
-  window.setBreadcrumbs = function setBreadcrumbs(trail){
+    const el = $('#report-date'); if (!el) return;
     try{
-      if (!Array.isArray(trail) || !trail.length) return;
-      let nav = document.querySelector('.breadcrumbs');
-      if (!nav){
-        const hdr = document.querySelector('.app-header');
-        nav = document.createElement('nav');
-        nav.className = 'breadcrumbs';
-        nav.setAttribute('aria-label','Breadcrumb');
-        nav.innerHTML = '<ol></ol>';
-        (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
-      }
-      const ol = nav.querySelector('ol') || nav.appendChild(document.createElement('ol'));
-
-      const parts = [];
-      trail.forEach((item, idx)=>{
-        if (idx>0) parts.push('<li class="sep">›</li>');
-        const isLast = idx === trail.length-1;
-        const label = String(item?.label ?? '');
-        const href  = !isLast && item?.href ? String(item.href) : null;
-        parts.push(href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>`);
+      el.textContent = new Date().toLocaleDateString(undefined, {
+        weekday:'short', month:'short', day:'numeric', year:'numeric'
       });
-      ol.innerHTML = parts.join('');
+    }catch(_){
+      el.textContent = new Date().toDateString();
+    }
+  })();
 
-      ensureLogoutButton(nav);
-    }catch(e){ console.error('setBreadcrumbs error:', e); }
+  /* ---------------- Version stamp ---------------- */
+  (function setVersion(){
+    const el = $('#version'); if (!el) return;
+    if (typeof window.APP_VERSION === 'string' && window.APP_VERSION) {
+      el.textContent = window.APP_VERSION;
+    } else {
+      el.textContent = el.textContent || 'v0.0.0';
+    }
+  })();
+
+  /* ---------------- Breadcrumbs + Logout ---------------- */
+  // Use from pages if you want custom trails:
+  // window.setBreadcrumbs([{label:'Home', href:'../index.html'}, {label:'Section'}])
+  window.setBreadcrumbs = function setBreadcrumbs(trail){
+    if (!Array.isArray(trail) || !trail.length) return;
+
+    let nav = $('.breadcrumbs');
+    if (!nav) {
+      // create <nav class="breadcrumbs"><ol></ol></nav> after header
+      const hdr = $('.app-header');
+      nav = document.createElement('nav');
+      nav.className = 'breadcrumbs';
+      nav.setAttribute('aria-label', 'Breadcrumb');
+      nav.innerHTML = '<ol></ol>';
+      (hdr && hdr.parentNode)
+        ? hdr.parentNode.insertBefore(nav, hdr.nextSibling)
+        : document.body.prepend(nav);
+    }
+    let ol = nav.querySelector('ol');
+    if (!ol) { ol = document.createElement('ol'); nav.appendChild(ol); }
+
+    function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    const parts = [];
+    trail.forEach((item, idx)=>{
+      if (idx > 0) parts.push('<li class="sep">›</li>');
+      const isLast = idx === trail.length - 1;
+      const label = esc(item?.label ?? '');
+      const href  = !isLast && item?.href ? String(item.href) : null;
+      parts.push(href ? `<li><a href="${href}">${label}</a></li>`
+                      : `<li><span>${label}</span></li>`);
+    });
+    ol.innerHTML = parts.join('');
+
+    ensureLogoutButton(nav);
   };
 
   function ensureLogoutButton(nav){
@@ -86,46 +99,40 @@
     btn.type = 'button';
     btn.textContent = 'Logout';
     nav.appendChild(btn);
+
     btn.addEventListener('click', ()=>{
-      try{
+      try {
         localStorage.removeItem('df_current_user');
         alert('Logged out (frontend only). Wire this to real auth later.');
-        // Optionally redirect to login:
+        // If you want to bounce to your login page, uncomment:
         // location.href = './auth/index.html';
-      }catch(e){ console.error(e); }
+      } catch(e) {
+        console.error(e);
+      }
     });
   }
 
-  // Default breadcrumbs (Home is just “Home”)
+  /* ---------------- Default breadcrumbs ---------------- */
   document.addEventListener('DOMContentLoaded', ()=>{
-    const hasTrail = !!document.querySelector('.breadcrumbs ol li');
-    if (!hasTrail){
-      if (isHome()){
+    const nav = $('.breadcrumbs');
+    const hasItems = !!nav?.querySelector('ol li');
+
+    if (!hasItems) {
+      if (isHomePage()) {
         window.setBreadcrumbs([{ label:'Home', href:'index.html' }]);
       } else {
+        // Derive a label from <h1> or <title>
+        const label = (document.querySelector('.content h1')?.textContent ||
+                       document.title.replace(/\s*—.*$/, '') ||
+                       'Page').trim();
+        // Compute a relative home link for the current folder
         const homeHref = location.pathname.replace(/\/[^\/]*$/, '/index.html');
-        const page = (document.querySelector('.content h1')?.textContent || document.title || 'Page').replace(/\s*—.*$/,'').trim();
-        window.setBreadcrumbs([{label:'Home', href: homeHref}, {label: page}]);
+        window.setBreadcrumbs([{ label:'Home', href: homeHref }, { label }]);
       }
-    } else if (isHome()){
-      window.setBreadcrumbs([{ label:'Home', href:'index.html' }]);
+    } else {
+      // Even if the page hard-coded breadcrumbs, make sure Logout is present
+      ensureLogoutButton(nav);
     }
   });
 
-  // Global Back button (fixed, bottom-left, above footer)
-  document.addEventListener('DOMContentLoaded', ()=>{
-    if (isAuth() || isHome()) return;
-    if (document.querySelector('.back-fab')) return;
-
-    const a = document.createElement('a');
-    a.href = 'javascript:void(0)';
-    a.className = 'back-fab';
-    a.innerHTML = '<span class="chev">‹</span> Back';
-    a.addEventListener('click', (e)=>{
-      e.preventDefault();
-      if (history.length > 1) history.back();
-      else location.href = (location.pathname.replace(/\/[^\/]*$/, '/index.html'));
-    });
-    document.body.appendChild(a);
-  });
-})();</script>
+})();
