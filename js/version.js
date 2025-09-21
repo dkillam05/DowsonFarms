@@ -1,17 +1,21 @@
 /* /js/version.js  — single source of truth for app version */
 (function () {
-  // Works in window and in service worker
   var root = (typeof self !== 'undefined') ? self
            : (typeof window !== 'undefined') ? window
            : {};
 
-  root.APP_VERSION = "v8.0.9";   // <- bump here only
+  // bump here only
+  root.APP_VERSION = "v8.0.10";
+  root.DF_VERSION  = root.APP_VERSION; // <— core.js expects this
 
-  // Only touch the DOM if we’re in a page (not in SW)
+  // Update DOM if we’re in a page (not in SW)
   if (typeof document !== 'undefined') {
     document.addEventListener("DOMContentLoaded", () => {
-      var v = document.getElementById("version");
-      if (v) v.textContent = root.APP_VERSION;
+      var vEls = [
+        document.getElementById("version"),
+        document.getElementById("df-version")
+      ];
+      vEls.forEach(el => { if (el) el.textContent = root.APP_VERSION; });
     });
   }
 })();
