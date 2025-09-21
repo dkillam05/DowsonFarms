@@ -5,7 +5,7 @@
            : {};
 
   // bump here only
-  root.APP_VERSION = "v9.10.0";
+  root.APP_VERSION = "v9.11.0";
   root.DF_VERSION  = root.APP_VERSION; // <— core.js expects this
 
   // Update DOM if we’re in a page (not in SW)
