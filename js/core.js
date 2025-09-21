@@ -5,7 +5,8 @@
    - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
    - Back button (in-flow inside .content, above footer; hidden on true home)
    - Logout button injected into the Breadcrumb bar (right-aligned) on ALL pages
-     * Replaces any existing blue link; consistent font, size, and color everywhere
+     * Same size, font, and color everywhere (home + sub pages)
+     * Replaces any small/blue link versions inside the breadcrumbs
    - Honors <base href="/DowsonFarms/">
    =========================== */
 
@@ -87,18 +88,18 @@
 
   /* ---------------------------------------
      Inject Logout BUTTON into Breadcrumb bar
-     - Right-aligned, larger, app-green color
-     - Appears on ALL pages that have .breadcrumbs (Home and subs)
-     - Removes any existing blue link-style logout in that bar
+     - Right-aligned; same style on home + subs
+     - Removes any small/blue logout links within the breadcrumbs
+     - Button is a bit smaller than before (per your request)
   ----------------------------------------*/
   function injectBreadcrumbLogout() {
-    var bc = document.querySelector('nav.breadcrumbs');
+    // Support both <nav class="breadcrumbs"> and <div class="breadcrumbs">
+    var bc = document.querySelector('nav.breadcrumbs, .breadcrumbs');
     if (!bc) return;
 
-    // Remove any existing logout anchors in the breadcrumbs (blue links)
-    var old = bc.querySelectorAll('#logout-btn, [data-action="logout"], .logout');
+    // Remove any existing logout nodes INSIDE the breadcrumbs (blue link versions)
+    var old = bc.querySelectorAll('#logout-btn, [data-action="logout"], .logout, a[href*="logout"]');
     for (var i = 0; i < old.length; i++) {
-      // If it's inside the breadcrumbs bar, remove; otherwise leave (e.g., content tiles)
       if (bc.contains(old[i])) old[i].remove();
     }
 
@@ -109,8 +110,11 @@
 
     // Reserve space on the right so breadcrumb text doesn't run under the button
     var pr = parseInt(getComputedStyle(bc).paddingRight || '0', 10);
-    var needed = 120; // width allowance for the button
+    var needed = 108; // width allowance for the button (smaller style)
     if (pr < needed) bc.style.paddingRight = needed + 'px';
+
+    // If host already present, do nothing (prevents duplicates)
+    if (bc.querySelector('#df-logout-host')) return;
 
     // Host (absolute right, vertically centered)
     var host = document.createElement('div');
@@ -125,31 +129,32 @@
       'z-index:2'
     ].join(';'));
 
-    // Button
+    // Brand color (falls back to #1B5E20)
+    var brand = getComputedStyle(document.documentElement).getPropertyValue('--brand-green').trim() || '#1B5E20';
+
+    // Button (smaller size but same look everywhere)
     var btn = document.createElement('button');
     btn.id = 'logout-btn';
     btn.type = 'button';
     btn.textContent = 'Logout';
     btn.setAttribute('aria-label', 'Log out');
-
-    var brand = 'var(--brand-green, #1B5E20)';
     btn.setAttribute('style', [
-      'padding:8px 16px',
-      'font-size:16px',
+      'padding:7px 12px',
+      'font-size:14px',
       'font-weight:700',
       'line-height:1',
-      'border-radius:10px',
+      'border-radius:9px',
       'border:2px solid ' + brand,
       'background:#fff',
       'color:' + brand,
       'cursor:pointer',
-      'box-shadow:0 2px 6px rgba(0,0,0,.08)',
+      'box-shadow:0 2px 5px rgba(0,0,0,.08)',
       'touch-action:manipulation',
       '-webkit-tap-highlight-color:transparent'
     ].join(';'));
 
     // Dark mode tweak
-    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+    if ((document.documentElement.getAttribute('data-theme') || '').toLowerCase() === 'dark') {
       btn.style.background = '#15181b';
       btn.style.color = '#dff1e1';
       btn.style.borderColor = '#2d7b35';
@@ -297,10 +302,10 @@
      DOM Ready
   ----------------------------------------*/
   document.addEventListener('DOMContentLoaded', function () {
-    injectBreadcrumbLogout();   // ensure green, right-aligned Logout in breadcrumb bar (home + subs)
+    injectBreadcrumbLogout();   // consistent Logout in breadcrumb bar (home + subs)
     installClock();
     injectVersionAndBuildDate();
-    installBackButtonFlow();    // restore Back button behavior/placement
+    installBackButtonFlow();    // Back button present again
   });
 
   /* ---------------------------------------
