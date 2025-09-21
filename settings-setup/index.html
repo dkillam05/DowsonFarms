@@ -1,4 +1,4 @@
-<!-- /settings-setup/index.html  (FULL FILE; longer toast durations) -->
+<!-- /settings-setup/index.html  (FULL FILE; all toasts ≥ 3s and reliable version push) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -90,13 +90,14 @@
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
-  <!-- Update checker wiring (root SW aware; longer toasts) -->
+  <!-- Update checker wiring (root SW aware; ALL toasts ≥ 3s; reload waits ≥ 3s) -->
   <script>
   (function(){
     const $ = s => document.querySelector(s);
 
-    // Toast with configurable duration (default 3.5s; longer on updates)
-    function toast(msg, ms = 3500){
+    // Toast with configurable duration (default 3000ms minimum)
+    function toast(msg, ms = 3000){
+      ms = Math.max(ms, 3000);
       const el = $('#dfToast');
       if (!el) return alert(msg);
       el.textContent = msg;
@@ -131,9 +132,8 @@
 
     async function getRootSWRegistration() {
       if (!('serviceWorker' in navigator)) return null;
-      try {
-        return await navigator.serviceWorker.getRegistration('/');
-      } catch { return null; }
+      try { return await navigator.serviceWorker.getRegistration('/'); }
+      catch { return null; }
     }
 
     async function activateWaitingSW(reg) {
@@ -180,17 +180,17 @@
       return used;
     }
 
-    function reloadSoon() {
-      // Keep this visible long enough to read it
-      toast('Update installed — reloading…', 6000);
-      setTimeout(()=>location.reload(), 800);
+    // Ensure the "installed" toast is readable for ≥3s before reload
+    function reloadAfterToast(ms = 3000) {
+      toast('Update installed — reloading…', ms);
+      setTimeout(()=>location.reload(), ms);
     }
 
     function attachSWReloadHooks() {
       if (!('serviceWorker' in navigator)) return;
-      navigator.serviceWorker.addEventListener('controllerchange', reloadSoon, { once:true });
+      navigator.serviceWorker.addEventListener('controllerchange', () => reloadAfterToast(3000), { once:true });
       navigator.serviceWorker.addEventListener('message', (ev) => {
-        if (ev?.data?.type === 'DF_SW_ACTIVATED') reloadSoon();
+        if (ev?.data?.type === 'DF_SW_ACTIVATED') reloadAfterToast(3000);
       });
     }
 
@@ -205,13 +205,16 @@
       try { if (reg && reg.update) await reg.update(); } catch {}
 
       if (serverHasNewer) {
-        // Keep the "found" toast visible longer while SW swaps
-        toast('Update found — applying…', 6000);
+        // Keep visible while SW swaps (≥3s)
+        toast('Update found — applying…', 4000);
         const swapped = await activateWaitingSW(reg);
         if (!swapped) {
-          // If we couldn’t swap via SW, hard reload (message above stays long)
-          const url = location.href.split('#')[0] + (location.search ? '&' : '?') + 'v=' + Date.now();
-          location.assign(url);
+          // Couldn’t hot-swap via SW, force nav after ≥3s info time
+          toast('Update found — reloading…', 3500);
+          setTimeout(() => {
+            const url = location.href.split('#')[0] + (location.search ? '&' : '?') + 'v=' + Date.now();
+            location.assign(url);
+          }, 3500);
         }
         return;
       }
@@ -225,7 +228,7 @@
           sw.addEventListener('statechange', () => {
             if (sw.state === 'installed') {
               announced = true;
-              toast('Update found — applying…', 6000);
+              toast('Update found — applying…', 4000);
               if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
             }
           });
@@ -233,7 +236,7 @@
       }
 
       setTimeout(() => {
-        if (!announced) toast('No updates found', 4000);
+        if (!announced) toast('No updates found', 3200);
       }, 5000);
     }
 
