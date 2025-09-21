@@ -1,4 +1,4 @@
-/* Dowson Farms — Global Navigation (one source of truth) */
+/* Dowson Farms — Global Navigation (single source of truth) */
 const DF_MENUS = {
   tiles: [
     {
@@ -17,7 +17,8 @@ const DF_MENUS = {
       ]
     },
 
-    { // optional shortcut
+    // Optional shortcut hub
+    {
       label: "Field Maintenance",
       href: "field-maintenance/index.html",
       iconEmoji: "🛠️",
@@ -125,14 +126,8 @@ const DF_MENUS = {
   ]
 };
 
-/* Expose (ESM friendly and <script> friendly) */
-try { export default DF_MENUS; } catch (_) {}
+/* Export & attach for both ESM and <script> usage */
+try { export default DF_MENUS; } catch(_) {}
 if (typeof window !== "undefined") {
   window.DF_MENUS = DF_MENUS;
-  if (window.DF && typeof window.DF.ready?.then === "function") {
-    window.DF.ready.then(reg => {
-      try { reg?.set?.("menus", DF_MENUS); } catch(e){ console.error("menus.js registration failed:", e); }
-    });
-  }
 }
-console.log("[menus.js] loaded", DF_MENUS);
