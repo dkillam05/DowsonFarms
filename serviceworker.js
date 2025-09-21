@@ -1,6 +1,6 @@
-/* /serviceworker.js (ROOT)
+/* /serviceworker.js
    Uses /js/version.js to derive cache version
-   Expects repo structure:
+   Repo structure it expects:
    - assets/css/theme.css
    - assets/data/menus.js
    - assets/icons/...
@@ -8,14 +8,11 @@
 */
 
 // 1) Pull the version from the same file the pages use
-// NOTE: version.js defines window.DF_VERSION; on SW we read self.DF_VERSION.
 try { importScripts('./js/version.js'); } catch (e) { /* ignore */ }
-
-// ⚠️ IMPORTANT: prefer DF_VERSION, but fall back to APP_VERSION if present.
-const SW_VERSION    = (self.DF_VERSION || self.APP_VERSION || 'v0'); // e.g. v8.0.2
-const CACHE_PREFIX  = 'df-cache';
-const STATIC_CACHE  = `${CACHE_PREFIX}-static-${SW_VERSION}`;
-const RUNTIME_CACHE = `${CACHE_PREFIX}-rt-${SW_VERSION}`;
+const SW_VERSION   = (self.APP_VERSION || 'v0');     // e.g. v8.0.2
+const CACHE_PREFIX = 'df-cache';
+const STATIC_CACHE = `${CACHE_PREFIX}-static-${SW_VERSION}`;
+const RUNTIME_CACHE= `${CACHE_PREFIX}-rt-${SW_VERSION}`;
 
 // 2) App shell to precache
 const STATIC_ASSETS = [
@@ -64,28 +61,21 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then(c => c.addAll(STATIC_ASSETS))
   );
-  // We’ll activate immediately so pages don’t wait
   self.skipWaiting();
 });
 
-// 4) Activate: drop old versions and take control
+// 4) Activate: drop old versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(
+    caches.keys().then(keys =>
+      Promise.all(
         keys
           .filter(k => k.startsWith(CACHE_PREFIX) && ![STATIC_CACHE, RUNTIME_CACHE].includes(k))
           .map(k => caches.delete(k))
-      );
-      await self.clients.claim();
-      // Let open pages know we’re active (optional hook your page listens for)
-      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      for (const client of all) {
-        try { client.postMessage({ type: 'DF_SW_ACTIVATED' }); } catch (_) {}
-      }
-    })()
+      )
+    )
   );
+  self.clients.claim();
 });
 
 // 5) Fetch strategies
@@ -111,13 +101,6 @@ self.addEventListener('fetch', (event) => {
 
   // default
   event.respondWith(caches.match(req).then(res => res || fetch(req)));
-});
-
-// Optional: allow page to force activation even if skipWaiting wasn’t called.
-self.addEventListener('message', (event) => {
-  if (event?.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
 });
 
 // --- strategies ---
