@@ -5,7 +5,7 @@
    - Version stamp (reads window.APP_VERSION, DF_VERSION, etc.)
    - Breadcrumb helper (+ inject Logout)
    - Default breadcrumbs (Home only on index)
-   - Global Back button (scrolls with page, just above footer) on non-Home/auth
+   - Global Back button (scrolls with page, above footer)
 */
 (function Core(){
   const $  = (s, r=document) => r.querySelector(s);
@@ -22,7 +22,7 @@
     const file = (location.pathname.split('/').pop() || '').toLowerCase();
     return file === '' || file === 'index.html';
   }
-  function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }
+  function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   /* ---------- Clock ---------- */
   function drawClock(){
@@ -72,8 +72,7 @@
         nav.innerHTML = '<ol></ol>';
         (hdr && hdr.parentNode) ? hdr.parentNode.insertBefore(nav, hdr.nextSibling) : document.body.prepend(nav);
       }
-      let ol = $('ol', nav);
-      if (!ol){ ol = document.createElement('ol'); nav.appendChild(ol); }
+      const ol = nav.querySelector('ol') || nav.appendChild(document.createElement('ol'));
 
       const parts = [];
       trail.forEach((item, idx)=>{
@@ -84,7 +83,6 @@
         parts.push(href ? `<li><a href="${href}">${label}</a></li>` : `<li><span>${label}</span></li>`);
       });
       ol.innerHTML = parts.join('');
-
       ensureLogoutButton(nav);
     }catch(e){ console.error('setBreadcrumbs error:', e); }
   };
@@ -100,7 +98,6 @@
       try{
         localStorage.removeItem('df_current_user');
         alert('Logged out (frontend only). Wire this to real auth later.');
-        // location.href = 'auth/index.html'; // if you want
       }catch(e){ console.error(e); }
     });
   }
@@ -109,13 +106,14 @@
   document.addEventListener('DOMContentLoaded', ()=>{
     const hasTrail = !!document.querySelector('.breadcrumbs ol li');
     if (!hasTrail){
+      const title = (document.title || '').replace(/\s*—.*$/,'').trim();
+      const h1    = document.querySelector('.content h1')?.textContent?.trim();
+      const page  = h1 || title || 'Page';
+
       if (isHomePage()){
         window.setBreadcrumbs([{ label:'Home', href:'index.html' }]);
       } else {
-        const page = (document.querySelector('.content h1')?.textContent?.trim()) ||
-                     (document.title || '').replace(/\s*—.*$/,'').trim() || 'Page';
-        // link back to this folder’s index.html
-        const homeHref = (location.pathname.replace(/\/[^\/]*$/, '/index.html'));
+        const homeHref = location.pathname.includes('/') ? (location.pathname.replace(/\/[^\/]*$/, '/index.html')) : 'index.html';
         window.setBreadcrumbs([{label:'Home', href: homeHref}, {label: page}]);
       }
     } else if (isHomePage()){
@@ -135,10 +133,12 @@
     a.addEventListener('click', (e)=>{
       e.preventDefault();
       if (history.length > 1) history.back();
-      else location.href = (location.pathname.replace(/\/[^\/]*$/, '/index.html'));
+      else location.href = (location.pathname.includes('/') ? (location.pathname.replace(/\/[^\/]*$/, '/index.html')) : 'index.html');
     });
 
     const footer = document.querySelector('.app-footer');
     footer ? footer.parentNode.insertBefore(a, footer) : document.body.appendChild(a);
   });
+
+  console.log('[core.js] loaded ok');
 })();
