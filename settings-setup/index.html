@@ -87,7 +87,7 @@
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
-  <!-- Update checker wiring -->
+  <!-- Update checker wiring (fixed) -->
   <script>
   (function(){
     const $ = s => document.querySelector(s);
@@ -101,39 +101,132 @@
       setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 2000);
     }
 
+    // --- version helpers ---
+    function parseVer(v){ return String(v||'').replace(/^v/i,'').split('.').map(n=>parseInt(n,10)||0); }
+    function isNewer(a,b){
+      const A=parseVer(a), B=parseVer(b);
+      for (let i=0;i<Math.max(A.length,B.length);i++){
+        const d=(A[i]||0)-(B[i]||0);
+        if (d!==0) return d>0;
+      }
+      return false;
+    }
+
+    async function fetchNetworkVersion() {
+      try {
+        const res = await fetch('../js/version.js?ts=' + Date.now(), { cache: 'no-store' });
+        const txt = await res.text();
+        // Accept forms like: window.DF_VERSION = 'v9.7.0'  or  const DF_VERSION = 'v9.7.0'
+        const m = txt.match(/DF_VERSION\s*=\s*['"]([^'"]+)['"]/i);
+        return m ? m[1] : null;
+      } catch { return null; }
+    }
+
+    async function getSWRegistration() {
+      if (!('serviceWorker' in navigator)) return null;
+      try {
+        // Registration for current scope (this page)
+        return await navigator.serviceWorker.getRegistration();
+      } catch { return null; }
+    }
+
+    async function activateWaitingSW(reg) {
+      if (!reg) return false;
+
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        return true;
+      }
+
+      if (reg.installing) {
+        await new Promise(resolve => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', function onSC(){
+            if (sw.state === 'installed') {
+              sw.removeEventListener('statechange', onSC);
+              if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
+              resolve();
+            } else if (sw.state === 'redundant') {
+              sw.removeEventListener('statechange', onSC);
+              resolve();
+            }
+          });
+        });
+        return true;
+      }
+
+      // Listen briefly in case updatefound fires after we looked
+      let used = false;
+      await new Promise(resolve => {
+        let timer = setTimeout(resolve, 1200);
+        reg.addEventListener('updatefound', function onUF(){
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', function onSC(){
+            if (sw.state === 'installed' && reg.waiting) {
+              reg.waiting.postMessage({ type:'SKIP_WAITING' });
+              used = true;
+              clearTimeout(timer);
+              resolve();
+            }
+          }, { once:true });
+        }, { once:true });
+      });
+      return used;
+    }
+
     async function checkForUpdates(){
-      if (!('serviceWorker' in navigator)) {
-        toast('No service worker — updates will load next visit');
+      const current = (typeof window !== 'undefined' && window.DF_VERSION) ? String(window.DF_VERSION) : 'v0.0.0';
+      const network = await fetchNetworkVersion();
+
+      const serverHasNewer = network && isNewer(network, current);
+
+      let reg = await getSWRegistration();
+
+      try { if (reg && reg.update) await reg.update(); } catch {}
+
+      if (serverHasNewer) {
+        const swapped = await activateWaitingSW(reg);
+        if (swapped) {
+          toast('Update found — applying…');
+          navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerchange', () => {
+            toast('Update installed — reloading…');
+            setTimeout(()=>location.reload(), 400);
+          }, { once:true });
+          return;
+        }
+        // No SW swap available — just reload cache-busted
+        toast('Update found — reloading…');
+        setTimeout(()=>{ location.href = location.href.split('#')[0] + '?v=' + Date.now(); }, 200);
         return;
       }
-      try {
-        const reg = await navigator.serviceWorker.getRegistration('../js/serviceworker.js') ||
-                    await navigator.serviceWorker.getRegistration();
 
-        // Kick the SW to check for a new version
-        if (reg && reg.update) await reg.update();
+      // Otherwise, rely on SW signals; show “No updates” if nothing appears soon
+      if (reg) {
+        let showed = false;
 
-        // If there’s an installing or waiting worker, we have an update
-        const sw = (reg && (reg.installing || reg.waiting)) || null;
-
-        if (sw) {
-          // Ask the new worker to take control ASAP
-          sw.postMessage({ type: 'SKIP_WAITING' });
-
-          // When controller changes, the new SW is active
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            toast('Update installed — reload to use it');
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed') {
+              showed = true;
+              if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
+              toast('Update found — applying…');
+            }
           });
+        }, { once:true });
 
-          toast('Update found — applying…');
-        } else {
-          // Fallback: cache-bust a core file to ensure freshness
-          await fetch('../js/version.js?v=' + Date.now(), { cache: 'no-store' }).catch(() => {});
-          toast('No updates found');
-        }
-      } catch (e) {
-        console.error(e);
-        toast('Update check failed');
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          toast('Update installed — reloading…');
+          setTimeout(()=>location.reload(), 400);
+        }, { once:true });
+
+        setTimeout(() => {
+          if (!showed) toast('No updates found');
+        }, 1200);
+      } else {
+        toast('No service worker — updates load next visit');
       }
     }
 
@@ -144,7 +237,6 @@
       host.addEventListener('click', (e) => {
         const a = e.target.closest('a');
         if (!a) return;
-
         const href = a.getAttribute('href') || '';
         // supports "#check-updates" and "index.html#check-updates"
         if (/#check-updates$/i.test(href)) {
@@ -158,7 +250,6 @@
     // If user lands with the hash already in the URL, auto-run once
     function maybeRunFromHash(){
       if (/#check-updates$/i.test(location.hash)) {
-        // Delay slightly to allow SW/menus to settle
         setTimeout(checkForUpdates, 250);
       }
     }
