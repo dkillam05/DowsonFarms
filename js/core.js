@@ -1,10 +1,11 @@
 /* ===========================
-   Dowson Farms — core.js  (FULL REPLACEMENT, Back button above footer)
+   Dowson Farms — core.js  (FULL REPLACEMENT)
    - Logout (no Firebase; clears storage but preserves df_theme; unregisters SW; redirects)
    - Clock (HH:MM AM/PM, America/Chicago) → supports #clock and #df-clock
    - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
-   - Honors <base href="/DowsonFarms/"> so relative redirects work anywhere
-   - Back button (scrolls with page) INSIDE .content, always above footer; hidden on true home page
+   - Back button (in-flow inside .content, above footer; hidden on true home)
+     * On menu/grid pages → go to repo-root Home
+     * Else → history.back() or Home
    =========================== */
 
 (function () {
@@ -38,22 +39,31 @@
     catch (_) { return rel; }
   }
 
-  /* Repo-aware Home URL (works with or without <base>) */
+  /* ---------------------------------------
+     Robust repo-root Home URL
+     - Honors <base href="/DowsonFarms/">
+     - Falls back to "/<repo>/" on GitHub Pages or "/" locally
+  ----------------------------------------*/
+  function getRepoRootPath() {
+    // 1) If a <base> tag exists, trust it
+    var baseEl = document.querySelector('base');
+    if (baseEl && baseEl.href) {
+      try {
+        var u = new URL(baseEl.href);
+        return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/');
+      } catch (_) {}
+    }
+    // 2) GitHub Pages project sites: "/<user>.github.io/<repo>/..."
+    //    Treat "/<repo>/" as root
+    var seg = window.location.pathname.split('/').filter(Boolean);
+    if (seg.length > 0) {
+      return '/' + seg[0] + '/';
+    }
+    // 3) Fallback single-site root
+    return '/';
+  }
   function getHomeURL() {
-    try {
-      // Respect <base> if present
-      return new URL('index.html', document.baseURI).href;
-    } catch (_) {}
-
-    // Heuristic for GitHub Pages project sites: "/<user>.github.io/<repo>/...”
-    try {
-      var seg = window.location.pathname.split('/').filter(Boolean);
-      if (seg.length > 0) {
-        return '/' + seg[0] + '/index.html';
-      }
-    } catch (_) {}
-    // Fallback
-    return '/index.html';
+    return getRepoRootPath() + 'index.html';
   }
 
   /* ---------------------------------------
@@ -109,7 +119,7 @@
   }
 
   /* ---------------------------------------
-     CLOCK (HH:MM AM/PM)
+     CLOCK (HH:MM AM/PM, America/Chicago)
   ----------------------------------------*/
   function installClock() {
     var clockEl = document.getElementById('clock') || document.getElementById('df-clock');
@@ -167,14 +177,14 @@
   }
 
   /* ---------------------------------------
-     Helpers to detect "home" accurately on GitHub Pages
+     Detect "home" accurately on GitHub Pages
   ----------------------------------------*/
   function isHome() {
     var p = window.location.pathname.replace(/\/+$/, ''); // strip trailing slash
-    var seg = p.split('/').filter(Boolean);               // path segments
-    if (seg.length === 0) return true;                       // "/"
+    var seg = p.split('/').filter(Boolean);
+    if (seg.length === 0) return true;                        // "/"
     if (seg.length === 1 && (seg[0] === 'index.html')) return true;
-    if (seg.length === 1) return true;                      // "/<repo>"
+    if (seg.length === 1) return true;                        // "/<repo>"
     if (seg.length === 2 && seg[1] === 'index.html') return true; // "/<repo>/index.html"
     return false;
   }
@@ -183,7 +193,7 @@
      Back Button (in-flow inside .content)
      - Always sits ABOVE the footer (accounts for footer height)
      - Hidden on true home page
-     - On menu/grid pages (.df-tiles[data-section]) → go Home
+     - On menu/grid pages (.df-tiles[data-section]) → go to repo-root Home
        Else → history.back() or Home fallback
   ----------------------------------------*/
   function installBackButtonFlow() {
@@ -218,20 +228,31 @@
     }
 
     var isMenuGrid = !!document.querySelector('.df-tiles[data-section]');
+
     btn.addEventListener('click', function () {
       if (isMenuGrid) {
-        window.location.href = getHomeURL();        // <-- fixed: go to repo root home
+        // Always go to repo-root Home
+        var home = getHomeURL();
+        var homePath = new URL(home, window.location.href).pathname;
+        var herePath = window.location.pathname;
+        if (homePath === herePath) {
+          // Same path? Force reload to guarantee leaving any hash/scroll state
+          var buster = (home.indexOf('?') > -1 ? '&' : '?') + 'r=' + Date.now();
+          window.location.replace(home + buster);
+        } else {
+          window.location.assign(home);
+        }
       } else if (document.referrer && window.history.length > 1) {
         window.history.back();
       } else {
-        window.location.href = getHomeURL();        // <-- fixed fallback
+        window.location.assign(getHomeURL());
       }
     });
 
     host.appendChild(btn);
     content.appendChild(host);
 
-    // Keep it visibly above your footer
+    // Keep it visibly above your footer (handles sticky/fixed footers)
     function pushAboveFooter() {
       try {
         var footer = document.querySelector('footer, .app-footer');
