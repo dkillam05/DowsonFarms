@@ -18,9 +18,11 @@
     })();
   </script>
 
-  <!-- Theme + core (we're inside /auth, so use ../ ) -->
+  <!-- Theme + app (we're inside /auth, so use ../ ) -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
+  <!-- NEW: Firebase bootstrap (must be before core.js) -->
+  <script defer src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
 
   <!-- PWA / iOS -->
@@ -75,6 +77,7 @@
         </div>
 
         <button type="submit" class="btn-primary">Log In</button>
+        <p class="field-hint" id="loginError" hidden style="color:#b00020;margin-top:8px;"></p>
       </form>
     </div>
   </main>
@@ -86,7 +89,7 @@
   </footer>
 
   <!-- Forgot password modal -->
-  <div class="auth-modal__backdrop" id="fpModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle">
+  <div class="auth-modal__backdrop" id="fpModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle" style="display:none">
     <div class="auth-modal">
       <h2 id="fpTitle">Reset your password</h2>
       <p>Enter the email you use for Dowson Farms. If it matches an account, you’ll get a reset link.</p>
@@ -118,25 +121,7 @@
       btn.addEventListener('click', ()=>{ on=!on; input.type = on?'text':'password'; render(on); });
     })();
 
-    // Demo login -> go to home
-    document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const email = document.getElementById('username').value.trim();
-      const pass  = document.getElementById('password').value;
-      const emailOK = /\S+@\S+\.\S+/.test(email);
-      const passOK  = pass.length >= 6;
-      document.getElementById('usernameHint').hidden = emailOK;
-      document.getElementById('passwordHint').hidden = passOK;
-      if (!emailOK || !passOK) return;
-
-      // TEMP: pretend we logged in
-      localStorage.setItem('df_current_user', email);
-      // Use core.js helper so it respects the repo base path
-      if (window.DF && window.DF.go) window.DF.go('index.html');
-      else location.href = '../index.html';
-    });
-
-    // Forgot modal
+    // Modal open/close
     (function(){
       const openBtn   = document.getElementById('forgotLink');
       const modal     = document.getElementById('fpModal');
@@ -146,43 +131,96 @@
       cancelBtn?.addEventListener('click', ()=>{ modal.style.display='none'; });
       modal?.addEventListener('click', (e)=>{ if (e.target === modal) modal.style.display='none'; });
     })();
-  </script>
 
-  <!-- (Optional) Firebase reset flow — keep as-is or remove if unused -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-  <script>
-    const firebaseConfig = { apiKey:"YOUR_API_KEY", authDomain:"YOUR_PROJECT_ID.firebaseapp.com", projectId:"YOUR_PROJECT_ID", appId:"YOUR_APP_ID" };
-    if (window.firebase && !firebase.apps?.length) { firebase.initializeApp(firebaseConfig); }
-    const auth = window.firebase ? firebase.auth() : null;
-
-    (function forgotFlow(){
-      const sendBtn = document.getElementById('fpSend');
-      if (!sendBtn || !auth) return;
-      const emailIn = document.getElementById('fpEmail');
-      const hint    = document.getElementById('fpHint');
-      const success = document.getElementById('fpSuccess');
-      const err     = document.getElementById('fpError');
+    // Firebase login + forgot password
+    (function(){
+      const form = document.getElementById('loginForm');
+      const u = document.getElementById('username');
+      const p = document.getElementById('password');
+      const uHint = document.getElementById('usernameHint');
+      const pHint = document.getElementById('passwordHint');
+      const errEl = document.getElementById('loginError');
+      const remember = document.getElementById('remember');
 
       function validEmail(v){ return /\S+@\S+\.\S+/.test(v); }
 
-      async function send(){
-        const email = emailIn.value.trim();
-        const ok = validEmail(email);
-        hint.hidden = ok; success.hidden = true; err.hidden = true;
-        if (!ok) return;
-        try { await auth.sendPasswordResetEmail(email); success.hidden = false; }
-        catch(e){ err.textContent = 'Sorry, we could not send the reset email right now.'; err.hidden = false; }
-      }
-      sendBtn.addEventListener('click', send);
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = (u.value || '').trim();
+        const pass  = p.value || '';
+
+        const emailOK = validEmail(email);
+        const passOK  = pass.length >= 6;
+        uHint.hidden = emailOK;
+        pHint.hidden = passOK;
+        errEl.hidden = true;
+        if (!emailOK || !passOK) return;
+
+        try {
+          // Ensure Firebase is initialized
+          if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
+
+          // Persistence: LOCAL (default). If remember not checked, use SESSION
+          if (remember && !remember.checked && window.DF_FB?.auth?.setPersistence) {
+            await window.DF_FB.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+          } else if (window.DF_FB?.auth?.setPersistence) {
+            await window.DF_FB.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+          }
+
+          // Sign in
+          await window.DF_FB_API.signInEmail(email, pass);
+
+          // On success → go home
+          location.href = '../index.html';
+        } catch (e) {
+          console.error(e);
+          let msg = 'Login failed. Please check your email and password.';
+          if (e && e.code) {
+            // Map a few common Firebase auth errors
+            if (e.code === 'auth/user-not-found') msg = 'No account found for that email.';
+            else if (e.code === 'auth/wrong-password') msg = 'Incorrect password.';
+            else if (e.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
+          }
+          errEl.textContent = msg;
+          errEl.hidden = false;
+        }
+      });
+
+      // Forgot password flow
+      (function(){
+        const sendBtn = document.getElementById('fpSend');
+        const emailIn = document.getElementById('fpEmail');
+        const hint    = document.getElementById('fpHint');
+        const success = document.getElementById('fpSuccess');
+        const err     = document.getElementById('fpError');
+
+        function validEmail(v){ return /\S+@\S+\.\S+/.test(v); }
+
+        async function send(){
+          const email = (emailIn.value || '').trim();
+          const ok = validEmail(email);
+          hint.hidden = ok; success.hidden = true; err.hidden = true;
+          if (!ok) return;
+          try {
+            if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
+            await window.DF_FB.auth.sendPasswordResetEmail(email);
+            success.hidden = false;
+          } catch (e) {
+            console.error(e);
+            err.textContent = 'Sorry, we could not send the reset email right now.';
+            err.hidden = false;
+          }
+        }
+        sendBtn?.addEventListener('click', send);
+      })();
     })();
   </script>
 
-  <!-- Service worker (PATH from /auth -> ../js/serviceworker.js) -->
+  <!-- Service worker (from /auth → root) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
   </script>
