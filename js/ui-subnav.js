@@ -16,21 +16,48 @@
     return segs[segs.length - 1] || '';
   }
 
+  // Compute the current folder name, e.g.
+  // /settings-setup/index.html  -> "settings-setup"
+  // /teams-partners/anything    -> "teams-partners"
+  function currentFolder(){
+    const folder = lastSegment(location.pathname.replace(/\/index\.html?$/i, '').replace(/\/+$/,''));
+    return folder || '';
+  }
+
+  // Normalize a menu href so it works from inside a section page.
+  // Rules:
+  // - keep external URLs and hashes unchanged
+  // - if href starts with the current folder + '/', strip that prefix to avoid doubling
+  //   e.g. we're in settings-setup/, and href is "settings-setup/ss-farms.html" => "ss-farms.html"
+  // - otherwise return as-is (relative/absolute will work with your existing pages/base)
+  function normalizeHref(href, curFolder){
+    const h = String(href || '');
+    if (!h) return '#';
+    if (h.startsWith('#')) return h;                       // in-page action/anchor
+    if (/^[a-z]+:\/\//i.test(h)) return h;                 // http(s)://
+    if (h.startsWith('/')) return h;                       // site-absolute (works if you use <base>)
+
+    const prefix = curFolder ? (curFolder + '/') : '';
+    if (prefix && h.toLowerCase().startsWith(prefix.toLowerCase())) {
+      return h.slice(prefix.length);                       // strip redundant folder
+    }
+    return h;                                              // leave as-is
+  }
+
   ready(function () {
     const host = document.querySelector('.df-tiles[data-section]');
     if (!host) return;
 
-    // Resolve the section:
-    // 1) explicit data-section="Equipment"
-    // 2) from <h1> text (strip emoji)
-    // 3) from URL folder name (equipment/, reports/, etc.)
+    // Resolve section name:
+    // 1) explicit data-section
+    // 2) <h1> text (strip leading emoji/symbol)
+    // 3) folder name from URL (equipment/, reports/, etc.)
     let sectionName = host.getAttribute('data-section') || '';
     if (!sectionName) {
       const h1 = document.querySelector('.content h1')?.textContent || '';
-      sectionName = h1.replace(/^[^\w]+/,'').trim(); // remove leading emoji/symbols
+      sectionName = h1.replace(/^[^\w]+/,'').trim();
     }
     if (!sectionName) {
-      // e.g., /equipment/index.html -> "equipment"
       const folder = lastSegment(location.pathname.replace(/\/index\.html?$/i, ''));
       sectionName = (folder || '').replace(/[-_]+/g, ' ').replace(/\b\w/g, c=>c.toUpperCase());
     }
@@ -57,9 +84,12 @@
       return;
     }
 
+    const curFolder = currentFolder();
+
     host.innerHTML = section.children.map(c => {
       const ico = c.iconEmoji ? (esc(c.iconEmoji) + ' ') : '';
-      return `<a href="${esc(c.href)}" class="df-tile">${ico}<span>${esc(c.label)}</span></a>`;
+      const href = normalizeHref(c.href, curFolder);
+      return `<a href="${esc(href)}" class="df-tile">${ico}<span>${esc(c.label)}</span></a>`;
     }).join('');
   });
 })();
