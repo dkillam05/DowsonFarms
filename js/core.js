@@ -4,8 +4,8 @@
    - Clock (HH:MM AM/PM, America/Chicago) → supports #clock and #df-clock
    - Version/Build Date → supports #version/#df-version and #report-date/#df-build-date
    - Back button (in-flow inside .content, above footer; hidden on true home)
-   - NEW: Logout button injected into the Breadcrumb bar (right-aligned) on EVERY page
-          (larger size, app-green color; does not crowd the header)
+   - Logout button injected into the Breadcrumb bar (right-aligned) on ALL pages
+     * Replaces any existing blue link; consistent font, size, and color everywhere
    - Honors <base href="/DowsonFarms/">
    =========================== */
 
@@ -16,11 +16,8 @@
      URL helpers
   ----------------------------------------*/
   function resolveAuthURL() {
-    try {
-      return new URL('auth/index.html', document.baseURI).href;
-    } catch (_) {
-      return 'auth/index.html';
-    }
+    try { return new URL('auth/index.html', document.baseURI).href; }
+    catch (_) { return 'auth/index.html'; }
   }
   function resolveURL(rel) {
     try { return new URL(rel, document.baseURI).href; }
@@ -90,27 +87,32 @@
 
   /* ---------------------------------------
      Inject Logout BUTTON into Breadcrumb bar
-     - Right-aligned, slightly larger, app-green color
-     - Appears on ALL pages that have .breadcrumbs
-     - Adds right padding to bar so it never overlaps text
+     - Right-aligned, larger, app-green color
+     - Appears on ALL pages that have .breadcrumbs (Home and subs)
+     - Removes any existing blue link-style logout in that bar
   ----------------------------------------*/
   function injectBreadcrumbLogout() {
     var bc = document.querySelector('nav.breadcrumbs');
     if (!bc) return;
-    if (bc.querySelector('#logout-btn')) return;
+
+    // Remove any existing logout anchors in the breadcrumbs (blue links)
+    var old = bc.querySelectorAll('#logout-btn, [data-action="logout"], .logout');
+    for (var i = 0; i < old.length; i++) {
+      // If it's inside the breadcrumbs bar, remove; otherwise leave (e.g., content tiles)
+      if (bc.contains(old[i])) old[i].remove();
+    }
 
     // Ensure the bar can anchor an absolutely-positioned child
-    var prevPos = (bc.style && bc.style.position) || '';
     if (getComputedStyle(bc).position === 'static') {
       bc.style.position = 'relative';
     }
 
     // Reserve space on the right so breadcrumb text doesn't run under the button
     var pr = parseInt(getComputedStyle(bc).paddingRight || '0', 10);
-    var needed = 110; // width allowance for the button
+    var needed = 120; // width allowance for the button
     if (pr < needed) bc.style.paddingRight = needed + 'px';
 
-    // Container (absolute right, vertically centered)
+    // Host (absolute right, vertically centered)
     var host = document.createElement('div');
     host.id = 'df-logout-host';
     host.setAttribute('style', [
@@ -120,7 +122,6 @@
       'transform:translateY(-50%)',
       'display:flex',
       'align-items:center',
-      'gap:8px',
       'z-index:2'
     ].join(';'));
 
@@ -134,7 +135,7 @@
     var brand = 'var(--brand-green, #1B5E20)';
     btn.setAttribute('style', [
       'padding:8px 16px',
-      'font-size:15px',
+      'font-size:16px',
       'font-weight:700',
       'line-height:1',
       'border-radius:10px',
@@ -158,11 +159,6 @@
 
     host.appendChild(btn);
     bc.appendChild(host);
-
-    // If we modified inline position, restore it on unload (safety)
-    if (!prevPos) {
-      window.addEventListener('unload', function(){ try { bc.style.position = ''; } catch(_){}; });
-    }
   }
 
   /* ---------------------------------------
@@ -301,25 +297,21 @@
      DOM Ready
   ----------------------------------------*/
   document.addEventListener('DOMContentLoaded', function () {
-    injectBreadcrumbLogout();   // new location for Logout
+    injectBreadcrumbLogout();   // ensure green, right-aligned Logout in breadcrumb bar (home + subs)
     installClock();
     injectVersionAndBuildDate();
-    installBackButtonFlow();
+    installBackButtonFlow();    // restore Back button behavior/placement
   });
 
   /* ---------------------------------------
-     Also bind any existing logout triggers declared in HTML
-     (kept for backward compatibility)
+     Keep legacy logout triggers working anywhere in the DOM
   ----------------------------------------*/
   document.addEventListener('click', function (e) {
     var t = e.target;
     if (!t) return;
-    if (t.id === 'logout-btn' || t.matches('[data-action="logout"], .logout')) {
-      // Our injected #logout-btn already has a handler, but this keeps legacy anchors working.
-      if (!t.__dfLogoutBound) {
-        t.__dfLogoutBound = true;
-        handleLogout(e);
-      }
+    if (t.matches('[data-action="logout"], .logout')) {
+      e.preventDefault();
+      handleLogout(e);
     }
   }, { passive: false });
 
