@@ -3,81 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="format-detection" content="telephone=no" />
   <title>Sign in — Dowson Farms</title>
 
-  <!-- Apply saved theme before paint -->
-  <script>
-    (function () {
-      try {
-        var mode = localStorage.getItem('df_theme') || 'auto';
-        document.documentElement.setAttribute('data-theme', mode);
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'auto');
-      }
-    })();
-  </script>
-
-  <!-- Theme + app (we're inside /auth, so use ../ ) -->
+  <!-- Theme -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
-  <!-- NEW: Firebase bootstrap (must be before core.js) -->
   <script defer src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
-
-  <!-- PWA / iOS -->
-  <link rel="manifest" href="../manifest.webmanifest" />
-  <meta name="theme-color" content="#1B5E20" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
-
-  <!-- Elegant heading font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
 </head>
 <body class="auth-page">
   <main class="auth-wrap">
     <div class="auth-hero">
-      <div class="auth-hero__logo">
-        <img src="../assets/icons/icon-192.png" alt="Dowson Farms" />
-      </div>
-      <h1 class="auth-hero__title">Dowson Farms</h1>
-      <p class="auth-hero__subtitle">Welcome back. Sign in to continue.</p>
+      <img src="../assets/icons/icon-192.png" alt="Dowson Farms" />
+      <h1>Dowson Farms</h1>
+      <p>Welcome back. Sign in to continue.</p>
     </div>
 
     <div class="auth-card auth-card--compact">
       <form id="loginForm" class="auth-form" novalidate>
         <div class="field">
-          <label for="username">Username</label>
-          <input id="username" name="username" type="email" inputmode="email"
-                 autocomplete="username" autocapitalize="none" spellcheck="false"
-                 placeholder="Email" required />
-          <p class="field-hint" id="usernameHint" hidden>Please enter a valid email.</p>
+          <label for="username">Email</label>
+          <input id="username" type="email" required placeholder="you@example.com" />
         </div>
 
         <div class="field">
           <label for="password">Password</label>
-          <div class="password-wrap">
-            <input id="password" name="password" type="password"
-                   autocomplete="current-password" autocapitalize="none"
-                   spellcheck="false" placeholder="Password" required minlength="6" />
-            <button type="button" class="eye" aria-label="Show password" aria-pressed="false" id="togglePw"></button>
-          </div>
-          <p class="field-hint" id="passwordHint" hidden>Password must be at least 6 characters.</p>
+          <input id="password" type="password" required minlength="6" placeholder="Password" />
         </div>
 
         <div class="form-row">
-          <label class="checkbox">
-            <input type="checkbox" id="remember" name="remember" />
-            <span>Remember me</span>
-          </label>
-          <a class="muted-link" href="#" id="forgotLink">Forgot password?</a>
+          <label><input type="checkbox" id="remember" /> Remember me</label>
+          <a href="#" id="forgotLink">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn-primary">Log In</button>
-        <p class="field-hint" id="loginError" hidden style="color:#b00020;margin-top:8px;"></p>
+        <p id="loginError" hidden style="color:#b00020; margin-top:8px;"></p>
       </form>
     </div>
   </main>
@@ -88,141 +48,28 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Forgot password modal -->
-  <div class="auth-modal__backdrop" id="fpModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle" style="display:none">
-    <div class="auth-modal">
-      <h2 id="fpTitle">Reset your password</h2>
-      <p>Enter the email you use for Dowson Farms. If it matches an account, you’ll get a reset link.</p>
-      <div class="field">
-        <label for="fpEmail">Email</label>
-        <input id="fpEmail" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" />
-        <p class="field-hint" id="fpHint" hidden>Please enter a valid email address.</p>
-        <p class="field-hint" id="fpError" hidden style="color:#b00020"></p>
-        <p class="field-hint" id="fpSuccess" hidden style="color:#0a7a28">If the email exists, a reset link has been sent.</p>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn-link" id="fpCancel">Cancel</button>
-        <button type="button" class="btn-secondary" id="fpSend">Send reset link</button>
-      </div>
-    </div>
-  </div>
+  <script type="module">
+    const form   = document.getElementById('loginForm');
+    const email  = document.getElementById('username');
+    const pass   = document.getElementById('password');
+    const errEl  = document.getElementById('loginError');
+    const remember = document.getElementById('remember');
 
-  <!-- Page scripts -->
-  <script>
-    // Password eye
-    (function(){
-      const input = document.getElementById('password');
-      const btn = document.getElementById('togglePw');
-      if (!input || !btn) return;
-      const ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3.5"/></svg>';
-      const ICON_EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.6A3.5 3.5 0 0115 12m6-0c0 0-4 7-11 7-2.1 0-3.9-.6-5.4-1.5M4.3 7.7C6.2 6 8.8 5 12 5c7 0 11 7 11 7"/></svg>';
-      function render(show){ btn.innerHTML = show ? ICON_EYE_OFF : ICON_EYE; btn.setAttribute('aria-pressed', String(show)); }
-      let on=false; render(on);
-      btn.addEventListener('click', ()=>{ on=!on; input.type = on?'text':'password'; render(on); });
-    })();
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.hidden = true;
 
-    // Modal open/close
-    (function(){
-      const openBtn   = document.getElementById('forgotLink');
-      const modal     = document.getElementById('fpModal');
-      const cancelBtn = document.getElementById('fpCancel');
-      const emailIn   = document.getElementById('fpEmail');
-      openBtn?.addEventListener('click', (e)=>{ e.preventDefault(); modal.style.display='flex'; emailIn.focus(); });
-      cancelBtn?.addEventListener('click', ()=>{ modal.style.display='none'; });
-      modal?.addEventListener('click', (e)=>{ if (e.target === modal) modal.style.display='none'; });
-    })();
-
-    // Firebase login + forgot password
-    (function(){
-      const form = document.getElementById('loginForm');
-      const u = document.getElementById('username');
-      const p = document.getElementById('password');
-      const uHint = document.getElementById('usernameHint');
-      const pHint = document.getElementById('passwordHint');
-      const errEl = document.getElementById('loginError');
-      const remember = document.getElementById('remember');
-
-      function validEmail(v){ return /\S+@\S+\.\S+/.test(v); }
-
-      form?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = (u.value || '').trim();
-        const pass  = p.value || '';
-
-        const emailOK = validEmail(email);
-        const passOK  = pass.length >= 6;
-        uHint.hidden = emailOK;
-        pHint.hidden = passOK;
-        errEl.hidden = true;
-        if (!emailOK || !passOK) return;
-
-        try {
-          // Ensure Firebase is initialized
-          if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
-
-          // Persistence: LOCAL (default). If remember not checked, use SESSION
-          if (remember && !remember.checked && window.DF_FB?.auth?.setPersistence) {
-            await window.DF_FB.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-          } else if (window.DF_FB?.auth?.setPersistence) {
-            await window.DF_FB.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-          }
-
-          // Sign in
-          await window.DF_FB_API.signInEmail(email, pass);
-
-          // On success → go home
-          location.href = '../index.html';
-        } catch (e) {
-          console.error(e);
-          let msg = 'Login failed. Please check your email and password.';
-          if (e && e.code) {
-            // Map a few common Firebase auth errors
-            if (e.code === 'auth/user-not-found') msg = 'No account found for that email.';
-            else if (e.code === 'auth/wrong-password') msg = 'Incorrect password.';
-            else if (e.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
-          }
-          errEl.textContent = msg;
-          errEl.hidden = false;
-        }
-      });
-
-      // Forgot password flow
-      (function(){
-        const sendBtn = document.getElementById('fpSend');
-        const emailIn = document.getElementById('fpEmail');
-        const hint    = document.getElementById('fpHint');
-        const success = document.getElementById('fpSuccess');
-        const err     = document.getElementById('fpError');
-
-        function validEmail(v){ return /\S+@\S+\.\S+/.test(v); }
-
-        async function send(){
-          const email = (emailIn.value || '').trim();
-          const ok = validEmail(email);
-          hint.hidden = ok; success.hidden = true; err.hidden = true;
-          if (!ok) return;
-          try {
-            if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
-            await window.DF_FB.auth.sendPasswordResetEmail(email);
-            success.hidden = false;
-          } catch (e) {
-            console.error(e);
-            err.textContent = 'Sorry, we could not send the reset email right now.';
-            err.hidden = false;
-          }
-        }
-        sendBtn?.addEventListener('click', send);
-      })();
-    })();
-  </script>
-
-  <!-- Service worker (from /auth → root) -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
-      });
-    }
+      try {
+        await window.DF_FB_API.init();
+        await window.DF_FB_API.setPersistence(remember.checked);
+        await window.DF_FB_API.signInEmail(email.value, pass.value);
+        location.href = '../index.html'; // success
+      } catch (err) {
+        console.error(err);
+        errEl.textContent = "Login failed: " + (err.code || err.message);
+        errEl.hidden = false;
+      }
+    });
   </script>
 </body>
 </html>
