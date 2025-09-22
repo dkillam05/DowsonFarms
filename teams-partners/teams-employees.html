@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ========== SECTION: META & THEME PREPAINT ========== -->
+  <!-- ========== META & THEME PREPAINT ========== -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
@@ -16,15 +16,12 @@
     })();
   </script>
 
-  <!-- ========== SECTION: APP ASSETS (FOLLOWING YOUR TREE) ========== -->
-  <!-- CSS lives at /assets/css/theme.css (we are inside /teams-partners/) -->
+  <!-- ========== YOUR TREE: ASSETS ========== -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
-
-  <!-- Global scripts live at /assets/js/ -->
   <script defer src="../assets/js/version.js"></script>
   <script defer src="../assets/js/core.js"></script>
 
-  <!-- PWA bits (icons under /assets/icons/) -->
+  <!-- PWA icons (your paths) -->
   <link rel="manifest" href="../manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -32,10 +29,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
 
-  <!-- Firebase bootstrap lives at /js/firebase.js -->
+  <!-- Firebase bootstrap (your tree) -->
   <script type="module" src="../js/firebase.js"></script>
 
-  <!-- ========== SECTION: PAGE-LOCAL STYLES (SMALL, SAFE) ========== -->
+  <!-- ========== PAGE-LOCAL STYLES ========== -->
   <style>
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -44,18 +41,14 @@
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    #empPhone, #m_phone { font-size:16px; } /* iOS no-zoom */
-    .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
-    .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
-    .auth-modal__backdrop{z-index:4000 !important}
-    /* Simple toast fallback if your theme.css .df-toast is missing */
+    #empPhone{font-size:16px}
     #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
       padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
       background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
   </style>
 </head>
 <body>
-  <!-- ========== SECTION: APP HEADER ========== -->
+  <!-- ========== HEADER ========== -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -64,7 +57,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- ========== SECTION: BREADCRUMBS ========== -->
+  <!-- ========== BREADCRUMBS ========== -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -75,7 +68,7 @@
     </ol>
   </nav>
 
-  <!-- ========== SECTION: MAIN CONTENT ========== -->
+  <!-- ========== MAIN ========== -->
   <main class="content" data-has-form>
     <div class="line" style="justify-content:space-between;">
       <h1 style="margin:0;">👥 Employees</h1>
@@ -83,7 +76,7 @@
     </div>
     <div style="margin-top:12px;"></div>
 
-    <!-- ========== SECTION: EMPLOYEE FORM ========== -->
+    <!-- FORM -->
     <form id="emp-form" novalidate>
       <div class="field-row">
         <div class="field">
@@ -127,7 +120,7 @@
       </section>
     </form>
 
-    <!-- ========== SECTION: SAVED LIST ========== -->
+    <!-- SAVED LIST -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
       <div class="line">
@@ -140,7 +133,7 @@
     </section>
   </main>
 
-  <!-- ========== SECTION: FOOTER ========== -->
+  <!-- ========== FOOTER ========== -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -149,7 +142,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- ========== SECTION: QUICK VIEW MODAL ========== -->
+  <!-- ========== QUICK VIEW MODAL ========== -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Employees</h2>
@@ -160,48 +153,46 @@
     </div>
   </div>
 
-  <!-- ========== SECTION: SIMPLE TOAST ========== -->
+  <!-- ========== TOAST ========== -->
   <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
 
-  <!-- ========== SECTION: PAGE LOGIC (FIRESTORE + AUTH INVITE) ========== -->
+  <!-- ========== PAGE LOGIC (MODULE) ========== -->
   <script type="module">
-    // Pull Firebase handles from /js/firebase.js (window.DF_FB)
+    // Firebase handles (from ../js/firebase.js)
     const { auth, db } = window.DF_FB;
 
-    // Import only what we use (modular CDN)
+    // Import needed Firebase pieces
     import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
     import {
       collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    // Collections
+    // Collection ref
     const EMP = collection(db, "employees");
 
-    // Dom helpers
-    const $ = (s) => document.querySelector(s);
+    // DOM helpers
+    const $ = (s)=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
 
     // Toast
     function showToast(msg){
-      const box = $('#dfToast'), txt = $('#dfToastText');
+      const box=$('#dfToast'), txt=$('#dfToastText');
       txt.textContent = msg || 'Saved';
-      box.style.display = 'block';
+      box.style.display='block';
       clearTimeout(window.__toastT);
-      window.__toastT = setTimeout(()=> box.style.display='none', 2000);
+      window.__toastT=setTimeout(()=> box.style.display='none', 1800);
     }
 
-    // Roles (keep local list for now)
-    async function getRoleNames(){
-      return ["Administrator","Owner","Manager","Employee","View Only"];
-    }
+    // Roles list (local)
+    async function getRoleNames(){ return ["Administrator","Owner","Manager","Employee","View Only"]; }
     async function fillRoleSelect(sel, value){
-      const roles = await getRoleNames();
+      const roles=await getRoleNames();
       sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
         roles.map(r=>`<option value="${r}">${r}</option>`).join('');
-      if (value) sel.value = value;
+      if(value) sel.value=value;
     }
 
-    // Phone helpers
+    // Phone mask + validation
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -234,14 +225,15 @@
     }
     async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    // Render list
+    // Render saved list
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
       const rows=(await listEmployees())
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
-        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) || (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
+        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
+                      (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
 
       const L=$('#savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
@@ -265,10 +257,9 @@
       L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
     }
 
-    // Manage modal (minimal – archive/delete/save)
+    // Minimal manage (prompt-based while mobile)
     async function openManage(id){
       const rows=await listEmployees(); const e=rows.find(x=>x.id===id); if(!e) return;
-      // Simple prompt-based manage to keep code small while you’re mobile.
       const next = {
         first: prompt('First name:', e.first||'') ?? e.first,
         last:  prompt('Last name:',  e.last||'')  ?? e.last,
@@ -288,7 +279,8 @@
     // Quick View
     $('#quickViewBtn').addEventListener('click', async ()=>{
       const rows=(await listEmployees()).filter(x=>!x.archived)
-        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) || (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
+        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
+                      (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
@@ -303,11 +295,7 @@
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    // Create flow
-    attachPhoneMask($('#empPhone'));
-    await fillRoleSelect($('#empRole'));
-
-    // Permission overrides (store JSON on the button; full UI can be added later)
+    // Permission overrides (simple enable/disable)
     $('#exceptionsBtn').addEventListener('click', ()=>{
       const prev = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
       const enable = confirm((prev.enabled?'Disable':'Enable') + ' overrides for this employee?');
@@ -315,7 +303,7 @@
       showToast(enable?'Overrides enabled':'Overrides disabled');
     });
 
-    // Invite (email link)
+    // Invite flow (email link)
     async function inviteEmployee(id){
       const rows=await listEmployees();
       const e = rows.find(x=>x.id===id);
@@ -323,7 +311,6 @@
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
       const actionCodeSettings = {
-        // *** IMPORTANT: Your confirmed public URL ***
         url: "https://dkillam05.github.io/DowsonFarms/teams-partners/index.html",
         handleCodeInApp: true
       };
@@ -340,7 +327,10 @@
       }
     }
 
-    // Buttons
+    // Create flow
+    attachPhoneMask($('#empPhone'));
+    await fillRoleSelect($('#empRole'));
+
     $('#inviteBtn').addEventListener('click', async ()=>{
       const first = titleCase(($('#empFirst').value||'').trim());
       const last  = titleCase(($('#empLast').value||'').trim());
@@ -381,7 +371,6 @@
         createdAt: Date.now(), updatedAt: Date.now()
       });
 
-      // Reset form + list
       e.target.reset();
       delete $('#exceptionsBtn').dataset.payload;
       await render();
@@ -399,7 +388,7 @@
     // Initial render
     await render();
 
-    // Breadcrumb helper (if your core.js provides it)
+    // Breadcrumbs helper if provided by core.js
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
       {label:'Teams & Partners', href:'./index.html'},
@@ -407,7 +396,39 @@
     ]);
   </script>
 
-  <!-- ========== SECTION: SERVICE WORKER ========== -->
+  <!-- ========== CLOCK / DATE / VERSION FALLBACKS (NON-MODULE) ========== -->
+  <script>
+    (function () {
+      // Clock (fallback if core.js didn’t set it)
+      const $clock = document.getElementById('clock');
+      function tick(){
+        try{
+          const d=new Date();
+          const hh=String(d.getHours()).padStart(2,'0');
+          const mm=String(d.getMinutes()).padStart(2,'0');
+          $clock && ($clock.textContent = hh+':'+mm);
+        }catch{}
+      }
+      tick(); setInterval(tick, 30_000);
+
+      // Report date (fallback)
+      const $date = document.getElementById('report-date');
+      if ($date && (!$date.textContent || $date.textContent==='—')){
+        const d=new Date();
+        const opts={year:'numeric',month:'long',day:'numeric'};
+        $date.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
+      }
+
+      // Version (fallback reads common globals some teams use)
+      const $ver = document.getElementById('version');
+      const possible = (window.DF_VERSION || window.__DF_VERSION || window.APP_VERSION || '').toString();
+      if ($ver && (! $ver.textContent || /^(v0\.0\.0|—)$/.test($ver.textContent))){
+        $ver.textContent = possible ? possible : 'v0.0.0';
+      }
+    })();
+  </script>
+
+  <!-- ========== SERVICE WORKER (YOUR TREE) ========== -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
