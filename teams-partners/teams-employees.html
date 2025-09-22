@@ -6,27 +6,27 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Employees — Dowson Farms</title>
 
-  <!-- Theme boot -->
+  <!-- Prepaint theme (same pattern as your other pages) -->
   <script>
-  (function () {
-    var pref = localStorage.getItem('df_theme') || 'auto';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-  })();
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+      document.documentElement.style.colorScheme =
+        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
-  <!-- App CSS/JS (unchanged paths) -->
+  <!-- Your app assets -->
   <link rel="stylesheet" href="theme.css" />
   <script defer src="version.js"></script>
   <script defer src="core.js"></script>
 
-  <!-- Firebase bootstrap (uses Hosting-injected config or DF_FB_CONFIG) -->
+  <!-- Firebase boot (your initializer must set window.DF_FB = {app, auth, db}) -->
   <script type="module" src="js/firebase.js"></script>
-  <script type="module" src="js/fb-data.js"></script>
 
   <style>
-    /* page-local utilities only */
+    /* Page-local utilities only */
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
@@ -34,15 +34,9 @@
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    #empPhone,#m_phone{font-size:16px} /* iOS no-zoom */
 
-    /* iOS no-zoom for phone inputs */
-    #empPhone, #m_phone { font-size:16px; }
-
-    /* Manage modal extra buttons */
-    .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
-    .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
-
-    /* Permission Overrides pills & cards */
+    /* Permission overrides (same look used elsewhere) */
     .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
@@ -53,7 +47,7 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 4px}
     .subbody{padding:8px 2px 2px}
 
-    /* Modal z-index guard */
+    /* Keep modals above footer/back buttons */
     .auth-modal__backdrop{z-index:4000 !important}
   </style>
 </head>
@@ -199,8 +193,6 @@
       </div>
       <div class="modal-actions" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
         <div class="line" style="gap:10px;">
-          <button class="btn-danger"  id="m_delete"  type="button">Delete</button>
-          <button class="btn-archive" id="m_archive" type="button">Archive</button>
           <button class="btn-outline" id="manageCancel" type="button">Cancel</button>
         </div>
         <button class="btn-primary" id="manageSave" type="button">Save Changes</button>
@@ -208,23 +200,26 @@
     </div>
   </div>
 
-  <!-- Toast node -->
+  <!-- Toast -->
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
-  <!-- Page logic (Firestore + email-link invites) -->
+  <!-- Page Logic (Firestore + email link invite) -->
   <script type="module">
-    import { rememberInviteEmail } from "/js/fb-data.js";
     import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
     import {
       collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    const { auth, db } = window.DF_FB;
+    // ---- Firebase handles from js/firebase.js ----
+    const { auth, db } = window.DF_FB || {};
+    if (!auth || !db) console.error('DF_FB not found. Ensure js/firebase.js sets window.DF_FB = {app, auth, db}.');
 
     // Collections
     const EMP = collection(db, "employees");
 
+    // $ helpers
     const $=s=>document.querySelector(s);
+    const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
 
     /* ---------- Toast ---------- */
     function showToast(msg){
@@ -235,7 +230,7 @@
       setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 1800);
     }
 
-    /* ---------- Roles (static list for now) ---------- */
+    /* ---------- Roles (static for now) ---------- */
     async function getRoleNames(){
       return ["Administrator","Owner","Manager","Employee","View Only"];
     }
@@ -280,8 +275,8 @@
     }
     async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    /* ---------- Permission Overrides UI ---------- */
-    const DEFAULT_MENUS = {
+    /* ---------- Permission Overrides (local-only object saved with employee) ---------- */
+    const MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
       "Equipment": ["Maintenance","Repairs","Assignments"],
@@ -292,8 +287,6 @@
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
-    const MENUS = DEFAULT_MENUS;
-
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     function pill(label, pressed, onToggle){
       const b=document.createElement('button');
@@ -320,7 +313,6 @@
     }
     function buildMenuCard(menuName, ex){
       const card=document.createElement('div'); card.className='menu-card';
-
       const head=document.createElement('div'); head.className='menu-head';
       const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='8px';
       const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
@@ -328,7 +320,6 @@
       left.append(caret,title);
       const right=document.createElement('span'); right.className='muted-small'; right.textContent=' ';
       head.append(left,right);
-
       const body=document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
       ex.grants[menuName]=ex.grants[menuName]||{};
@@ -404,6 +395,7 @@
         Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v);
       };
       setEnable(!!ex.enabled);
+
       Enable.onclick=()=> setEnable(!(Enable.getAttribute('aria-pressed')==='true'));
 
       Search.value='';
@@ -416,8 +408,6 @@
     }
 
     /* ---------- Render / Manage / Invite ---------- */
-    function chip(s){ return s?`<span class="chip">${s}</span>`:''; }
-
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
@@ -459,19 +449,6 @@
       const B=$('#manageBackdrop'); B.style.display='flex';
       $('#m_exceptions').onclick=()=>{ openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; }); };
 
-      const $archive=$('#m_archive'); $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
-
-      $('#m_delete').onclick=async ()=>{
-        if(confirm('Delete this employee? This cannot be undone.')){
-          await removeById(e.id);
-          B.style.display='none'; await render(); showToast('Employee deleted');
-        }
-      };
-      $('#m_archive').onclick=async ()=>{
-        e.archived = !e.archived; e.updatedAt = Date.now(); await upsertEmployee(e);
-        $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
-        await render(); showToast(e.archived?'Archived':'Unarchived');
-      };
       $('#manageCancel').onclick=()=> B.style.display='none';
       $('#manageSave').onclick=async ()=>{
         if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
@@ -489,7 +466,7 @@
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Real invite flow (email link)
+    // Email-link invite (uses Firebase Auth)
     async function inviteEmployee(id){
       const rows=await listEmployees();
       const e = rows.find(x=>x.id===id);
@@ -502,7 +479,6 @@
       };
 
       try{
-        rememberInviteEmail(e.email);
         await sendSignInLinkToEmail(auth, e.email, actionCodeSettings);
         e.invitedAt = Date.now();
         await upsertEmployee(e);
@@ -510,7 +486,7 @@
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Could not send invite. Check Firebase Auth → Email link & Authorized domains.');
+        alert('Could not send invite. Check Firebase Auth → Authorized domains.');
       }
     }
 
@@ -544,7 +520,7 @@
     $('#emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim()));
+      const last  = titleCase(($('#empLast').value||'').trim());
       const phone = $('#empPhone').value;
       const email = ($('#empEmail').value||'').trim().toLowerCase();
       const role  = $('#empRole').value;
