@@ -1,3 +1,4 @@
+<!-- /settings-setup/ss-roles.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Account Roles — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- Prepaint theme (no flash) -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -17,27 +18,38 @@
     })();
   </script>
 
-  <!-- Correct relative paths from /settings-setup/ -->
+  <!-- Golden Rule paths (this page lives in /settings-setup/) -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
 
   <style>
-    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));align-items:center}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;
-      border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg);color:var(--btn-secondary-fg,#164d1a);
-      font-weight:600;line-height:1}
-    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
-    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
-    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
-    .menu-body{padding:16px;border-top:1px dashed var(--tile-border)}
-    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
-    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
-    .subbody{padding:8px 4px 2px}
-    .muted-sm{opacity:.8;font-size:.92rem}
-    .toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999}
-    .hint{font-size:.92rem;opacity:.9}
+    /* ===== UI: Pills & Cards (matches your app look) ===== */
+    .pill-grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); align-items:center }
+    .pill{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:12px 18px; border-radius:18px; border:2px solid var(--btn-secondary-border,#164d1a);
+      background:var(--tile-bg,#fff); color:var(--btn-secondary-fg,#164d1a);
+      font-weight:600; line-height:1; user-select:none
+    }
+    .pill[aria-pressed="true"]{
+      background:var(--btn-primary-bg,#1b5e20); color:#fff; border-color:var(--btn-primary-bg,#1b5e20);
+      box-shadow:0 2px 10px rgba(0,0,0,.12) inset
+    }
+    .menu-card{ border:1px solid var(--tile-border); border-radius:16px; background:var(--tile-bg); margin:12px 0 }
+    .menu-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; cursor:pointer }
+    .menu-body{ padding:16px; border-top:1px dashed var(--tile-border) }
+    .subwrap{ border:2px dashed var(--tile-border); border-radius:14px; padding:12px; margin-top:14px }
+    .subhead{ display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; padding:10px 6px }
+    .subbody{ padding:8px 4px 2px }
+    .muted-sm{ opacity:.8; font-size:.92rem }
+    .actions{ display:flex; gap:10px; margin-top:12px; justify-content:center }
+    .toast{
+      display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+      background:var(--tile-bg); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;
+    }
   </style>
 </head>
 <body>
@@ -69,30 +81,31 @@
 
     <div style="margin-top:12px;"></div>
 
+    <!-- ===== Roles Form ===== -->
     <form id="role-form" novalidate>
       <section class="card">
         <div class="field">
           <label for="roleName">Role</label>
           <select id="roleName" required></select>
-          <div class="hint" id="roleHint" style="display:none;"></div>
         </div>
       </section>
 
-      <section class="card" id="permCard">
+      <section class="card" id="permCard" style="margin-top:12px;">
         <h2 style="margin:0 0 6px;">Permissions</h2>
         <p class="muted">Toggle actions at the menu level, or open “Manage submenus” to fine-tune individual screens.</p>
+
         <div id="menusContainer"></div>
 
-        <div class="row" style="gap:10px; justify-content:center; margin-top:12px;">
+        <div class="actions">
           <button class="btn-primary" type="submit">Save permissions</button>
           <button class="btn-outline" type="button" id="resetBtn">Reset</button>
         </div>
       </section>
-
-      <div class="row" style="justify-content:center; margin-top:14px;">
-        <a class="btn-outline" href="../teams-partners/team-employee.html">Go to Employees</a>
-      </div>
     </form>
+
+    <div class="row" style="justify-content:flex-start; margin-top:12px;">
+      <a class="btn-outline" href="../teams-partners/team-employee.html">Go to Employees</a>
+    </div>
   </main>
 
   <!-- Footer -->
@@ -118,31 +131,26 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Page Logic (module so we can use Firestore v10 imports) -->
+  <!-- ===== Page Logic (module so we can use Firestore v10 functions) ===== -->
   <script type="module">
+    /* ========== IMPORTS (functions only; DB instance comes from ../js/firebase-init.js) ========== */
     import {
-      collection, getDocs, doc, setDoc, getDoc, orderBy, query,
-      serverTimestamp
+      collection, doc, getDoc, getDocs, setDoc, query, orderBy, writeBatch, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
+    /* ========== SHORTHANDS ========== */
     const $ = s => document.querySelector(s);
     const el = {
       role: $('#roleName'),
-      roleHint: $('#roleHint'),
       menus: $('#menusContainer'),
       form: $('#role-form'),
+      toast: $('#dfToast'), toastTxt: $('#dfToastText'),
       qvBtn: $('#quickViewBtn'), qvB: $('#qvBackdrop'), qvList: $('#qvList'), qvClose: $('#qvClose'), qvRole: $('#qvRole'),
-      toast: $('#dfToast'), toastTxt: $('#dfToastText')
     };
+    const db = window.DF_FB?.db; // provided by ../js/firebase-init.js
 
-    // -------- Firestore handles (from ../js/firebase-init.js)
-    const db = window.DF_FB?.db;
-    if (!db) {
-      console.error('Firestore not ready. Check ../js/firebase-init.js');
-    }
-
-    // -------- Menus source-of-truth for building the grid
-    const MENUS = {
+    /* ========== MENUS MAP (use DF_MENUS if present, else fallback) ========== */
+    const DEFAULT_MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
       "Equipment": ["Maintenance","Repairs","Assignments"],
@@ -153,17 +161,27 @@
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
+    const MENUS = (window.DF_MENUS && typeof window.DF_MENUS === 'object') ? window.DF_MENUS : DEFAULT_MENUS;
 
+    /* ========== ROLES BASICS ========== */
     const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","View Only"];
+    const ROLES_COL = collection(db, "roles");
+    const roleId = (name) => name; // human-readable IDs
 
-    // -------- Helpers
-    function toast(msg){ el.toastTxt.textContent = msg || 'Saved'; el.toast.style.display='block'; clearTimeout(window.__t); window.__t=setTimeout(()=>el.toast.style.display='none',1500); }
-    const blankPerm = ()=> ({view:false, edit:false, add:false, archive:false, delete:false});
-    function ensureShape(perms){
+    /* ========== TOAST ========== */
+    function toast(msg){
+      el.toastTxt.textContent = msg || 'Saved';
+      el.toast.style.display = 'block';
+      clearTimeout(window.__t); window.__t = setTimeout(()=> el.toast.style.display='none', 1500);
+    }
+
+    /* ========== PERMISSION SHAPE HELPERS ========== */
+    const blank = () => ({view:false,edit:false,add:false,archive:false,delete:false});
+    function ensureShape(perms = {}){
       Object.keys(MENUS).forEach(menu=>{
         perms[menu] = perms[menu] || {};
         MENUS[menu].forEach(sub=>{
-          perms[menu][sub] = perms[menu][sub] || blankPerm();
+          perms[menu][sub] = perms[menu][sub] || blank();
         });
       });
       return perms;
@@ -173,79 +191,70 @@
       if (!subs.length) return 'No access';
       const allFalse = subs.every(p=>!p.view && !p.edit && !p.add && !p.archive && !p.delete);
       if (allFalse) return 'No access';
-      const allTrue  = subs.every(p=> p.view && p.edit && p.add && p.archive && p.delete);
+      const allTrue  = subs.every(p=>p.view && p.edit && p.add && p.archive && p.delete);
       if (allTrue) return 'All';
       return 'Custom';
     }
 
+    /* ========== FIRESTORE I/O ========== */
     async function seedDefaultsIfEmpty(){
-      try{
-        const snap = await getDocs(query(collection(db,'roles'), orderBy('label')));
-        if (!snap.empty) return false;
-        // create every default role with empty perms shape
-        const basePerms = {};
-        Object.keys(MENUS).forEach(menu=>{
-          basePerms[menu]={};
-          MENUS[menu].forEach(sub=> basePerms[menu][sub]=blankPerm());
+      const snap = await getDocs(query(ROLES_COL, orderBy('label')));
+      if (!snap.empty) return;
+
+      const batch = writeBatch(db);
+      DEFAULT_ROLES.forEach(name=>{
+        const ref = doc(ROLES_COL, roleId(name));
+        // make a full empty matrix
+        const perms = {};
+        Object.keys(MENUS).forEach(m=>{
+          perms[m] = {};
+          MENUS[m].forEach(sm=> perms[m][sm] = blank());
         });
-        await Promise.all(DEFAULT_ROLES.map(label=>{
-          return setDoc(doc(db,'roles',label), {
-            label, permissions: basePerms, createdAt: serverTimestamp(), updatedAt: serverTimestamp()
-          }, { merge:true });
-        }));
-        return true;
-      }catch(e){
-        console.error('Seed failed:', e);
-        return false;
-      }
+        batch.set(ref, { label:name, permissions:perms, createdAt:serverTimestamp(), updatedAt:serverTimestamp() });
+      });
+      await batch.commit();
     }
 
     async function listRoles(){
-      try{
-        const qs = await getDocs(query(collection(db,'roles'), orderBy('label')));
-        const rows = [];
-        qs.forEach(d=> rows.push({id:d.id, ...(d.data()||{})}));
-        return rows;
-      }catch(e){
-        console.error(e);
-        return [];
-      }
+      const snap = await getDocs(query(ROLES_COL, orderBy('label')));
+      const arr = [];
+      snap.forEach(d => arr.push({ id:d.id, ...(d.data()||{}) }));
+      return arr;
     }
 
-    async function loadRolePerms(roleName){
-      const ref = doc(db,'roles',roleName);
-      const d = await getDoc(ref);
-      return d.exists() ? (d.data().permissions || null) : null;
+    async function loadRolePerms(name){
+      const d = await getDoc(doc(ROLES_COL, roleId(name)));
+      if (!d.exists()) return null;
+      return d.data().permissions || null;
     }
 
-    async function saveRolePerms(roleName, perms){
-      await setDoc(doc(db,'roles',roleName), {
-        label: roleName,
+    async function saveRolePerms(name, perms){
+      await setDoc(doc(ROLES_COL, roleId(name)), {
+        label: name,
         permissions: perms,
         updatedAt: serverTimestamp()
       }, { merge:true });
     }
 
-    // --------- UI state
-    let activePerms = null;
+    /* ========== RENDER: MENUS & PILLS ========== */
+    let activePerms = {};
 
-    function pill(label, pressed, onClick){
+    function makePill(label, pressed, onToggle){
       const b = document.createElement('button');
-      b.type='button'; b.className='pill'; b.textContent=label;
-      b.setAttribute('aria-pressed', pressed ? 'true':'false');
+      b.type = 'button'; b.className = 'pill'; b.textContent = label;
+      b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
       b.addEventListener('click', ()=>{
-        const now = b.getAttribute('aria-pressed')==='true';
-        b.setAttribute('aria-pressed', now?'false':'true');
-        onClick(!now, b);
+        const now = b.getAttribute('aria-pressed') === 'true';
+        b.setAttribute('aria-pressed', now ? 'false' : 'true');
+        onToggle(!now, b);
       });
       return b;
     }
 
     async function renderMenus(){
       const role = el.role.value;
-      let perms = await loadRolePerms(role);
-      if (!perms) perms = {};
-      activePerms = ensureShape(perms);
+      const stored = await loadRolePerms(role);
+      activePerms = ensureShape(stored || {});
 
       el.menus.innerHTML = '';
 
@@ -254,117 +263,123 @@
 
         const head = document.createElement('div'); head.className='menu-head';
         const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
-        const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
+        const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transform='rotate(0deg)'; caret.style.transition='transform .2s';
         const title = document.createElement('strong'); title.textContent = menuName;
-        left.append(caret,title);
-        const right = document.createElement('span'); right.className='muted-sm'; right.textContent = menuSummary(activePerms, menuName);
-        head.append(left,right);
+        left.append(caret, title);
+
+        const right = document.createElement('div'); right.className='muted-sm'; right.textContent = menuSummary(activePerms, menuName);
+        head.append(left, right);
 
         const body = document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
+        // Top-level pills apply to ALL submenus for this menu
         const grid = document.createElement('div'); grid.className='pill-grid';
-        ['View','Edit','Add','Archive','Delete'].forEach(name=>{
+        const names5 = ['View','Edit','Add','Archive','Delete'];
+        names5.forEach(name=>{
           const k = name.toLowerCase();
-          const pressed = MENUS[menuName].every(sm=>activePerms[menuName][sm][k]===true);
-          const p = pill(name, pressed, (isOn)=>{
-            MENUS[menuName].forEach(sm=> activePerms[menuName][sm][k]=isOn );
+          const pressed = MENUS[menuName].every(sm => activePerms[menuName][sm][k] === true);
+          const p = makePill(name, pressed, (isOn)=>{
+            MENUS[menuName].forEach(sm => { activePerms[menuName][sm][k] = isOn; });
             right.textContent = menuSummary(activePerms, menuName);
-            body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(btn=> btn.setAttribute('aria-pressed', isOn?'true':'false'));
+            body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(btn=>{
+              btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+            });
           });
           p.style.minWidth='118px';
           grid.appendChild(p);
         });
         body.appendChild(grid);
 
-        const subWrap=document.createElement('div'); subWrap.className='subwrap';
-        const sh=document.createElement('div'); sh.className='subhead';
-        const subCaret=document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
-        const shT=document.createElement('strong'); shT.textContent='Manage submenus';
-        const shR=document.createElement('span'); shR.className='muted-sm'; shR.textContent=' ';
-        const shL=document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px'; shL.append(subCaret,shT);
-        sh.append(shL,shR);
-
-        const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
+        // Submenus section (fine-tune)
+        const subWrap = document.createElement('div'); subWrap.className='subwrap';
+        const sh = document.createElement('div'); sh.className='subhead';
+        const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
+        const subCaret = document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
+        const shT = document.createElement('strong'); shT.textContent='Manage submenus';
+        shL.append(subCaret, shT);
+        const shR = document.createElement('span'); shR.className='muted-sm'; shR.textContent=' ';
+        sh.append(shL, shR);
+        const subBody = document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
 
         MENUS[menuName].forEach(sub=>{
-          const sec=document.createElement('section'); sec.style.margin='10px 0 14px';
-          const h=document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent=`${menuName} › ${sub}`;
-          const grid2=document.createElement('div'); grid2.className='pill-grid';
-          ['View','Edit','Add','Archive','Delete'].forEach(name=>{
-            const k=name.toLowerCase();
+          const sec = document.createElement('section'); sec.style.margin='10px 0 14px';
+          const h = document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent = `${menuName} › ${sub}`;
+          const grid2 = document.createElement('div'); grid2.className='pill-grid';
+
+          names5.forEach(name=>{
+            const k = name.toLowerCase();
             const pressed = !!activePerms[menuName][sub][k];
-            const btn = pill(name, pressed, (isOn)=>{
-              activePerms[menuName][sub][k]=isOn;
-              shR.textContent = (()=> {
-                const subs=Object.keys(activePerms[menuName]||{}); const on=subs.filter(s=>Object.values(activePerms[menuName][s]).some(Boolean)).length;
-                if(!on) return 'None'; if(on===subs.length) return 'All submenus'; return `${on} of ${subs.length} submenus`;
+            const btn = makePill(name, pressed, (isOn)=>{
+              activePerms[menuName][sub][k] = isOn;
+              // Update summaries
+              shR.textContent = (() => {
+                const subs = Object.keys(activePerms[menuName]);
+                const countOn = subs.filter(s=>{
+                  const p = activePerms[menuName][s];
+                  return p.view||p.edit||p.add||p.archive||p.delete;
+                }).length;
+                if(!countOn) return 'None';
+                if(countOn===subs.length) return 'All submenus';
+                return `${countOn} of ${subs.length} submenus`;
               })();
               right.textContent = menuSummary(activePerms, menuName);
             });
             btn.setAttribute('data-sub', `${menuName}::${k}`);
             grid2.appendChild(btn);
           });
-          sec.append(h,grid2);
+
+          sec.append(h, grid2);
           subBody.appendChild(sec);
         });
 
-        sh.addEventListener('click', ()=>{ const open=subBody.style.display!=='none'; subBody.style.display=open?'none':'block'; subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
+        sh.addEventListener('click', ()=>{
+          const open = subBody.style.display !== 'none';
+          subBody.style.display = open ? 'none' : 'block';
+          subCaret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
 
-        subWrap.append(sh,subBody);
+        subWrap.append(sh, subBody);
         body.appendChild(subWrap);
 
-        head.addEventListener('click', ()=>{ const open=body.style.display!=='none'; body.style.display=open?'none':'block'; caret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
+        head.addEventListener('click', ()=>{
+          const open = body.style.display !== 'none';
+          body.style.display = open ? 'none' : 'block';
+          caret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
 
         card.append(head, body);
         el.menus.appendChild(card);
       });
     }
 
-    async function hydrateRoleSelect(){
-      // Try Firestore
-      let rows = await listRoles();
-
-      // Seed if empty
-      if (rows.length === 0) {
-        const seeded = await seedDefaultsIfEmpty();
-        if (seeded) rows = await listRoles();
-      }
-
-      // Fallback to hard-coded if still empty (offline or rules issue)
-      if (rows.length === 0) {
-        rows = DEFAULT_ROLES.map(label=>({id:label, label}));
-        el.roleHint.textContent = 'Showing local defaults (offline or Firestore rules). Changes will save once Firestore is reachable.';
-        el.roleHint.style.display = 'block';
-      } else {
-        el.roleHint.style.display = 'none';
-      }
-
-      el.role.innerHTML = rows.map(r=>`<option value="${r.label}">${r.label}</option>`).join('');
+    /* ========== ROLE SELECT ========== */
+    function hydrateRoleSelect(list){
+      el.role.innerHTML = list.map(r=>`<option value="${r.label}">${r.label}</option>`).join('');
       const last = localStorage.getItem('df_role_selected');
-      if (last && rows.some(x=>x.label===last)) el.role.value = last;
+      if (last && list.some(x=>x.label===last)) el.role.value = last;
     }
 
-    // Init
-    (async function start(){
-      try{
-        if (window.DF_FB_API?.requireAuth) { await window.DF_FB_API.requireAuth(); }
-      }catch(_){ /* auth optional here */ }
-
-      await hydrateRoleSelect();
+    /* ========== INIT ========== */
+    async function init(){
+      if (!db) {
+        console.error('Firestore not available. Check ../js/firebase-init.js');
+        hydrateRoleSelect(DEFAULT_ROLES.map(label=>({label})));
+        await renderMenus();
+        return;
+      }
+      await seedDefaultsIfEmpty();
+      const roles = await listRoles();
+      hydrateRoleSelect(roles);
       await renderMenus();
-    })();
+    }
 
-    el.role.addEventListener('change', async ()=>{
-      localStorage.setItem('df_role_selected', el.role.value);
-      await renderMenus();
-    });
-
+    /* ========== EVENTS ========== */
     el.form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       try{
         await saveRolePerms(el.role.value, activePerms);
         toast('Permissions saved');
-        // collapse cards
+        // collapse all for a tidy feel
         document.querySelectorAll('.menu-body').forEach(b=> b.style.display='none');
         document.querySelectorAll('.menu-head span:first-child').forEach(c=> c.style.transform='rotate(0deg)');
         window.scrollTo({top:0, behavior:'smooth'});
@@ -374,35 +389,50 @@
       }
     });
 
-    // Reset = reload current role from Firestore (discard unsaved)
     $('#resetBtn').addEventListener('click', async ()=>{
-      try{
+      try {
         const perms = await loadRolePerms(el.role.value);
         activePerms = ensureShape(perms || {});
         await renderMenus();
         toast('Reloaded');
-      }catch(err){
-        console.error(err);
+      } catch (e) {
+        console.error(e);
         toast('Reset failed');
       }
     });
 
+    el.role.addEventListener('change', async ()=>{
+      localStorage.setItem('df_role_selected', el.role.value);
+      await renderMenus();
+    });
+
     // Quick View
     el.qvBtn.addEventListener('click', ()=>{
-      el.qvRole.textContent = el.role.value;
+      el.qvRole.textContent = el.role.value || '—';
+      const perms = activePerms || {};
       el.qvList.innerHTML = '';
       Object.keys(MENUS).forEach(menu=>{
         const li = document.createElement('li');
-        li.innerHTML = `<strong>${menu}</strong> — ${menuSummary(activePerms, menu)}`;
+        li.innerHTML = `<strong>${menu}</strong> — ${menuSummary(perms, menu)}`;
         el.qvList.appendChild(li);
       });
       el.qvB.style.display='flex';
     });
     el.qvClose.addEventListener('click', ()=> el.qvB.style.display='none');
     el.qvB.addEventListener('click', (e)=>{ if(e.target===el.qvB) el.qvB.style.display='none'; });
+
+    // Kick off
+    init();
+
+    // Breadcrumbs helper (optional)
+    window.setBreadcrumbs?.([
+      {label:'Home', href:'../index.html'},
+      {label:'Setup / Settings', href:'index.html'},
+      {label:'Account Roles'}
+    ]);
   </script>
 
-  <!-- Service worker (from /settings-setup/ → repo root) -->
+  <!-- Service worker (root-relative from /settings-setup/) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
