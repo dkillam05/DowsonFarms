@@ -6,21 +6,24 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Employees — Dowson Farms</title>
 
-  <!-- Prepaint theme (same as other pages) -->
+  <!-- Prepaint theme -->
   <script>
-  (function () {
-    var pref = localStorage.getItem('df_theme') || 'auto';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme =
-      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-  })();
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+      document.documentElement.style.colorScheme =
+        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
-  <!-- App CSS/JS (NOTE: we are one folder deeper, so use ../) -->
-  <link rel="stylesheet" href="../theme.css" />
-  <script defer src="../version.js"></script>
-  <script defer src="../core.js"></script>
+  <!-- YOUR actual paths (under /assets/css and /js) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+
+  <!-- Firebase bootstrap (keys live in /js/firebase.js) -->
+  <script type="module" src="../js/firebase.js"></script>
 
   <link rel="manifest" href="../manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -29,7 +32,6 @@
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
 
-  <!-- Page-local styles only -->
   <style>
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -38,11 +40,11 @@
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    #empPhone, #m_phone { font-size:16px; } /* iOS no-zoom */
+    #empPhone, #m_phone { font-size:16px; }
     .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
     .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
 
-    /* Permission Overrides UI (same pattern as other pages) */
+    /* Permission Overrides UI */
     .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
@@ -53,12 +55,9 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 4px}
     .subbody{padding:8px 2px 2px}
 
-    /* Keep modals above footer/back */
+    /* Keep modals above footer/back buttons */
     .auth-modal__backdrop{z-index:4000 !important}
   </style>
-
-  <!-- Firebase boot (your config is in this file) -->
-  <script type="module" src="../js/firebase.js"></script>
 </head>
 <body>
   <!-- Header -->
@@ -221,12 +220,14 @@
       collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    // Firebase handles from ../js/firebase.js
-    const { auth, db } = window.DF_FB;
+    // Firebase handles — provided by ../js/firebase.js
+    const { auth, db } = window.DF_FB || {};
+    if (!auth || !db) {
+      console.error('Firebase not initialized. Check ../js/firebase.js path and config.');
+    }
 
-    // Collection refs
+    // Collections
     const EMP  = collection(db, "employees");
-    // const ROLE = collection(db, "roles"); // reserved for later
 
     const $=s=>document.querySelector(s);
 
@@ -241,7 +242,7 @@
 
     /* ---------- Roles ---------- */
     async function getRoleNames(){
-      // Later: pull from Firestore "roles". For now, keep local list.
+      // static for now; you can later source from Firestore "roles" if you want
       return ["Administrator","Owner","Manager","Employee","View Only"];
     }
     async function fillRoleSelect(sel, value){
@@ -285,7 +286,7 @@
     }
     async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    /* ---------- Permission Overrides (local UI state) ---------- */
+    /* ---------- Permission Overrides (local-only structure for now) ---------- */
     const MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
@@ -297,7 +298,6 @@
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
-
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     function pill(label, pressed, onToggle){
       const b=document.createElement('button');
@@ -500,7 +500,7 @@
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
       const actionCodeSettings = {
-        url: location.origin + location.pathname.replace(/[^/]+$/,'') + '../index.html',
+        url: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html',
         handleCodeInApp: true
       };
 
@@ -512,7 +512,7 @@
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Could not send invite. Check Firebase Auth settings & authorized domain.');
+        alert('Could not send invite. Check Firebase Auth → Authorized domains and email templates.');
       }
     }
 
@@ -572,9 +572,28 @@
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
 
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', async ()=>{
+      const rows=(await listEmployees()).filter(x=>!x.archived)
+        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) || (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = rows.length ? rows.map(r=>{
+        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
+        const contact = [r.phone, r.email].filter(Boolean).join(' • ');
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line"><strong>${name}</strong> ${r.role?`<span class="chip">${r.role}</span>`:''}</div>
+          ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
+        </li>`;
+      }).join('') : '<li class="muted">No active employees.</li>';
+      B.style.display='flex';
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
+
     // Initial render
     await render();
 
+    // Breadcrumbs
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
       {label:'Teams & Partners', href:'../teams-partners.html'},
@@ -582,7 +601,7 @@
     ]);
   </script>
 
-  <!-- Service worker (we're in a subfolder, so point to ../) -->
+  <!-- Service worker (one level up) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
