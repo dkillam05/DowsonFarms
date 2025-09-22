@@ -1,7 +1,24 @@
-// /js/version.js  (FULL FILE; ensures version pushes after reload)
-(function (g) {
-  // 🔁 Bump this on each deploy:
-  g.DF_VERSION = 'v1.11.0';       // e.g., 'v9.7.5'
-  // Keep legacy alias in sync if referenced anywhere
-  g.APP_VERSION = g.DF_VERSION;
-})(typeof self !== 'undefined' ? self : window);
+/* =========================================================
+   Dowson Farms — Global Version Info
+   ========================================================= */
+
+// ⚠️ Only bump THIS number when you release a new build
+window.DF_VERSION = "v1.0.0";   // <-- bump here
+
+// Build date (Central Time, auto-generated when you bump)
+window.DF_BUILD_DATE = new Date().toLocaleString("en-US", {
+  timeZone: "America/Chicago",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit"
+});
+
+// Inject into footer once DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  const verEl  = document.getElementById("version");
+  const dateEl = document.getElementById("report-date");
+  if (verEl)  verEl.textContent  = window.DF_VERSION;
+  if (dateEl) dateEl.textContent = window.DF_BUILD_DATE;
+});
