@@ -3,7 +3,7 @@
    ========================================================= */
 
 // ⚠️ Only bump THIS number when you release a new build
-window.DF_VERSION = "v1.7.0";   // <-- bump here
+window.DF_VERSION = "v1.8.0";   // <-- bump here
 
 // Build date (Central Time, auto-generated when you bump)
 window.DF_BUILD_DATE = new Date().toLocaleString("en-US", {
