@@ -1,76 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- =======================================================================
-       SECTION: META & THEME BOOT
-       ======================================================================= -->
+  <!-- ========== SECTION: META & THEME PREPAINT ========== -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Employees — Dowson Farms</title>
-
   <script>
-    // Prepaint theme (no FOUC)
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-      document.documentElement.setAttribute('data-theme', mode);
-      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+      document.documentElement.style.colorScheme =
+        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
-  <!-- =======================================================================
-       SECTION: ASSETS (RESPECT TREE PATHS)
-       NOTE: this file lives in /teams-partners/, so assets are one level up.
-       ======================================================================= -->
-  <!-- CSS -->
+  <!-- ========== SECTION: APP ASSETS (FOLLOWING YOUR TREE) ========== -->
+  <!-- CSS lives at /assets/css/theme.css (we are inside /teams-partners/) -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
 
-  <!-- Core app JS (non-module) -->
-  <script defer src="../js/version.js"></script>
-  <script defer src="../js/core.js"></script>
+  <!-- Global scripts live at /assets/js/ -->
+  <script defer src="../assets/js/version.js"></script>
+  <script defer src="../assets/js/core.js"></script>
 
-  <!-- Firebase modules (provide window.DF_FB) -->
+  <!-- PWA bits (icons under /assets/icons/) -->
+  <link rel="manifest" href="../manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+
+  <!-- Firebase bootstrap lives at /js/firebase.js -->
   <script type="module" src="../js/firebase.js"></script>
-  <!-- Optional shared helpers; safe to include even if empty -->
-  <script type="module" src="../js/fb-data.js"></script>
 
-  <!-- =======================================================================
-       SECTION: PAGE-LOCAL STYLES (ONLY PAGE-SPECIFIC UTILITIES)
-       ======================================================================= -->
+  <!-- ========== SECTION: PAGE-LOCAL STYLES (SMALL, SAFE) ========== -->
   <style>
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
     .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
-
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     #empPhone, #m_phone { font-size:16px; } /* iOS no-zoom */
-
     .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
     .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
-
-    .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
-    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
-    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:10px 0}
-    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer}
-    .menu-body{padding:12px 14px;border-top:1px dashed var(--tile-border)}
-    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:10px;margin-top:12px}
-    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 4px}
-    .subbody{padding:8px 2px 2px}
-
     .auth-modal__backdrop{z-index:4000 !important}
+    /* Simple toast fallback if your theme.css .df-toast is missing */
+    #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
   </style>
 </head>
-
 <body>
-  <!-- =======================================================================
-       SECTION: APP HEADER
-       ======================================================================= -->
+  <!-- ========== SECTION: APP HEADER ========== -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -79,22 +64,18 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- =======================================================================
-       SECTION: BREADCRUMBS (RESPECT PATHS)
-       ======================================================================= -->
+  <!-- ========== SECTION: BREADCRUMBS ========== -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="../teams-partners.html">Teams &amp; Partners</a></li>
+      <li><a href="./index.html">Teams &amp; Partners</a></li>
       <li class="sep">›</li>
       <li><span>Employees</span></li>
     </ol>
   </nav>
 
-  <!-- =======================================================================
-       SECTION: MAIN CONTENT
-       ======================================================================= -->
+  <!-- ========== SECTION: MAIN CONTENT ========== -->
   <main class="content" data-has-form>
     <div class="line" style="justify-content:space-between;">
       <h1 style="margin:0;">👥 Employees</h1>
@@ -102,9 +83,7 @@
     </div>
     <div style="margin-top:12px;"></div>
 
-    <!-- =========================
-         FORM
-         ========================= -->
+    <!-- ========== SECTION: EMPLOYEE FORM ========== -->
     <form id="emp-form" novalidate>
       <div class="field-row">
         <div class="field">
@@ -148,9 +127,7 @@
       </section>
     </form>
 
-    <!-- =========================
-         SAVED LIST
-         ========================= -->
+    <!-- ========== SECTION: SAVED LIST ========== -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
       <div class="line">
@@ -163,9 +140,7 @@
     </section>
   </main>
 
-  <!-- =======================================================================
-       SECTION: FOOTER
-       ======================================================================= -->
+  <!-- ========== SECTION: FOOTER ========== -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -174,9 +149,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- =======================================================================
-       SECTION: QUICK VIEW MODAL
-       ======================================================================= -->
+  <!-- ========== SECTION: QUICK VIEW MODAL ========== -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Employees</h2>
@@ -187,112 +160,48 @@
     </div>
   </div>
 
-  <!-- =======================================================================
-       SECTION: PERMISSION OVERRIDES MODAL
-       ======================================================================= -->
-  <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
-      <h2 id="exTitle">Permission Overrides</h2>
-      <p class="muted-small" style="margin-top:-6px;">Grant access to specific Menus and Submenus in addition to the chosen Role.</p>
-      <div class="line" style="gap:10px;align-items:center;margin:4px 0 12px;">
-        <input id="exSearch" placeholder="Search menus…" style="flex:1;font-size:16px;height:40px;padding:8px 12px;border-radius:10px;">
-        <button class="btn-outline" id="exEnable" type="button" aria-pressed="false">Enable overrides for this employee</button>
-      </div>
-      <div id="exTree" style="max-height:min(52vh,500px); overflow:auto;"></div>
-      <div class="modal-actions" style="justify-content:space-between;">
-        <button class="btn-outline" id="exCancel">Cancel</button>
-        <button class="btn-primary" id="exSave">Save Overrides</button>
-      </div>
-    </div>
-  </div>
+  <!-- ========== SECTION: SIMPLE TOAST ========== -->
+  <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
 
-  <!-- =======================================================================
-       SECTION: MANAGE/EDIT MODAL
-       ======================================================================= -->
-  <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
-      <h2 id="manageTitle">Edit Employee</h2>
-      <div id="manageBox" style="display:grid;gap:10px;">
-        <div class="field"><input id="m_first" placeholder="First Name" /></div>
-        <div class="field"><input id="m_last" placeholder="Last Name" /></div>
-        <div class="field"><input id="m_phone" placeholder="Phone Number" maxlength="14" /></div>
-        <div class="field"><input id="m_email" placeholder="Email" /></div>
-        <div class="field">
-          <label for="m_role">Role (Permissions)</label>
-          <select id="m_role"></select>
-        </div>
-        <div class="line">
-          <button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button>
-        </div>
-      </div>
-      <div class="modal-actions" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
-        <div class="line" style="gap:10px;">
-          <button class="btn-danger"  id="m_delete"  type="button">Delete</button>
-          <button class="btn-archive" id="m_archive" type="button">Archive</button>
-          <button class="btn-outline" id="manageCancel" type="button">Cancel</button>
-        </div>
-        <button class="btn-primary" id="manageSave" type="button">Save Changes</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =======================================================================
-       SECTION: TOAST
-       ======================================================================= -->
-  <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
-
-  <!-- =======================================================================
-       SECTION: PAGE LOGIC (MODULE) — FIRESTORE + AUTH INVITES
-       NOTE: relies on window.DF_FB injected by ../js/firebase.js
-       ======================================================================= -->
+  <!-- ========== SECTION: PAGE LOGIC (FIRESTORE + AUTH INVITE) ========== -->
   <script type="module">
+    // Pull Firebase handles from /js/firebase.js (window.DF_FB)
+    const { auth, db } = window.DF_FB;
+
+    // Import only what we use (modular CDN)
     import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
     import {
       collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    // --- Firebase handles from global module ---
-    const { auth, db } = window.DF_FB || {};
-    if (!auth || !db) {
-      console.error('DF_FB not found. Check ../js/firebase.js path.');
-    }
+    // Collections
+    const EMP = collection(db, "employees");
 
-    // --- Collections ---
-    const EMP  = collection(db, "employees");
-
-    // --- Shorthands ---
-    const $=s=>document.querySelector(s);
+    // Dom helpers
+    const $ = (s) => document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
 
-    /* =========================
-       TOAST
-       ========================= */
+    // Toast
     function showToast(msg){
-      const el = $('#dfToast');
-      el.textContent = msg;
-      el.style.display = 'block';
-      requestAnimationFrame(()=> el.classList.add('show'));
-      setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 1800);
+      const box = $('#dfToast'), txt = $('#dfToastText');
+      txt.textContent = msg || 'Saved';
+      box.style.display = 'block';
+      clearTimeout(window.__toastT);
+      window.__toastT = setTimeout(()=> box.style.display='none', 2000);
     }
 
-    /* =========================
-       ROLES
-       ========================= */
+    // Roles (keep local list for now)
     async function getRoleNames(){
-      // Keep simple list for now (can move to Firestore later)
       return ["Administrator","Owner","Manager","Employee","View Only"];
     }
     async function fillRoleSelect(sel, value){
-      if(!sel) return;
-      const roles=await getRoleNames();
+      const roles = await getRoleNames();
       sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
         roles.map(r=>`<option value="${r}">${r}</option>`).join('');
-      if(value) sel.value=value;
+      if (value) sel.value = value;
     }
 
-    /* =========================
-       PHONE MASK & VALIDATION
-       ========================= */
+    // Phone helpers
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -308,15 +217,12 @@
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    /* =========================
-       FIRESTORE HELPERS
-       ========================= */
+    // Firestore helpers
     async function listEmployees(){
       const snap = await getDocs(query(EMP, orderBy("last")));
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
     async function upsertEmployee(item){
-      // Use email (lowercased) as doc ID for idempotency; fallback to UUID
       const id = (item.email || crypto.randomUUID()).toLowerCase();
       await setDoc(doc(EMP, id), {
         ...item,
@@ -328,145 +234,7 @@
     }
     async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    /* =========================
-       PERMISSION OVERRIDES (UI ONLY)
-       ========================= */
-    const DEFAULT_MENUS = {
-      "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-      "Grain Tracking": ["Bins","Tickets","Contracts"],
-      "Equipment": ["Maintenance","Repairs","Assignments"],
-      "Calculators": ["Seed Rate","Fertilizer","ROI"],
-      "Reports": ["Crops","Equipment","Financial"],
-      "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-      "Feedback": ["Ideas","Bugs / Issues"],
-      "AI": ["AI","AI History"],
-      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-    };
-    const MENUS = DEFAULT_MENUS;
-
-    function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
-    function pill(label, pressed, onToggle){
-      const b=document.createElement('button');
-      b.type='button'; b.className='pill'; b.textContent=label;
-      b.setAttribute('aria-pressed', pressed?'true':'false');
-      b.addEventListener('click', ()=>{ const on=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed', on?'false':'true'); onToggle(!on,b); });
-      return b;
-    }
-    function summarizeMenu(menuObj){
-      const subs=Object.keys(menuObj||{}).filter(k=>k!=='_all');
-      if(!subs.length) return 'No access';
-      const allTrue=subs.every(s=>{const p=menuObj[s];return p.view&&p.edit&&p.add&&p.archive&&p.delete;});
-      const allFalse=subs.every(s=>{const p=menuObj[s];return !p.view&&!p.edit&&!p.add&&!p.archive&&!p.delete;});
-      if(allTrue) return 'All';
-      if(allFalse) return 'No access';
-      return 'Custom';
-    }
-    function summarizeChildren(menuObj){
-      const subs=Object.keys(menuObj||{}).filter(k=>k!=='_all');
-      const on=subs.filter(s=>{const p=menuObj[s];return p.view||p.edit||p.add||p.archive||p.delete;}).length;
-      if(!on) return 'None';
-      if(on===subs.length) return 'All submenus';
-      return `${on} of ${subs.length} submenus`;
-    }
-    function buildMenuCard(menuName, ex){
-      const card=document.createElement('div'); card.className='menu-card';
-      const head=document.createElement('div'); head.className='menu-head';
-      const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='8px';
-      const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
-      const title=document.createElement('strong'); title.textContent=menuName;
-      left.append(caret,title);
-      const right=document.createElement('span'); right.className='muted-small'; right.textContent=' ';
-      head.append(left,right);
-      const body=document.createElement('div'); body.className='menu-body'; body.style.display='none';
-
-      ex.grants[menuName]=ex.grants[menuName]||{};
-      ex.grants[menuName]._all=ex.grants[menuName]._all||blankPerm();
-
-      const grid=document.createElement('div'); grid.className='pill-grid';
-      ['View','Edit','Add','Archive','Delete'].forEach(name=>{
-        const k=name.toLowerCase();
-        const p=pill(name, !!ex.grants[menuName]._all[k], (isOn)=>{
-          ex.grants[menuName]._all[k]=isOn;
-          MENUS[menuName].forEach(sub=>{
-            ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
-            ex.grants[menuName][sub][k]=isOn;
-          });
-          body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(b=>b.setAttribute('aria-pressed', isOn?'true':'false'));
-          right.textContent = summarizeMenu(ex.grants[menuName]);
-        });
-        grid.appendChild(p);
-      });
-      body.appendChild(grid);
-
-      const subWrap=document.createElement('div'); subWrap.className='subwrap';
-      const sh=document.createElement('div'); sh.className='subhead';
-      const shL=document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='6px';
-      const subCaret=document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
-      const shT=document.createElement('strong'); shT.textContent='Manage submenus';
-      shL.append(subCaret,shT);
-      const shR=document.createElement('span'); shR.className='muted-small'; shR.textContent=' ';
-      sh.append(shL,shR);
-      const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
-
-      MENUS[menuName].forEach(sub=>{
-        ex.grants[menuName][sub]=ex.grants[menuName][sub]||blankPerm();
-        const sec=document.createElement('section'); sec.style.margin='10px 0 12px';
-        const h=document.createElement('h3'); h.style.margin='0 0 6px'; h.textContent=`${menuName} › ${sub}`;
-        const grid2=document.createElement('div'); grid2.className='pill-grid';
-        ['View','Edit','Add','Archive','Delete'].forEach(name=>{
-          const k=name.toLowerCase();
-          const btn=pill(name, !!ex.grants[menuName][sub][k], (isOn)=>{
-            ex.grants[menuName][sub][k]=isOn;
-            shR.textContent = summarizeChildren(ex.grants[menuName]);
-            right.textContent = summarizeMenu(ex.grants[menuName]);
-          });
-          btn.setAttribute('data-sub', `${menuName}::${k}`);
-          grid2.appendChild(btn);
-        });
-        sec.append(h,grid2);
-        subBody.appendChild(sec);
-      });
-
-      sh.addEventListener('click', ()=>{ const open=subBody.style.display!=='none'; subBody.style.display=open?'none':'block'; subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
-      head.addEventListener('click', ()=>{ const open=body.style.display!=='none'; body.style.display=open?'none':'block'; caret.style.transform=open?'rotate(0deg)':'rotate(90deg)'; });
-
-      right.textContent = summarizeMenu(ex.grants[menuName]);
-      shR.textContent   = summarizeChildren(ex.grants[menuName]);
-
-      subWrap.append(sh, subBody);
-      body.appendChild(subWrap);
-      card.append(head, body);
-      return card;
-    }
-    function openPermissionOverrides(existing, onSave){
-      const B=$('#exBackdrop'), Tree=$('#exTree'), Enable=$('#exEnable'), Search=$('#exSearch');
-      const ex = existing && typeof existing==='object' ? JSON.parse(JSON.stringify(existing)) : {enabled:false,grants:{}};
-
-      Tree.innerHTML='';
-      Object.keys(MENUS).forEach(menu=> Tree.appendChild(buildMenuCard(menu, ex)) );
-
-      const setEnable=(v)=>{
-        ex.enabled=!!v;
-        Enable.setAttribute('aria-pressed', v?'true':'false');
-        Tree.style.opacity=v?1:.45;
-        Tree.querySelectorAll('button.pill').forEach(b=> b.disabled=!v);
-      };
-      setEnable(!!ex.enabled);
-
-      Enable.onclick=()=> setEnable(!(Enable.getAttribute('aria-pressed')==='true'));
-
-      Search.value='';
-      Search.oninput=()=>{ const q=Search.value.toLowerCase().trim(); Tree.querySelectorAll('.menu-card').forEach(card=>{ card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none'; }); };
-
-      $('#exSave').onclick=()=>{ B.style.display='none'; onSave && onSave(ex); showToast('Overrides saved'); };
-      $('#exCancel').onclick=()=>{ B.style.display='none'; };
-      B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
-      B.style.display='flex';
-    }
-
-    /* =========================
-       RENDER / MANAGE / INVITE
-       ========================= */
+    // Render list
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
@@ -497,48 +265,57 @@
       L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
     }
 
+    // Manage modal (minimal – archive/delete/save)
     async function openManage(id){
       const rows=await listEmployees(); const e=rows.find(x=>x.id===id); if(!e) return;
-      $('#manageTitle').textContent = `Edit Employee — ${(e.first||'') + ' ' + (e.last||'')}`.trim();
-      $('#m_first').value=e.first||''; $('#m_last').value=e.last||'';
-      $('#m_phone').value=e.phone||''; attachPhoneMask($('#m_phone'));
-      $('#m_email').value=e.email||'';
-      await fillRoleSelect($('#m_role'), e.role||'');
-
-      const B=$('#manageBackdrop'); B.style.display='flex';
-      $('#m_exceptions').onclick=()=>{ openPermissionOverrides(e.exceptions, (val)=>{ e.exceptions = val; }); };
-
-      const $archive=$('#m_archive'); $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
-
-      $('#m_delete').onclick=async ()=>{
-        if(confirm('Delete this employee? This cannot be undone.')){
-          await removeById(e.id);
-          B.style.display='none'; await render(); showToast('Employee deleted');
-        }
+      // Simple prompt-based manage to keep code small while you’re mobile.
+      const next = {
+        first: prompt('First name:', e.first||'') ?? e.first,
+        last:  prompt('Last name:',  e.last||'')  ?? e.last,
+        phone: prompt('Phone (###) ###-####:', e.phone||'') ?? e.phone,
+        email: prompt('Email:', e.email||'') ?? e.email,
+        role:  prompt('Role:',  e.role||'')  ?? e.role,
       };
-      $('#m_archive').onclick=async ()=>{
-        e.archived = !e.archived; e.updatedAt = Date.now(); await upsertEmployee(e);
-        $archive.textContent = e.archived ? 'Unarchive' : 'Archive';
-        await render(); showToast(e.archived?'Archived':'Unarchived');
-      };
-      $('#manageCancel').onclick=()=> B.style.display='none';
-      $('#manageSave').onclick=async ()=>{
-        if(!$('#m_first').value.trim() || !$('#m_last').value.trim()){ alert('First and Last name are required.'); return; }
-        if(!isValidPhoneUS($('#m_phone').value)){ alert('Phone must be (###) ###-####'); return; }
-        if(!isEmail($('#m_email').value)){ alert('Valid email is required.'); return; }
-        if(!$('#m_role').value){ alert('Role is required.'); return; }
-        e.first=titleCase($('#m_first').value);
-        e.last =titleCase($('#m_last').value);
-        e.phone=$('#m_phone').value;
-        e.email=$('#m_email').value.trim().toLowerCase();
-        e.role =$('#m_role').value;
-        e.updatedAt=Date.now();
-        await upsertEmployee(e); B.style.display='none'; await render(); showToast('Changes saved');
-      };
-      B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
+      if (!next.first || !next.last || !isEmail(next.email) || !isValidPhoneUS(next.phone)) {
+        alert('Please enter valid First, Last, Email and Phone.');
+        return;
+      }
+      await upsertEmployee({...e, ...next, updatedAt: Date.now()});
+      await render();
+      showToast('Changes saved');
     }
 
-    // Email-link invite via Firebase Auth
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', async ()=>{
+      const rows=(await listEmployees()).filter(x=>!x.archived)
+        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) || (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = rows.length ? rows.map(r=>{
+        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
+        const contact = [r.phone, r.email].filter(Boolean).join(' • ');
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line"><strong>${name}</strong> ${r.role?`<span class="chip">${r.role}</span>`:''}</div>
+          ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
+        </li>`;
+      }).join('') : '<li class="muted">No employees yet.</li>';
+      B.style.display='flex';
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
+
+    // Create flow
+    attachPhoneMask($('#empPhone'));
+    await fillRoleSelect($('#empRole'));
+
+    // Permission overrides (store JSON on the button; full UI can be added later)
+    $('#exceptionsBtn').addEventListener('click', ()=>{
+      const prev = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
+      const enable = confirm((prev.enabled?'Disable':'Enable') + ' overrides for this employee?');
+      $('#exceptionsBtn').dataset.payload = JSON.stringify({enabled:enable,grants:enable?prev.grants:{}});
+      showToast(enable?'Overrides enabled':'Overrides disabled');
+    });
+
+    // Invite (email link)
     async function inviteEmployee(id){
       const rows=await listEmployees();
       const e = rows.find(x=>x.id===id);
@@ -546,7 +323,8 @@
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
       const actionCodeSettings = {
-        url: location.origin + location.pathname.replace(/[^/]+$/,'') + 'index.html',
+        // *** IMPORTANT: Your confirmed public URL ***
+        url: "https://dkillam05.github.io/DowsonFarms/teams-partners/index.html",
         handleCodeInApp: true
       };
 
@@ -558,40 +336,32 @@
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Could not send invite. Check Firebase Auth settings and authorized domain.');
+        alert('Could not send invite. Check Firebase Auth (Authorized domains, Email templates).');
       }
     }
 
-    /* =========================
-       CREATE FLOW
-       ========================= */
-    attachPhoneMask($('#empPhone'));
-    await fillRoleSelect($('#empRole'));
-
-    $('#exceptionsBtn').addEventListener('click', ()=>{
-      const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
-      openPermissionOverrides(existing, (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); });
-    });
-
+    // Buttons
     $('#inviteBtn').addEventListener('click', async ()=>{
       const first = titleCase(($('#empFirst').value||'').trim());
       const last  = titleCase(($('#empLast').value||'').trim());
+      const phone = $('#empPhone').value;
       const email = ($('#empEmail').value||'').trim().toLowerCase();
-      if(!first || !last || !email || !isEmail(email)){ alert('Enter First, Last, and valid Email to send an invite.'); return; }
-      const item = {
-        first, last,
-        phone: $('#empPhone').value,
-        email,
-        role: $('#empRole').value || '',
+      const role  = $('#empRole').value || '';
+
+      if(!first || !last || !isValidPhoneUS(phone) || !isEmail(email)){
+        alert('Enter valid First, Last, Phone, and Email to send an invite.');
+        return;
+      }
+      const id = await upsertEmployee({
+        first, last, phone, email, role,
         archived:false,
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
         createdAt: Date.now(), updatedAt: Date.now()
-      };
-      const id = await upsertEmployee(item);
+      });
       await inviteEmployee(id);
     });
 
-    $('#emp-form').addEventListener('submit', async (e)=>{
+    document.getElementById('emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const first = titleCase(($('#empFirst').value||'').trim());
       const last  = titleCase(($('#empLast').value||'').trim());
@@ -610,13 +380,18 @@
         exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
         createdAt: Date.now(), updatedAt: Date.now()
       });
-      $('#emp-form').reset();
+
+      // Reset form + list
+      e.target.reset();
       delete $('#exceptionsBtn').dataset.payload;
       await render();
       showToast('Employee saved');
     });
 
-    $('#clearBtn').addEventListener('click', ()=>{ $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload; });
+    $('#clearBtn').addEventListener('click', ()=>{
+      $('#emp-form').reset();
+      delete $('#exceptionsBtn').dataset.payload;
+    });
 
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
@@ -624,21 +399,18 @@
     // Initial render
     await render();
 
-    // Breadcrumbs (if provided by core.js)
+    // Breadcrumb helper (if your core.js provides it)
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
-      {label:'Teams & Partners', href:'../teams-partners.html'},
+      {label:'Teams & Partners', href:'./index.html'},
       {label:'Employees'}
     ]);
   </script>
 
-  <!-- =======================================================================
-       SECTION: SERVICE WORKER (RESPECT PATH)
-       ======================================================================= -->
+  <!-- ========== SECTION: SERVICE WORKER ========== -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        // From /teams-partners/ back to root:
         navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
