@@ -8,43 +8,42 @@
 
   <!-- Prepaint theme -->
   <script>
-  (function () {
-    var pref = localStorage.getItem('df_theme') || 'auto';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme =
-      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-  })();
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+      document.documentElement.style.colorScheme =
+        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
-  <link rel="stylesheet" href="theme.css" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- Honor your tree exactly -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
+  <script type="module" src="../js/fb-crop-types.js"></script>
 
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
-
-  <!-- ONLY CHANGE: make search bigger & stop iOS zoom -->
   <style>
-    #searchInput {
-      font-size: 16px;      /* >=16px prevents Safari auto-zoom */
-      height: 44px;
-      padding: 10px 14px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 640px;     /* remove this line if you want full edge-to-edge */
-    }
+    .muted-sm{opacity:.85;font-size:.92rem}
+    .toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:10px;border-bottom:1px solid var(--tile-border)}
+    .table th{text-align:left;font-weight:700}
+    .badge{display:inline-block;padding:2px 8px;border-radius:12px;border:1px solid var(--tile-border);font-size:.85rem}
+    .row-gap{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .auth-banner{display:none;margin:10px 0;padding:10px 12px;border:2px dashed #caa;background:rgba(255,0,0,.05);border-radius:10px}
+    .auth-banner a{font-weight:700}
+    .pill-grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+    .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:16px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
   </style>
 </head>
 <body>
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
@@ -53,80 +52,73 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="settings.html">Setup / Settings</a></li>
+      <li><a href="index.html">Setup / Settings</a></li>
       <li class="sep">›</li>
       <li><span>Crop Types</span></li>
     </ol>
   </nav>
 
   <main class="content" data-has-form>
-    <!-- Title row with Quick View top-right -->
-    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
-      <h1 style="margin:0;">🌾 Crop Types</h1>
-      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
+    <div id="authWarn" class="auth-banner">
+      Not signed in. <a href="../auth/index.html">Log in</a> to add or edit crop types.
     </div>
-    <p class="muted" style="margin-top:8px;">Add and manage crop definitions used in calculations. Unit is fixed to bushels (bu).</p>
 
-    <!-- FORM (stacked fields) -->
-    <form id="crop-form" novalidate>
-      <div class="field">
-        <label for="cropName">Crop name</label>
-        <input id="cropName" type="text" required placeholder="e.g., Corn, Soybeans" />
-      </div>
+    <h1 style="margin:0 0 8px;">🌾 Crop Types</h1>
+    <p class="muted">Add the crops your operation uses. This page is our simple “pipe check”: submit → Firestore → list updates.</p>
 
-      <div class="field">
-        <label for="standardMoisture">Standard moisture (%)</label>
-        <input id="standardMoisture" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
-      </div>
-
-      <div class="field">
-        <label for="testWeight">Standard test weight (lb/bu)</label>
-        <input id="testWeight" type="text" inputmode="decimal" pattern="^\\d+(\\.\\d+)?$" required />
-      </div>
-
-      <div class="field">
-        <label for="unitReadonly">Unit of measure</label>
-        <input id="unitReadonly" type="text" value="Bushels (bu)" readonly />
-      </div>
-
-      <!-- Compact centered button grid -->
-      <section class="card" style="padding:12px; margin-top:8px;">
-        <div id="btnGrid" style="
-          --w: 92px;                    /* square size (half-ish of previous) */
-          display:grid; gap:10px;
-          grid-template-columns: var(--w) var(--w);
-          justify-content:center;      /* center the 2 columns */
-        ">
-          <!-- Row 1 -->
-          <button class="btn-primary" type="submit" id="saveBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Save</button>
-          <button class="btn-outline" type="reset" id="clearBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Clear</button>
-          <!-- Row 2 (hidden when adding new) -->
-          <button class="btn-outline" type="button" id="archiveBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Archive</button>
-          <button class="btn-outline" type="button" id="deleteBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Delete</button>
+    <!-- Add / Edit form -->
+    <form id="ct-form" class="card" novalidate>
+      <div class="row" style="align-items:flex-end;gap:12px;flex-wrap:wrap;">
+        <div class="field" style="min-width:220px;flex:1;">
+          <label for="ctName">Crop name</label>
+          <input id="ctName" type="text" placeholder="e.g., Corn" required />
+          <small class="muted" id="nameHelp">A friendly display name.</small>
         </div>
-      </section>
 
-      <input type="hidden" id="editingId" />
+        <div class="field" style="min-width:140px;">
+          <label for="ctCode">Code</label>
+          <input id="ctCode" type="text" placeholder="e.g., CORN" required />
+          <small class="muted">Short code (A–Z, 0–9, - _)</small>
+        </div>
+
+        <div class="field" style="min-width:180px;">
+          <label for="ctColor">Color (optional)</label>
+          <input id="ctColor" type="color" value="#1B5E20" />
+          <small class="muted">Used in charts/maps later</small>
+        </div>
+
+        <div class="row-gap">
+          <button class="btn-primary" type="submit" id="saveBtn">Save</button>
+          <button class="btn-outline" type="button" id="resetBtn">Reset</button>
+        </div>
+      </div>
+      <input type="hidden" id="ctId" />
     </form>
 
-    <!-- SAVED -->
-    <section class="card" id="savedCard" style="margin-top:16px;">
-      <h2 style="margin:0 0 8px 0;">Saved Crops</h2>
-      <div class="row" style="align-items:center; gap:12px;">
-        <input id="searchInput" class="search" type="search" placeholder="Search crops…" />
-        <div style="flex:1"></div>
-        <label class="muted" for="toggleShowArchived">
-          <input type="checkbox" id="toggleShowArchived" /> Show archived
-        </label>
+    <!-- List -->
+    <section class="card">
+      <div class="row" style="align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;">Existing Crop Types</h2>
+        <span class="badge" id="ctCount">0</span>
       </div>
-
-      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
+      <div style="overflow:auto;">
+        <table class="table" id="ctTable" aria-label="Crop Types">
+          <thead>
+            <tr>
+              <th style="min-width:160px;">Name</th>
+              <th style="min-width:110px;">Code</th>
+              <th style="min-width:120px;">Color</th>
+              <th style="min-width:170px;">Updated</th>
+              <th style="min-width:140px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ctTbody">
+            <!-- rows injected by fb-crop-types.js -->
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -139,211 +131,14 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View modal -->
-  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
-      <h2 id="qvTitle">Crop Type Records</h2>
-      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="qvClose">Close</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast -->
-  <div id="dfToast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-    padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-    background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;">
-    <span id="dfToastText">Saved</span>
-  </div>
+  <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <script>
-  (function CropTypesPage(){
-    const KEY='df.crops';
-    const $=s=>document.querySelector(s);
-
-    const $name=$('#cropName'), $tw=$('#testWeight'), $mo=$('#standardMoisture'), $id=$('#editingId');
-    const $saved=$('#savedList'), $savedCard=$('#savedCard');
-    const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
-
-    // Robust decimal-only input (iOS-safe). Allows digits and one dot.
-    function wireDecimal(el){
-      // Block obvious invalid keys
-      el.addEventListener('keydown', (e)=>{
-        const bad = ['e','E','+','-'];
-        if (bad.includes(e.key)) return e.preventDefault();
-        // allow navigation, backspace, delete, tab, enter
-        if (['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter'].includes(e.key)) return;
-        // Only one dot
-        if (e.key === '.' && el.value.includes('.')) return e.preventDefault();
-        // Digits OK
-        if (/^\d$/.test(e.key)) return;
-        // Everything else -> block
-        if (e.key !== '.') e.preventDefault();
-      });
-      // Clean pasted text without jumping the caret
-      el.addEventListener('input', ()=>{
-        const start = el.selectionStart;
-        let v = el.value.replace(/[^0-9.]/g,'');
-        const i = v.indexOf('.');
-        if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g,'');
-        el.value = v;
-        // keep caret at end (simplest, reliable on iOS)
-        el.selectionStart = el.selectionEnd = el.value.length;
-      });
-    }
-    wireDecimal($tw); wireDecimal($mo);
-
-    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
-    function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(_){return[]} }
-    function save(list){ localStorage.setItem(KEY, JSON.stringify(list)) }
-    function get(id){ return load().find(x=>x.id===id) }
-    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
-    function remove(id){ save(load().filter(x=>x.id!==id)) }
-    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-') }
-    function toast(msg){ const box=$('#dfToast'),txt=$('#dfToastText'); txt.textContent=msg||'Saved'; box.style.display='block'; clearTimeout(window.__t); window.__t=setTimeout(()=>box.style.display='none',2000); }
-
-    function renderSaved(){
-      const q=($('#searchInput').value||'').toLowerCase().trim();
-      const showA=$('#toggleShowArchived').checked;
-
-      const rows=load()
-        .filter(x=>showA?true:!x.archived)
-        .filter(x=>!q || x.name.toLowerCase().includes(q))
-        .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-
-      $saved.innerHTML = rows.length ? rows.map(r=>`
-        <li>
-          <button type="button" class="btn-secondary" data-id="${r.id}"
-                  style="width:100%; text-align:left; display:block; margin:8px 0;">
-            <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}% ${r.archived?'<em style="opacity:.7">• Archived</em>':''}
-          </button>
-        </li>`).join('') : '<li class="muted" style="margin-top:8px;">No records.</li>';
-
-      $saved.querySelectorAll('button[data-id]').forEach(b=>{
-        b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
-      });
-    }
-
-    function showEditButtons(show, archived=false){
-      $archBtn.style.display = show ? 'inline-block' : 'none';
-      $delBtn.style.display  = show ? 'inline-block' : 'none';
-      $archBtn.textContent = archived ? 'Unarchive' : 'Archive';
-    }
-
-    function openForEdit(id){
-      const item=get(id); if(!item) return;
-      $id.value=item.id; $name.value=item.name; $tw.value=String(item.testWeight); $mo.value=String(item.standardMoisture);
-      showEditButtons(true, item.archived);
-      window.scrollTo({top:0, behavior:'smooth'}); $name.focus();
-    }
-
-    // Save
-    $('#crop-form').addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const pretty=titleCase(($name.value||'').trim()); if(!pretty){$name.focus();return;}
-      const id=$id.value || slug(pretty);
-
-      const list=load();
-      const dup=list.find(x=>x.id!==id && x.name.toLowerCase()===pretty.toLowerCase());
-      if(dup){ alert('That crop already exists.'); return; }
-
-      const prev=list.find(x=>x.id===id);
-      upsert({
-        id, name:pretty,
-        testWeight:Number($tw.value||0),
-        standardMoisture:Number($mo.value||0),
-        unit:'bu',
-        archived: prev ? !!prev.archived : false,
-        createdAt: prev?.createdAt || Date.now(),
-        updatedAt: Date.now()
-      });
-
-      // Exit edit, clear, scroll, toast
-      $('#crop-form').reset(); $id.value='';
-      showEditButtons(false, false);
-      renderSaved();
-      $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
-      toast('Save successful');
-    });
-
-    // Clear
-    $('#clearBtn').addEventListener('click', ()=>{
-      $('#crop-form').reset(); $id.value='';
-      showEditButtons(false,false); $name.focus();
-    });
-
-    // Archive / Unarchive
-    $archBtn.addEventListener('click', ()=>{
-      const id=$id.value; if(!id) return;
-      const item=get(id); if(!item) return;
-      item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
-      showEditButtons(true, item.archived);
-      renderSaved();
-      toast(item.archived ? 'Archived' : 'Unarchived');
-    });
-
-    // Delete
-    $delBtn.addEventListener('click', ()=>{
-      const id=$id.value; if(!id) return;
-      if(confirm('Delete this crop permanently?')){
-        remove(id);
-        $('#crop-form').reset(); $id.value='';
-        showEditButtons(false,false);
-        renderSaved();
-        toast('Deleted');
-      }
-    });
-
-    // Search/filter
-    $('#searchInput').addEventListener('input', renderSaved);
-    $('#toggleShowArchived').addEventListener('change', renderSaved);
-
-    // Quick View (top-right)
-    $('#quickViewBtn').addEventListener('click', ()=>{
-      const list=load().sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
-      const $qvL=$('#qvList'), $qvB=$('#qvBackdrop');
-      $qvL.innerHTML=list.length ? list.map(r=>`
-        <li>
-          <button type="button" class="btn-secondary" data-id="${r.id}"
-                  style="width:100%; text-align:left; display:block; margin:8px 0;">
-            <strong>${r.name}</strong> • Test wt ${r.testWeight}, Moist ${r.standardMoisture}%<br>
-            <em>${r.archived?'Archived':'Active'}</em>
-          </button>
-        </li>`).join('') : '<li>No records.</li>';
-      $qvB.style.display='flex';
-      $qvL.querySelectorAll('button[data-id]').forEach(b=>{
-        b.addEventListener('click', ()=>{
-          $qvB.style.display='none';
-          openForEdit(b.getAttribute('data-id'));
-        });
-      });
-      $('#qvClose').addEventListener('click', ()=> $qvB.style.display='none', {once:true});
-      $qvB.addEventListener('click', (e)=>{ if(e.target===$qvB) $qvB.style.display='none'; }, {once:true});
-    });
-
-    // Seed Corn/Soybeans if empty
-    (function seed(){
-      const list=load(); if(list.length){ renderSaved(); return; }
-      save([
-        { id:'corn', name:'Corn', testWeight:56, standardMoisture:15.5, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() },
-        { id:'soybeans', name:'Soybeans', testWeight:60, standardMoisture:13.0, unit:'bu', archived:false, createdAt:Date.now(), updatedAt:Date.now() }
-      ]);
-      renderSaved();
-    })();
-
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Setup / Settings', href:'settings.html'},
-      {label:'Crop Types'}
-    ]);
-  })();
-  </script>
-
+  <!-- Service worker (from /settings-setup/ → root) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
   </script>
