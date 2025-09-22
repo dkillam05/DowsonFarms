@@ -17,12 +17,12 @@
     })();
   </script>
 
-  <!-- PATHS: honor your tree exactly -->
+  <!-- Honor your tree exactly -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
-  <!-- Global menus (single source of truth). Safe fallback is below in-page if this file is missing. -->
+  <!-- Global menus (single source of truth) -->
   <script defer src="../assets/data/menus.js"></script>
 
   <style>
@@ -113,30 +113,41 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Page logic (INLINE to simplify and de-mystify) -->
+  <!-- Page logic -->
   <script type="module">
     import {
       doc, getDoc, setDoc, getDocs, collection, orderBy, query, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-    /* =============  CONFIG & GLOBALS  ============= */
+    /* ==============================
+       1) Build MENUS from DF_MENUS
+       ============================== */
+
+    function buildMenusFromDF(df){
+      // df is the object from /assets/data/menus.js
+      // Shape: { tiles: [{ label, children:[{label}…] } …] }
+      const out = {};
+      if (!df || !Array.isArray(df.tiles)) return out;
+
+      df.tiles.forEach(tile => {
+        const top = String(tile.label || '').trim();
+        if (!top) return;
+        const kids = Array.isArray(tile.children) ? tile.children : [];
+        const subs = kids.map(k => String(k.label || '').trim()).filter(Boolean);
+        // only include categories that actually contain screens you can permission
+        if (subs.length) out[top] = subs;
+      });
+      return out;
+    }
+
+    // Use DF_MENUS if loaded; otherwise no menus (and nothing renders)
+    const MENUS = buildMenusFromDF(window.DF_MENUS);
+
+    /* ==============================
+       2) UI + FS helpers
+       ============================== */
+
     const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","View Only"];
-
-    // Fallback menus in case ../assets/data/menus.js fails to load.
-    const MENUS = (window.DF_MENUS && typeof window.DF_MENUS==='object' && Object.keys(window.DF_MENUS).length)
-      ? window.DF_MENUS
-      : {
-          "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-          "Grain Tracking": ["Bins","Tickets","Contracts"],
-          "Equipment": ["Maintenance","Repairs","Assignments"],
-          "Calculators": ["Seed Rate","Fertilizer","ROI"],
-          "Reports": ["Crops","Equipment","Financial"],
-          "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-          "Feedback": ["Ideas","Bugs / Issues"],
-          "AI": ["AI","AI History"],
-          "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-        };
-
     const $ = s => document.querySelector(s);
     const el = {
       role: $('#roleName'),
@@ -157,7 +168,6 @@
       }
     };
 
-    /* =============  HELPERS  ============= */
     const deepClone = obj => JSON.parse(JSON.stringify(obj));
     const shallowEqual = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -208,10 +218,11 @@
       return `${on} of ${keys.length} submenus`;
     }
 
-    /* =============  FIRESTORE  ============= */
     async function seedRolesIfEmpty(db){
+      // if MENUS is empty, skip seeding (prevents writing a bad shape)
+      const haveMenus = Object.keys(MENUS).length > 0;
       const snaps = await getDocs(collection(db,'roles'));
-      if (!snaps.empty) return;
+      if (!snaps.empty || !haveMenus) return;
       const base = {}; ensureShape(base);
       for (const name of DEFAULT_ROLES){
         await setDoc(doc(db,'roles',name), { label:name, permissions: base, createdAt: serverTimestamp() }, { merge:true });
@@ -239,7 +250,10 @@
       await setDoc(doc(db,'roles', role), { label: role, permissions: perms, updatedAt: serverTimestamp() }, { merge:true });
     }
 
-    /* =============  PAGE STATE  ============= */
+    /* ==============================
+       3) Page state + rendering
+       ============================== */
+
     let db;
     let activePerms = null;
     let lastSavedPerms = null;
@@ -347,21 +361,30 @@
       el.roleHint.textContent = '';
     }
 
-    /* =============  INIT  ============= */
+    /* ==============================
+       4) Init
+       ============================== */
     (async function start(){
       try{
-        db = await FB.ready();                 // require auth (redirect if not)
-        await seedRolesIfEmpty(db);            // one-time seed if roles empty
+        // 4a) Require auth & confirm MENUS is ready
+        db = await FB.ready();
+        if (!Object.keys(MENUS).length) {
+          console.error('DF_MENUS not available or empty — check ../assets/data/menus.js path');
+          el.roleHint.textContent = 'Menus not loaded';
+          return;
+        }
 
-        // Populate role dropdown
+        // 4b) Seed roles once (after menus are known)
+        await seedRolesIfEmpty(db);
+
+        // 4c) Fill role dropdown
         const roles = await listRoles(db);
         el.role.innerHTML = roles.map(r=>`<option value="${r.label||r.id}">${r.label||r.id}</option>`).join('');
         const last = localStorage.getItem('df_role_selected');
         if (last && roles.some(x=>(x.label||x.id)===last)) el.role.value = last;
 
-        await loadRole(el.role.value);         // load initial role
+        await loadRole(el.role.value);
 
-        // Role switch pulls fresh perms immediately (no Reset button)
         el.role.addEventListener('change', async ()=>{
           localStorage.setItem('df_role_selected', el.role.value);
           await loadRole(el.role.value);
@@ -402,7 +425,7 @@
         el.qvClose.addEventListener('click', ()=> el.qvB.style.display='none');
         el.qvB.addEventListener('click', (e)=>{ if(e.target===el.qvB) el.qvB.style.display='none'; });
 
-        // Footer date (core.js also handles this, but keep as backup)
+        // Footer date (backup; core.js also handles this)
         const d=document.getElementById('report-date');
         try{ d.textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'2-digit',year:'numeric'}).format(new Date()); }
         catch{ d.textContent=new Date().toDateString(); }
