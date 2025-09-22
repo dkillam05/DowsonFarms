@@ -1,12 +1,18 @@
+<!-- File: settings-setup/ss-roles.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- =========================
+       META / TITLE
+  ========================== -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Account Roles — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- =========================
+       THEME PREPAINT
+  ========================== -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -17,15 +23,20 @@
   })();
   </script>
 
-  <!-- Correct relative paths from /settings-setup/ -->
+  <!-- =========================
+       STYLES & APP SCRIPTS
+       (paths are relative to /settings-setup/)
+  ========================== -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
-  <!-- Firebase bootstrap (must be before core.js) -->
-  <script defer src="../js/firebase-init.js"></script>
+  <!-- Your Firebase bootstrap (exposes window.DF_FB = { app, auth, db }) -->
+  <script defer src="../js/firebase.js"></script>
   <script defer src="../js/core.js"></script>
 
+  <!-- =========================
+       PAGE-LOCAL STYLES
+  ========================== -->
   <style>
-    /* responsive pill grid */
     .pill-grid{
       display:grid;
       gap:12px;
@@ -58,9 +69,6 @@
     }
     .subhead{ display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; padding:10px 6px; }
     .subbody{ padding:8px 4px 2px; }
-    .sr{ position:absolute; left:-9999px; }
-    .row-end{ display:flex; gap:10px; align-items:center; justify-content:flex-end; }
-    .actions{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
     .muted-sm{ opacity:.8; font-size:.92rem; }
     .toast{
       display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
@@ -70,7 +78,9 @@
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- =========================
+       HEADER
+  ========================== -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -79,7 +89,9 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- =========================
+       BREADCRUMBS
+  ========================== -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -90,6 +102,9 @@
     </ol>
   </nav>
 
+  <!-- =========================
+       MAIN CONTENT
+  ========================== -->
   <main class="content" data-has-form>
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">🛡️ Account Roles</h1>
@@ -98,6 +113,7 @@
 
     <div style="margin-top:12px;"></div>
 
+    <!-- ===== ROLE SELECT ===== -->
     <form id="role-form" novalidate>
       <section class="card">
         <div class="field">
@@ -106,13 +122,14 @@
         </div>
       </section>
 
+      <!-- ===== PERMISSIONS EDITOR ===== -->
       <section class="card" id="permCard">
         <h2 style="margin:0 0 6px;">Permissions</h2>
         <p class="muted">Expand a menu and set what this role can do. Use “Manage submenus” to fine-tune individual screens.</p>
 
         <div id="menusContainer"></div>
 
-        <div class="actions">
+        <div class="actions" style="display:flex; gap:10px; margin-top:12px; justify-content:center;">
           <button class="btn-primary" type="submit">Save permissions</button>
           <button class="btn-outline" type="button" id="resetBtn">Reset</button>
         </div>
@@ -120,7 +137,9 @@
     </form>
   </main>
 
-  <!-- Footer -->
+  <!-- =========================
+       FOOTER
+  ========================== -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -129,7 +148,9 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View modal -->
+  <!-- =========================
+       QUICK VIEW MODAL
+  ========================== -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Role Permissions — <span id="qvRole">—</span></h2>
@@ -140,11 +161,24 @@
     </div>
   </div>
 
-  <!-- Toast -->
+  <!-- =========================
+       TOAST
+  ========================== -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <script>
-  (function RolesPage(){
+  <!-- =========================
+       PAGE LOGIC (MODULE)
+       - Uses window.DF_FB.db from ../js/firebase.js
+       - Imports Firestore modular helpers from CDN
+  ========================== -->
+  <script type="module">
+    /* ---------- Firestore imports ---------- */
+    import {
+      collection, doc, getDoc, setDoc, getDocs,
+      serverTimestamp, writeBatch, orderBy, query, limit
+    } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
+    /* ---------- DOM shortcuts ---------- */
     const $ = s => document.querySelector(s);
     const el = {
       role: $('#roleName'),
@@ -154,104 +188,102 @@
       qvBtn: $('#quickViewBtn'), qvB: $('#qvBackdrop'), qvList: $('#qvList'), qvClose: $('#qvClose'), qvRole: $('#qvRole'),
     };
 
-    // ----------- REQUIRE AUTH -----------
-    document.addEventListener('DOMContentLoaded', async () => {
-      if (window.DF_FB_API?.requireAuth) { await window.DF_FB_API.requireAuth(); }
-    });
-
-    // ------- Source of truth for menu/submenu labels used by the UI
-    // (We can later switch this to derive from DF_MENUS so roles follow live menus automatically.)
+    /* ---------- MENUS/SUBMENUS (source of truth) ---------- */
+    // If later you want this to follow DF_MENUS automatically, we can wire it up.
     const DEFAULT_MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
       "Equipment": ["Maintenance","Repairs","Assignments"],
       "Calculators": ["Seed Rate","Fertilizer","ROI"],
       "Reports": ["Crops","Equipment","Financial"],
-      "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
+      "Team / Partners": ["Employees","Vendors","Sub-Contractors","Dictionary"],
       "Feedback": ["Ideas","Bugs / Issues"],
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
     const MENUS = DEFAULT_MENUS;
 
-    // ------- Role list (from Firestore, with first-run seeding)
+    /* ---------- DEFAULT ROLE NAMES ---------- */
     const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","View Only"];
 
-    // Firestore helpers
-    const FB = { db: null };
-    async function fbReady(){
-      if (!FB.db) {
-        if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
-        FB.db = window.DF_FB?.db || window.DF_FB_API?.db?.();
-      }
-      return FB.db;
-    }
-    function roleDocId(name){ return name; } // human-readable IDs (safe; no slashes)
+    /* ---------- Firestore handles ---------- */
+    const db = window.DF_FB?.db; // from ../js/firebase.js
+    if (!db) console.warn('Firebase db not found — check ../js/firebase.js loaded correctly.');
 
-    async function seedDefaultRolesIfEmpty(){
-      const db = await fbReady();
-      const snap = await db.collection('roles').limit(1).get();
-      if (!snap.empty) return;
+    const COL_ROLES = collection(db, 'roles');
 
-      const batch = db.batch();
-      DEFAULT_ROLES.forEach(name => {
-        const ref = db.collection('roles').doc(roleDocId(name));
-        const perms = {};
-        Object.keys(MENUS).forEach(menu=>{
-          perms[menu] = {};
-          MENUS[menu].forEach(sub=>{
-            perms[menu][sub] = {view:false, edit:false, add:false, archive:false, delete:false};
-          });
-        });
-        batch.set(ref, { label: name, permissions: perms, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-      });
-      await batch.commit();
-    }
-
-    async function listRoles(){
-      const db = await fbReady();
-      const qs = await db.collection('roles').orderBy('label').get();
-      const list = [];
-      qs.forEach(doc => list.push({ id: doc.id, ...(doc.data()||{}) }));
-      return list;
-    }
-
-    async function loadRolePerms(roleName){
-      const db = await fbReady();
-      const doc = await db.collection('roles').doc(roleDocId(roleName)).get();
-      if (!doc.exists) return null;
-      return doc.data().permissions || null;
-    }
-
-    async function saveRolePerms(roleName, perms){
-      const db = await fbReady();
-      await db.collection('roles').doc(roleDocId(roleName)).set({
-        label: roleName,
-        permissions: perms,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-    }
-
-    // ------- UI store
-    const store = {
-      async load(roleName){
-        const perms = await loadRolePerms(roleName);
-        return perms;
-      },
-      async save(roleName, value){
-        await saveRolePerms(roleName, value);
-      }
-    };
-
-    // ------- UI helpers
-    let activePerms = null;
-
+    /* ---------- Toast helper ---------- */
     function toast(msg){
       el.toastTxt.textContent = msg || 'Saved';
       el.toast.style.display = 'block';
       clearTimeout(window.__t); window.__t = setTimeout(()=>el.toast.style.display='none', 1500);
     }
 
+    /* ---------- Permissions shape helpers ---------- */
+    function blankPerm(){ return {view:false, edit:false, add:false, archive:false, delete:false}; }
+    function ensureShape(perms){
+      Object.keys(MENUS).forEach(menu=>{
+        perms[menu] = perms[menu] || {};
+        MENUS[menu].forEach(sub=>{
+          perms[menu][sub] = perms[menu][sub] || blankPerm();
+        });
+      });
+      return perms;
+    }
+    function menuSummary(perms, menuName){
+      const subs = Object.values(perms[menuName]||{});
+      if (!subs.length) return 'No access';
+      const allFalse = subs.every(p=>!p.view && !p.edit && !p.add && !p.archive && !p.delete);
+      if (allFalse) return 'No access';
+      const allTrue  = subs.every(p=>p.view && p.edit && p.add && p.archive && p.delete);
+      if (allTrue) return 'All';
+      return 'Custom';
+    }
+
+    /* ---------- Seed roles if empty ---------- */
+    async function seedDefaultRolesIfEmpty(){
+      const snap = await getDocs(query(COL_ROLES, limit(1)));
+      if (!snap.empty) return;
+
+      const batch = writeBatch(db);
+      for (const name of DEFAULT_ROLES){
+        const ref = doc(COL_ROLES, name);
+        const perms = {};
+        Object.keys(MENUS).forEach(menu=>{
+          perms[menu] = {};
+          MENUS[menu].forEach(sub=>{
+            perms[menu][sub] = blankPerm();
+          });
+        });
+        batch.set(ref, { label: name, permissions: perms, createdAt: serverTimestamp() });
+      }
+      await batch.commit();
+    }
+
+    /* ---------- Load/save roles ---------- */
+    async function listRoles(){
+      const qs = await getDocs(query(COL_ROLES, orderBy('label')));
+      const out = [];
+      qs.forEach(d => out.push({ id: d.id, ...(d.data()||{}) }));
+      return out;
+    }
+    async function loadRolePerms(roleName){
+      const d = await getDoc(doc(COL_ROLES, roleName));
+      if (!d.exists()) return null;
+      return d.data().permissions || null;
+    }
+    async function saveRolePerms(roleName, perms){
+      await setDoc(doc(COL_ROLES, roleName), {
+        label: roleName,
+        permissions: perms,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
+    /* ---------- UI state ---------- */
+    let activePerms = null;
+
+    /* ---------- UI builders ---------- */
     function pill(label, pressed, onClick){
       const b = document.createElement('button');
       b.type='button'; b.className='pill'; b.textContent=label;
@@ -264,37 +296,11 @@
       return b;
     }
 
-    function menuSummary(perms, menuName){
-      const subs = Object.values(perms[menuName]||{});
-      if (!subs.length) return 'No access';
-      const allFalse = subs.every(p=>!p.view && !p.edit && !p.add && !p.archive && !p.delete);
-      if (allFalse) return 'No access';
-      const allTrue  = subs.every(p=>p.view && p.edit && p.add && p.archive && p.delete);
-      if (allTrue) return 'All';
-      return 'Custom';
-    }
-
-    function ensureShape(perms){
-      // Ensure all MENUS/subs exist in the object
-      Object.keys(MENUS).forEach(menu=>{
-        perms[menu] = perms[menu] || {};
-        MENUS[menu].forEach(sub=>{
-          perms[menu][sub] = perms[menu][sub] || {view:false, edit:false, add:false, archive:false, delete:false};
-        });
-      });
-      return perms;
-    }
-
     async function renderMenus(){
       const role = el.role.value;
-      activePerms = await store.load(role);
-      if (!activePerms) {
-        // If a role doc was deleted, recreate its perm shape
-        activePerms = {};
-        ensureShape(activePerms);
-      } else {
-        ensureShape(activePerms);
-      }
+      activePerms = await loadRolePerms(role);
+      if (!activePerms) activePerms = {};
+      ensureShape(activePerms);
 
       el.menus.innerHTML = '';
 
@@ -312,9 +318,10 @@
 
         const body = document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
+        // Parent row (applies to all submenus)
         const grid = document.createElement('div'); grid.className='pill-grid';
-        const pNames = ['View','Edit','Add','Archive','Delete'];
-        pNames.forEach(name=>{
+        const parentKeys = ['View','Edit','Add','Archive','Delete'];
+        parentKeys.forEach(name=>{
           const key = name.toLowerCase();
           const pressed = MENUS[menuName].every(sm=>activePerms[menuName][sm][key]===true);
           const p = pill(name, pressed, (isOn)=>{
@@ -327,10 +334,11 @@
             });
           });
           p.style.minWidth='118px';
-          body.appendChild(grid);
           grid.appendChild(p);
         });
+        body.appendChild(grid);
 
+        // Submenu fine-tune
         const subWrap = document.createElement('div'); subWrap.className='subwrap';
         const subHead = document.createElement('div'); subHead.className='subhead';
         const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
@@ -351,12 +359,6 @@
             const btn = pill(name, pressed, (isOn)=>{
               activePerms[menuName][sub][key] = isOn;
               right.textContent = menuSummary(activePerms, menuName);
-              const parentBtn = body.querySelector(`.pill[aria-label="${menuName}::${key}"]`);
-              if (parentBtn){
-                const allOn = MENUS[menuName].every(s=>activePerms[menuName][s][key]===true);
-                const allOff= MENUS[menuName].every(s=>activePerms[menuName][s][key]===false);
-                parentBtn.setAttribute('aria-pressed', allOn ? 'true' : (allOff ? 'false' : parentBtn.getAttribute('aria-pressed')));
-              }
             });
             btn.setAttribute('data-sub', `${menuName}::${key}`);
             grid2.appendChild(btn);
@@ -369,10 +371,13 @@
           const open = subBody.style.display !== 'none';
           subBody.style.display = open ? 'none' : 'block';
           subCaret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+          // update summary text for sub area
+          const subs = Object.values(activePerms[menuName]||{});
+          const countOn = subs.filter(p=>p.view||p.edit||p.add||p.archive||p.delete).length;
+          if (!countOn) shR.textContent = 'None';
+          else if (countOn === MENUS[menuName].length) shR.textContent = 'All submenus';
+          else shR.textContent = `${countOn} of ${MENUS[menuName].length} submenus`;
         });
-
-        subWrap.append(subHead, subBody);
-        body.appendChild(subWrap);
 
         head.addEventListener('click', ()=>{
           const open = body.style.display !== 'none';
@@ -380,19 +385,17 @@
           caret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
         });
 
+        subWrap.append(subHead, subBody);
+        body.appendChild(subWrap);
         card.append(head, body);
         el.menus.appendChild(card);
-
-        body.querySelectorAll('.pill').forEach((b,i)=>{
-          const names = ['view','edit','add','archive','delete'];
-          if (i<5) b.setAttribute('aria-label', `${menuName}::${names[i]}`);
-        });
       });
     }
 
+    /* ---------- Save / Reset ---------- */
     async function savePerms(){
       const role = el.role.value;
-      await store.save(role, activePerms);
+      await saveRolePerms(role, activePerms);
     }
 
     function hydrateRoleSelect(list){
@@ -402,50 +405,56 @@
     }
 
     async function initRoles(){
-      await fbReady();
       await seedDefaultRolesIfEmpty();
       const roles = await listRoles();
-      hydrateRoleSelect(roles);
+      // if someone deleted all docs, populate defaults
+      if (!roles.length){
+        await seedDefaultRolesIfEmpty();
+        const again = await listRoles();
+        hydrateRoleSelect(again);
+      } else {
+        hydrateRoleSelect(roles);
+      }
       await renderMenus();
     }
 
-    // Init
+    /* ---------- Boot ---------- */
     (async function start(){
       try {
         await initRoles();
       } catch (e) {
         console.error(e);
-        // fallback: still show UI with empty shape
+        // Last-resort fallback: still show UI with empty local shape
         hydrateRoleSelect(DEFAULT_ROLES.map(label=>({label})));
-        activePerms = {}; Object.keys(MENUS).forEach(m=>{ activePerms[m] = {}; MENUS[m].forEach(sm=>{ activePerms[m][sm] = {view:false, edit:false, add:false, archive:false, delete:false}; }); });
+        activePerms = {}; ensureShape(activePerms);
         renderMenus();
       }
     })();
 
+    /* ---------- Events ---------- */
     el.form.addEventListener('submit', async (e)=>{
       e.preventDefault();
-      try {
+      try{
         await savePerms();
         toast('Permissions saved');
         document.querySelectorAll('.menu-body').forEach(b=>b.style.display='none');
         document.querySelectorAll('.menu-head span:first-child').forEach(c=>c.style.transform='rotate(0deg)');
         window.scrollTo({top:0, behavior:'smooth'});
-      } catch (e) {
-        console.error(e);
+      }catch(err){
+        console.error(err);
         toast('Save failed');
       }
     });
 
     $('#resetBtn').addEventListener('click', async ()=>{
-      // Reload current role perms from Firestore (discard unsaved changes)
-      try {
+      try{
         const role = el.role.value;
-        const perms = await loadRolePerms(role);
-        activePerms = perms ? ensureShape(perms) : ensureShape({});
+        const fresh = await loadRolePerms(role);
+        activePerms = ensureShape(fresh || {});
         await renderMenus();
         toast('Reloaded');
-      } catch (e) {
-        console.error(e);
+      }catch(err){
+        console.error(err);
         toast('Reset failed');
       }
     });
@@ -456,7 +465,7 @@
     });
 
     // Quick View
-    el.qvBtn.addEventListener('click', async ()=>{
+    el.qvBtn.addEventListener('click', ()=>{
       const role = el.role.value; el.qvRole.textContent = role;
       const perms = activePerms || {};
       el.qvList.innerHTML = '';
@@ -476,10 +485,12 @@
       {label:'Setup / Settings', href:'index.html'},
       {label:'Account Roles'}
     ]);
-  })();
   </script>
 
-  <!-- Service worker (from /settings-setup/ → repo root) -->
+  <!-- =========================
+       SERVICE WORKER
+       (path relative to /settings-setup/)
+  ========================== -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
