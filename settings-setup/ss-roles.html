@@ -1,4 +1,3 @@
-<!-- /settings-setup/ss-roles.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,22 +11,20 @@
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-      document.documentElement.setAttribute('data-theme', mode);
-      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+      document.documentElement.style.colorScheme =
+        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
-  <!-- Golden Rule paths (this file lives in /settings-setup/) -->
+  <!-- Correct relative paths from /settings-setup/ -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
-  <!-- IMPORTANT: firebase-init.js is a MODULE -->
-  <script type="module" src="../js/firebase-init.js"></script>
+  <script defer src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
 
   <style>
-    /* ===== Pills / Cards ===== */
-    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));align-items:center}
+    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
     .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
@@ -36,9 +33,9 @@
     .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px}
-    .muted-sm{opacity:.8;font-size:.92rem}
-    .actions{display:flex;gap:10px;margin-top:12px;justify-content:center}
+    .muted-sm{opacity:.85;font-size:.92rem}
     .toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999}
+    .btn-disabled{opacity:.5;pointer-events:none}
   </style>
 </head>
 <body>
@@ -48,7 +45,9 @@
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
-    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+    <div class="app-header__right">
+      <button class="btn-outline" id="logoutBtn">Logout</button>
+    </div>
   </header>
 
   <!-- Breadcrumbs -->
@@ -75,25 +74,25 @@
         <div class="field">
           <label for="roleName">Role</label>
           <select id="roleName" required></select>
+          <small class="muted" id="roleHint" style="display:block;margin-top:4px;"></small>
         </div>
       </section>
 
-      <section class="card" id="permCard" style="margin-top:12px;">
+      <section class="card" id="permCard">
         <h2 style="margin:0 0 6px;">Permissions</h2>
         <p class="muted">Toggle actions at the menu level, or open “Manage submenus” to fine-tune individual screens.</p>
-
         <div id="menusContainer"></div>
-
-        <div class="actions">
-          <button class="btn-primary" type="submit">Save permissions</button>
-          <button class="btn-outline" type="button" id="resetBtn">Reset</button>
+        <div class="row" style="gap:10px;justify-content:center;margin-top:12px;">
+          <button class="btn-primary" type="submit" id="saveBtn" disabled>Save permissions</button>
+          <button class="btn-outline" type="button" id="discardBtn" disabled>Discard changes</button>
         </div>
       </section>
-    </form>
 
-    <div class="row" style="justify-content:flex-start; margin-top:12px;">
-      <a class="btn-outline" href="../teams-partners/team-employee.html">Go to Employees</a>
-    </div>
+      <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <a class="btn-secondary" href="../teams-partners/team-employees.html">Go to Employees</a>
+        <a class="btn-outline" href="index.html">← Back</a>
+      </div>
+    </form>
   </main>
 
   <!-- Footer -->
@@ -109,7 +108,7 @@
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Role Permissions — <span id="qvRole">—</span></h2>
-      <ul id="qvList" style="list-style:disc; margin-left:1.2rem; padding-left:.4rem;"></ul>
+      <ul id="qvList" style="list-style:disc; margin-left:1.2rem; padding-left:.4rem; max-height:min(60vh,520px); overflow:auto;"></ul>
       <div class="modal-actions">
         <button class="btn-secondary" id="qvClose">Close</button>
       </div>
@@ -119,126 +118,60 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- ===== PAGE LOGIC ===== -->
+  <!-- Page logic -->
   <script type="module">
-    /* ───────────────────────────────────────────────────────────────
-       SECTION: Imports & Globals
-       ─────────────────────────────────────────────────────────────── */
     import {
-      collection, doc, getDoc, getDocs, setDoc, query, orderBy,
-      writeBatch, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+      doc, getDoc, setDoc, getDocs, collection, orderBy, query, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
     const $ = s => document.querySelector(s);
     const el = {
       role: $('#roleName'),
+      roleHint: $('#roleHint'),
       menus: $('#menusContainer'),
-      form: $('#role-form'),
+      save:  $('#saveBtn'),
+      discard: $('#discardBtn'),
       toast: $('#dfToast'), toastTxt: $('#dfToastText'),
-      qvBtn: $('#quickViewBtn'), qvB: $('#qvBackdrop'), qvList: $('#qvList'), qvClose: $('#qvClose'), qvRole: $('#qvRole'),
+      qvBtn: $('#quickViewBtn'), qvB: $('#qvBackdrop'), qvList: $('#qvList'), qvRole: $('#qvRole'), qvClose: $('#qvClose'),
+      logout: $('#logoutBtn')
     };
 
-    // Wait for firebase-init to attach DF_FB (db/app/auth)
-    async function fbReady(maxMs=4000){
-      const start = performance.now();
-      while (!(window.DF_FB && window.DF_FB.db)) {
-        if (performance.now() - start > maxMs) break;
-        await new Promise(r=>setTimeout(r, 50));
-      }
-      return window.DF_FB?.db || null;
-    }
-
-    // Menus map (uses DF_MENUS if present — your global)
-    const DEFAULT_MENUS = {
-      "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-      "Grain Tracking": ["Bins","Tickets","Contracts"],
-      "Equipment": ["Maintenance","Repairs","Assignments"],
-      "Calculators": ["Seed Rate","Fertilizer","ROI"],
-      "Reports": ["Crops","Equipment","Financial"],
-      "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-      "Feedback": ["Ideas","Bugs / Issues"],
-      "AI": ["AI","AI History"],
-      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-    };
-    const MENUS = (window.DF_MENUS && typeof window.DF_MENUS==='object') ? window.DF_MENUS : DEFAULT_MENUS;
+    const MENUS = (window.DF_MENUS && typeof window.DF_MENUS==='object' && Object.keys(window.DF_MENUS).length)
+      ? window.DF_MENUS
+      : {
+          "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
+          "Grain Tracking": ["Bins","Tickets","Contracts"],
+          "Equipment": ["Maintenance","Repairs","Assignments"],
+          "Calculators": ["Seed Rate","Fertilizer","ROI"],
+          "Reports": ["Crops","Equipment","Financial"],
+          "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
+          "Feedback": ["Ideas","Bugs / Issues"],
+          "AI": ["AI","AI History"],
+          "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+        };
 
     const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","View Only"];
-    const blank = () => ({view:false, edit:false, add:false, archive:false, delete:false});
 
-    function ensureShape(perms = {}){
-      Object.keys(MENUS).forEach(menu=>{
-        perms[menu] = perms[menu] || {};
-        MENUS[menu].forEach(sub=>{
-          perms[menu][sub] = perms[menu][sub] || blank();
-        });
-      });
-      return perms;
-    }
-    function menuSummary(perms, menuName){
-      const subs = Object.values(perms[menuName]||{});
-      if (!subs.length) return 'No access';
-      const allFalse = subs.every(p=>!p.view && !p.edit && !p.add && !p.archive && !p.delete);
-      if (allFalse) return 'No access';
-      const allTrue  = subs.every(p=>p.view && p.edit && p.add && p.archive && p.delete);
-      if (allTrue) return 'All';
-      return 'Custom';
-    }
+    const FB = {
+      async ready(){
+        if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
+        const user = window.DF_FB?.auth?.currentUser;
+        if (!user) location.replace("../auth/login.html");
+        return window.DF_FB.db;
+      }
+    };
+
+    // ---------- utils ----------
+    const deepClone = obj => JSON.parse(JSON.stringify(obj));
+    const shallowEqual = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 
     function toast(msg){
       el.toastTxt.textContent = msg || 'Saved';
       el.toast.style.display = 'block';
-      clearTimeout(window.__t); window.__t = setTimeout(()=> el.toast.style.display='none', 1500);
+      clearTimeout(window.__t); window.__t = setTimeout(()=> el.toast.style.display='none', 1600);
     }
 
-    /* ───────────────────────────────────────────────────────────────
-       SECTION: Firestore helpers (with hard-seeding)
-       ─────────────────────────────────────────────────────────────── */
-    let db = null;
-    const roleId = (name)=> name; // readable ids
-
-    async function seedDefaultsIfEmpty(){
-      const ROLES = collection(db, "roles");
-      const snap = await getDocs(query(ROLES, orderBy('label')));
-      if (!snap.empty) return;
-
-      const batch = writeBatch(db);
-      DEFAULT_ROLES.forEach(name=>{
-        const ref = doc(ROLES, roleId(name));
-        const perms = {};
-        Object.keys(MENUS).forEach(m=>{
-          perms[m] = {};
-          MENUS[m].forEach(sm=> perms[m][sm] = blank());
-        });
-        batch.set(ref, { label:name, permissions:perms, createdAt:serverTimestamp(), updatedAt:serverTimestamp() });
-      });
-      await batch.commit();
-      console.log('[roles] Seeded defaults');
-    }
-
-    async function listRolesFS(){
-      const ROLES = collection(db, "roles");
-      const snap = await getDocs(query(ROLES, orderBy('label')));
-      const arr = [];
-      snap.forEach(d=> arr.push({ id:d.id, ...(d.data()||{}) }));
-      return arr;
-    }
-    async function loadRolePermsFS(name){
-      const d = await getDoc(doc(collection(db,"roles"), roleId(name)));
-      if (!d.exists()) return null;
-      return d.data().permissions || null;
-    }
-    async function saveRolePermsFS(name, perms){
-      await setDoc(doc(collection(db,"roles"), roleId(name)), {
-        label:name, permissions:perms, updatedAt:serverTimestamp()
-      }, { merge:true });
-    }
-
-    /* ───────────────────────────────────────────────────────────────
-       SECTION: UI render (pills, collapsibles, quick view)
-       ─────────────────────────────────────────────────────────────── */
-    let activePerms = {};
-
-    function makePill(label, pressed, onToggle){
+    function pill(label, pressed, onToggle){
       const b=document.createElement('button');
       b.type='button'; b.className='pill'; b.textContent=label;
       b.setAttribute('aria-pressed', pressed?'true':'false');
@@ -250,192 +183,246 @@
       return b;
     }
 
-    async function renderMenus(){
-      el.menus.innerHTML = '';
-      const role = el.role.value;
+    function ensureShape(perms){
+      Object.keys(MENUS).forEach(menu=>{
+        perms[menu] = perms[menu] || {};
+        MENUS[menu].forEach(sm=>{
+          perms[menu][sm] = perms[menu][sm] || {view:false, edit:false, add:false, archive:false, delete:false};
+        });
+      });
+      return perms;
+    }
 
-      // Load perms (FS or local)
-      try{
-        if (db) {
-          const stored = await loadRolePermsFS(role);
-          activePerms = ensureShape(stored || {});
-        } else {
-          // local fallback keeps UX alive
-          activePerms = ensureShape({});
-        }
-      } catch (e){
-        console.error('[roles] load perms failed', e);
-        activePerms = ensureShape({});
+    function menuSummary(perms, menu){
+      const subs = Object.values(perms[menu]||{});
+      if (!subs.length) return 'No access';
+      const allFalse = subs.every(p=>!p.view && !p.edit && !p.add && !p.archive && !p.delete);
+      if (allFalse) return 'No access';
+      const allTrue  = subs.every(p=>p.view && p.edit && p.add && p.archive && p.delete);
+      if (allTrue) return 'All';
+      return 'Custom';
+    }
+    function summarizeChildren(perms, menu){
+      const keys = Object.keys(perms[menu]||{});
+      const on = keys.filter(k=>{
+        const p = perms[menu][k]; return p.view||p.edit||p.add||p.archive||p.delete;
+      }).length;
+      if (!on) return 'None';
+      if (on===keys.length) return 'All submenus';
+      return `${on} of ${keys.length} submenus`;
+    }
+
+    // ---------- Firestore ops ----------
+    async function seedRolesIfEmpty(db){
+      const snaps = await getDocs(collection(db,'roles'));
+      if (!snaps.empty) return;
+      const base = {}; ensureShape(base);
+      for (const name of DEFAULT_ROLES){
+        await setDoc(doc(db,'roles',name), { label:name, permissions: base, createdAt: serverTimestamp() }, { merge:true });
       }
+    }
+    async function listRoles(db){
+      let out=[];
+      try{
+        const qy = query(collection(db,'roles'), orderBy('label'));
+        const snaps = await getDocs(qy);
+        snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
+      }catch{
+        const snaps = await getDocs(collection(db,'roles'));
+        snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
+      }
+      if (!out.length) out = DEFAULT_ROLES.map(label=>({id:label,label}));
+      return out;
+    }
+    async function loadPerms(db, role){
+      const snap = await getDoc(doc(db,'roles', role));
+      const data = snap.exists()? (snap.data()||{}) : {};
+      return ensureShape(data.permissions || {});
+    }
+    async function savePerms(db, role, perms){
+      await setDoc(doc(db,'roles', role), { label: role, permissions: perms, updatedAt: serverTimestamp() }, { merge:true });
+    }
 
+    // ---------- page state ----------
+    let db;
+    let activePerms = null;       // live edits
+    let lastSavedPerms = null;    // snapshot from Firestore (or after save)
+
+    function setDirtyState(){
+      const dirty = !shallowEqual(activePerms, lastSavedPerms);
+      el.save.disabled = !dirty;
+      el.discard.disabled = !dirty;
+    }
+
+    function renderMenus(){
+      el.menus.innerHTML = '';
       Object.keys(MENUS).forEach(menuName=>{
-        const card=document.createElement('div'); card.className='menu-card';
+        const card = document.createElement('div'); card.className='menu-card';
 
-        const head=document.createElement('div'); head.className='menu-head';
-        const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
-        const caret=document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
-        const title=document.createElement('strong'); title.textContent=menuName;
+        const head = document.createElement('div'); head.className='menu-head';
+        const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
+        const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
+        const title = document.createElement('strong'); title.textContent = menuName;
         left.append(caret,title);
-        const right=document.createElement('div'); right.className='muted-sm'; right.textContent = menuSummary(activePerms, menuName);
+        const right = document.createElement('div'); right.className='muted-sm';
         head.append(left,right);
 
-        const body=document.createElement('div'); body.className='menu-body'; body.style.display='none';
+        const body = document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
-        // Top-level 5 pills
-        const grid=document.createElement('div'); grid.className='pill-grid';
-        const keys=['View','Edit','Add','Archive','Delete'];
-        keys.forEach(name=>{
-          const k=name.toLowerCase();
-          const pressed = MENUS[menuName].every(sm=> activePerms[menuName][sm][k]===true );
-          const pill=makePill(name, pressed, (isOn)=>{
-            MENUS[menuName].forEach(sm=> activePerms[menuName][sm][k]=isOn );
+        const grid = document.createElement('div'); grid.className='pill-grid';
+        ['View','Edit','Add','Archive','Delete'].forEach(name=>{
+          const k = name.toLowerCase();
+          const pressed = MENUS[menuName].every(sm => !!activePerms[menuName][sm][k]);
+          const p = pill(name, pressed, (isOn)=>{
+            MENUS[menuName].forEach(sm => activePerms[menuName][sm][k] = isOn);
             right.textContent = menuSummary(activePerms, menuName);
-            body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(b=> b.setAttribute('aria-pressed', isOn?'true':'false'));
+            body.querySelectorAll(`[data-sub="${menuName}::${k}"]`).forEach(btn=>{
+              btn.setAttribute('aria-pressed', isOn ? 'true':'false');
+            });
+            setDirtyState();
           });
-          pill.style.minWidth='118px';
-          grid.appendChild(pill);
+          p.setAttribute('aria-label', `${menuName}::${k}`);
+          grid.appendChild(p);
         });
         body.appendChild(grid);
 
-        // Submenus block
-        const subWrap=document.createElement('div'); subWrap.className='subwrap';
-        const sh=document.createElement('div'); sh.className='subhead';
-        const shL=document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
-        const subCaret=document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
-        const shT=document.createElement('strong'); shT.textContent='Manage submenus';
-        shL.append(subCaret,shT);
-        const shR=document.createElement('span'); shR.className='muted-sm'; shR.textContent=' ';
-        sh.append(shL,shR);
-        const subBody=document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
+        const subWrap = document.createElement('div'); subWrap.className='subwrap';
+        const sh = document.createElement('div'); sh.className='subhead';
+        const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
+        const subCaret = document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
+        const shT = document.createElement('strong'); shT.textContent='Manage submenus';
+        shL.append(subCaret, shT);
+        const shR = document.createElement('span'); shR.className='muted-sm';
+        sh.append(shL, shR);
+        const subBody = document.createElement('div'); subBody.className='subbody'; subBody.style.display='none';
 
-        MENUS[menuName].forEach(sub=>{
-          const sec=document.createElement('section'); sec.style.margin='10px 0 14px';
-          const h=document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent=`${menuName} › ${sub}`;
-          const grid2=document.createElement('div'); grid2.className='pill-grid';
+        MENUS[menuName].forEach(sm=>{
+          const section = document.createElement('section'); section.style.margin='10px 0 14px';
+          const h = document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent = `${menuName} › ${sm}`;
+          const grid2 = document.createElement('div'); grid2.className='pill-grid';
           ['View','Edit','Add','Archive','Delete'].forEach(name=>{
-            const k=name.toLowerCase();
-            const pressed=!!activePerms[menuName][sub][k];
-            const btn=makePill(name, pressed, (isOn)=>{
-              activePerms[menuName][sub][k]=isOn;
-              // update summary counts
-              const subs = MENUS[menuName];
-              const countOn = subs.filter(s=>{
-                const p = activePerms[menuName][s];
-                return p.view||p.edit||p.add||p.archive||p.delete;
-              }).length;
-              shR.textContent = !countOn ? 'None' : (countOn===subs.length ? 'All submenus' : `${countOn} of ${subs.length} submenus`);
+            const k = name.toLowerCase();
+            const btn = pill(name, !!activePerms[menuName][sm][k], (isOn)=>{
+              activePerms[menuName][sm][k] = isOn;
+              shR.textContent = summarizeChildren(activePerms, menuName);
               right.textContent = menuSummary(activePerms, menuName);
+              // sync parent button if all-on/off
+              const allOn  = MENUS[menuName].every(s=>activePerms[menuName][s][k]===true);
+              const allOff = MENUS[menuName].every(s=>activePerms[menuName][s][k]===false);
+              const parentBtn = body.querySelector(`.pill[aria-label="${menuName}::${k}"]`);
+              if (parentBtn) parentBtn.setAttribute('aria-pressed', allOn ? 'true' : (allOff ? 'false' : parentBtn.getAttribute('aria-pressed')));
+              setDirtyState();
             });
             btn.setAttribute('data-sub', `${menuName}::${k}`);
             grid2.appendChild(btn);
           });
-          sec.append(h,grid2);
-          subBody.appendChild(sec);
+          section.append(h, grid2);
+          subBody.appendChild(section);
         });
 
         sh.addEventListener('click', ()=>{
-          const open=subBody.style.display!=='none';
-          subBody.style.display=open?'none':'block';
-          subCaret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
+          const open = subBody.style.display !== 'none';
+          subBody.style.display = open ? 'none' : 'block';
+          subCaret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
         });
 
-        subWrap.append(sh,subBody);
+        subWrap.append(sh, subBody);
         body.appendChild(subWrap);
 
         head.addEventListener('click', ()=>{
-          const open=body.style.display!=='none';
-          body.style.display=open?'none':'block';
-          caret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
+          const open = body.style.display !== 'none';
+          body.style.display = open ? 'none' : 'block';
+          caret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
         });
 
-        card.append(head,body);
+        right.textContent = menuSummary(activePerms, menuName);
+        shR.textContent   = summarizeChildren(activePerms, menuName);
+
+        card.append(head, body);
         el.menus.appendChild(card);
       });
+      setDirtyState();
     }
 
-    function hydrateRoleSelect(list){
-      el.role.innerHTML = list.map(r=>`<option value="${r.label}">${r.label}</option>`).join('');
-      const last = localStorage.getItem('df_role_selected');
-      if (last && list.some(x=>x.label===last)) el.role.value = last;
+    async function loadRole(roleName){
+      el.roleHint.textContent = 'Loading…';
+      activePerms = ensureShape(await loadPerms(db, roleName));
+      lastSavedPerms = deepClone(activePerms);
+      renderMenus();
+      el.roleHint.textContent = '';
     }
 
-    /* ───────────────────────────────────────────────────────────────
-       SECTION: Init & Events
-       ─────────────────────────────────────────────────────────────── */
-    (async function init(){
-      db = await fbReady();
-      if (!db){
-        console.warn('[roles] Firestore not available — rendering local fallback.');
-        hydrateRoleSelect(DEFAULT_ROLES.map(label=>({label})));
-        await renderMenus();
-        return;
-      }
+    // ---------- init ----------
+    (async function start(){
       try{
-        await seedDefaultsIfEmpty();
-        const roles = await listRolesFS();
-        hydrateRoleSelect(roles);
-        await renderMenus();
-      }catch(err){
-        console.error('[roles] init failed', err);
-        hydrateRoleSelect(DEFAULT_ROLES.map(label=>({label})));
-        await renderMenus();
+        db = await FB.ready();
+        await seedRolesIfEmpty(db);
+
+        const roles = await listRoles(db);
+        el.role.innerHTML = roles.map(r=>`<option value="${r.label||r.id}">${r.label||r.id}</option>`).join('');
+        const last = localStorage.getItem('df_role_selected');
+        if (last && roles.some(x=>(x.label||x.id)===last)) el.role.value = last;
+
+        await loadRole(el.role.value);
+
+        el.role.addEventListener('change', async ()=>{
+          localStorage.setItem('df_role_selected', el.role.value);
+          await loadRole(el.role.value);          // ← always pulls fresh from Firestore on change
+        });
+
+        // Save = write to Firestore
+        document.getElementById('role-form').addEventListener('submit', async (e)=>{
+          e.preventDefault();
+          try{
+            await savePerms(db, el.role.value, activePerms);
+            lastSavedPerms = deepClone(activePerms);   // update snapshot
+            setDirtyState();
+            toast('Permissions saved');
+          }catch(err){
+            console.error(err);
+            toast(navigator.onLine ? 'Save failed' : 'Offline — not saved');
+          }
+        });
+
+        // Discard changes = local revert only (no network)
+        el.discard.addEventListener('click', ()=>{
+          activePerms = deepClone(lastSavedPerms);
+          renderMenus();
+          toast('Changes discarded');
+        });
+
+        // Quick View
+        el.qvBtn.addEventListener('click', ()=>{
+          el.qvRole.textContent = el.role.value;
+          el.qvList.innerHTML = '';
+          Object.keys(MENUS).forEach(menu=>{
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${menu}</strong> — ${menuSummary(activePerms, menu)}`;
+            el.qvList.appendChild(li);
+          });
+          document.getElementById('qvBackdrop').style.display='flex';
+        });
+        el.qvClose.addEventListener('click', ()=> document.getElementById('qvBackdrop').style.display='none');
+        document.getElementById('qvBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='qvBackdrop') e.target.style.display='none'; });
+
+        // Logout
+        el.logout.addEventListener('click', async ()=>{
+          try{ await window.DF_FB_API?.signOut(); location.href="../auth/login.html"; }
+          catch(e){ console.error(e); }
+        });
+
+        // Footer date as a backup (core.js also handles this)
+        const d=document.getElementById('report-date');
+        try{ d.textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'2-digit',year:'numeric'}).format(new Date()); }
+        catch{ d.textContent=new Date().toDateString(); }
+      }catch(e){
+        console.error(e);
+        toast('Init failed');
       }
     })();
-
-    el.form.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      try{
-        if (!db) { toast('Offline mode — not saved'); return; }
-        await saveRolePermsFS(el.role.value, activePerms);
-        toast('Permissions saved');
-        // collapse for tidiness
-        document.querySelectorAll('.menu-body').forEach(b=>b.style.display='none');
-        document.querySelectorAll('.menu-head span:first-child').forEach(c=>c.style.transform='rotate(0deg)');
-        window.scrollTo({top:0, behavior:'smooth'});
-      }catch(err){ console.error(err); toast('Save failed'); }
-    });
-
-    $('#resetBtn').addEventListener('click', async ()=>{
-      try{
-        if (db){
-          const perms = await loadRolePermsFS(el.role.value);
-          activePerms = ensureShape(perms || {});
-        } else {
-          activePerms = ensureShape({});
-        }
-        await renderMenus();
-        toast('Reloaded');
-      }catch(err){ console.error(err); toast('Reset failed'); }
-    });
-
-    el.role.addEventListener('change', async ()=>{
-      localStorage.setItem('df_role_selected', el.role.value);
-      await renderMenus();
-    });
-
-    // Quick View
-    el.qvBtn.addEventListener('click', ()=>{
-      el.qvRole.textContent = el.role.value || '—';
-      el.qvList.innerHTML = '';
-      Object.keys(MENUS).forEach(menu=>{
-        const li=document.createElement('li');
-        li.innerHTML = `<strong>${menu}</strong> — ${menuSummary(activePerms, menu)}`;
-        el.qvList.appendChild(li);
-      });
-      $('#qvBackdrop').style.display='flex';
-    });
-    el.qvClose.addEventListener('click', ()=> $('#qvBackdrop').style.display='none');
-    $('#qvBackdrop').addEventListener('click', (e)=>{ if(e.target===e.currentTarget) e.currentTarget.style.display='none'; });
-
-    // Breadcrumbs helper
-    window.setBreadcrumbs?.([
-      {label:'Home', href:'../index.html'},
-      {label:'Setup / Settings', href:'index.html'},
-      {label:'Account Roles'}
-    ]);
   </script>
 
-  <!-- Service worker (root) -->
+  <!-- Service worker (from /settings-setup/ → repo root) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
