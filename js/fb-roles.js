@@ -5,7 +5,7 @@ import {
   doc, getDoc, setDoc, getDocs, collection, orderBy, query, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// Build MENUS from DF_MENUS (global nav source of truth)
+/* ---------- MENUS from DF_MENUS (global) ---------- */
 function buildMenusFromDF(df) {
   const out = {};
   if (!df || !Array.isArray(df.tiles)) return out;
@@ -20,6 +20,7 @@ function buildMenusFromDF(df) {
 }
 const MENUS = buildMenusFromDF(window.DF_MENUS);
 
+/* ---------- UI refs ---------- */
 const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","View Only"];
 const $ = s => document.querySelector(s);
 const el = {
@@ -33,16 +34,20 @@ const el = {
   qvRole: $('#qvRole'), qvClose: $('#qvClose')
 };
 
+/* ---------- Auth/DB helper ---------- */
 const FB = {
   async ready() {
     if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
     const user = window.DF_FB?.auth?.currentUser;
     if (!user) { location.replace("../auth/login.html"); throw new Error("No auth"); }
+    // keep watching; if token dies, bounce to login
+    window.DF_FB_API.onAuth(u => { if (!u) location.replace("../auth/login.html"); });
     return window.DF_FB.db;
   }
 };
 
-const deepClone = obj => JSON.parse(JSON.stringify(obj));
+/* ---------- utils ---------- */
+const deepClone   = obj => JSON.parse(JSON.stringify(obj));
 const shallowEqual = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 
 function toast(msg){
@@ -93,6 +98,7 @@ function summarizeChildren(perms, menu){
   return `${on} of ${keys.length} submenus`;
 }
 
+/* ---------- Firestore helpers ---------- */
 async function seedRolesIfEmpty(db){
   const haveMenus = Object.keys(MENUS).length > 0;
   const snaps = await getDocs(collection(db,"roles"));
@@ -124,7 +130,7 @@ async function savePerms(db, role, perms){
   await setDoc(doc(db,"roles", role), { label: role, permissions: perms, updatedAt: serverTimestamp() }, { merge:true });
 }
 
-// ========== Page state + rendering ==========
+/* ---------- Page state + rendering ---------- */
 let db;
 let activePerms = null;
 let lastSavedPerms = null;
@@ -221,4 +227,76 @@ function renderMenus(){
     card.append(head, body);
     el.menus.appendChild(card);
   });
-  set
+  setDirtyState();
+}
+
+async function loadRole(roleName){
+  el.roleHint.textContent = "Loading…";
+  activePerms = ensureShape(await loadPerms(db, roleName));
+  lastSavedPerms = deepClone(activePerms);
+  renderMenus();
+  el.roleHint.textContent = "";
+}
+
+/* ---------- Init ---------- */
+(async function start(){
+  try{
+    db = await FB.ready();
+
+    if (!Object.keys(MENUS).length) {
+      console.error("DF_MENUS not available or empty — check ../assets/data/menus.js path");
+      el.roleHint.textContent = "Menus not loaded";
+      return;
+    }
+
+    await seedRolesIfEmpty(db);
+
+    const roles = await listRoles(db);
+    el.role.innerHTML = roles.map(r=>`<option value="${r.label||r.id}">${r.label||r.id}</option>`).join('');
+    const last = localStorage.getItem('df_role_selected');
+    if (last && roles.some(x=>(x.label||x.id)===last)) el.role.value = last;
+
+    await loadRole(el.role.value || roles[0]?.label || roles[0]?.id || "Administrator");
+
+    el.role.addEventListener('change', async ()=>{
+      localStorage.setItem('df_role_selected', el.role.value);
+      await loadRole(el.role.value);
+    });
+
+    document.getElementById('role-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      try{
+        await savePerms(db, el.role.value, activePerms);
+        lastSavedPerms = deepClone(activePerms);
+        setDirtyState();
+        toast('Permissions saved');
+      }catch(err){
+        console.error(err);
+        toast(navigator.onLine ? 'Save failed' : 'Offline — not saved');
+      }
+    });
+
+    el.discard.addEventListener('click', ()=>{
+      activePerms = deepClone(lastSavedPerms);
+      renderMenus();
+      toast('Changes discarded');
+    });
+
+    el.qvBtn.addEventListener('click', ()=>{
+      el.qvRole.textContent = el.role.value;
+      el.qvList.innerHTML = '';
+      Object.keys(MENUS).forEach(menu=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${menu}</strong> — ${menuSummary(activePerms, menu)}`;
+        el.qvList.appendChild(li);
+      });
+      el.qvB.style.display='flex';
+    });
+    el.qvClose.addEventListener('click', ()=> el.qvB.style.display='none');
+    el.qvB.addEventListener('click', (e)=>{ if(e.target===el.qvB) el.qvB.style.display='none'; });
+
+  }catch(e){
+    console.error(e);
+    try { toast('Init failed'); } catch(_) {}
+  }
+})();
