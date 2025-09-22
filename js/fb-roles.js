@@ -39,9 +39,9 @@ const FB = {
   async ready() {
     if (window.DF_FB_API?.init) { await window.DF_FB_API.init(); }
     const user = window.DF_FB?.auth?.currentUser;
-    if (!user) { location.replace("../auth/login.html"); throw new Error("No auth"); }
+    if (!user) { location.replace("../auth/index.html"); throw new Error("No auth"); }
     // keep watching; if token dies, bounce to login
-    window.DF_FB_API.onAuth(u => { if (!u) location.replace("../auth/login.html"); });
+    window.DF_FB_API.onAuth(u => { if (!u) location.replace("../auth/index.html"); });
     return window.DF_FB.db;
   }
 };
@@ -199,7 +199,7 @@ function renderMenus(){
           if (parentBtn) parentBtn.setAttribute("aria-pressed", allOn ? "true" : (allOff ? "false" : parentBtn.getAttribute("aria-pressed")));
           setDirtyState();
         });
-        btn.setAttribute("data-sub", `${menuName}::${k}`);
+        btn.setAttribute("data-sub", `${menuName}::${k}");
         grid2.appendChild(btn);
       });
       section.append(h, grid2);
