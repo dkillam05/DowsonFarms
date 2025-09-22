@@ -20,7 +20,10 @@
   <!-- Honor your tree exactly -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
-  <script defer src="../js/firebase-init.js"></script>
+
+  <!-- IMPORTANT: firebase-init is an ES module -->
+  <script type="module" src="../js/firebase-init.js"></script>
+
   <script defer src="../js/core.js"></script>
   <!-- Global menus (single source of truth) -->
   <script defer src="../assets/data/menus.js"></script>
@@ -113,6 +116,28 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
+  <!-- Auth guard: if not logged in, bounce to /auth/login.html -->
+  <script>
+    (function authGuard(){
+      let tries = 0;
+      function check(){
+        tries++;
+        if (!window.DF_FB || !window.DF_FB_API) {
+          if (tries < 15) return setTimeout(check, 80);
+          return location.replace("../auth/login.html");
+        }
+        if (window.DF_FB.auth && !window.DF_FB.auth.currentUser) {
+          return location.replace("../auth/login.html");
+        }
+        // Stay subscribed: if token expires we’ll bounce
+        window.DF_FB_API.onAuth(function(user){
+          if (!user) location.replace("../auth/login.html");
+        });
+      }
+      check();
+    })();
+  </script>
+
   <!-- Page logic -->
   <script type="module">
     import {
@@ -122,31 +147,23 @@
     /* ==============================
        1) Build MENUS from DF_MENUS
        ============================== */
-
     function buildMenusFromDF(df){
-      // df is the object from /assets/data/menus.js
-      // Shape: { tiles: [{ label, children:[{label}…] } …] }
       const out = {};
       if (!df || !Array.isArray(df.tiles)) return out;
-
       df.tiles.forEach(tile => {
         const top = String(tile.label || '').trim();
         if (!top) return;
         const kids = Array.isArray(tile.children) ? tile.children : [];
         const subs = kids.map(k => String(k.label || '').trim()).filter(Boolean);
-        // only include categories that actually contain screens you can permission
         if (subs.length) out[top] = subs;
       });
       return out;
     }
-
-    // Use DF_MENUS if loaded; otherwise no menus (and nothing renders)
     const MENUS = buildMenusFromDF(window.DF_MENUS);
 
     /* ==============================
        2) UI + FS helpers
        ============================== */
-
     const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","View Only"];
     const $ = s => document.querySelector(s);
     const el = {
@@ -219,7 +236,6 @@
     }
 
     async function seedRolesIfEmpty(db){
-      // if MENUS is empty, skip seeding (prevents writing a bad shape)
       const haveMenus = Object.keys(MENUS).length > 0;
       const snaps = await getDocs(collection(db,'roles'));
       if (!snaps.empty || !haveMenus) return;
@@ -253,7 +269,6 @@
     /* ==============================
        3) Page state + rendering
        ============================== */
-
     let db;
     let activePerms = null;
     let lastSavedPerms = null;
@@ -366,7 +381,6 @@
        ============================== */
     (async function start(){
       try{
-        // 4a) Require auth & confirm MENUS is ready
         db = await FB.ready();
         if (!Object.keys(MENUS).length) {
           console.error('DF_MENUS not available or empty — check ../assets/data/menus.js path');
@@ -374,10 +388,8 @@
           return;
         }
 
-        // 4b) Seed roles once (after menus are known)
         await seedRolesIfEmpty(db);
 
-        // 4c) Fill role dropdown
         const roles = await listRoles(db);
         el.role.innerHTML = roles.map(r=>`<option value="${r.label||r.id}">${r.label||r.id}</option>`).join('');
         const last = localStorage.getItem('df_role_selected');
@@ -390,7 +402,6 @@
           await loadRole(el.role.value);
         });
 
-        // Save → Firestore
         document.getElementById('role-form').addEventListener('submit', async (e)=>{
           e.preventDefault();
           try{
@@ -404,16 +415,14 @@
           }
         });
 
-        // Discard local edits
         el.discard.addEventListener('click', ()=>{
           activePerms = deepClone(lastSavedPerms);
           renderMenus();
           toast('Changes discarded');
         });
 
-        // Quick View
         el.qvBtn.addEventListener('click', ()=>{
-          $('#qvRole').textContent = el.role.value;
+          document.getElementById('qvRole').textContent = el.role.value;
           el.qvList.innerHTML = '';
           Object.keys(MENUS).forEach(menu=>{
             const li = document.createElement('li');
@@ -425,7 +434,6 @@
         el.qvClose.addEventListener('click', ()=> el.qvB.style.display='none');
         el.qvB.addEventListener('click', (e)=>{ if(e.target===el.qvB) el.qvB.style.display='none'; });
 
-        // Footer date (backup; core.js also handles this)
         const d=document.getElementById('report-date');
         try{ d.textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'2-digit',year:'numeric'}).format(new Date()); }
         catch{ d.textContent=new Date().toDateString(); }
