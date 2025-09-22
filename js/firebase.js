@@ -1,11 +1,11 @@
-<!-- /js/firebase.js -->
-<script type="module">
+// /js/firebase.js
 // Firebase SDKs (modular, from Google CDN)
+
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import { getAuth }         from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 import { getFirestore }    from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-// === YOUR CONFIG (from your message) ===
+// === Your Firebase config ===
 const firebaseConfig = {
   apiKey: "AIzaSyA2QgzfthK3EhIyQsuX3hb4WU-i-tbFVv8",
   authDomain: "dowsonfarms-528ab.firebaseapp.com",
@@ -16,10 +16,12 @@ const firebaseConfig = {
   measurementId: "G-E82B957E0K"
 };
 
+// Init Firebase app + services
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-// Expose for pages
+// Expose globally so other scripts can use it
 window.DF_FB = { app, auth, db };
-</script>
+
+console.log("✅ Firebase initialized:", app.name);
