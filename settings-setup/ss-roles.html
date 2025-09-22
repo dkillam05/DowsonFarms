@@ -17,16 +17,13 @@
     })();
   </script>
 
-  <!-- Honor tree exactly -->
+  <!-- Honor your tree exactly -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
-
-  <!-- Firebase init -->
   <script type="module" src="../js/firebase-init.js"></script>
-
-  <!-- Core / Menus -->
   <script defer src="../js/core.js"></script>
   <script defer src="../assets/data/menus.js"></script>
+  <script type="module" src="../js/fb-roles.js"></script>
 
   <style>
     .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
@@ -116,10 +113,7 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Page logic -->
-  <script type="module" src="../js/fb-roles.js"></script>
-
-  <!-- Service worker (relative to /settings-setup/) -->
+  <!-- Service worker (from /settings-setup/ → root) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
