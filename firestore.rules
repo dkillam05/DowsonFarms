@@ -17,13 +17,21 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
+
     match /employees/{doc} {
       allow read, write: if request.auth != null;
     }
+
     match /subcontractors/{doc} {
       allow read, write: if request.auth != null;
     }
+
     match /vendors/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
+    // New: Crop Types collection
+    match /cropTypes/{doc} {
       allow read, write: if request.auth != null;
     }
   }
