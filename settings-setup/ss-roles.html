@@ -8,22 +8,20 @@
 
   <!-- Prepaint theme -->
   <script>
-    (function () {
-      var pref = localStorage.getItem('df_theme') || 'auto';
-      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-      document.documentElement.style.colorScheme =
-        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+    (function(){
+      var pref=localStorage.getItem('df_theme')||'auto';
+      var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', pref==='auto'?(dark?'dark':'light'):pref);
+      document.documentElement.style.colorScheme=((pref==='auto'?(dark?'dark':'light'):pref)==='dark')?'dark':'light';
     })();
   </script>
 
-  <!-- Honor your tree exactly -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
+
+  <!-- ORDER MATTERS: init → core → menus (data) → roles (page) -->
   <script type="module" src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
-
-  <!-- Global menus (single source of truth) MUST load before fb-roles.js -->
   <script defer src="../assets/data/menus.js"></script>
   <script type="module" src="../js/fb-roles.js"></script>
 
@@ -39,10 +37,10 @@
     .subbody{padding:8px 4px 2px}
     .muted-sm{opacity:.85;font-size:.92rem}
     .toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999}
+    .status{margin:6px 0 0;color:#b00020;font-size:.95rem}
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -51,7 +49,6 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -76,6 +73,7 @@
           <label for="roleName">Role</label>
           <select id="roleName" required></select>
           <small class="muted" id="roleHint" style="display:block;margin-top:4px;"></small>
+          <div id="roleStatus" class="status" style="display:none"></div>
         </div>
       </section>
 
@@ -91,7 +89,6 @@
     </form>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -100,8 +97,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View modal -->
-  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+  <div id="qvBackdrop" class="auth-modal__backdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Role Permissions — <span id="qvRole">—</span></h2>
       <ul id="qvList" style="list-style:disc; margin-left:1.2rem; padding-left:.4rem; max-height:min(60vh,520px); overflow:auto;"></ul>
@@ -111,10 +107,8 @@
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Service worker (from /settings-setup/ → root) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
