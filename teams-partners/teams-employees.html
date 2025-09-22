@@ -1,50 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- =======================================================================
+       SECTION: META & THEME BOOT
+       ======================================================================= -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Employees — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
   <script>
+    // Prepaint theme (no FOUC)
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-      document.documentElement.style.colorScheme =
-        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
-  <!-- YOUR actual paths (under /assets/css and /js) -->
+  <!-- =======================================================================
+       SECTION: ASSETS (RESPECT TREE PATHS)
+       NOTE: this file lives in /teams-partners/, so assets are one level up.
+       ======================================================================= -->
+  <!-- CSS -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
+
+  <!-- Core app JS (non-module) -->
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
 
-  <!-- Firebase bootstrap (keys live in /js/firebase.js) -->
+  <!-- Firebase modules (provide window.DF_FB) -->
   <script type="module" src="../js/firebase.js"></script>
+  <!-- Optional shared helpers; safe to include even if empty -->
+  <script type="module" src="../js/fb-data.js"></script>
 
-  <link rel="manifest" href="../manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
-
+  <!-- =======================================================================
+       SECTION: PAGE-LOCAL STYLES (ONLY PAGE-SPECIFIC UTILITIES)
+       ======================================================================= -->
   <style>
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
     .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
+
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    #empPhone, #m_phone { font-size:16px; }
+    #empPhone, #m_phone { font-size:16px; } /* iOS no-zoom */
+
     .btn-danger{border:2px solid #b23; color:#b23; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
     .btn-archive{border:2px solid #8a6a00; color:#8a6a00; background:transparent; border-radius:16px; padding:12px 16px; font-weight:700}
 
-    /* Permission Overrides UI */
     .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
@@ -55,12 +63,14 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:8px 4px}
     .subbody{padding:8px 2px 2px}
 
-    /* Keep modals above footer/back buttons */
     .auth-modal__backdrop{z-index:4000 !important}
   </style>
 </head>
+
 <body>
-  <!-- Header -->
+  <!-- =======================================================================
+       SECTION: APP HEADER
+       ======================================================================= -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -69,7 +79,9 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- =======================================================================
+       SECTION: BREADCRUMBS (RESPECT PATHS)
+       ======================================================================= -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -80,7 +92,9 @@
     </ol>
   </nav>
 
-  <!-- Main -->
+  <!-- =======================================================================
+       SECTION: MAIN CONTENT
+       ======================================================================= -->
   <main class="content" data-has-form>
     <div class="line" style="justify-content:space-between;">
       <h1 style="margin:0;">👥 Employees</h1>
@@ -88,7 +102,9 @@
     </div>
     <div style="margin-top:12px;"></div>
 
-    <!-- FORM -->
+    <!-- =========================
+         FORM
+         ========================= -->
     <form id="emp-form" novalidate>
       <div class="field-row">
         <div class="field">
@@ -132,7 +148,9 @@
       </section>
     </form>
 
-    <!-- SAVED -->
+    <!-- =========================
+         SAVED LIST
+         ========================= -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
       <div class="line">
@@ -145,7 +163,9 @@
     </section>
   </main>
 
-  <!-- Footer -->
+  <!-- =======================================================================
+       SECTION: FOOTER
+       ======================================================================= -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -154,7 +174,9 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View -->
+  <!-- =======================================================================
+       SECTION: QUICK VIEW MODAL
+       ======================================================================= -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Employees</h2>
@@ -165,7 +187,9 @@
     </div>
   </div>
 
-  <!-- Permission Overrides Modal -->
+  <!-- =======================================================================
+       SECTION: PERMISSION OVERRIDES MODAL
+       ======================================================================= -->
   <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
       <h2 id="exTitle">Permission Overrides</h2>
@@ -182,7 +206,9 @@
     </div>
   </div>
 
-  <!-- Manage/Edit Modal -->
+  <!-- =======================================================================
+       SECTION: MANAGE/EDIT MODAL
+       ======================================================================= -->
   <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
       <h2 id="manageTitle">Edit Employee</h2>
@@ -210,28 +236,37 @@
     </div>
   </div>
 
-  <!-- Toast -->
+  <!-- =======================================================================
+       SECTION: TOAST
+       ======================================================================= -->
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
-  <!-- Page logic (Firestore + Auth email link invites) -->
+  <!-- =======================================================================
+       SECTION: PAGE LOGIC (MODULE) — FIRESTORE + AUTH INVITES
+       NOTE: relies on window.DF_FB injected by ../js/firebase.js
+       ======================================================================= -->
   <script type="module">
     import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
     import {
       collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-    // Firebase handles — provided by ../js/firebase.js
+    // --- Firebase handles from global module ---
     const { auth, db } = window.DF_FB || {};
     if (!auth || !db) {
-      console.error('Firebase not initialized. Check ../js/firebase.js path and config.');
+      console.error('DF_FB not found. Check ../js/firebase.js path.');
     }
 
-    // Collections
+    // --- Collections ---
     const EMP  = collection(db, "employees");
 
+    // --- Shorthands ---
     const $=s=>document.querySelector(s);
+    const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
 
-    /* ---------- Toast ---------- */
+    /* =========================
+       TOAST
+       ========================= */
     function showToast(msg){
       const el = $('#dfToast');
       el.textContent = msg;
@@ -240,9 +275,11 @@
       setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>{el.style.display='none';}, 180); }, 1800);
     }
 
-    /* ---------- Roles ---------- */
+    /* =========================
+       ROLES
+       ========================= */
     async function getRoleNames(){
-      // static for now; you can later source from Firestore "roles" if you want
+      // Keep simple list for now (can move to Firestore later)
       return ["Administrator","Owner","Manager","Employee","View Only"];
     }
     async function fillRoleSelect(sel, value){
@@ -253,7 +290,9 @@
       if(value) sel.value=value;
     }
 
-    /* ---------- Phone & validation ---------- */
+    /* =========================
+       PHONE MASK & VALIDATION
+       ========================= */
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -269,12 +308,15 @@
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    /* ---------- Firestore helpers ---------- */
+    /* =========================
+       FIRESTORE HELPERS
+       ========================= */
     async function listEmployees(){
       const snap = await getDocs(query(EMP, orderBy("last")));
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
     async function upsertEmployee(item){
+      // Use email (lowercased) as doc ID for idempotency; fallback to UUID
       const id = (item.email || crypto.randomUUID()).toLowerCase();
       await setDoc(doc(EMP, id), {
         ...item,
@@ -286,8 +328,10 @@
     }
     async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    /* ---------- Permission Overrides (local-only structure for now) ---------- */
-    const MENUS = {
+    /* =========================
+       PERMISSION OVERRIDES (UI ONLY)
+       ========================= */
+    const DEFAULT_MENUS = {
       "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
       "Grain Tracking": ["Bins","Tickets","Contracts"],
       "Equipment": ["Maintenance","Repairs","Assignments"],
@@ -298,6 +342,8 @@
       "AI": ["AI","AI History"],
       "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
     };
+    const MENUS = DEFAULT_MENUS;
+
     function blankPerm(){ return {view:false,edit:false,add:false,archive:false,delete:false}; }
     function pill(label, pressed, onToggle){
       const b=document.createElement('button');
@@ -418,9 +464,9 @@
       B.style.display='flex';
     }
 
-    /* ---------- Render / Manage / Invite ---------- */
-    function chip(s){ return s?`<span class="chip">${s}</span>`:''; }
-
+    /* =========================
+       RENDER / MANAGE / INVITE
+       ========================= */
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
@@ -492,7 +538,7 @@
       B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Email-link invite (Firebase Auth)
+    // Email-link invite via Firebase Auth
     async function inviteEmployee(id){
       const rows=await listEmployees();
       const e = rows.find(x=>x.id===id);
@@ -512,11 +558,13 @@
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Could not send invite. Check Firebase Auth → Authorized domains and email templates.');
+        alert('Could not send invite. Check Firebase Auth settings and authorized domain.');
       }
     }
 
-    /* ---------- Create flow ---------- */
+    /* =========================
+       CREATE FLOW
+       ========================= */
     attachPhoneMask($('#empPhone'));
     await fillRoleSelect($('#empRole'));
 
@@ -569,31 +617,14 @@
     });
 
     $('#clearBtn').addEventListener('click', ()=>{ $('#emp-form').reset(); delete $('#exceptionsBtn').dataset.payload; });
+
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
-
-    // Quick View
-    $('#quickViewBtn').addEventListener('click', async ()=>{
-      const rows=(await listEmployees()).filter(x=>!x.archived)
-        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) || (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
-      const L=$('#qvList'), B=$('#qvBackdrop');
-      L.innerHTML = rows.length ? rows.map(r=>{
-        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const contact = [r.phone, r.email].filter(Boolean).join(' • ');
-        return `<li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line"><strong>${name}</strong> ${r.role?`<span class="chip">${r.role}</span>`:''}</div>
-          ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
-        </li>`;
-      }).join('') : '<li class="muted">No active employees.</li>';
-      B.style.display='flex';
-      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
-      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
-    });
 
     // Initial render
     await render();
 
-    // Breadcrumbs
+    // Breadcrumbs (if provided by core.js)
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
       {label:'Teams & Partners', href:'../teams-partners.html'},
@@ -601,10 +632,13 @@
     ]);
   </script>
 
-  <!-- Service worker (one level up) -->
+  <!-- =======================================================================
+       SECTION: SERVICE WORKER (RESPECT PATH)
+       ======================================================================= -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
+        // From /teams-partners/ back to root:
         navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
