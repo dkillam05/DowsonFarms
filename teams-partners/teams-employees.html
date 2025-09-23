@@ -294,13 +294,11 @@
     const USERS = collection(db, "users");
 
     async function listEmployees(){
-      // simple where filter; client-side sort
       const snaps = await getDocs(query(USERS, where('type','==','employee')));
       const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
       return out;
     }
     async function upsertEmployee(item){
-      // Use email as id when present; else random
       const id = (item.email ? String(item.email).toLowerCase() : crypto.randomUUID());
       await setDoc(doc(USERS, id), {
         ...item,
@@ -406,7 +404,7 @@
         shL.append(subCaret, shT);
         const shRight = document.createElement('span'); shRight.className='muted-sm';
         sh.append(shL, shRight);
-        const subBody = document.createElement('div'); subBody.className='subbody'; // collapsed
+        const subBody = document.createElement('div'); subBody.className='subbody';
 
         (MENUS[menu]||[]).forEach(sm=>{
           const section = document.createElement('section'); section.style.margin='10px 0 14px';
@@ -460,11 +458,7 @@
         const grants = {};
         Object.keys(MENUS).forEach(menu=>{
           (MENUS[menu]||[]).forEach(sm=>{
-            const p = (function(){
-              // read from built state in memory
-              // (we kept it in the closure as "perms")
-              return perms[menu][sm];
-            })();
+            const p = perms[menu][sm];
             if (p.view||p.edit||p.add||p.archive||p.delete) {
               grants[menu] = grants[menu] || {};
               grants[menu][sm] = {};
@@ -478,7 +472,7 @@
         };
         $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
         $('#ovB').style.display='none';
-        const nMenus = Object.values(payload.grants||{}).reduce((sum,subs)=> sum + Object.values(subs||{}).length, 0);
+        const nMenus = Object.values(payload.grants||{}).reduce((sum,subs)=> sum + Object.keys(subs||{}).length, 0);
         showToast(payload.enabled ? `Overrides saved (${nMenus} submenus)` : 'Overrides disabled');
       };
     }
@@ -529,23 +523,40 @@
       $('#empEmail').value = e.email||'';
       await fillRoleSelect($('#empRole'), e.role||'');
 
-      // preload overrides payload (button stores JSON)
       const payload = e.exceptions || {enabled:false,grants:{}};
       $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
 
       window.scrollTo({top:0, behavior:'smooth'});
       $('#empFirst').focus();
-
-      // Immediately open the overrides modal pre-checked (optional; comment out if you prefer)
-      // openOverridesModal(payload);
     }
 
-    async function inviteEmployee(id){
-      const snap = await getDoc(doc(USERS, id));
-      if (!snap.exists()){ alert('Employee not found'); return; }
-      const e = { id: snap.id, ...(snap.data()||{}) };
+    // ----- INVITE: sends Firebase email link, stamps invitedAt, shows toast
+    async function inviteEmployee(idOrEmailFromForm){
+      // If called from list (id), load the user; if called from form, build a minimal item
+      let e;
+      if (idOrEmailFromForm && idOrEmailFromForm.includes('@')) {
+        const email = idOrEmailFromForm.toLowerCase();
+        e = {
+          id: email,
+          email,
+          first: titleCase(($('#empFirst').value||'').trim()),
+          last:  titleCase(($('#empLast').value||'').trim()),
+          phone: $('#empPhone').value,
+          role:  $('#empRole').value || '',
+          type:  'employee',
+          archived: false,
+          exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}})
+        };
+        await upsertEmployee(e);
+      } else {
+        const snap = await getDoc(doc(USERS, idOrEmailFromForm));
+        if (!snap.exists()){ alert('Employee not found'); return; }
+        e = { id: snap.id, ...(snap.data()||{}) };
+      }
+
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
+      // IMPORTANT: Add your domain(s) in Firebase Auth → Authorized Domains
       const actionCodeSettings = {
         url: new URL('../teams-partners/index.html', document.baseURI).href,
         handleCodeInApp: true
@@ -556,7 +567,7 @@
         e.invitedAt = Date.now();
         await upsertEmployee(e);
         await render();
-        showToast('Invite sent');
+        showToast(`Invite sent to ${e.email}`);
       }catch(err){
         console.error(err);
         alert('Could not send invite. Check Firebase Auth (Authorized domains, Email templates).');
@@ -574,6 +585,7 @@
       openOverridesModal(prev);
     });
 
+    // Save (no email)
     document.getElementById('emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const first = titleCase(($('#empFirst').value||'').trim());
@@ -602,9 +614,26 @@
       showToast('Employee saved');
     });
 
+    // Clear
     $('#clearBtn').addEventListener('click', ()=>{
       $('#emp-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
+    });
+
+    // Invite from form (validates then sends)
+    $('#inviteBtn').addEventListener('click', async ()=>{
+      const first = titleCase(($('#empFirst').value||'').trim());
+      const last  = titleCase(($('#empLast').value||'').trim());
+      const phone = $('#empPhone').value;
+      const email = ($('#empEmail').value||'').trim().toLowerCase();
+      const role  = $('#empRole').value || '';
+
+      if(!first || !last){ alert('First and Last name are required before inviting.'); return; }
+      if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
+      if(!isEmail(email)){ alert('Valid email is required.'); return; }
+      if(!role){ alert('Role is required.'); return; }
+
+      await inviteEmployee(email);
     });
 
     $('#searchInput').addEventListener('input', render);
