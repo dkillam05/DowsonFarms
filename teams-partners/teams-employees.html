@@ -21,9 +21,9 @@
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
 
-  <!-- Firebase bootstrap (your ES module init) -->
+  <!-- Firebase bootstrap (ES module init used across the app) -->
   <script type="module" src="../js/firebase-init.js"></script>
-  <!-- Menus data (global, single source of truth) -->
+  <!-- Global menus (single source of truth) -->
   <script defer src="../assets/data/menus.js"></script>
 
   <!-- ========== PAGE-LOCAL STYLES ========== -->
@@ -51,7 +51,7 @@
       box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
     .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
     .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
-    .menu-body{padding:16px;border-top:1px dashed var(--tile-border)}
+    .menu-body{padding:16px;border-top:1px dashed var(--tile-border);display:none}
     .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px;display:none}
@@ -61,7 +61,7 @@
     .modal-backdrop{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);
       align-items:center;justify-content:center;padding:20px}
     .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
-      width:min(820px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
+      width:min(860px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
     .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
     .modal .body{padding:12px 16px;overflow:auto}
     .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
@@ -174,7 +174,7 @@
     </div>
   </div>
 
-  <!-- ========== OVERRIDES MODAL (matches Account Roles UI) ========== -->
+  <!-- ========== OVERRIDES MODAL (mirrors Account Roles) ========== -->
   <div id="ovB" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
     <div class="modal" role="document">
       <header>
@@ -184,9 +184,7 @@
           Enable overrides for this employee
         </label>
       </header>
-      <div id="ovBody" class="body">
-        <!-- built at runtime from MENUS -->
-      </div>
+      <div id="ovBody" class="body"><!-- built at runtime --></div>
       <div class="actions">
         <button class="btn-outline" id="ovCancel" type="button">Cancel</button>
         <button class="btn-primary" id="ovSave" type="button">Save Overrides</button>
@@ -202,7 +200,7 @@
     // Firebase handles (from ../js/firebase-init.js)
     const { auth, db } = window.DF_FB;
 
-    // Import needed Firebase pieces
+    // Import Firebase pieces
     import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import {
       collection, doc, setDoc, deleteDoc, getDocs, getDoc,
@@ -210,7 +208,7 @@
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
     /* ===========================
-       1) MENUS (from DF_MENUS → shape map)
+       MENUS from DF_MENUS → shape map
        =========================== */
     function buildMenusFromDF(df){
       const out = {};
@@ -228,7 +226,7 @@
     const ACTIONS = ['view','edit','add','archive','delete'];
 
     /* ===========================
-       2) DOM helpers + toast
+       DOM + toast
        =========================== */
     const $ = (s)=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
@@ -241,7 +239,7 @@
     }
 
     /* ===========================
-       3) Roles dropdown (from /roles)
+       Roles dropdown (/roles)
        =========================== */
     async function fetchRoles(){
       try {
@@ -265,13 +263,14 @@
       sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
         roles.map(r=>{
           const label = (r.label||r.id||'').toString();
-          return `<option value="${label}">${label}</option>`;
+          // value used as doc id first (most installs use ID === label)
+          return `<option value="${r.id || label}">${label}</option>`;
         }).join('');
       if (value) sel.value=value;
     }
 
     /* ===========================
-       4) Utilities
+       Utilities
        =========================== */
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
@@ -289,7 +288,7 @@
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
     /* ===========================
-       5) Firestore: USERS (type='employee')
+       Firestore
        =========================== */
     const USERS = collection(db, "users");
 
@@ -311,9 +310,50 @@
     }
     async function removeById(id){ await deleteDoc(doc(USERS, id)); }
 
+    // Read a role’s baseline permissions object
+    async function readRolePermissions(roleId){
+      if (!roleId) return {};
+      const snap = await getDoc(doc(collection(db,'roles'), roleId));
+      const data = snap.exists() ? (snap.data()||{}) : {};
+      // expected shape: { permissions: { Menu: { Submenu: {view:true,...} } } }
+      return (data.permissions && typeof data.permissions==='object') ? data.permissions : {};
+    }
+
     /* ===========================
-       6) Overrides UI (MATCH Account Roles)
+       Overrides UI (Option B)
+       - Show EFFECTIVE = override ?? baseline
+       - Save ONLY overrides
        =========================== */
+    function ensureShapeFromMenus(source){
+      const perms = {};
+      Object.keys(MENUS).forEach(menu=>{
+        perms[menu] = perms[menu] || {};
+        (MENUS[menu]||[]).forEach(sm=>{
+          const g = (source?.[menu]?.[sm]) || {};
+          perms[menu][sm] = {
+            view:!!g.view, edit:!!g.edit, add:!!g.add, archive:!!g.archive, delete:!!g.delete
+          };
+        });
+      });
+      return perms;
+    }
+    function mergeEffective(baseline, overrides){
+      // effective[action] = (overrides has bool ? that : baseline)
+      const eff = {};
+      Object.keys(MENUS).forEach(menu=>{
+        eff[menu]={};
+        (MENUS[menu]||[]).forEach(sm=>{
+          const b = (baseline?.[menu]?.[sm]) || {};
+          const o = (overrides?.[menu]?.[sm]) || {};
+          const obj = {};
+          ACTIONS.forEach(k=>{
+            obj[k] = (k in o) ? !!o[k] : !!b[k];
+          });
+          eff[menu][sm] = obj;
+        });
+      });
+      return eff;
+    }
     function pill(label, pressed){
       const b=document.createElement('button');
       b.type='button'; b.className='pill'; b.textContent=label;
@@ -342,26 +382,19 @@
       if (on===keys.length) return 'All submenus';
       return `${on} of ${keys.length} submenus`;
     }
-    function ensureShapeForOverrides(grants){
-      const perms = {};
-      Object.keys(MENUS).forEach(menu=>{
-        perms[menu] = perms[menu] || {};
-        (MENUS[menu]||[]).forEach(sm=>{
-          const g = (grants?.[menu]?.[sm]) || {};
-          perms[menu][sm] = {
-            view:!!g.view, edit:!!g.edit, add:!!g.add, archive:!!g.archive, delete:!!g.delete
-          };
-        });
-      });
-      return perms;
-    }
 
-    function openOverridesModal(current){
+    // Build modal using baseline + overrides, edit overrides only
+    function openOverridesModal(baseline, overrides){
       const B = $('#ovB'), body = $('#ovBody'), enabled = $('#ovEnabled');
-      B.style.display='flex';
-      enabled.checked = !!current?.enabled;
+      const base = ensureShapeFromMenus(baseline||{});
+      // normalize overrides to menu/sub/action subset
+      const draftOverrides = ensureShapeFromMenus(overrides||{});
+      // EFFECTIVE view
+      let effective = mergeEffective(base, overrides||{});
 
-      let perms = ensureShapeForOverrides(current?.grants||{});
+      B.style.display='flex';
+      enabled.checked = !!(overrides && Object.keys(overrides).length);
+
       body.innerHTML = '';
 
       Object.keys(MENUS).forEach(menu=>{
@@ -375,27 +408,35 @@
         const right = document.createElement('div'); right.className='muted-sm';
         head.append(left,right);
 
-        const mbody = document.createElement('div'); mbody.className='menu-body'; mbody.style.display='none';
+        const mbody = document.createElement('div'); mbody.className='menu-body'; // collapsed by default
 
+        // Parent row = set ALL submenus for each action (writes to overrides)
         const grid = document.createElement('div'); grid.className='pill-grid';
         ACTIONS.forEach(name=>{
           const k = name;
-          const pressed = (MENUS[menu]||[]).every(sm => !!perms[menu][sm][k]);
+          const pressed = (MENUS[menu]||[]).every(sm => !!effective[menu][sm][k]);
           const p = pill(name[0].toUpperCase()+name.slice(1), pressed);
           p.setAttribute('aria-label', `${menu}::${k}`);
           p.addEventListener('click', ()=>{
             const isOn = p.getAttribute('aria-pressed')==='true';
-            (MENUS[menu]||[]).forEach(sm => perms[menu][sm][k] = isOn);
-            mbody.querySelectorAll(`[data-sub="${menu}::${k}"]`).forEach(btn=>{
-              btn.setAttribute('aria-pressed', isOn ? 'true':'false');
+            (MENUS[menu]||[]).forEach(sm => {
+              // write the CHOICE to overrides (absolute)
+              draftOverrides[menu][sm][k] = isOn;
+              // reflect in effective view
+              effective[menu][sm][k] = isOn;
+              // sync all child buttons for this action
+              mbody.querySelectorAll(`[data-sub="${menu}::${k}"]`).forEach(btn=>{
+                btn.setAttribute('aria-pressed', isOn ? 'true':'false');
+              });
             });
-            right.textContent = menuSummary(perms, menu);
-            shRight.textContent = summarizeChildren(perms, menu);
+            right.textContent = menuSummary(effective, menu);
+            shRight.textContent = summarizeChildren(effective, menu);
           });
           grid.appendChild(p);
         });
         mbody.appendChild(grid);
 
+        // Submenu section (collapsed)
         const subWrap = document.createElement('div'); subWrap.className='subwrap';
         const sh = document.createElement('div'); sh.className='subhead';
         const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
@@ -404,7 +445,7 @@
         shL.append(subCaret, shT);
         const shRight = document.createElement('span'); shRight.className='muted-sm';
         sh.append(shL, shRight);
-        const subBody = document.createElement('div'); subBody.className='subbody';
+        const subBody = document.createElement('div'); subBody.className='subbody'; // collapsed
 
         (MENUS[menu]||[]).forEach(sm=>{
           const section = document.createElement('section'); section.style.margin='10px 0 14px';
@@ -412,15 +453,19 @@
           const grid2 = document.createElement('div'); grid2.className='pill-grid';
           ACTIONS.forEach(name=>{
             const k = name;
-            const btn = pill(name[0].toUpperCase()+name.slice(1), !!perms[menu][sm][k]);
+            const btn = pill(name[0].toUpperCase()+name.slice(1), !!effective[menu][sm][k]);
             btn.setAttribute('data-sub', `${menu}::${k}`);
             btn.addEventListener('click', ()=>{
               const isOn = btn.getAttribute('aria-pressed')==='true';
-              perms[menu][sm][k] = isOn;
-              shRight.textContent = summarizeChildren(perms, menu);
-              right.textContent = menuSummary(perms, menu);
-              const allOn  = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===true);
-              const allOff = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===false);
+              // write absolute choice to overrides
+              draftOverrides[menu][sm][k] = isOn;
+              // reflect in effective state
+              effective[menu][sm][k] = isOn;
+              shRight.textContent = summarizeChildren(effective, menu);
+              right.textContent = menuSummary(effective, menu);
+              // update the parent pill for this action (if all on/off)
+              const allOn  = (MENUS[menu]||[]).every(s=>effective[menu][s][k]===true);
+              const allOff = (MENUS[menu]||[]).every(s=>effective[menu][s][k]===false);
               const parentBtn = mbody.querySelector(`.pill[aria-label="${menu}::${k}"]`);
               if (parentBtn) parentBtn.setAttribute('aria-pressed', allOn ? 'true' : (allOff ? 'false' : parentBtn.getAttribute('aria-pressed')));
             });
@@ -445,8 +490,8 @@
           caret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
         });
 
-        right.textContent   = menuSummary(perms, menu);
-        shRight.textContent = summarizeChildren(perms, menu);
+        right.textContent   = menuSummary(effective, menu);
+        shRight.textContent = summarizeChildren(effective, menu);
 
         card.append(head, mbody);
         body.appendChild(card);
@@ -455,30 +500,37 @@
       $('#ovCancel').onclick = ()=> B.style.display='none';
 
       $('#ovSave').onclick = ()=>{
-        const grants = {};
+        // Clean overrides: drop entries identical to baseline, and drop all-false rows
+        const clean = {};
         Object.keys(MENUS).forEach(menu=>{
           (MENUS[menu]||[]).forEach(sm=>{
-            const p = perms[menu][sm];
-            if (p.view||p.edit||p.add||p.archive||p.delete) {
-              grants[menu] = grants[menu] || {};
-              grants[menu][sm] = {};
-              ACTIONS.forEach(k=>{ if (p[k]) grants[menu][sm][k] = true; });
+            const b = (base?.[menu]?.[sm]) || {};
+            const o = (draftOverrides?.[menu]?.[sm]) || {};
+            const out = {};
+            ACTIONS.forEach(k=>{
+              // Only persist if it differs from baseline OR you explicitly set false while baseline true
+              const hasOverride = (k in o);
+              if (hasOverride && o[k] !== !!b[k]) out[k] = !!o[k];
+            });
+            const any = Object.keys(out).length>0;
+            if (any){
+              clean[menu] = clean[menu] || {};
+              clean[menu][sm] = out;
             }
           });
         });
-        const payload = {
-          enabled: !!$('#ovEnabled').checked,
-          grants:  $('#ovEnabled').checked ? grants : {}
-        };
-        $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
+
+        const payload = enabled.checked ? clean : {};
+        // stash on the button; actual save happens when you Save the employee
+        $('#exceptionsBtn').dataset.payload = JSON.stringify({enabled: enabled.checked, grants: payload});
         $('#ovB').style.display='none';
-        const nMenus = Object.values(payload.grants||{}).reduce((sum,subs)=> sum + Object.keys(subs||{}).length, 0);
-        showToast(payload.enabled ? `Overrides saved (${nMenus} submenus)` : 'Overrides disabled');
+        const nSubs = Object.values(payload||{}).reduce((sum,subs)=> sum + Object.keys(subs||{}).length, 0);
+        showToast(enabled.checked ? `Overrides saved (${nSubs} submenus)` : 'Overrides disabled');
       };
     }
 
     /* ===========================
-       7) Render saved list / manage / invite
+       Saved list / manage / invite
        =========================== */
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
@@ -492,8 +544,9 @@
       const L=$('#savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const exEnabled = r.exceptions?.enabled;
-        const exCount = exEnabled ? Object.values(r.exceptions.grants||{}).reduce((n,subs)=> n + Object.keys(subs||{}).length, 0) : 0;
+        const ex = r.exceptions || {};
+        const exEnabled = !!ex.enabled;
+        const exCount = exEnabled ? Object.values(ex.grants||{}).reduce((n,subs)=> n + Object.keys(subs||{}).length, 0) : 0;
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name}</strong>
@@ -523,6 +576,7 @@
       $('#empEmail').value = e.email||'';
       await fillRoleSelect($('#empRole'), e.role||'');
 
+      // preload current overrides payload (store JSON on button)
       const payload = e.exceptions || {enabled:false,grants:{}};
       $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
 
@@ -530,33 +584,12 @@
       $('#empFirst').focus();
     }
 
-    // ----- INVITE: sends Firebase email link, stamps invitedAt, shows toast
-    async function inviteEmployee(idOrEmailFromForm){
-      // If called from list (id), load the user; if called from form, build a minimal item
-      let e;
-      if (idOrEmailFromForm && idOrEmailFromForm.includes('@')) {
-        const email = idOrEmailFromForm.toLowerCase();
-        e = {
-          id: email,
-          email,
-          first: titleCase(($('#empFirst').value||'').trim()),
-          last:  titleCase(($('#empLast').value||'').trim()),
-          phone: $('#empPhone').value,
-          role:  $('#empRole').value || '',
-          type:  'employee',
-          archived: false,
-          exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}})
-        };
-        await upsertEmployee(e);
-      } else {
-        const snap = await getDoc(doc(USERS, idOrEmailFromForm));
-        if (!snap.exists()){ alert('Employee not found'); return; }
-        e = { id: snap.id, ...(snap.data()||{}) };
-      }
-
+    async function inviteEmployee(id){
+      const snap = await getDoc(doc(USERS, id));
+      if (!snap.exists()){ alert('Employee not found'); return; }
+      const e = { id: snap.id, ...(snap.data()||{}) };
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
-      // IMPORTANT: Add your domain(s) in Firebase Auth → Authorized Domains
       const actionCodeSettings = {
         url: new URL('../teams-partners/index.html', document.baseURI).href,
         handleCodeInApp: true
@@ -567,7 +600,7 @@
         e.invitedAt = Date.now();
         await upsertEmployee(e);
         await render();
-        showToast(`Invite sent to ${e.email}`);
+        showToast('Invite sent');
       }catch(err){
         console.error(err);
         alert('Could not send invite. Check Firebase Auth (Authorized domains, Email templates).');
@@ -575,17 +608,20 @@
     }
 
     /* ===========================
-       8) Wire form
+       Wire form
        =========================== */
     attachPhoneMask($('#empPhone'));
     await fillRoleSelect($('#empRole'));
 
-    $('#exceptionsBtn').addEventListener('click', ()=>{
-      const prev = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
-      openOverridesModal(prev);
+    // Open overrides: load baseline from role, merge with existing employee overrides
+    $('#exceptionsBtn').addEventListener('click', async ()=>{
+      const roleId = $('#empRole').value;
+      if (!roleId){ alert('Choose a Role first.'); return; }
+      const base = await readRolePermissions(roleId);
+      const prevPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
+      openOverridesModal(base, prevPayload.enabled ? prevPayload.grants : {});
     });
 
-    // Save (no email)
     document.getElementById('emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const first = titleCase(($('#empFirst').value||'').trim());
@@ -599,12 +635,12 @@
       if(!isEmail(email)){ alert('Valid email is required.'); return; }
       if(!role){ alert('Role is required.'); return; }
 
-      const overrides = ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}});
+      const ovPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
 
       await upsertEmployee({
         first, last, phone, email, role,
         archived:false,
-        exceptions: overrides,
+        exceptions: ovPayload,        // ← save ONLY overrides here
         createdAt: Date.now(), updatedAt: Date.now()
       });
 
@@ -614,26 +650,9 @@
       showToast('Employee saved');
     });
 
-    // Clear
     $('#clearBtn').addEventListener('click', ()=>{
       $('#emp-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
-    });
-
-    // Invite from form (validates then sends)
-    $('#inviteBtn').addEventListener('click', async ()=>{
-      const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim());
-      const phone = $('#empPhone').value;
-      const email = ($('#empEmail').value||'').trim().toLowerCase();
-      const role  = $('#empRole').value || '';
-
-      if(!first || !last){ alert('First and Last name are required before inviting.'); return; }
-      if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
-      if(!isEmail(email)){ alert('Valid email is required.'); return; }
-      if(!role){ alert('Role is required.'); return; }
-
-      await inviteEmployee(email);
     });
 
     $('#searchInput').addEventListener('input', render);
@@ -669,7 +688,7 @@
     ]);
   </script>
 
-  <!-- ========== CLOCK / DATE / VERSION FALLBACKS (NON-MODULE) ========== -->
+  <!-- ========== FALLBACKS (NON-MODULE) ========== -->
   <script>
     (function () {
       // Clock (fallback if core.js didn’t set it)
@@ -684,7 +703,7 @@
       }
       tick(); setInterval(tick, 30_000);
 
-      // Report date (fallback)
+      // Report date
       const $date = document.getElementById('report-date');
       if ($date && (!$date.textContent || $date.textContent==='—')){
         const d=new Date();
@@ -692,7 +711,7 @@
         $date.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
       }
 
-      // Version (fallback)
+      // Version
       const $ver = document.getElementById('version');
       const possible = (window.DF_VERSION || window.__DF_VERSION || window.APP_VERSION || '').toString();
       if ($ver && (! $ver.textContent || /^(v0\.0\.0|—)$/.test($ver.textContent))){
@@ -701,7 +720,7 @@
     })();
   </script>
 
-  <!-- ========== SERVICE WORKER (YOUR TREE) ========== -->
+  <!-- ========== SERVICE WORKER ========== -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
