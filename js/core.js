@@ -238,79 +238,86 @@
     window.addEventListener('orientationchange', pushAboveFooter);
   }
 
-  /* ---------- Auth Guard (added) ---------- */
+   /* ---------- Auth Guard (fixed) ---------- */
   function installAuthGuard() {
     // Skip guard on auth pages and true home screen
     if (isAuthPage() || isHome()) return;
 
-    var MAX_TRIES = 120; // ~9.6s @ 80ms steps (mobile-friendly)
+    var MAX_TRIES = 150; // wait up to ~12s (mobile-friendly)
     var tries = 0;
 
     function bounceToLogin() {
-      try { window.location.replace(resolveAuthURL()); }
-      catch (_) { window.location.href = resolveAuthURL(); }
+      var url = resolveAuthURL();
+      try { window.location.replace(url); } catch (_) { window.location.href = url; }
     }
 
     function recordHeartbeat() {
       try { localStorage.setItem('df_last_auth_ok', String(Date.now())); } catch (_) {}
     }
 
-    // Force sign-out once every N days (from last good auth heartbeat)
+    // Force sign-out once every N days — ONLY if we’ve ever recorded a heartbeat
     var FORCE_LOGOUT_DAYS = 30;
     try {
-      var last = parseInt(localStorage.getItem('df_last_auth_ok') || '0', 10);
-      var ms = Date.now() - (isNaN(last) ? 0 : last);
-      if (ms > FORCE_LOGOUT_DAYS * 24 * 60 * 60 * 1000) {
-        handleLogout(); // will redirect to /auth
-        return;
+      var raw = localStorage.getItem('df_last_auth_ok');
+      if (raw) { // <-- only enforce if key exists
+        var last = parseInt(raw, 10);
+        if (!isNaN(last)) {
+          var ms = Date.now() - last;
+          if (ms > FORCE_LOGOUT_DAYS * 24 * 60 * 60 * 1000) {
+            handleLogout(); // will redirect to /auth
+            return;
+          }
+        }
       }
     } catch (_) {}
 
     function subscribeAuth() {
+      if (!window.DF_FB_API || typeof window.DF_FB_API.onAuth !== 'function') return false;
+
+      // Best-effort: set LOCAL persistence so sessions stick on phones
       try {
-        if (!window.DF_FB_API || typeof window.DF_FB_API.onAuth !== 'function') return false;
+        if (typeof window.DF_FB_API.setPersistence === 'function') {
+          window.DF_FB_API.setPersistence(true).catch(function(){});
+        }
+      } catch (_) {}
 
-        // Best-effort: upgrade persistence to LOCAL so the session sticks on phones
-        try {
-          if (typeof window.DF_FB_API.setPersistence === 'function') {
-            window.DF_FB_API.setPersistence(true).catch(function(){});
-          }
-        } catch (_) {}
+      // Only redirect AFTER we actually hear from Firebase once
+      var gotFirstAuthCallback = false;
 
-        window.DF_FB_API.onAuth(function (user) {
-          if (user) {
-            recordHeartbeat();
-          } else {
-            // Not authed → bounce to login immediately
-            bounceToLogin();
-          }
-        });
-        return true;
-      } catch (_) {
-        return false;
-      }
+      window.DF_FB_API.onAuth(function (user) {
+        gotFirstAuthCallback = true;
+        if (user) {
+          recordHeartbeat();
+        } else {
+          bounceToLogin();
+        }
+      });
+
+      // Safety: if we never get a callback (SDK didn’t init), fall back later
+      setTimeout(function(){
+        if (!gotFirstAuthCallback) bounceToLogin();
+      }, 12000); // matches MAX_TRIES
+
+      return true;
     }
 
     (function waitForFirebase() {
       tries++;
-      // Need both handles present (firebase-init.js must have run)
+      // Need both handles (firebase-init.js must have run)
       if (!window.DF_FB || !window.DF_FB_API || !window.DF_FB.auth) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
         // Firebase never showed up → go to login
         return bounceToLogin();
       }
 
-      // If Firebase is present but currentUser is null at this instant,
-      // we’ll still subscribe and the onAuth callback will handle redirect.
+      // Firebase is present → subscribe (don’t redirect yet; wait for onAuth)
       if (!subscribeAuth()) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
         return bounceToLogin();
       }
 
-      // If already logged in, stamp heartbeat right now
-      try {
-        if (window.DF_FB.auth.currentUser) recordHeartbeat();
-      } catch (_) {}
+      // If already logged in right now, stamp heartbeat immediately
+      try { if (window.DF_FB.auth.currentUser) recordHeartbeat(); } catch (_) {}
     })();
   }
 
