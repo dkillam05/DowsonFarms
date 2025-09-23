@@ -7,11 +7,12 @@
    - Logout button in Breadcrumb bar (right-aligned, consistent everywhere)
    - Honors <base href="/DowsonFarms/">
 
-   +++ ADDED +++
-   - Auth Session Manager:
-     • Sets Firebase local persistence (~30 days)
-     • Global guard: if not signed in and not on /auth/*, redirect to /auth/index.html
-     • Monthly forced logout: after 30 days since last login, sign out and redirect
+   ADDITIONS:
+   - Auth guard for all non-auth pages (waits for Firebase, redirects to /auth/index.html)
+   - Fix resolveAuthURL() to always build from repo root (prevents 404 in nested pages)
+   - Best-effort persistence = LOCAL (stay signed in across app restarts)
+   - Monthly forced logout (configurable)
+   - Bounce to login immediately if auth state becomes null
    =========================== */
 
 (function () {
@@ -19,8 +20,8 @@
 
   /* ---------- URL helpers ---------- */
   function resolveAuthURL() {
-    try { return new URL('auth/index.html', document.baseURI).href; }
-    catch (_) { return 'auth/index.html'; }
+    // Always compute from repo root so nested pages never point to "folder/auth/index.html"
+    return getRepoRootPath() + 'auth/index.html';
   }
   function getRepoRootPath() {
     var baseEl = document.querySelector('base');
@@ -57,6 +58,9 @@
     var authURL = resolveAuthURL();
     var keepTheme = null;
     try { keepTheme = localStorage.getItem('df_theme'); } catch (_) {}
+
+    // Try to sign out of Firebase too (best-effort, no dependency)
+    try { if (window.DF_FB_API && typeof window.DF_FB_API.signOut === 'function') { window.DF_FB_API.signOut().catch(function(){}); } } catch (_) {}
 
     try { localStorage.clear(); } catch (_) {}
     try { sessionStorage.clear(); } catch (_) {}
@@ -121,7 +125,7 @@
       'line-height:1',
       'border-radius:8px',
       'border:2px solid ' + brand,
-      'background:'#fff',
+      'background:#fff',
       'color:' + brand,
       'cursor:pointer',
       'box-shadow:0 1px 4px rgba(0,0,0,.08)',
@@ -234,92 +238,81 @@
     window.addEventListener('orientationchange', pushAboveFooter);
   }
 
-  /* ==========================================================
-     AUTH SESSION MANAGER (ADDED)
-     - uses DF_FB / DF_FB_API from /js/firebase-init.js (ES module)
-     - safe on pages that don’t load Firebase (it will simply no-op)
-     ========================================================== */
-  (function installAuthSessionManager(){
-    var AUTH_MAX_DAYS = 30;                         // force re-login after ~30 days
-    var MAX_AGE_MS = AUTH_MAX_DAYS * 24 * 60 * 60 * 1000;
-    var LOGIN_TS_KEY = 'df_last_login_ts';
-    var LOGIN_UID_KEY = 'df_last_login_uid';
+  /* ---------- Auth Guard (added) ---------- */
+  function installAuthGuard() {
+    // Skip guard on auth pages and true home screen
+    if (isAuthPage() || isHome()) return;
 
-    function now(){ return Date.now(); }
-
-    function goLogin() {
-      var url = resolveAuthURL();
-      try { window.location.replace(url); } catch (_) { window.location.href = url; }
-    }
-
-    function recordLogin(user) {
-      try {
-        localStorage.setItem(LOGIN_TS_KEY, String(now()));
-        if (user && user.uid) localStorage.setItem(LOGIN_UID_KEY, String(user.uid));
-      } catch(_) {}
-    }
-
-    function needsMonthlyReauth() {
-      try {
-        var ts = Number(localStorage.getItem(LOGIN_TS_KEY) || '0');
-        if (!ts) return false; // first login handled by recordLogin
-        return (now() - ts) > MAX_AGE_MS;
-      } catch(_) { return false; }
-    }
-
-    // Wait for Firebase to be ready (if it exists on this page)
+    var MAX_TRIES = 120; // ~9.6s @ 80ms steps (mobile-friendly)
     var tries = 0;
-    function tryWire() {
-      tries++;
-      var FB = window.DF_FB;
-      var API = window.DF_FB_API;
 
-      if (!FB || !API || !API.onAuth) {
-        if (tries < 60) return setTimeout(tryWire, 100); // wait up to ~6s
-        return; // give up silently on pages without Firebase
+    function bounceToLogin() {
+      try { window.location.replace(resolveAuthURL()); }
+      catch (_) { window.location.href = resolveAuthURL(); }
+    }
+
+    function recordHeartbeat() {
+      try { localStorage.setItem('df_last_auth_ok', String(Date.now())); } catch (_) {}
+    }
+
+    // Force sign-out once every N days (from last good auth heartbeat)
+    var FORCE_LOGOUT_DAYS = 30;
+    try {
+      var last = parseInt(localStorage.getItem('df_last_auth_ok') || '0', 10);
+      var ms = Date.now() - (isNaN(last) ? 0 : last);
+      if (ms > FORCE_LOGOUT_DAYS * 24 * 60 * 60 * 1000) {
+        handleLogout(); // will redirect to /auth
+        return;
       }
+    } catch (_) {}
 
-      // 1) Ensure local persistence (~30 days) once
-      if (API.setPersistence) {
-        try { API.setPersistence(true).catch(function(){}); } catch(_) {}
-      }
-
-      // 2) Subscribe to auth changes
+    function subscribeAuth() {
       try {
-        API.onAuth(function(user){
-          if (!user) {
-            // Not signed in → if not already on an /auth page, go to login
-            if (!isAuthPage()) goLogin();
-            return;
-          }
+        if (!window.DF_FB_API || typeof window.DF_FB_API.onAuth !== 'function') return false;
 
-          // Signed in:
-          // - If no recorded login, set one.
-          // - If >30 days since last login, sign out and send to login.
-          var lastUid = null;
-          try { lastUid = localStorage.getItem(LOGIN_UID_KEY) || null; } catch(_) {}
-          if (!lastUid || lastUid !== user.uid) {
-            recordLogin(user);
-          } else if (needsMonthlyReauth()) {
-            try {
-              if (API.signOut) {
-                API.signOut().finally(goLogin);
-              } else {
-                goLogin();
-              }
-            } catch(_) { goLogin(); }
-            return;
+        // Best-effort: upgrade persistence to LOCAL so the session sticks on phones
+        try {
+          if (typeof window.DF_FB_API.setPersistence === 'function') {
+            window.DF_FB_API.setPersistence(true).catch(function(){});
+          }
+        } catch (_) {}
+
+        window.DF_FB_API.onAuth(function (user) {
+          if (user) {
+            recordHeartbeat();
+          } else {
+            // Not authed → bounce to login immediately
+            bounceToLogin();
           }
         });
-      } catch(_) {}
-
-      // 3) If Firebase already initialized and we’re currently signed out on a protected page, guard immediately
-      try {
-        if (!isAuthPage() && FB.auth && !FB.auth.currentUser) goLogin();
-      } catch(_) {}
+        return true;
+      } catch (_) {
+        return false;
+      }
     }
-    tryWire();
-  })();
+
+    (function waitForFirebase() {
+      tries++;
+      // Need both handles present (firebase-init.js must have run)
+      if (!window.DF_FB || !window.DF_FB_API || !window.DF_FB.auth) {
+        if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
+        // Firebase never showed up → go to login
+        return bounceToLogin();
+      }
+
+      // If Firebase is present but currentUser is null at this instant,
+      // we’ll still subscribe and the onAuth callback will handle redirect.
+      if (!subscribeAuth()) {
+        if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
+        return bounceToLogin();
+      }
+
+      // If already logged in, stamp heartbeat right now
+      try {
+        if (window.DF_FB.auth.currentUser) recordHeartbeat();
+      } catch (_) {}
+    })();
+  }
 
   /* ---------- DOM Ready ---------- */
   document.addEventListener('DOMContentLoaded', function () {
@@ -327,6 +320,7 @@
     installClock();
     injectVersionAndBuildDate();
     installBackButtonFlow();
+    installAuthGuard(); // ← added
   });
 
   /* Keep legacy logout triggers working anywhere */
