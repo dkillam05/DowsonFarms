@@ -8,18 +8,23 @@
 
   <!-- Prepaint theme -->
   <script>
-  (function () {
-    var pref = localStorage.getItem('df_theme') || 'auto';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-  })();
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+      document.documentElement.style.colorScheme =
+        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
-  <!-- App CSS/JS (we're in /teams-partners → use ../) -->
+  <!-- App CSS/JS (same tree as other pages) -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
+
+  <!-- Firebase + Menus -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
 
   <style>
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -29,16 +34,37 @@
     .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    #scBizPhone,#scCellPhone,#m_biz,#m_cell{font-size:16px;}
+    #scBizPhone,#scCellPhone{font-size:16px}
 
-    .pill-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(108px,1fr))}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
-    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20)}
-    .pill[disabled]{opacity:.45;pointer-events:none}
-    .ex-group{border:1px solid var(--tile-border);border-radius:10px;margin:6px 0;background:var(--tile-bg);}
-    .ex-parent{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--tile-border);justify-content:space-between}
-    .ex-children{padding:6px 10px 12px}
-    .auth-modal__backdrop{z-index:4000 !important}
+    /* Toast */
+    #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
+
+    /* Roles/Overrides — match Account Roles & Employees */
+    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
+    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;
+      border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);
+      color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
+    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);
+      box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
+
+    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
+    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
+    .menu-body{padding:16px;border-top:1px dashed var(--tile-border)}
+    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
+    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
+    .subbody{padding:8px 4px 2px;display:none}
+    .muted-sm{opacity:.85;font-size:.92rem}
+
+    /* Overrides modal */
+    .modal-backdrop{display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.45);
+      align-items:center;justify-content:center;padding:20px}
+    .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
+      width:min(820px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
+    .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .modal .body{padding:12px 16px;overflow:auto}
+    .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
   </style>
 </head>
 <body>
@@ -107,13 +133,14 @@
         <div class="field">
           <label for="scRole">Role (Permissions) <span class="req-star">*</span></label>
           <select id="scRole" required></select>
+          <small class="muted" id="roleHint" style="display:block;margin-top:4px;"></small>
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="scTrade">Trade / Service</label>
-          <select id="scTrade"></select>
+          <input id="scTrade" type="text" placeholder="e.g., Trucking, Excavation" />
         </div>
         <div class="field">
           <label for="scNotes">Notes</label>
@@ -157,7 +184,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View -->
+  <!-- Quick View modal -->
   <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Sub-Contractors</h2>
@@ -168,78 +195,64 @@
     </div>
   </div>
 
-  <!-- Permission Overrides Modal -->
-  <div class="auth-modal__backdrop" id="exBackdrop" role="dialog" aria-modal="true" aria-labelledby="exTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(760px,94vw);">
-      <h2 id="exTitle">Permission Overrides</h2>
-      <p class="muted-small" style="margin-top:-6px;">Grant access to specific Menus and Submenus in addition to the chosen Role.</p>
-      <div class="line" style="gap:10px;align-items:center;margin:4px 0 10px;">
-        <input id="exSearch" placeholder="Search menus…" style="flex:1;font-size:16px;height:40px;padding:8px 12px;border-radius:10px;">
-        <button type="button" class="pill" id="exEnableBtn" aria-pressed="false" title="Enable overrides">
+  <!-- Overrides modal (same UX as Roles/Employees) -->
+  <div id="ovB" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+    <div class="modal" role="document">
+      <header>
+        <h2 id="ovTitle" style="margin:0;">Permission Overrides</h2>
+        <label class="muted-small" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="ovEnabled" />
           Enable overrides for this company
-        </button>
-      </div>
-      <div id="exList" style="max-height:min(52vh,500px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px; padding:6px;"></div>
-      <div class="modal-actions" style="justify-content:space-between;">
-        <button class="btn-outline" id="exCancel">Cancel</button>
-        <button class="btn-primary" id="exSave">Save Overrides</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Manage/Edit Modal -->
-  <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(720px,94vw);">
-      <h2 id="manageTitle">Edit Sub-Contractor</h2>
-      <div id="manageBox" style="display:grid;gap:10px;">
-        <input id="m_company" placeholder="Company Name" />
-        <div class="line" style="gap:10px;flex-wrap:wrap">
-          <input id="m_first" placeholder="Main Contact – First" />
-          <input id="m_last" placeholder="Main Contact – Last" />
-        </div>
-        <div class="line" style="gap:10px;flex-wrap:wrap">
-          <input id="m_biz" placeholder="Business Phone" maxlength="14" />
-          <input id="m_cell" placeholder="Cell Phone" maxlength="14" />
-        </div>
-        <input id="m_email" placeholder="Primary Email" />
-        <select id="m_trade"></select>
-        <input id="m_notes" placeholder="Notes" />
-        <select id="m_role"></select>
-        <label class="muted"><input type="checkbox" id="m_archived" /> Archived</label>
-        <div class="line"><button class="btn-outline" type="button" id="m_exceptions">Permission Overrides</button></div>
-      </div>
-      <div class="modal-actions" style="justify-content:space-between;">
-        <button class="btn-outline" id="manageCancel">Cancel</button>
-        <button class="btn-primary" id="manageSave">Save Changes</button>
+        </label>
+      </header>
+      <div id="ovBody" class="body"></div>
+      <div class="actions">
+        <button class="btn-outline" id="ovCancel" type="button">Cancel</button>
+        <button class="btn-primary" id="ovSave" type="button">Save Overrides</button>
       </div>
     </div>
   </div>
 
-  <script>
-  (function SubcontractorsPage(){
-    const KEY='df.sub_contractors';             // <— matches Dictionary page
-    const ROLES_PERMS_KEY='df_role_perms';
-    const MENUS_MAP_KEY='df_menus_map';
-    const TRADES_KEY='df_trades';
+  <!-- Toast -->
+  <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
 
-    const $=s=>document.querySelector(s);
-    const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
-    const load = (k,def)=> { try{const v=JSON.parse(localStorage.getItem(k)); return v==null?def:v;}catch(_){return def;} };
-    const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
-    const listLoad = ()=> load(KEY, []);
-    const listSave = (rows)=> save(KEY, rows);
-    const upsert = (row)=>{ const L=listLoad(); const i=L.findIndex(x=>x.id===row.id); if(i>=0) L[i]=row; else L.push(row); listSave(L); };
-    const removeById = (id)=> listSave(listLoad().filter(x=>x.id!==id));
-    const uniq = (arr)=> [...new Set(arr)];
+  <!-- Page logic -->
+  <script type="module">
+    const { auth, db } = window.DF_FB;
 
-    function showToast(msg){
-      let t=document.querySelector('.df-toast');
-      if(!t){ t=document.createElement('div'); t.className='df-toast'; document.body.appendChild(t); }
-      t.textContent=msg; t.classList.add('show');
-      setTimeout(()=> t.classList.remove('show'), 2200);
+    import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import {
+      collection, doc, setDoc, deleteDoc, getDocs, getDoc,
+      serverTimestamp, query, where, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+    /* ========= Menus (from DF_MENUS) ========= */
+    function buildMenusFromDF(df){
+      const out = {};
+      if (!df || !Array.isArray(df.tiles)) return out;
+      df.tiles.forEach(tile => {
+        const top = String(tile.label || '').trim();
+        if (!top) return;
+        const kids = Array.isArray(tile.children) ? tile.children : [];
+        const subs = kids.map(k => String(k.label || '').trim()).filter(Boolean);
+        if (subs.length) out[top] = subs;
+      });
+      return out;
     }
+    const MENUS = buildMenusFromDF(window.DF_MENUS || {});
+    const ACTIONS = ['view','edit','add','archive','delete'];
 
-    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
+    /* ========= DOM helpers ========= */
+    const $ = s => document.querySelector(s);
+    const chip = s => s ? `<span class="chip">${s}</span>` : '';
+    function showToast(msg){
+      const box=$('#dfToast'), txt=$('#dfToastText');
+      txt.textContent = msg || 'Saved';
+      box.style.display='block';
+      clearTimeout(window.__toastT);
+      window.__toastT=setTimeout(()=> box.style.display='none', 1800);
+    }
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -249,195 +262,247 @@
     }
     function attachPhoneMask(input){
       input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
-      input.addEventListener('blur', ()=>{ input.value = formatPhoneDigits(input.value); });
+      input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
     }
-    const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
-    const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
+    const isValidPhoneUS = s => /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
+    const isEmail       = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
 
-    function getTrades(){ return load(TRADES_KEY, []); }
-    function saveTrades(arr){ save(TRADES_KEY, uniq(arr).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}))); }
-    function fillTradeSelect(sel, value){
-      const trades = getTrades();
-      const opts = [
-        `<option value="">Select trade…</option>`,
-        ...trades.map(t=>`<option value="${t}">${t}</option>`),
-        `<option value="__ADD__">➕ Add a new trade…</option>`
-      ].join('');
-      sel.innerHTML = opts;
-      if(value){ sel.value=value; if(sel.value!==value){ sel.value=""; } }
-      sel.onchange = ()=>{
-        if(sel.value==='__ADD__'){
-          const name = prompt('Add new trade/service (e.g., Electrical, Trucking):','');
-          if(name && name.trim()){
-            const t = titleCase(name.trim());
-            saveTrades([...trades, t]);
-            fillTradeSelect(sel, t);
-            const msel = document.getElementById('m_trade'); if(msel) fillTradeSelect(msel, t);
-          }else{
-            sel.value = "";
-          }
-        }
-      };
-    }
+    /* ========= Firestore: users (type=subcontractor) ========= */
+    const USERS = collection(db, "users");
 
-    function getRoleNames(){
-      const rp = load(ROLES_PERMS_KEY, null);
-      return rp ? Object.keys(rp) : ["Administrator","Owner","Manager","Employee","View Only"];
+    async function listSubs(){
+      const snaps = await getDocs(query(USERS, where('type','==','subcontractor')));
+      const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
+      return out;
     }
-    function fillRoleSelect(sel, value){
-      const roles=getRoleNames();
+    async function upsertSub(item){
+      const id = (item.email ? String(item.email).toLowerCase() : crypto.randomUUID());
+      await setDoc(doc(USERS, id), {
+        ...item,
+        id,
+        type: 'subcontractor',
+        updatedAt: serverTimestamp(),
+        createdAt: item.createdAt || serverTimestamp()
+      }, { merge:true });
+      return id;
+    }
+    async function removeById(id){ await deleteDoc(doc(USERS, id)); }
+
+    /* ========= Roles dropdown (from /roles) ========= */
+    async function fetchRoles(){
+      try {
+        const snaps = await getDocs(query(collection(db,'roles'), orderBy('label')));
+        const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
+        return out;
+      } catch {
+        const snaps = await getDocs(collection(db,'roles'));
+        const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
+        return out;
+      }
+    }
+    async function fillRoleSelect(sel, value){
+      $('#roleHint').textContent = 'Loading roles…';
+      const roles = await fetchRoles();
+      $('#roleHint').textContent = '';
+      if (!roles.length){
+        sel.innerHTML = '<option value="" disabled selected>No roles found</option>';
+        return;
+      }
       sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
-        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
-      if(value) sel.value=value;
-    }
-    function getMenusObject(){
-      const obj = load(MENUS_MAP_KEY, null);
-      return obj && typeof obj==='object' ? obj : {
-        "Crop Production": ["Planting","Spraying","Harvest","Trials","Scouting","Maintenance"],
-        "Grain Tracking": ["Bins","Tickets","Contracts"],
-        "Equipment": ["Maintenance","Repairs","Assignments"],
-        "Calculators": ["Seed Rate","Fertilizer","ROI"],
-        "Reports": ["Crops","Equipment","Financial"],
-        "Team / Partners": ["Employees","Vendors","Sub-contractors","Dictionary"],
-        "Feedback": ["Ideas","Bugs / Issues"],
-        "AI": ["AI","AI History"],
-        "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-      };
+        roles.map(r=>{
+          const label = (r.label||r.id||'').toString();
+          return `<option value="${label}">${label}</option>`;
+        }).join('');
+      if (value) sel.value=value;
     }
 
-    const exState = { enabled:false, grants:{} };
-
-    function makePill(label, on){
+    /* ========= Overrides modal (same as Employees) ========= */
+    function pill(label, pressed){
       const b=document.createElement('button');
       b.type='button'; b.className='pill'; b.textContent=label;
-      b.setAttribute('aria-pressed', on?'true':'false');
-      b.addEventListener('click',()=>{ const now=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed', now?'false':'true'); });
+      b.setAttribute('aria-pressed', pressed?'true':'false');
+      b.addEventListener('click', ()=>{
+        const on = b.getAttribute('aria-pressed')==='true';
+        b.setAttribute('aria-pressed', on?'false':'true');
+      });
       return b;
     }
-    function pillRowFromObj(obj, disabled){
-      const row=document.createElement('div'); row.className='pill-grid';
-      ['View','Edit','Add','Archive','Delete'].forEach(k=>{
-        const p=makePill(k, !!obj?.[k.toLowerCase()]); if(disabled) p.setAttribute('disabled',''); row.appendChild(p);
-      });
-      return row;
-    }
-    function rowToObj(row){
-      const keys=['view','edit','add','archive','delete'];
-      const vals=[...row.querySelectorAll('.pill')].slice(0,5).map(p=>p.getAttribute('aria-pressed')==='true');
-      return Object.fromEntries(keys.map((k,i)=>[k,vals[i]]));
-    }
-    function setRow(row,obj){
-      const keys=['view','edit','add','archive','delete'];
-      [...row.querySelectorAll('.pill')].slice(0,5).forEach((p,i)=> p.setAttribute('aria-pressed', obj?.[keys[i]]?'true':'false'));
-    }
-
-    function openExceptions(existing){
-      let draft = { enabled:false, grants:{} };
-      if (existing){
-        draft.enabled = !!existing.enabled;
-        if (existing.grants && typeof existing.grants==='object') draft.grants={...existing.grants};
-        else if (Array.isArray(existing.allow)) existing.allow.forEach(id=>{ draft.grants[id] = {view:true,edit:true,add:true,archive:true,delete:true}; });
-      }
-      exState.enabled = draft.enabled;
-      exState.grants = {...draft.grants};
-
-      const MENUS=getMenusObject();
-      const B=$('#exBackdrop'), L=$('#exList'), enableBtn=$('#exEnableBtn');
-
-      L.innerHTML='';
+    function ensureShapeForOverrides(grants){
+      const perms = {};
       Object.keys(MENUS).forEach(menu=>{
-        const group=document.createElement('details'); group.className='ex-group'; group.open=false;
+        perms[menu] = perms[menu] || {};
+        (MENUS[menu]||[]).forEach(sm=>{
+          const g = (grants?.[menu]?.[sm]) || {};
+          perms[menu][sm] = {
+            view:!!g.view, edit:!!g.edit, add:!!g.add, archive:!!g.archive, delete:!!g.delete
+          };
+        });
+      });
+      return perms;
+    }
+    function menuSummary(perms, menu){
+      const subs = Object.values(perms[menu]||{});
+      if (!subs.length) return 'No access';
+      const allFalse = subs.every(p=>!p.view && !p.edit && !p.add && !p.archive && !p.delete);
+      if (allFalse) return 'No access';
+      const allTrue  = subs.every(p=>p.view && p.edit && p.add && p.archive && p.delete);
+      if (allTrue) return 'All';
+      return 'Custom';
+    }
+    function summarizeChildren(perms, menu){
+      const keys = Object.keys(perms[menu]||{});
+      const on = keys.filter(k=>{
+        const p = perms[menu][k]; return p.view||p.edit||p.add||p.archive||p.delete;
+      }).length;
+      if (!on) return 'None';
+      if (on===keys.length) return 'All submenus';
+      return `${on} of ${keys.length} submenus`;
+    }
 
-        const parent=document.createElement('div'); parent.className='ex-parent';
-        const left=document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
-        const title=document.createElement('strong'); title.textContent=menu;
-        const sublabel=document.createElement('span'); sublabel.className='muted-small'; sublabel.textContent='Grant all in '+menu;
-        left.append(title, sublabel);
+    function openOverridesModal(current){
+      const B = $('#ovB'), body = $('#ovBody'), enabled = $('#ovEnabled');
+      B.style.display='flex';
+      enabled.checked = !!current?.enabled;
 
-        const pkey=`${menu}>*`;
-        const pRow=pillRowFromObj(exState.grants[pkey], !exState.enabled);
-        parent.append(left, pRow);
-        pRow.addEventListener('click',(e)=>{
-          if(!e.target.classList.contains('pill')) return;
-          const state=rowToObj(pRow); exState.grants[pkey]=state;
-          group.querySelectorAll('[data-subrow]').forEach(r=>{
-            setRow(r, state);
-            exState.grants[r.dataset.key] = {...state};
+      let perms = ensureShapeForOverrides(current?.grants||{});
+      body.innerHTML = '';
+
+      Object.keys(MENUS).forEach(menu=>{
+        const card = document.createElement('div'); card.className='menu-card';
+
+        const head = document.createElement('div'); head.className='menu-head';
+        const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
+        const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
+        const title = document.createElement('strong'); title.textContent = menu;
+        left.append(caret,title);
+        const right = document.createElement('div'); right.className='muted-sm';
+        head.append(left,right);
+
+        const mbody = document.createElement('div'); mbody.className='menu-body'; mbody.style.display='none';
+
+        const grid = document.createElement('div'); grid.className='pill-grid';
+        ACTIONS.forEach(name=>{
+          const k = name;
+          const pressed = (MENUS[menu]||[]).every(sm => !!perms[menu][sm][k]);
+          const p = pill(name[0].toUpperCase()+name.slice(1), pressed);
+          p.setAttribute('aria-label', `${menu}::${k}`);
+          p.addEventListener('click', ()=>{
+            const isOn = p.getAttribute('aria-pressed')==='true';
+            (MENUS[menu]||[]).forEach(sm => perms[menu][sm][k] = isOn);
+            mbody.querySelectorAll(`[data-sub="${menu}::${k}"]`).forEach(btn=>{
+              btn.setAttribute('aria-pressed', isOn ? 'true':'false');
+            });
+            right.textContent = menuSummary(perms, menu);
+            shRight.textContent = summarizeChildren(perms, menu);
+          });
+          grid.appendChild(p);
+        });
+        mbody.appendChild(grid);
+
+        const subWrap = document.createElement('div'); subWrap.className='subwrap';
+        const sh = document.createElement('div'); sh.className='subhead';
+        const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
+        const subCaret = document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
+        const shT = document.createElement('strong'); shT.textContent='Manage submenus';
+        shL.append(subCaret, shT);
+        const shRight = document.createElement('span'); shRight.className='muted-sm';
+        sh.append(shL, shRight);
+        const subBody = document.createElement('div'); subBody.className='subbody';
+
+        (MENUS[menu]||[]).forEach(sm=>{
+          const section = document.createElement('section'); section.style.margin='10px 0 14px';
+          const h = document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent = `${menu} › ${sm}`;
+          const grid2 = document.createElement('div'); grid2.className='pill-grid';
+          ACTIONS.forEach(name=>{
+            const k = name;
+            const btn = pill(name[0].toUpperCase()+name.slice(1), !!perms[menu][sm][k]);
+            btn.setAttribute('data-sub', `${menu}::${k}`);
+            btn.addEventListener('click', ()=>{
+              const isOn = btn.getAttribute('aria-pressed')==='true';
+              perms[menu][sm][k] = isOn;
+              shRight.textContent = summarizeChildren(perms, menu);
+              right.textContent = menuSummary(perms, menu);
+              const allOn  = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===true);
+              const allOff = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===false);
+              const parentBtn = mbody.querySelector(`.pill[aria-label="${menu}::${k}"]`);
+              if (parentBtn) parentBtn.setAttribute('aria-pressed', allOn ? 'true' : (allOff ? 'false' : parentBtn.getAttribute('aria-pressed')));
+            });
+            grid2.appendChild(btn);
+          });
+          section.append(h, grid2);
+          subBody.appendChild(section);
+        });
+
+        sh.addEventListener('click', ()=>{
+          const open = subBody.style.display !== 'none';
+          subBody.style.display = open ? 'none' : 'block';
+          subCaret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+
+        subWrap.append(sh, subBody);
+        mbody.appendChild(subWrap);
+
+        head.addEventListener('click', ()=>{
+          const open = mbody.style.display !== 'none';
+          mbody.style.display = open ? 'none' : 'block';
+          caret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+
+        right.textContent   = menuSummary(perms, menu);
+        shRight.textContent = summarizeChildren(perms, menu);
+
+        card.append(head, mbody);
+        body.appendChild(card);
+      });
+
+      $('#ovCancel').onclick = ()=> B.style.display='none';
+      $('#ovSave').onclick = ()=>{
+        const grants = {};
+        Object.keys(MENUS).forEach(menu=>{
+          (MENUS[menu]||[]).forEach(sm=>{
+            const g = perms[menu][sm];
+            if (g.view||g.edit||g.add||g.archive||g.delete) {
+              grants[menu] = grants[menu] || {};
+              grants[menu][sm] = {};
+              ACTIONS.forEach(k=>{ if (g[k]) grants[menu][sm][k] = true; });
+            }
           });
         });
-
-        const kidsWrap=document.createElement('div'); kidsWrap.className='ex-children';
-        MENUS[menu].forEach(sub=>{
-          const key=`${menu}>${sub}`;
-          const row=document.createElement('div'); row.style.margin='10px 0'; row.setAttribute('data-subrow',''); row.dataset.key=key;
-          const label=document.createElement('div'); label.textContent=sub; label.style.margin='0 0 6px';
-          const pills=pillRowFromObj(exState.grants[key], !exState.enabled);
-          pills.addEventListener('click',(e)=>{ if(e.target.classList.contains('pill')) exState.grants[key]=rowToObj(pills); });
-          row.append(label, pills);
-          kidsWrap.appendChild(row);
-        });
-
-        group.append(parent, kidsWrap);
-        L.appendChild(group);
-      });
-
-      function setEnabledUI(on){
-        L.querySelectorAll('.pill').forEach(p=> on? p.removeAttribute('disabled') : p.setAttribute('disabled',''));
-        L.querySelectorAll('[data-subrow]').forEach(r=> r.style.opacity = on ? 1 : .6);
-      }
-      enableBtn.setAttribute('aria-pressed', exState.enabled?'true':'false');
-      setEnabledUI(exState.enabled);
-
-      enableBtn.onclick=()=>{ exState.enabled=!exState.enabled; enableBtn.setAttribute('aria-pressed', exState.enabled?'true':'false'); setEnabledUI(exState.enabled); };
-
-      const search=$('#exSearch'); search.value='';
-      search.oninput=()=>{ const q=search.value.toLowerCase().trim(); L.querySelectorAll('.ex-group').forEach(d=>{ const txt=d.textContent.toLowerCase(); d.style.display=(!q||txt.includes(q))?'':'none'; }); };
-
-      B.style.display='flex';
-      $('#exCancel').onclick=()=> B.style.display='none';
-      $('#exSave').onclick=()=>{
-        B.style.display='none';
-        Object.keys(exState.grants).forEach(k=>{ const g=exState.grants[k]; const any=g&&(g.view||g.edit||g.add||g.archive||g.delete); if(!any) delete exState.grants[k]; });
-        if(typeof exState.onSave==='function') exState.onSave({enabled:exState.enabled, grants:{...exState.grants}});
-        showToast('Overrides saved');
+        const payload = {
+          enabled: !!$('#ovEnabled').checked,
+          grants:  $('#ovEnabled').checked ? grants : {}
+        };
+        $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
+        $('#ovB').style.display='none';
+        const nMenus = Object.values(payload.grants||{}).reduce((sum,subs)=> sum + Object.keys(subs||{}).length, 0);
+        showToast(payload.enabled ? `Overrides saved (${nMenus} submenus)` : 'Overrides disabled');
       };
-      B.addEventListener('click',(e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     }
 
-    // Role & Trades selects
-    fillRoleSelect($('#scRole'));
-    attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
-    fillTradeSelect($('#scTrade'));
-
-    function inviteSub(id){
-      const all=listLoad(); const r=all.find(x=>x.id===id); if(!r) return alert('Record not found');
-      if(!r.email) return alert('Primary email required to send invite.');
-      alert('🚧 Coming soon — invites will send automatically after Beta (backend not live yet).');
-      r.invitedAt=Date.now(); upsert(r); render();
-    }
-
-    function render(){
+    /* ========= List / Manage / Invite ========= */
+    async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      const rows=listLoad()
+      const rows=(await listSubs())
         .filter(x=>showA?true:!x.archived)
         .filter(x=>{
           const bag=[x.company, x.first+' '+x.last, x.trade, x.email, x.phoneBiz, x.phoneCell].join(' ').toLowerCase();
           return !q || bag.includes(q);
         })
-        .sort((a,b)=> a.company.localeCompare(b.company,undefined,{sensitivity:'base'}));
+        .sort((a,b)=> (a.company||'').localeCompare(b.company||'',undefined,{sensitivity:'base'}));
 
       const L=$('#savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = r.company || '(No Company)';
         const person = [r.first,r.last].filter(Boolean).join(' ');
         const rowChips = [person, r.trade, r.phoneBiz, r.phoneCell, r.email].filter(Boolean).map(chip).join(' ');
-        const exCount = r.exceptions?.enabled ? Object.keys(r.exceptions?.grants||{}).length : 0;
+        const exEnabled = r.exceptions?.enabled;
+        const exCount = exEnabled ? Object.values(r.exceptions.grants||{}).reduce((n,subs)=> n + Object.keys(subs||{}).length, 0) : 0;
         return `<li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
             <strong>${name}</strong>
             ${rowChips}
-            ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
+            ${exEnabled ? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`:''}
             ${r.invitedAt ? `<span class="chip">Invited</span>`:''}
             ${r.archived ? `<span class="chip">Archived</span>`:''}
           </div>
@@ -448,49 +513,112 @@
         </li>`;
       }).join('') : '<li class="muted">No sub-contractors yet.</li>';
 
-      L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click',()=> openManage(b.getAttribute('data-edit'))));
-      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click',()=> inviteSub(b.getAttribute('data-invite'))));
+      L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
+      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteSub(b.getAttribute('data-invite'))));
     }
 
-    function openManage(id){
-      const rows=listLoad(); const r=rows.find(x=>x.id===id); if(!r) return;
-      $('#manageTitle').textContent = `Edit — ${r.company||''}`;
-      $('#m_company').value=r.company||'';
-      $('#m_first').value=r.first||''; $('#m_last').value=r.last||'';
-      $('#m_biz').value=r.phoneBiz||''; $('#m_cell').value=r.phoneCell||'';
-      attachPhoneMask($('#m_biz')); attachPhoneMask($('#m_cell'));
-      $('#m_email').value=r.email||'';
-      fillTradeSelect($('#m_trade'), r.trade||'');
-      $('#m_notes').value=r.notes||'';
-      fillRoleSelect($('#m_role'), r.role||'');
-      $('#m_archived').checked=!!r.archived;
+    async function openManage(id){
+      const snap = await getDoc(doc(USERS, id));
+      if (!snap.exists()){ alert('Not found'); return; }
+      const r = { id: snap.id, ...(snap.data()||{}) };
 
-      const B=$('#manageBackdrop'); B.style.display='flex';
-      $('#m_exceptions').onclick=()=>{ exState.onSave = (v)=>{ r.exceptions=v; }; openExceptions(r.exceptions); };
-      $('#manageCancel').onclick=()=> B.style.display='none';
-      $('#manageSave').onclick=()=>{
-        if(!($('#m_company').value||'').trim()){ alert('Company is required.'); return; }
-        if(!isValidPhoneUS($('#m_biz').value)||!isValidPhoneUS($('#m_cell').value)){ alert('Phones must be (###) ###-####'); return; }
-        if(!isEmail($('#m_email').value)){ alert('Valid primary email is required.'); return; }
-        if(!$('#m_role').value){ alert('Role is required.'); return; }
-        r.company=($('#m_company').value||'').trim();
-        r.first=titleCase(($('#m_first').value||'').trim());
-        r.last=titleCase(($('#m_last').value||'').trim());
-        r.phoneBiz=$('#m_biz').value; r.phoneCell=$('#m_cell').value;
-        r.email=$('#m_email').value.trim();
-        r.trade=$('#m_trade').value || '';
-        r.notes=($('#m_notes').value||'').trim();
-        r.role=$('#m_role').value;
-        r.archived=$('#m_archived').checked;
-        r.updatedAt=Date.now();
-        upsert(r); B.style.display='none'; render();
-        showToast('Saved changes');
+      // Populate form for quick edits
+      $('#scCompany').value = r.company||'';
+      $('#scFirst').value   = r.first||'';
+      $('#scLast').value    = r.last||'';
+      $('#scBizPhone').value= r.phoneBiz||'';
+      $('#scCellPhone').value=r.phoneCell||'';
+      $('#scEmail').value   = r.email||'';
+      await fillRoleSelect($('#scRole'), r.role||'');
+      $('#scTrade').value   = r.trade||'';
+      $('#scNotes').value   = r.notes||'';
+      $('#exceptionsBtn').dataset.payload = JSON.stringify(r.exceptions || {enabled:false,grants:{}});
+
+      window.scrollTo({top:0, behavior:'smooth'});
+      $('#scCompany').focus();
+    }
+
+    async function inviteSub(id){
+      const snap = await getDoc(doc(USERS, id));
+      if (!snap.exists()){ alert('Record not found'); return; }
+      const r = { id: snap.id, ...(snap.data()||{}) };
+      if(!r.email){ alert('Primary email required to send invite.'); return; }
+
+      const actionCodeSettings = {
+        url: new URL('../teams-partners/index.html', document.baseURI).href,
+        handleCodeInApp: true
       };
-      B.addEventListener('click', (ev)=>{ if(ev.target===B) B.style.display='none'; }, {once:true});
+
+      try{
+        await sendSignInLinkToEmail(auth, r.email, actionCodeSettings);
+        r.invitedAt = Date.now();
+        await upsertSub(r);
+        await render();
+        showToast('Invite sent');
+      }catch(err){
+        console.error(err);
+        alert('Could not send invite. Check Firebase Auth (Authorized domains, Email templates).');
+      }
     }
 
-    $('#quickViewBtn').addEventListener('click', ()=>{
-      const rows=listLoad().sort((a,b)=> a.company.localeCompare(b.company,undefined,{sensitivity:'base'}));
+    /* ========= Wire up ========= */
+    attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
+    await fillRoleSelect($('#scRole'));
+
+    $('#exceptionsBtn').addEventListener('click', ()=>{
+      const prev = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
+      openOverridesModal(prev);
+    });
+
+    document.getElementById('sc-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const company = ($('#scCompany').value||'').trim();
+      const first   = titleCase(($('#scFirst').value||'').trim());
+      const last    = titleCase(($('#scLast').value||'').trim());
+      const biz     = $('#scBizPhone').value;
+      const cell    = $('#scCellPhone').value;
+      const email   = ($('#scEmail').value||'').trim().toLowerCase();
+      const role    = $('#scRole').value;
+
+      if(!company){ alert('Company is required.'); return; }
+      if(!first || !last){ alert('Main contact First and Last are required.'); return; }
+      if(!isValidPhoneUS(biz) || !isValidPhoneUS(cell)){ alert('Phones must be (###) ###-####'); return; }
+      if(!isEmail(email)){ alert('Valid primary email is required.'); return; }
+      if(!role){ alert('Role is required.'); return; }
+
+      const overrides = ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}});
+
+      await upsertSub({
+        company, first, last,
+        phoneBiz: biz, phoneCell: cell,
+        email, role,
+        trade: ($('#scTrade').value||'').trim(),
+        notes: ($('#scNotes').value||'').trim(),
+        archived:false,
+        exceptions: overrides,
+        createdAt: Date.now(), updatedAt: Date.now()
+      });
+
+      e.target.reset();
+      delete $('#exceptionsBtn').dataset.payload;
+      await fillRoleSelect($('#scRole'));
+      await render();
+      showToast('Sub-contractor saved');
+    });
+
+    $('#clearBtn').addEventListener('click', ()=>{
+      $('#sc-form').reset();
+      delete $('#exceptionsBtn').dataset.payload;
+      fillRoleSelect($('#scRole'));
+    });
+
+    $('#searchInput').addEventListener('input', render);
+    $('#toggleShowArchived').addEventListener('change', render);
+
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', async ()=>{
+      const rows=(await listSubs()).filter(x=>!x.archived)
+        .sort((a,b)=> (a.company||'').localeCompare(b.company||'',undefined,{sensitivity:'base'}));
       const L=$('#qvList'), B=$('#qvBackdrop');
       L.innerHTML = rows.length ? rows.map(r=>{
         const top = `<strong>${r.company||'(No Company)'}</strong>`;
@@ -501,90 +629,24 @@
           ${ line2 ? `<div class="muted-small">${line2}</div>` : '' }
           ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
         </li>`;
-      }).join('') : '<li>No sub-contractors.</li>';
+      }).join('') : '<li class="muted">No sub-contractors.</li>';
       B.style.display='flex';
       $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
       B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
     });
 
-    attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
-    $('#exceptionsBtn').addEventListener('click', ()=>{
-      exState.onSave = (val)=>{ $('#exceptionsBtn').dataset.payload = JSON.stringify(val); };
-      const existing = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : null;
-      openExceptions(existing);
-    });
+    // Initial render
+    await render();
 
-    $('#inviteBtn').addEventListener('click', ()=>{
-      const company = ($('#scCompany').value||'').trim();
-      const email = ($('#scEmail').value||'').trim();
-      if(!company || !isEmail(email)){ alert('Enter Company and a valid Primary Email to send an invite.'); return; }
-      const id = company.toLowerCase();
-      const item = {
-        id, company,
-        first: titleCase(($('#scFirst').value||'').trim()),
-        last:  titleCase(($('#scLast').value||'').trim()),
-        phoneBiz: $('#scBizPhone').value,
-        phoneCell: $('#scCellPhone').value,
-        email,
-        role: $('#scRole').value || '',
-        trade: $('#scTrade').value || '',
-        notes: ($('#scNotes').value||'').trim(),
-        archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
-        createdAt: Date.now(), updatedAt: Date.now()
-      };
-      upsert(item); inviteSub(id);
-    });
-
-    $('#sc-form').addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const company = ($('#scCompany').value||'').trim();
-      const first   = titleCase(($('#scFirst').value||'').trim());
-      const last    = titleCase(($('#scLast').value||'').trim());
-      const biz     = $('#scBizPhone').value;
-      const cell    = $('#scCellPhone').value;
-      const email   = ($('#scEmail').value||'').trim();
-      const role    = $('#scRole').value;
-
-      if(!company){ alert('Company is required.'); return; }
-      if(!first || !last){ alert('Main contact First and Last are required.'); return; }
-      if(!isValidPhoneUS(biz) || !isValidPhoneUS(cell)){ alert('Phones must be (###) ###-####'); return; }
-      if(!isEmail(email)){ alert('Valid primary email is required.'); return; }
-      if(!role){ alert('Role is required.'); return; }
-
-      const id = company.toLowerCase();
-      upsert({
-        id, company, first, last,
-        phoneBiz: biz, phoneCell: cell,
-        email, role,
-        trade: $('#scTrade').value || '',
-        notes: ($('#scNotes').value||'').trim(),
-        archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
-        createdAt: Date.now(), updatedAt: Date.now()
-      });
-      $('#sc-form').reset();
-      delete $('#exceptionsBtn').dataset.payload;
-      fillTradeSelect($('#scTrade'));
-      render();
-      showToast('Sub-contractor saved');
-    });
-
-    $('#clearBtn').addEventListener('click', ()=>{ $('#sc-form').reset(); delete $('#exceptionsBtn').dataset.payload; fillTradeSelect($('#scTrade')); });
-    $('#searchInput').addEventListener('input', render);
-    $('#toggleShowArchived').addEventListener('change', render);
-
-    render();
-
+    // Breadcrumbs helper if provided by core.js
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
-      {label:'Teams & Partners', href:'index.html'},
+      {label:'Teams & Partners', href:'./index.html'},
       {label:'Sub-Contractors'}
     ]);
-  })();
   </script>
 
-  <!-- Service worker (from /teams-partners → project root) -->
+  <!-- SW -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
