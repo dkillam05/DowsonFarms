@@ -13,14 +13,13 @@ const DF_MENUS = {
         { label: "Fertilizer",        href: "crop-production/crop-fertilizer.html",   iconEmoji: "🧪" },
         { label: "Crop Scouting",     href: "crop-production/crop-scouting.html",     iconEmoji: "🔎" },
         { label: "Maintenance",       href: "crop-production/crop-maintenance.html",  iconEmoji: "🛠️" },
-        { label: "Field Maintenance", href: "field-maintenance/field-maintenance.html", iconEmoji: "🛠️" },
         { label: "Trials",            href: "crop-production/crop-trials.html",       iconEmoji: "🧬" }
       ]
     },
 
     { // Optional shortcut to single page
       label: "Field Maintenance",
-      href: "field-maintenance/field-maintenance.html",
+      href: "crop-production/crop-maintenance.html",
       iconEmoji: "🛠️",
       children: []
     },
