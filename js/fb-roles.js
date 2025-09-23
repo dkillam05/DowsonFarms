@@ -1,7 +1,8 @@
-// fb-roles.js — MINIMAL: just populate the roles dropdown from /roles
+// fb-roles.js — populate the <select id="roleName"> from Firestore /roles
+// and show clear, on-page status when anything blocks it.
 
 import {
-  getDocs, collection, query, orderBy
+  getDocs, collection
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
@@ -11,100 +12,123 @@ const el = {
   status:     $('#roleStatus'),
   save:       $('#saveBtn'),
   discard:    $('#discardBtn'),
-  menusBox:   $('#menusContainer'),
-  permCard:   $('#permCard'),
 };
 
-function setStatus(msg, color) {
+function showStatus(msg, color) {
   if (!el.status) return;
   el.status.style.display = msg ? 'block' : 'none';
   el.status.textContent = msg || '';
-  if (color) el.status.style.color = color;
+  el.status.style.color = color || '';
 }
 
-const FB = {
-  async ready() {
-    // Ensure firebase-init created DF_FB and DF_FB_API
-    let tries = 0;
-    while ((!window.DF_FB || !window.DF_FB_API) && tries < 150) {
-      await new Promise(r => setTimeout(r, 80)); // wait ~12s max for slow phones
-      tries++;
-    }
-    if (!window.DF_FB || !window.DF_FB_API) throw new Error('Firebase not initialized');
+function setBusy(on) {
+  if (el.hint) el.hint.textContent = on ? 'Loading…' : '';
+}
 
-    // Make session persistent across app restarts
-    try { await window.DF_FB_API.setPersistence?.(true); } catch {}
-
-    // Require sign-in for reading /roles (your rules enforce this)
-    await window.DF_FB_API.init?.();
-    if (!window.DF_FB.auth.currentUser) {
-      setStatus('Not signed in', '#b00020');
-      // Disable UI until signed in
-      el.roleSelect.disabled = true;
-      el.save?.setAttribute('disabled', 'true');
-      el.discard?.setAttribute('disabled', 'true');
-      return null;
+async function waitForFirebaseHandles(maxMs = 12000) {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    if (window.DF_FB && window.DF_FB_API && window.DF_FB.db && window.DF_FB.auth) {
+      return { db: window.DF_FB.db, auth: window.DF_FB.auth };
     }
-    el.roleSelect.disabled = false;
-    return window.DF_FB.db;
+    await new Promise(r => setTimeout(r, 80));
   }
-};
+  throw new Error('Firebase handles not available (DF_FB / DF_FB_API).');
+}
 
-async function listRoles(db) {
-  // Try to order by label; fall back to unsorted
+async function ensurePersistence() {
   try {
-    const qy = query(collection(db, 'roles'), orderBy('label'));
-    const snaps = await getDocs(qy);
-    const out = [];
-    snaps.forEach(d => out.push({ id: d.id, ...(d.data() || {}) }));
-    return out;
-  } catch {
-    const snaps = await getDocs(collection(db, 'roles'));
-    const out = [];
-    snaps.forEach(d => out.push({ id: d.id, ...(d.data() || {}) }));
-    return out;
+    // true => local (stay signed in across app restarts)
+    if (window.DF_FB_API?.setPersistence) await window.DF_FB_API.setPersistence(true);
+  } catch {}
+}
+
+function requireSignedInOrExplain(auth) {
+  const user = auth.currentUser;
+  if (!user) {
+    showStatus('Not signed in — open the login page from the top-right and sign in first.', '#b00020');
+    if (el.roleSelect) el.roleSelect.disabled = true;
+    if (el.save)   el.save.disabled   = true;
+    if (el.discard) el.discard.disabled = true;
+    return false;
   }
+  if (el.roleSelect) el.roleSelect.disabled = false;
+  if (el.save)   el.save.disabled   = true;   // still disabled until perms UI exists
+  if (el.discard) el.discard.disabled = true;
+  return true;
+}
+
+async function loadRoles(db) {
+  // Keep it simplest possible: no orderBy, just list doc IDs (robust even if docs are empty).
+  const snaps = await getDocs(collection(db, 'roles'));
+  const out = [];
+  snaps.forEach(d => {
+    const data = d.data() || {};
+    const label = (data.label || d.id || '').toString();
+    out.push({ id: d.id, label });
+  });
+  return out;
+}
+
+function populateSelect(roles) {
+  if (!el.roleSelect) return;
+
+  if (!roles.length) {
+    el.roleSelect.innerHTML = '';
+    showStatus('No roles found in /roles. Add docs named: Administrator, Owner, Manager, Employee, ViewOnly.', '#b00020');
+    return;
+  }
+
+  el.roleSelect.innerHTML = roles
+    .map(r => `<option value="${r.label}">${r.label}</option>`)
+    .join('');
+
+  const last = localStorage.getItem('df_role_selected');
+  if (last && roles.some(r => r.label === last)) {
+    el.roleSelect.value = last;
+  }
+
+  el.roleSelect.addEventListener('change', () => {
+    localStorage.setItem('df_role_selected', el.roleSelect.value);
+  });
+
+  showStatus(`${roles.length} role${roles.length === 1 ? '' : 's'} loaded.`, '#2e7d32');
 }
 
 async function start() {
   try {
-    el.hint.textContent = 'Loading…';
-    const db = await FB.ready();
-    if (!db) return; // not signed in
+    setBusy(true);
 
-    const roles = await listRoles(db);
+    // 1) Wait for firebase-init to expose DF_FB, DF_FB_API
+    const { db, auth } = await waitForFirebaseHandles();
 
-    if (!roles.length) {
-      el.roleSelect.innerHTML = '';
-      setStatus('No roles found in /roles. Add docs: Administrator, Owner, Manager, Employee, ViewOnly.', '#b00020');
-      el.hint.textContent = '';
-      return;
-    }
+    // 2) Make sessions sticky
+    await ensurePersistence();
 
-    // Build options using label || id
-    el.roleSelect.innerHTML = roles
-      .map(r => {
-        const label = (r.label || r.id || '').toString();
-        const value = (r.label || r.id || '').toString();
-        return `<option value="${value}">${label}</option>`;
-      })
-      .join('');
+    // 3) Require sign-in (your rules need auth for /roles reads)
+    if (!requireSignedInOrExplain(auth)) { setBusy(false); return; }
 
-    // Remember last selected
-    const last = localStorage.getItem('df_role_selected');
-    if (last && roles.some(r => (r.label || r.id) === last)) {
-      el.roleSelect.value = last;
-    }
-    el.roleSelect.addEventListener('change', () => {
-      localStorage.setItem('df_role_selected', el.roleSelect.value);
-    });
+    // 4) Pull roles
+    const roles = await loadRoles(db);
 
-    setStatus(`${roles.length} role${roles.length===1?'':'s'} loaded`, '#2e7d32');
-    el.hint.textContent = '';
+    // 5) Build select
+    populateSelect(roles);
+
   } catch (err) {
-    console.error(err);
-    el.hint.textContent = '';
-    setStatus('Failed to load roles (check auth, project config, rules, or collection name).', '#b00020');
+    console.error('[fb-roles] failed:', err);
+    // Give a specific, human message on screen
+    let msg = 'Failed to load roles.';
+    const s = String(err && (err.message || err.code || err)).toLowerCase();
+    if (s.includes('permission') || s.includes('missing or insufficient permissions')) {
+      msg = 'Permission denied reading /roles — check Firestore rules (must allow read when signed in).';
+    } else if (s.includes('unavailable') || s.includes('network') || s.includes('offline')) {
+      msg = 'Network error loading /roles — check connection.';
+    } else if (s.includes('not available') || s.includes('df_fb')) {
+      msg = 'Firebase not initialized on this page — ensure ../js/firebase-init.js loads before fb-roles.js.';
+    }
+    showStatus(msg, '#b00020');
+  } finally {
+    setBusy(false);
   }
 }
 
