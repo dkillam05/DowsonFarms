@@ -6,6 +6,7 @@
    - Back button (in-flow above footer) — HIDDEN on home and on /auth/*
    - Logout button in Breadcrumb bar (right-aligned, consistent everywhere)
    - Honors <base href="/DowsonFarms/">
+   - NEW: Global Firebase Auth guard + persistence + monthly forced logout
    =========================== */
 
 (function () {
@@ -52,14 +53,22 @@
     var keepTheme = null;
     try { keepTheme = localStorage.getItem('df_theme'); } catch (_) {}
 
+    // Clear our monthly refresh marker
+    try { localStorage.removeItem('df_last_auth_refresh'); } catch (_) {}
+
     try { localStorage.clear(); } catch (_) {}
     try { sessionStorage.clear(); } catch (_) {}
+
     try { if (keepTheme !== null) localStorage.setItem('df_theme', keepTheme); } catch (_) {}
 
     function go() {
       try { window.location.replace(authURL); }
       catch (_) { window.location.href = authURL; }
     }
+
+    // Best-effort sign out of Firebase too (if present)
+    try { window.DF_FB_API && window.DF_FB_API.signOut && window.DF_FB_API.signOut().finally(go); }
+    catch(_) { /* fallthrough to SW cleanup below */ }
 
     try {
       if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
@@ -227,6 +236,70 @@
     window.addEventListener('resize', pushAboveFooter);
     window.addEventListener('orientationchange', pushAboveFooter);
   }
+
+  /* ---------- NEW: Firebase Auth guard (global) ---------- */
+  (function installAuthGuard(){
+    // Don’t guard the actual login pages.
+    if (isAuthPage()) return;
+
+    var tries = 0;
+    var MAX_TRIES = 80;   // ~6.4s at 80ms
+    var MONTH_MS  = 30 * 24 * 60 * 60 * 1000;
+    var LOGIN_URL = resolveAuthURL();
+
+    function bounceToLogin() {
+      try { window.location.replace(LOGIN_URL); }
+      catch(_) { window.location.href = LOGIN_URL; }
+    }
+
+    function markRefreshNow() {
+      try { localStorage.setItem('df_last_auth_refresh', String(Date.now())); } catch(_) {}
+    }
+    function shouldForceMonthlyLogout() {
+      try {
+        var v = parseInt(localStorage.getItem('df_last_auth_refresh') || '0', 10);
+        if (!v) return false;
+        return (Date.now() - v) >= MONTH_MS;
+      } catch(_) { return false; }
+    }
+
+    function tick() {
+      tries++;
+      // Wait for firebase-init.js to expose DF_FB / DF_FB_API
+      if (!window.DF_FB || !window.DF_FB_API) {
+        if (tries < MAX_TRIES) return setTimeout(tick, 80);
+        return bounceToLogin();
+      }
+
+      // Best effort: ensure persistent auth (local) so Safari/PWA stays signed in
+      try { window.DF_FB_API.setPersistence && window.DF_FB_API.setPersistence(true); } catch(_) {}
+
+      var auth = window.DF_FB.auth;
+      var user = auth && auth.currentUser;
+
+      // No user → login
+      if (!user) return bounceToLogin();
+
+      // Monthly forced logout
+      if (shouldForceMonthlyLogout()) {
+        try { window.DF_FB_API.signOut && window.DF_FB_API.signOut().finally(bounceToLogin); }
+        catch(_) { bounceToLogin(); }
+        return;
+      }
+
+      // We’re signed in — stamp last refresh
+      markRefreshNow();
+
+      // Keep watching: if token/user changes to null → login
+      try {
+        window.DF_FB_API.onAuth && window.DF_FB_API.onAuth(function(u){
+          if (!u) bounceToLogin();
+        });
+      } catch(_) {}
+    }
+
+    tick();
+  })();
 
   /* ---------- DOM Ready ---------- */
   document.addEventListener('DOMContentLoaded', function () {
