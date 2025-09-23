@@ -2,6 +2,7 @@
    /js/fb-crop-types.js
    - Firestore CRUD for crop types
    - Uses DFLoader for loading state
+   - Redirect to login when signed out (no banner)
    - Toasts on save/delete
    - Fields:
      name (string)            -> "Crop Type"
@@ -16,27 +17,35 @@ import {
   serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-const { db, auth } = window.DF_FB || {};
-
 const $ = (s) => document.querySelector(s);
 
-// --- Toast ---
+// ---- Toast (shared look with rest of app) ----
 function showToast(msg) {
   const box = $('#dfToast'), txt = $('#dfToastText');
-  if (!box || !txt) return alert(msg || 'Saved');
+  if (!box || !txt) { alert(msg || 'Saved'); return; }
   txt.textContent = msg || 'Saved';
   box.style.display = 'block';
   clearTimeout(window.__ctToastT);
   window.__ctToastT = setTimeout(() => { box.style.display = 'none'; }, 1800);
 }
 
-// --- Firestore handles ---
-const CT = collection(db, 'crop_types');
+// ---- Safe DFLoader wrappers ----
+const DFLoader = {
+  attach(host) {
+    try { window.DFLoader && window.DFLoader.attach && window.DFLoader.attach(host); } catch (_) {}
+  },
+  async with(host, fn) {
+    if (window.DFLoader && typeof window.DFLoader.withLoader === 'function') {
+      return window.DFLoader.withLoader(host, fn);
+    }
+    return fn();
+  }
+};
 
-// --- Helpers ---
+// ---- Helpers ----
 function titleCase(s){ return (s || '').toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()); }
 function toNumber(v) {
-  const n = Number(v);
+  const n = Number(String(v).trim());
   return Number.isFinite(n) ? n : null;
 }
 function fmtDate(ts){
@@ -50,56 +59,67 @@ function fmtDate(ts){
   }catch(_){ return '—'; }
 }
 
-// --- CRUD ---
-async function listAll(){
-  const snaps = await getDocs(query(CT, orderBy('name')));
+// ---- Firestore handles ----
+function getHandles() {
+  const fb = window.DF_FB || {};
+  return { db: fb.db, auth: fb.auth };
+}
+
+// ---- CRUD ----
+function ctCollection(db){ return collection(db, 'crop_types'); }
+
+async function listAll(db){
+  const snaps = await getDocs(query(ctCollection(db), orderBy('name')));
   const out = [];
   snaps.forEach(d => out.push({ id:d.id, ...(d.data()||{}) }));
   return out;
 }
 
-async function upsert(item){
-  // If editing (has id) -> setDoc with merge;
-  // If new -> addDoc for unique id
+async function upsert(db, item){
   const base = {
     name: item.name,
     moisture: item.moisture,
     testWeight: item.testWeight,
-    color: item.color || '#1B5E20',
+    color: (item.color || '#1B5E20'),
     updatedAt: serverTimestamp(),
     createdAt: item.createdAt || serverTimestamp()
   };
   if (item.id) {
-    await setDoc(doc(CT, item.id), base, { merge:true });
+    await setDoc(doc(ctCollection(db), item.id), base, { merge:true });
     return item.id;
   } else {
-    const ref = await addDoc(CT, base);
+    const ref = await addDoc(ctCollection(db), base);
     return ref.id;
   }
 }
 
-async function remove(id){
-  await deleteDoc(doc(CT, id));
+async function remove(db, id){
+  await deleteDoc(doc(ctCollection(db), id));
 }
 
-// --- Render table ---
+// ---- Render table ----
 async function render(){
+  const { db } = getHandles();
+  if (!db) return;
+
   const tbody = $('#ctTbody');
   const badge = $('#ctCount');
-  await window.DFLoader.withLoader(document.querySelector('main.content'), async () => {
-    const rows = await listAll();
-    badge && (badge.textContent = String(rows.length));
-    if (!tbody) return;
+  const host = document.querySelector('main.content');
 
+  await DFLoader.with(host, async () => {
+    const rows = await listAll(db);
+    if (badge) badge.textContent = String(rows.length);
+
+    if (!tbody) return;
     tbody.innerHTML = rows.length ? rows.map(r => {
-      const colorDot = `<span class="swatch" style="background:${r.color||'#1B5E20'}"></span>`;
+      const swatch = `<span style="display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:6px;border:1px solid rgba(0,0,0,.18);vertical-align:-2px;background:${r.color||'#1B5E20'}"></span>`;
       const moist = (typeof r.moisture === 'number' ? `${r.moisture}%` : '—');
       const tw = (typeof r.testWeight === 'number' ? `${r.testWeight} lb/bu` : '—');
       return `<tr data-id="${r.id}">
         <td><strong>${r.name || '(Unnamed)'}</strong></td>
         <td>${moist}</td>
         <td>${tw}</td>
-        <td><span class="chip">${colorDot}<span>${r.color || '#1B5E20'}</span></span></td>
+        <td>${swatch}<code style="font-size:.9em;">${r.color || '#1B5E20'}</code></td>
         <td>${fmtDate(r.updatedAt || r.createdAt)}</td>
         <td>
           <button class="btn-secondary" data-edit="${r.id}">Edit</button>
@@ -109,7 +129,7 @@ async function render(){
     }).join('') : `<tr><td colspan="6" class="muted-sm">No crop types yet.</td></tr>`;
   });
 
-  // Hook up actions
+  // actions
   tbody?.querySelectorAll('[data-edit]').forEach(btn=>{
     btn.addEventListener('click', ()=> openForEdit(btn.getAttribute('data-edit')));
   });
@@ -118,16 +138,19 @@ async function render(){
       const id = btn.getAttribute('data-del');
       if (!id) return;
       if (!confirm('Delete this crop type?')) return;
-      await remove(id);
+      await remove(getHandles().db, id);
       await render();
       showToast('Deleted');
     });
   });
 }
 
-// --- Load one into the form for editing ---
+// ---- Load one into the form for editing ----
 async function openForEdit(id){
-  const snap = await getDoc(doc(CT, id));
+  const { db } = getHandles();
+  if (!db) return;
+
+  const snap = await getDoc(doc(ctCollection(db), id));
   if (!snap.exists()) return alert('Not found');
   const r = { id:snap.id, ...(snap.data()||{}) };
 
@@ -137,12 +160,11 @@ async function openForEdit(id){
   $('#ctTestWeight').value = (typeof r.testWeight==='number'? r.testWeight : '');
   $('#ctColor').value = r.color || '#1B5E20';
 
-  // Focus first field
   $('#ctName').focus({preventScroll:false});
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-// --- Form wiring ---
+// ---- Form wiring ----
 function installForm(){
   const form = $('#ct-form');
   const resetBtn = $('#resetBtn');
@@ -150,6 +172,8 @@ function installForm(){
 
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
+    const { db } = getHandles();
+    if (!db) return alert('Database not initialized yet. Try again in a moment.');
 
     const id = ($('#ctId').value || '').trim() || null;
     const name = titleCase(($('#ctName').value || '').trim());
@@ -161,11 +185,10 @@ function installForm(){
     if(moisture == null || moisture < 0 || moisture > 100){ alert('Enter a valid Desired Moisture (0–100).'); return; }
     if(testWeight == null || testWeight <= 0){ alert('Enter a valid Test Weight (lb/bu).'); return; }
 
-    await window.DFLoader.withLoader(document.querySelector('main.content'), async () => {
-      await upsert({ id, name, moisture, testWeight, color });
+    await DFLoader.with(document.querySelector('main.content'), async () => {
+      await upsert(db, { id, name, moisture, testWeight, color });
     });
 
-    // Reset and refresh
     form.reset();
     $('#ctId').value = '';
     await render();
@@ -178,25 +201,45 @@ function installForm(){
   });
 }
 
-// --- Auth banner (optional: shows if no user) ---
-function checkAuthBanner(){
-  try{
-    const banner = $('#authWarn');
-    if (!banner || !auth) return;
-    const user = auth.currentUser;
-    banner.style.display = user ? 'none' : 'block';
-  }catch(_){}
+// ---- Auth handling: hard redirect if signed out ----
+function installAuthRedirect(){
+  const repoRoot = (function getRepoRootPath(){
+    const baseEl = document.querySelector('base');
+    if (baseEl && baseEl.href) {
+      try { const u=new URL(baseEl.href); return u.pathname.endsWith('/')?u.pathname:(u.pathname+'/'); } catch(_){}
+    }
+    const seg=(window.location.pathname||'/').split('/').filter(Boolean);
+    if (seg.length>0) return '/'+seg[0]+'/';
+    return '/';
+  })();
+  const loginURL = repoRoot + 'auth/index.html';
+
+  const goLogin = ()=> { try{ location.replace(loginURL); }catch(_){ location.href = loginURL; } };
+
+  // If core.js already enforces this, we may never run — still safe.
+  const fb = window.DF_FB || {};
+  const auth = fb.auth;
+  if (!auth) return; // firebase-init not ready yet; core.js will still protect
+
+  // If we already know the user, enforce immediately
+  if (!auth.currentUser) {
+    // give firebase a tiny beat to populate, then decide
+    setTimeout(()=>{ if (!auth.currentUser) goLogin(); }, 250);
+  }
+
+  // If your firebase-init exposes an onAuth helper, use it
+  if (window.DF_FB_API && typeof window.DF_FB_API.onAuth === 'function') {
+    window.DF_FB_API.onAuth((user)=>{ if (!user) goLogin(); });
+  } else if (typeof auth.onAuthStateChanged === 'function') {
+    auth.onAuthStateChanged((user)=>{ if (!user) goLogin(); });
+  }
 }
 
-// --- Init ---
+// ---- Init ----
 document.addEventListener('DOMContentLoaded', async ()=>{
-  try{
-    // attach loader once to the main content
-    window.DFLoader.attach(document.querySelector('main.content'));
-  }catch(_){}
-
+  DFLoader.attach(document.querySelector('main.content'));
+  installAuthRedirect();
   installForm();
-  checkAuthBanner();
   await render();
 
   // Breadcrumbs helper (no-op if already static)
