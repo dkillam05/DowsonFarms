@@ -13,16 +13,14 @@
    - Best-effort persistence = LOCAL (stay signed in across app restarts)
    - Monthly forced logout (configurable)
    - Bounce to login immediately if auth state becomes null
+   - Global loader utilities: DFLoader.attach/show/hide + withLoader wrapper
+   - setBreadcrumbs(items) helper (optional, no-op if you already render static crumbs)
    =========================== */
 
 (function () {
   'use strict';
 
   /* ---------- URL helpers ---------- */
-  function resolveAuthURL() {
-    // Always compute from repo root so nested pages never point to "folder/auth/index.html"
-    return getRepoRootPath() + 'auth/index.html';
-  }
   function getRepoRootPath() {
     var baseEl = document.querySelector('base');
     if (baseEl && baseEl.href) {
@@ -34,6 +32,10 @@
     var seg = (window.location.pathname || '/').split('/').filter(Boolean);
     if (seg.length > 0) return '/' + seg[0] + '/';
     return '/';
+  }
+  function resolveAuthURL() {
+    // Always compute from repo root so nested pages never point to "folder/auth/index.html"
+    return getRepoRootPath() + 'auth/index.html';
   }
   function getHomeURL() { return getRepoRootPath() + 'index.html'; }
 
@@ -60,7 +62,11 @@
     try { keepTheme = localStorage.getItem('df_theme'); } catch (_) {}
 
     // Try to sign out of Firebase too (best-effort, no dependency)
-    try { if (window.DF_FB_API && typeof window.DF_FB_API.signOut === 'function') { window.DF_FB_API.signOut().catch(function(){}); } } catch (_) {}
+    try {
+      if (window.DF_FB_API && typeof window.DF_FB_API.signOut === 'function') {
+        window.DF_FB_API.signOut().catch(function(){});
+      }
+    } catch (_) {}
 
     try { localStorage.clear(); } catch (_) {}
     try { sessionStorage.clear(); } catch (_) {}
@@ -133,7 +139,8 @@
       '-webkit-tap-highlight-color:transparent'
     ].join(';'));
 
-    if ((document.documentElement.getAttribute('data-theme') || '').toLowerCase() === 'dark') {
+    var dt = (document.documentElement.getAttribute('data-theme') || '').toLowerCase();
+    if (dt === 'dark') {
       btn.style.background = '#15181b';
       btn.style.color = '#dff1e1';
       btn.style.borderColor = '#2d7b35';
@@ -200,7 +207,9 @@
       'border-radius:10px','border:2px solid var(--brand-green, #1B5E20)',
       'background:#fff','color:#222','box-shadow:0 2px 6px rgba(0,0,0,.08)','cursor:pointer'
     ].join(';'));
-    if ((document.documentElement.getAttribute('data-theme') || '').toLowerCase() === 'dark') {
+
+    var dt = (document.documentElement.getAttribute('data-theme') || '').toLowerCase();
+    if (dt === 'dark') {
       btn.style.background = '#15181b'; btn.style.color = '#eaeaea'; btn.style.borderColor = '#2d7b35';
     }
 
@@ -238,7 +247,83 @@
     window.addEventListener('orientationchange', pushAboveFooter);
   }
 
-   /* ---------- Auth Guard (fixed) ---------- */
+  /* ---------- Global loader helpers ---------- */
+  // Creates the overlay markup inside a container if missing
+  function attachLoader(container) {
+    if (!container) return null;
+    container.setAttribute('data-has-loader', '');
+    var existing = container.querySelector(':scope > .df-loader');
+    if (existing) return existing;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'df-loader';
+    wrap.setAttribute('aria-live', 'polite');
+    wrap.setAttribute('aria-busy', 'true');
+
+    var sp = document.createElement('div');
+    sp.className = 'df-loader__spinner';
+    sp.setAttribute('role', 'img');
+    sp.setAttribute('aria-label', 'Loading');
+    wrap.appendChild(sp);
+
+    container.appendChild(wrap);
+    return wrap;
+  }
+  function showLoader(container) {
+    var c = container || document.querySelector('main.content') || document.body;
+    attachLoader(c);
+    c.setAttribute('data-loading', 'true');
+  }
+  function hideLoader(container) {
+    var c = container || document.querySelector('main.content') || document.body;
+    c.setAttribute('data-loading', 'false');
+  }
+  // Convenience: run an async fn while showing the loader on container
+  async function withLoader(container, fn) {
+    var c = container || document.querySelector('main.content') || document.body;
+    showLoader(c);
+    try { return await fn(); }
+    finally { hideLoader(c); }
+  }
+
+  // Expose to pages
+  window.DFLoader = {
+    attach: attachLoader,
+    show: showLoader,
+    hide: hideLoader,
+    withLoader: withLoader
+  };
+
+  /* ---------- setBreadcrumbs helper (optional) ---------- */
+  // Usage: setBreadcrumbs([{label:'Home',href:'../index.html'},{label:'Teams & Partners',href:'index.html'},{label:'Employees'}])
+  window.setBreadcrumbs = function setBreadcrumbs(items) {
+    try {
+      var nav = document.querySelector('nav.breadcrumbs');
+      if (!nav) return;
+      var ol = nav.querySelector('ol') || (function(){
+        var o = document.createElement('ol'); nav.appendChild(o); return o;
+      })();
+      ol.innerHTML = '';
+      items = Array.isArray(items) ? items : [];
+      items.forEach(function (it, i) {
+        var li = document.createElement('li');
+        if (it && typeof it.href === 'string') {
+          var a = document.createElement('a'); a.href = it.href; a.textContent = it.label || '';
+          li.appendChild(a);
+        } else {
+          var sp = document.createElement('span'); sp.textContent = (it && it.label) || '';
+          li.appendChild(sp);
+        }
+        ol.appendChild(li);
+        if (i < items.length - 1) {
+          var sep = document.createElement('li'); sep.className = 'sep'; sep.textContent = '›';
+          ol.appendChild(sep);
+        }
+      });
+    } catch (_) {}
+  };
+
+  /* ---------- Auth Guard (fixed) ---------- */
   function installAuthGuard() {
     // Skip guard on auth pages and true home screen
     if (isAuthPage() || isHome()) return;
