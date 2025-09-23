@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ========== META & THEME PREPAINT ========== -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Employees — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -16,39 +17,22 @@
     })();
   </script>
 
-  <!-- ========== YOUR TREE: ASSETS ========== -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../assets/js/version.js"></script>
-  <script defer src="../assets/js/core.js"></script>
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script type="module" src="../js/firebase-init.js"></script>
 
-  <!-- PWA icons (your paths) -->
-  <link rel="manifest" href="../manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
-
-  <!-- Firebase bootstrap (your tree) -->
-  <script type="module" src="../js/firebase.js"></script>
-
-  <!-- ========== PAGE-LOCAL STYLES ========== -->
   <style>
-    .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
-    .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
-    .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
-    .muted-small{opacity:.8;font-size:.9rem}
-    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    #empPhone{font-size:16px}
-    #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    .line { display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+    @media (max-width:640px){ .field-row{ grid-template-columns:1fr } }
+    .chip { padding:2px 8px; border-radius:999px; border:1px solid var(--tile-border); font-size:.85rem }
+    #dfToast { display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
       padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
+      background:var(--tile-bg); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999 }
   </style>
 </head>
 <body>
-  <!-- ========== HEADER ========== -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -57,7 +41,6 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- ========== BREADCRUMBS ========== -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -68,35 +51,32 @@
     </ol>
   </nav>
 
-  <!-- ========== MAIN ========== -->
   <main class="content" data-has-form>
     <div class="line" style="justify-content:space-between;">
       <h1 style="margin:0;">👥 Employees</h1>
       <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
     </div>
-    <div style="margin-top:12px;"></div>
 
-    <!-- FORM -->
-    <form id="emp-form" novalidate>
+    <form id="emp-form" novalidate style="margin-top:12px;">
       <div class="field-row">
         <div class="field">
           <label for="empFirst">First Name <span class="req-star">*</span></label>
-          <input id="empFirst" type="text" required placeholder="First name" />
+          <input id="empFirst" type="text" required />
         </div>
         <div class="field">
           <label for="empLast">Last Name <span class="req-star">*</span></label>
-          <input id="empLast" type="text" required placeholder="Last name" />
+          <input id="empLast" type="text" required />
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="empPhone">Phone Number <span class="req-star">*</span></label>
-          <input id="empPhone" type="tel" inputmode="numeric" required placeholder="(555) 123-4567" maxlength="14" />
+          <input id="empPhone" type="tel" inputmode="numeric" required maxlength="14" />
         </div>
         <div class="field">
           <label for="empEmail">Email <span class="req-star">*</span></label>
-          <input id="empEmail" type="email" inputmode="email" required placeholder="name@example.com" />
+          <input id="empEmail" type="email" inputmode="email" required />
         </div>
       </div>
 
@@ -105,35 +85,22 @@
           <label for="empRole">Role (Permissions) <span class="req-star">*</span></label>
           <select id="empRole" required></select>
         </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <button type="button" class="btn-outline" id="exceptionsBtn">Permission Overrides</button>
-        </div>
       </div>
 
       <section class="card" style="padding:12px; margin-top:8px;">
-        <div class="grid3">
-          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
-          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
-          <button class="btn-secondary" type="button" id="inviteBtn" style="width:92px;height:92px;">Invite</button>
+        <div class="line" style="gap:10px; justify-content:center;">
+          <button class="btn-primary" type="submit" id="saveBtn">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn">Clear</button>
         </div>
       </section>
     </form>
 
-    <!-- SAVED LIST -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
-      <div class="line">
-        <input id="searchInput" class="search" type="search" placeholder="Search employees…" />
-        <label class="muted" for="toggleShowArchived">
-          <input type="checkbox" id="toggleShowArchived" /> Show archived
-        </label>
-      </div>
       <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
     </section>
   </main>
 
-  <!-- ========== FOOTER ========== -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -142,293 +109,86 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- ========== QUICK VIEW MODAL ========== -->
-  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
-      <h2 id="qvTitle">Employees</h2>
-      <ul id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="qvClose">Close</button>
-      </div>
-    </div>
-  </div>
+  <div id="dfToast"><span id="dfToastText">Saved</span></div>
 
-  <!-- ========== TOAST ========== -->
-  <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
-
-  <!-- ========== PAGE LOGIC (MODULE) ========== -->
   <script type="module">
-    // Firebase handles (from ../js/firebase.js)
-    const { auth, db } = window.DF_FB;
-
-    // Import needed Firebase pieces
-    import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
     import {
-      collection, doc, setDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy
-    } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+      collection, doc, setDoc, getDocs, query, where, orderBy, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-    // Collection ref
-    const EMP = collection(db, "employees");
+    const { db } = window.DF_FB;
+    const USERS = collection(db, "users");
 
-    // DOM helpers
-    const $ = (s)=>document.querySelector(s);
-    const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
-
-    // Toast
-    function showToast(msg){
-      const box=$('#dfToast'), txt=$('#dfToastText');
-      txt.textContent = msg || 'Saved';
-      box.style.display='block';
-      clearTimeout(window.__toastT);
-      window.__toastT=setTimeout(()=> box.style.display='none', 1800);
+    const $ = s => document.querySelector(s);
+    function showToast(msg) {
+      const box = $('#dfToast'), txt = $('#dfToastText');
+      txt.textContent = msg;
+      box.style.display = 'block';
+      clearTimeout(window.__t);
+      window.__t = setTimeout(() => box.style.display='none', 1800);
     }
 
-    // Roles list (local)
-    async function getRoleNames(){ return ["Administrator","Owner","Manager","Employee","View Only"]; }
-    async function fillRoleSelect(sel, value){
-      const roles=await getRoleNames();
-      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
-        roles.map(r=>`<option value="${r}">${r}</option>`).join('');
-      if(value) sel.value=value;
+    async function loadRoles() {
+      const snaps = await getDocs(query(collection(db, "roles"), orderBy("label")));
+      const roles = snaps.docs.map(d => d.id);
+      $('#empRole').innerHTML =
+        `<option value="" disabled selected>Select role…</option>` +
+        roles.map(r => `<option value="${r}">${r}</option>`).join('');
     }
 
-    // Phone mask + validation
-    function formatPhoneDigits(d){
-      const x=d.replace(/\D/g,'').slice(0,10);
-      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
-      if(x.length<=3) return x ? `(${a}` : '';
-      if(x.length<=6) return `(${a}) ${b}`;
-      return `(${a}) ${b}-${c}`;
-    }
-    function attachPhoneMask(input){
-      input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
-      input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
-    }
-    const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
-    const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
-    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
-
-    // Firestore helpers
-    async function listEmployees(){
-      const snap = await getDocs(query(EMP, orderBy("last")));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-    async function upsertEmployee(item){
+    async function saveEmployee(item) {
       const id = (item.email || crypto.randomUUID()).toLowerCase();
-      await setDoc(doc(EMP, id), {
+      await setDoc(doc(USERS, id), {
         ...item,
-        id,
+        type: "employee",
         updatedAt: serverTimestamp(),
         createdAt: item.createdAt || serverTimestamp()
-      }, { merge:true });
-      return id;
+      }, { merge: true });
     }
-    async function removeById(id){ await deleteDoc(doc(EMP, id)); }
 
-    // Render saved list
-    async function render(){
-      const q=($('#searchInput').value||'').toLowerCase().trim();
-      const showA=$('#toggleShowArchived').checked;
-      const rows=(await listEmployees())
-        .filter(x=>showA?true:!x.archived)
-        .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
-        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
-                      (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
+    async function listEmployees() {
+      const snaps = await getDocs(query(USERS, where("type","==","employee"), orderBy("last")));
+      return snaps.docs.map(d => ({ id:d.id, ...d.data() }));
+    }
 
-      const L=$('#savedList');
-      L.innerHTML = rows.length ? rows.map(r=>{
-        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const exCount = r.exceptions?.enabled ? Object.values(r.exceptions.grants||{}).reduce((n,g)=> n + ((g.view||g.edit||g.add||g.archive||g.delete)?1:0), 0) : 0;
-        return `<li class="card" style="padding:10px; margin:8px 0;">
+    async function render() {
+      const rows = await listEmployees();
+      const L = $('#savedList');
+      L.innerHTML = rows.length ? rows.map(r => `
+        <li class="card" style="padding:10px; margin:8px 0;">
           <div class="line">
-            <strong>${name}</strong>
-            ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
-            ${exCount? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`: '' }
-            ${r.archived ? `<span class="chip">Archived</span>` : (r.invitedAt ? `<span class="chip">Invited</span>`:'')}
+            <strong>${r.first||''} ${r.last||''}</strong>
+            <span class="chip">${r.role||''}</span>
+            <span class="chip">${r.phone||''}</span>
+            <span class="chip">${r.email||''}</span>
           </div>
-          <div class="line" style="margin-top:8px;">
-            <button class="btn-secondary" data-edit="${r.id}">Manage</button>
-            <button class="btn-outline" data-invite="${r.id}">Invite</button>
-          </div>
-        </li>`;
-      }).join('') : '<li class="muted">No employees yet.</li>';
-
-      L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
-      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
+        </li>`).join('') : '<li class="muted">No employees yet.</li>';
     }
 
-    // Minimal manage (prompt-based while mobile)
-    async function openManage(id){
-      const rows=await listEmployees(); const e=rows.find(x=>x.id===id); if(!e) return;
-      const next = {
-        first: prompt('First name:', e.first||'') ?? e.first,
-        last:  prompt('Last name:',  e.last||'')  ?? e.last,
-        phone: prompt('Phone (###) ###-####:', e.phone||'') ?? e.phone,
-        email: prompt('Email:', e.email||'') ?? e.email,
-        role:  prompt('Role:',  e.role||'')  ?? e.role,
-      };
-      if (!next.first || !next.last || !isEmail(next.email) || !isValidPhoneUS(next.phone)) {
-        alert('Please enter valid First, Last, Email and Phone.');
-        return;
-      }
-      await upsertEmployee({...e, ...next, updatedAt: Date.now()});
-      await render();
-      showToast('Changes saved');
-    }
-
-    // Quick View
-    $('#quickViewBtn').addEventListener('click', async ()=>{
-      const rows=(await listEmployees()).filter(x=>!x.archived)
-        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
-                      (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
-      const L=$('#qvList'), B=$('#qvBackdrop');
-      L.innerHTML = rows.length ? rows.map(r=>{
-        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const contact = [r.phone, r.email].filter(Boolean).join(' • ');
-        return `<li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line"><strong>${name}</strong> ${r.role?`<span class="chip">${r.role}</span>`:''}</div>
-          ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
-        </li>`;
-      }).join('') : '<li class="muted">No employees yet.</li>';
-      B.style.display='flex';
-      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
-      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
-    });
-
-    // Permission overrides (simple enable/disable)
-    $('#exceptionsBtn').addEventListener('click', ()=>{
-      const prev = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
-      const enable = confirm((prev.enabled?'Disable':'Enable') + ' overrides for this employee?');
-      $('#exceptionsBtn').dataset.payload = JSON.stringify({enabled:enable,grants:enable?prev.grants:{}});
-      showToast(enable?'Overrides enabled':'Overrides disabled');
-    });
-
-    // Invite flow (email link)
-    async function inviteEmployee(id){
-      const rows=await listEmployees();
-      const e = rows.find(x=>x.id===id);
-      if(!e){ alert('Employee not found'); return; }
-      if(!e.email){ alert('Employee email is required to send invite.'); return; }
-
-      const actionCodeSettings = {
-        url: "https://dkillam05.github.io/DowsonFarms/teams-partners/index.html",
-        handleCodeInApp: true
-      };
-
-      try{
-        await sendSignInLinkToEmail(auth, e.email, actionCodeSettings);
-        e.invitedAt = Date.now();
-        await upsertEmployee(e);
-        await render();
-        showToast('Invite sent');
-      }catch(err){
-        console.error(err);
-        alert('Could not send invite. Check Firebase Auth (Authorized domains, Email templates).');
-      }
-    }
-
-    // Create flow
-    attachPhoneMask($('#empPhone'));
-    await fillRoleSelect($('#empRole'));
-
-    $('#inviteBtn').addEventListener('click', async ()=>{
-      const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim());
-      const phone = $('#empPhone').value;
-      const email = ($('#empEmail').value||'').trim().toLowerCase();
-      const role  = $('#empRole').value || '';
-
-      if(!first || !last || !isValidPhoneUS(phone) || !isEmail(email)){
-        alert('Enter valid First, Last, Phone, and Email to send an invite.');
-        return;
-      }
-      const id = await upsertEmployee({
-        first, last, phone, email, role,
-        archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
-        createdAt: Date.now(), updatedAt: Date.now()
-      });
-      await inviteEmployee(id);
-    });
-
-    document.getElementById('emp-form').addEventListener('submit', async (e)=>{
+    $('#emp-form').addEventListener('submit', async e => {
       e.preventDefault();
-      const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim());
-      const phone = $('#empPhone').value;
-      const email = ($('#empEmail').value||'').trim().toLowerCase();
+      const first = $('#empFirst').value.trim();
+      const last  = $('#empLast').value.trim();
+      const phone = $('#empPhone').value.trim();
+      const email = $('#empEmail').value.trim().toLowerCase();
       const role  = $('#empRole').value;
 
-      if(!first || !last){ alert('First and Last name are required.'); return; }
-      if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
-      if(!isEmail(email)){ alert('Valid email is required.'); return; }
-      if(!role){ alert('Role is required.'); return; }
+      if (!first || !last || !email || !role) {
+        alert("All fields are required."); return;
+      }
 
-      await upsertEmployee({
-        first, last, phone, email, role,
-        archived:false,
-        exceptions: ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}}),
-        createdAt: Date.now(), updatedAt: Date.now()
-      });
-
+      await saveEmployee({ first, last, phone, email, role });
       e.target.reset();
-      delete $('#exceptionsBtn').dataset.payload;
       await render();
-      showToast('Employee saved');
+      showToast("Employee saved");
     });
 
-    $('#clearBtn').addEventListener('click', ()=>{
-      $('#emp-form').reset();
-      delete $('#exceptionsBtn').dataset.payload;
-    });
+    $('#clearBtn').addEventListener('click', () => $('#emp-form').reset());
 
-    $('#searchInput').addEventListener('input', render);
-    $('#toggleShowArchived').addEventListener('change', render);
-
-    // Initial render
+    await loadRoles();
     await render();
-
-    // Breadcrumbs helper if provided by core.js
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'../index.html'},
-      {label:'Teams & Partners', href:'./index.html'},
-      {label:'Employees'}
-    ]);
   </script>
 
-  <!-- ========== CLOCK / DATE / VERSION FALLBACKS (NON-MODULE) ========== -->
-  <script>
-    (function () {
-      // Clock (fallback if core.js didn’t set it)
-      const $clock = document.getElementById('clock');
-      function tick(){
-        try{
-          const d=new Date();
-          const hh=String(d.getHours()).padStart(2,'0');
-          const mm=String(d.getMinutes()).padStart(2,'0');
-          $clock && ($clock.textContent = hh+':'+mm);
-        }catch{}
-      }
-      tick(); setInterval(tick, 30_000);
-
-      // Report date (fallback)
-      const $date = document.getElementById('report-date');
-      if ($date && (!$date.textContent || $date.textContent==='—')){
-        const d=new Date();
-        const opts={year:'numeric',month:'long',day:'numeric'};
-        $date.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
-      }
-
-      // Version (fallback reads common globals some teams use)
-      const $ver = document.getElementById('version');
-      const possible = (window.DF_VERSION || window.__DF_VERSION || window.APP_VERSION || '').toString();
-      if ($ver && (! $ver.textContent || /^(v0\.0\.0|—)$/.test($ver.textContent))){
-        $ver.textContent = possible ? possible : 'v0.0.0';
-      }
-    })();
-  </script>
-
-  <!-- ========== SERVICE WORKER (YOUR TREE) ========== -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
