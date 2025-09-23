@@ -1075,7 +1075,7 @@ button:focus-visible {
    ========================================================= */
 :root{
   /* Tune these two to taste */
-  --crumb-middle-ch: 4ch;   /* 3–5ch → “…”, “Pro…”, “Chem…” */
+  --crumb-middle-ch: 4ch;   /* 3–5ch → “…”, “Pro…”, “Chem…”, etc. */
   --crumb-last-max: 52%;    /* last crumb will never exceed this share of the trail */
 }
 
@@ -1438,3 +1438,62 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
   background: var(--tile-bg);
   color: var(--brand-green);
 }
+
+
+/* ===================================================================
+   GLOBAL ASYNC LOADER (forms/cards)
+   Usage:
+     <main class="content" data-has-loader data-loading="true"> ... </main>
+     <div class="df-loader" aria-live="polite" aria-busy="true">
+       <div class="df-loader__spinner" role="img" aria-label="Loading"></div>
+     </div>
+   Toggle data-loading="true"/"false" via JS to show/hide.
+   =================================================================== */
+
+[data-has-loader] {
+  position: relative;           /* the overlay will anchor to this */
+}
+
+/* Overlay that sits over the container while loading */
+.df-loader {
+  position: absolute;
+  inset: 0;
+  display: none;                /* shown only when [data-loading="true"] */
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(1px);
+  z-index: 3000;                /* above form contents, below modals (1000–1002) if inside */
+}
+
+/* Dark theme overlay tint */
+:root[data-theme="dark"] .df-loader { background: rgba(0,0,0,.35); }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .df-loader { background: rgba(0,0,0,.35); }
+}
+
+/* When loading, reveal overlay and dim interactive controls beneath */
+[data-loading="true"] .df-loader { display: flex; }
+[data-loading="true"] :where(input, select, textarea, button, a, [role="button"]) {
+  pointer-events: none;
+  opacity: .55;
+}
+
+/* Spinner */
+.df-loader__spinner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--brand-green);
+  border-right-color: var(--brand-green);
+  animation: dfspin .8s linear infinite;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .df-loader__spinner { animation-duration: 1.2s; }
+}
+
+@keyframes dfspin { to { transform: rotate(360deg); } }
