@@ -1,4 +1,5 @@
-// /js/firebase-init.js  (ES module, no <script> wrappers)
+// /js/firebase-init.js  (ES module, load with: <script type="module" src="../js/firebase-init.js"></script>)
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getAuth, onAuthStateChanged,
@@ -11,11 +12,13 @@ import {
   collection, getDocs, query, where, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-/* --- Your Firebase config (from earlier) --- */
+/* --- Your Firebase config --- */
 const firebaseConfig = {
   apiKey: "AIzaSyA2QgzfthK3EhIyQsuX3hb4WU-i-tbFVv8",
   authDomain: "dowsonfarms-528ab.firebaseapp.com",
   projectId: "dowsonfarms-528ab",
+  // NOTE: Console usually shows ...appspot.com. If storage ever fails, switch to:
+  // storageBucket: "dowsonfarms-528ab.appspot.com",
   storageBucket: "dowsonfarms-528ab.firebasestorage.app",
   messagingSenderId: "921602446527",
   appId: "1:921602446527:web:11bc4bf326bc3dee4be20a",
@@ -38,7 +41,11 @@ window.DF_FB_API = {
   signInEmail: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
   signOut:     () => signOut(auth),
   onAuth:      (cb) => onAuthStateChanged(auth, cb),
-  setPersistence: (remember) => setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence),
+
+  // remember=true -> local persistence (stay signed in); false -> session
+  setPersistence: (remember) =>
+    setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence),
+
   sendReset:   (email) => sendPasswordResetEmail(auth, email),
 
   // Firestore helpers
@@ -65,3 +72,7 @@ window.DF_FB_API = {
 window.DF_FB_API.onAuth(user => {
   document.documentElement.dataset.authed = user ? "yes" : "no";
 });
+
+// If you want Analytics later (optional), use the CDN module like this:
+// import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
+// const analytics = getAnalytics(app);
