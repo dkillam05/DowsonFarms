@@ -1497,3 +1497,86 @@ input[type="tel"]::-webkit-contacts-auto-fill-button { display: none; }
 }
 
 @keyframes dfspin { to { transform: rotate(360deg); } }
+
+/* =========================
+   DARK MODE NORMALIZATION
+   (drop at end of theme.css)
+   ========================= */
+
+/* Base tokens for dark */
+[data-theme="dark"] {
+  --surface: #0f1316;
+  --surface-2: #15181b;
+  --text: #e9eef2;
+  --muted: #b7c0c7;
+  --brand-green: #1B5E20;        /* keep your brand */
+  --tile-bg: #111518;
+  --tile-border: #2a3b2e;
+  --btn-primary-bg: #1f7a28;
+  --btn-primary-fg: #ffffff;
+  --btn-secondary-border: #2d7b35;
+  --btn-secondary-fg: #dff1e1;
+}
+
+/* Global surfaces & text */
+[data-theme="dark"] body { background: var(--surface); color: var(--text); }
+[data-theme="dark"] .content { color: var(--text); }
+[data-theme="dark"] .card,
+[data-theme="dark"] .tile { background: var(--surface-2); color: var(--text); }
+[data-theme="dark"] .app-footer { background: var(--surface-2); color: var(--muted); }
+
+/* Inputs & labels (incl. auth page) */
+[data-theme="dark"] label { color: var(--text); }
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #0b0e10;
+  color: #ffffff;
+  border-color: var(--btn-secondary-border);
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: #9aa0a6; }
+
+/* Primary & outline buttons */
+[data-theme="dark"] .btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
+}
+[data-theme="dark"] .btn-outline,
+[data-theme="dark"] .btn-secondary {
+  background: transparent;
+  color: var(--btn-secondary-fg);
+  border-color: var(--btn-secondary-border);
+}
+
+/* Breadcrumb Logout pill (the one core.js injects) */
+[data-theme="dark"] nav.breadcrumbs #df-logout-host #logout-btn {
+  background: #15181b !important;
+  color: #dff1e1 !important;
+  border-color: #2d7b35 !important;
+}
+
+/* Quick-view / header pills if you use them */
+[data-theme="dark"] .pill,
+[data-theme="dark"] .badge {
+  background: #15181b;
+  color: var(--text);
+  border-color: var(--btn-secondary-border);
+}
+
+/* Table borders & headings */
+[data-theme="dark"] .table th,
+[data-theme="dark"] .table td { border-color: var(--tile-border); }
+[data-theme="dark"] .table th { color: var(--text); }
+
+/* --- Fallback: if a page forgets to set data-theme, still honor system dark --- */
+html:not([data-theme]), html[data-theme="auto"] { color-scheme: light dark; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) body { background: #0f1316; color: #e9eef2; }
+  html:not([data-theme="light"]) .card,
+  html:not([data-theme="light"]) .tile { background:#15181b; color:#e9eef2; }
+  html:not([data-theme="light"]) nav.breadcrumbs #df-logout-host #logout-btn {
+    background:#15181b; color:#dff1e1; border-color:#2d7b35;
+  }
+}
