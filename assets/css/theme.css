@@ -1580,3 +1580,28 @@ html:not([data-theme]), html[data-theme="auto"] { color-scheme: light dark; }
     background:#15181b; color:#dff1e1; border-color:#2d7b35;
   }
 }
+
+
+/* ---------- Autofill fixes (iOS/Safari/Chrome) ---------- */
+
+/* Light theme (optional; keeps current look) */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #111;         /* text color in light */
+  caret-color: #111;
+  transition: background-color 9999s ease-in-out 0s; /* suppress yellow flash */
+}
+
+/* Dark theme */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] textarea:-webkit-autofill:focus,
+[data-theme="dark"] select:-webkit-autofill:focus {
+  /* Make the autofill background match your input background */
+  box-shadow: 0 0 0 1000px #0f1214 inset;  /* pick your dark input bg */
+  -webkit-text-fill-color: #fff;           /* force white text */
+  caret-color: #fff;
+}
