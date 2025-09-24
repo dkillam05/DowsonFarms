@@ -1,11 +1,12 @@
 /* ===========================
    /js/fb-crop-types.js
    - Firestore CRUD for crop types
-   - Uses DFLoader for loading state
-   - Redirect to login when signed out
+   - DFLoader for loading state
    - Toasts on save/delete
    - Fields: name, moisture, testWeight, color
    - Collection: "crop_types"
+   - NEW: DF_QUICKVIEW_PROVIDER for core.js Quick View modal
+   - REMOVED: page-level auth redirect (core.js owns auth now)
    =========================== */
 
 import {
@@ -23,7 +24,6 @@ const repoRoot = (function(){
   const seg=(location.pathname||'/').split('/').filter(Boolean);
   return seg.length ? '/'+seg[0]+'/' : '/';
 })();
-const LOGIN_URL = repoRoot + 'auth/index.html';
 
 function showToast(msg){
   const box = $('#dfToast'), txt = $('#dfToastText');
@@ -141,13 +141,18 @@ async function openForEdit(id){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-/* ----- number input behavior (single source of truth) ----- */
-function installNumberGuards(){
-  const m = $('#ctMoisture'), t = $('#ctTestWeight');
+/* ----- form wiring ----- */
+function installForm(){
+  const form = $('#ct-form'); if (!form) return;
+  const resetBtn = $('#resetBtn');
 
+  // key guards (no live rewriting -> caret never jumps)
   function guardOneDot(evt){
     const el = evt.target;
-    if (evt.key === '.') { if (el.value.includes('.')) evt.preventDefault(); return; }
+    if (evt.key === '.') {
+      if (el.value.includes('.')) { evt.preventDefault(); return; }
+      return;
+    }
     const ok = /[0-9]/.test(evt.key) ||
                ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End','Enter'].includes(evt.key);
     if (!ok) evt.preventDefault();
@@ -159,18 +164,11 @@ function installNumberGuards(){
     if (opts && typeof opts.max === 'number' && n > opts.max) n = opts.max;
     el.value = n.toFixed(1);
   }
+  const m = $('#ctMoisture'), t = $('#ctTestWeight');
   m && m.addEventListener('keydown', guardOneDot);
   t && t.addEventListener('keydown', guardOneDot);
   m && m.addEventListener('blur', ()=>fmt1(m,{min:0,max:100}));
   t && t.addEventListener('blur', ()=>fmt1(t,{min:0}));
-}
-
-/* ----- form wiring ----- */
-function installForm(){
-  const form = $('#ct-form'); if (!form) return;
-  const resetBtn = $('#resetBtn');
-
-  installNumberGuards();
 
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -210,23 +208,60 @@ function installForm(){
   });
 }
 
-/* ----- auth redirect ----- */
-function installAuthRedirect(){
-  const { auth } = getHandles();
-  const goLogin = ()=> { try{ location.replace(LOGIN_URL); }catch(_){ location.href = LOGIN_URL; } };
-  if (!auth) return;
-  if (!auth.currentUser) setTimeout(()=>{ if (!auth.currentUser) goLogin(); }, 250);
-  if (window.DF_FB_API?.onAuth) {
-    window.DF_FB_API.onAuth((user)=>{ if (!user) goLogin(); });
-  } else if (typeof auth.onAuthStateChanged === 'function') {
-    auth.onAuthStateChanged((user)=>{ if (!user) goLogin(); });
+/* ---------- Quick View provider for core.js ---------- */
+window.DF_QUICKVIEW_PROVIDER = async () => {
+  const { db } = getHandles();
+  if (!db) return { title: 'Crop Types', html: '<div style="opacity:.7">Database not ready.</div>' };
+
+  const rows = await listAll(db);
+  if (!rows.length) {
+    return { title: 'Crop Types', html: '<div style="opacity:.7">No crop types yet.</div>' };
   }
-}
+
+  // Build a compact table node (no inline width overflows)
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+      <strong>Total: ${rows.length}</strong>
+    </div>
+    <div style="overflow:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid var(--tile-border)">Name</th>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid var(--tile-border)">Moisture</th>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid var(--tile-border)">Test Wt</th>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid var(--tile-border)">Color</th>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid var(--tile-border)">Updated</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  `;
+  const tbody = wrap.querySelector('tbody');
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding:8px;border-bottom:1px solid var(--tile-border)"><strong>${r.name || '(Unnamed)'}</strong></td>
+      <td style="padding:8px;border-bottom:1px solid var(--tile-border)">${typeof r.moisture==='number'? toOneDecString(r.moisture)+'%':'—'}</td>
+      <td style="padding:8px;border-bottom:1px solid var(--tile-border)">${typeof r.testWeight==='number'? toOneDecString(r.testWeight)+' lb/bu':'—'}</td>
+      <td style="padding:8px;border-bottom:1px solid var(--tile-border)">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;border:1px solid rgba(0,0,0,.18);vertical-align:-2px;background:${r.color||'#1B5E20'}"></span>
+        <code style="font-size:.9em;">${r.color || '#1B5E20'}</code>
+      </td>
+      <td style="padding:8px;border-bottom:1px solid var(--tile-border)">${fmtDate(r.updatedAt || r.createdAt)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  return { title: 'Crop Types', node: wrap };
+};
 
 /* ----- init ----- */
 document.addEventListener('DOMContentLoaded', async ()=>{
   DFLoader.attach(document.querySelector('main.content'));
-  installAuthRedirect();
+  // NOTE: removed installAuthRedirect(); core.js owns auth + grace now
   installForm();
   await render();
 
@@ -235,4 +270,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     {label:'Setup / Settings', href:'./index.html'},
     {label:'Crop Types'}
   ]);
+
+  // If you ever need to refresh the Quick View button after this script loads
+  try { window.DF_UI?.refreshQuickView?.(); } catch(_) {}
 });
