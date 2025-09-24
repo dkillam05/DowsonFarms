@@ -34,25 +34,25 @@
     .badge{display:inline-block;padding:2px 8px;border-radius:12px;border:1px solid var(--tile-border);font-size:.85rem}
     .row-gap{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
+    /* Required star */
+    .req-star{color:#b00020;margin-left:4px}
+
     /* Uniform number inputs (no iOS zoom) */
-    #ctMoisture,#ctTestWeight{
-      font-size:16px; /* prevents iOS zoom */
+    .row.uniform .field input[type="number"],
+    .row.uniform .field input[type="text"]{
+      font-size:16px;            /* prevents iOS zoom */
       height:44px;
     }
+    .field .muted{display:block;margin-top:6px;line-height:1.25;min-height:1.25em}
 
-    /* Square color picker */
-    #ctColor{
-      -webkit-appearance:none; appearance:none;
-      width:44px; height:44px;
-      padding:0; border:2px solid var(--tile-border);
-      border-radius:10px; background:transparent;
-      cursor:pointer;
+    /* Square color picker with centered helper text */
+    .color-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .color-swatch{width:44px;height:44px;border-radius:10px;border:2px solid var(--tile-border);overflow:hidden}
+    .color-swatch input[type="color"]{
+      width:100%;height:100%;
+      border:0;margin:0;padding:0;background:none;appearance:none;
     }
-    #ctColor::-webkit-color-swatch-wrapper{ padding:0; }
-    #ctColor::-webkit-color-swatch{
-      border:none; border-radius:8px;
-    }
-    #ctColor::-moz-color-swatch{ border:none; border-radius:8px; }
+    .color-help{display:flex;align-items:center;min-height:44px}
 
     /* Small chip for table */
     .chip{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;border:1px solid var(--tile-border);border-radius:999px;font-size:.85rem}
@@ -85,29 +85,33 @@
 
     <!-- Add / Edit form -->
     <form id="ct-form" class="card" novalidate>
-      <div class="row" style="align-items:flex-end;gap:12px;flex-wrap:wrap;">
+      <div class="row uniform" style="align-items:flex-end;gap:12px;flex-wrap:wrap;">
         <div class="field" style="min-width:220px;flex:1;">
-          <label for="ctName">Crop Type</label>
+          <label for="ctName">Crop Type <span class="req-star">*</span></label>
           <input id="ctName" type="text" placeholder="e.g., Corn" required />
           <small class="muted">Friendly name (e.g., Corn, Soybeans, Wheat)</small>
         </div>
 
         <div class="field" style="min-width:160px;">
-          <label for="ctMoisture">Desired Moisture (%)</label>
-          <input id="ctMoisture" type="number" inputmode="decimal" step="0.1" min="0" max="100" placeholder="e.g., 15.5" required />
+          <label for="ctMoisture">Desired Moisture (%) <span class="req-star">*</span></label>
+          <input id="ctMoisture" type="number" inputmode="decimal" step="0.1" min="0" max="99.9" placeholder="e.g., 15.5" required />
           <small class="muted">Target harvest/storage moisture</small>
         </div>
 
         <div class="field" style="min-width:160px;">
-          <label for="ctTestWeight">Test Weight (lb/bu)</label>
-          <input id="ctTestWeight" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g., 56" required />
+          <label for="ctTestWeight">Test Weight (lb/bu) <span class="req-star">*</span></label>
+          <input id="ctTestWeight" type="number" inputmode="decimal" step="0.1" min="0" max="99.9" placeholder="e.g., 56.0" required />
           <small class="muted">Standard test weight</small>
         </div>
 
-        <div class="field" style="min-width:160px;">
-          <label for="ctColor">Color for charting</label>
-          <input id="ctColor" type="color" value="#1B5E20" />
-          <small class="muted">Used on charts/maps</small>
+        <div class="field" style="min-width:220px;">
+          <label for="ctColor">Color for charting <span class="req-star">*</span></label>
+          <div class="color-row">
+            <div class="color-swatch">
+              <input id="ctColor" type="color" value="#1B5E20" required />
+            </div>
+            <small class="muted color-help">Used on charts/maps</small>
+          </div>
         </div>
 
         <div class="row-gap">
