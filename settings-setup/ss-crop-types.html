@@ -11,9 +11,9 @@
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-      document.documentElement.style.colorScheme =
-        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+      var theme = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
@@ -34,25 +34,27 @@
     .badge{display:inline-block;padding:2px 8px;border-radius:12px;border:1px solid var(--tile-border);font-size:.85rem}
     .row-gap{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
-    /* Required star */
-    .req-star{color:#b00020;margin-left:4px}
+    /* Required mark */
+    .req{color:#b00020;margin-left:6px;font-weight:800}
 
-    /* Uniform number inputs (no iOS zoom) */
-    .row.uniform .field input[type="number"],
-    .row.uniform .field input[type="text"]{
-      font-size:16px;            /* prevents iOS zoom */
-      height:44px;
+    /* Uniform number fields (not taller, just wider like Crop Type) */
+    .field-num{flex:1 1 220px;}
+    .field-num input{
+      width:100%;
+      font-size:16px; /* stops iOS zoom */
     }
-    .field .muted{display:block;margin-top:6px;line-height:1.25;min-height:1.25em}
 
-    /* Square color picker with centered helper text */
-    .color-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .color-swatch{width:44px;height:44px;border-radius:10px;border:2px solid var(--tile-border);overflow:hidden}
-    .color-swatch input[type="color"]{
-      width:100%;height:100%;
-      border:0;margin:0;padding:0;background:none;appearance:none;
+    /* Square color picker */
+    #ctColor{
+      -webkit-appearance:none; appearance:none;
+      width:48px; height:48px;
+      padding:0; border:2px solid var(--tile-border);
+      border-radius:10px; background:transparent;
+      cursor:pointer;
     }
-    .color-help{display:flex;align-items:center;min-height:44px}
+    #ctColor::-webkit-color-swatch-wrapper{ padding:0; }
+    #ctColor::-webkit-color-swatch{ border:none; border-radius:8px; }
+    #ctColor::-moz-color-swatch{ border:none; border-radius:8px; }
 
     /* Small chip for table */
     .chip{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;border:1px solid var(--tile-border);border-radius:999px;font-size:.85rem}
@@ -85,33 +87,29 @@
 
     <!-- Add / Edit form -->
     <form id="ct-form" class="card" novalidate>
-      <div class="row uniform" style="align-items:flex-end;gap:12px;flex-wrap:wrap;">
-        <div class="field" style="min-width:220px;flex:1;">
-          <label for="ctName">Crop Type <span class="req-star">*</span></label>
+      <div class="row" style="align-items:flex-end;gap:12px;flex-wrap:wrap;">
+        <div class="field" style="flex:2 1 280px;">
+          <label for="ctName">Crop Type <span class="req">*</span></label>
           <input id="ctName" type="text" placeholder="e.g., Corn" required />
           <small class="muted">Friendly name (e.g., Corn, Soybeans, Wheat)</small>
         </div>
 
-        <div class="field" style="min-width:160px;">
-          <label for="ctMoisture">Desired Moisture (%) <span class="req-star">*</span></label>
-          <input id="ctMoisture" type="number" inputmode="decimal" step="0.1" min="0" max="99.9" placeholder="e.g., 15.5" required />
+        <div class="field field-num">
+          <label for="ctMoisture">Desired Moisture (%) <span class="req">*</span></label>
+          <input id="ctMoisture" type="text" inputmode="decimal" placeholder="e.g., 15.5" required />
           <small class="muted">Target harvest/storage moisture</small>
         </div>
 
-        <div class="field" style="min-width:160px;">
-          <label for="ctTestWeight">Test Weight (lb/bu) <span class="req-star">*</span></label>
-          <input id="ctTestWeight" type="number" inputmode="decimal" step="0.1" min="0" max="99.9" placeholder="e.g., 56.0" required />
+        <div class="field field-num">
+          <label for="ctTestWeight">Test Weight (lb/bu) <span class="req">*</span></label>
+          <input id="ctTestWeight" type="text" inputmode="decimal" placeholder="e.g., 56.0" required />
           <small class="muted">Standard test weight</small>
         </div>
 
-        <div class="field" style="min-width:220px;">
-          <label for="ctColor">Color for charting <span class="req-star">*</span></label>
-          <div class="color-row">
-            <div class="color-swatch">
-              <input id="ctColor" type="color" value="#1B5E20" required />
-            </div>
-            <small class="muted color-help">Used on charts/maps</small>
-          </div>
+        <div class="field" style="min-width:160px;">
+          <label for="ctColor">Color for charting <span class="req">*</span></label>
+          <input id="ctColor" type="color" value="#1B5E20" required />
+          <small class="muted">Used on charts/maps</small>
         </div>
 
         <div class="row-gap">
@@ -167,6 +165,18 @@
         navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
+
+    // Format moisture + test weight to xx.x
+    function normalizeDecimal(id){
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('blur', ()=>{
+        let v = parseFloat(el.value);
+        if(!isNaN(v)) el.value = v.toFixed(1);
+      });
+    }
+    normalizeDecimal('ctMoisture');
+    normalizeDecimal('ctTestWeight');
   </script>
 </body>
 </html>
