@@ -8,12 +8,11 @@
    - Honors <base href="/DowsonFarms/">
 
    NEW: "Don't kick me out" auth guard
-   - Local persistence (stay signed in)
-   - Shows a global spinner while Firebase rehydrates sessions
-   - 15s grace before redirecting to login (configurable)
-   - Redirect happens only if still signed out after grace
-   - Monthly forced logout remains (30 days, configurable)
-   - DFLoader utilities + setBreadcrumbs helper
+   NEW: Quick View injection (global, consistent)
+     • Pages opt-in with:
+       <main class="content" data-quick-view="URL" data-qv-label="Quick View"></main>
+     • Or <meta name="df-quickview" content="URL">
+     • Or window.DF_QUICKVIEW = { href, label }
    =========================== */
 
 (function () {
@@ -57,7 +56,7 @@
     var keepTheme = null;
     try { keepTheme = localStorage.getItem('df_theme'); } catch (_) {}
 
-    // Best-effort Firebase signout (if available)
+    // Best-effort Firebase signout
     try {
       if (window.DF_FB_API && typeof window.DF_FB_API.signOut === 'function') {
         window.DF_FB_API.signOut().catch(function(){});
@@ -318,6 +317,66 @@
     } catch (_) {}
   };
 
+  /* ---------- Quick View (global injection) ---------- */
+  function getQuickViewConfig() {
+    var main = document.querySelector('main.content') || document.body;
+    var href =
+      (main && main.getAttribute('data-quick-view')) ||
+      (function(){ var m=document.querySelector('meta[name="df-quickview"]'); return m && m.getAttribute('content'); })() ||
+      (window.DF_QUICKVIEW && window.DF_QUICKVIEW.href) ||
+      '';
+
+    href = (href || '').trim();
+    if (!href) return null;
+
+    var label =
+      (main && main.getAttribute('data-qv-label')) ||
+      (window.DF_QUICKVIEW && window.DF_QUICKVIEW.label) ||
+      'Quick View';
+
+    return { href: href, label: label };
+  }
+
+  function injectQuickView() {
+    if (isAuthPage()) return;                       // never on login
+    if (document.getElementById('df-quick-view')) return;
+
+    var cfg = getQuickViewConfig();
+    if (!cfg) return;
+
+    var main = document.querySelector('main.content') || document.body;
+    var h1   = main.querySelector('h1');
+
+    // Create a header row (matches the Account Roles layout)
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.setAttribute('style','align-items:center;justify-content:space-between;margin:0 0 8px;');
+
+    if (h1) {
+      // move existing h1 into row (first child)
+      h1.parentNode.insertBefore(row, h1);
+      row.appendChild(h1);
+    } else {
+      // no h1? create a placeholder to hold the button neatly
+      var spacer = document.createElement('div'); spacer.textContent = '';
+      row.appendChild(spacer);
+      main.insertBefore(row, main.firstChild);
+    }
+
+    // Button
+    var btn = document.createElement('button');
+    btn.id = 'df-quick-view';
+    btn.type = 'button';
+    btn.className = 'btn-outline';
+    btn.textContent = cfg.label || 'Quick View';
+    btn.addEventListener('click', function(){
+      try { window.location.assign(cfg.href); }
+      catch(_) { window.location.href = cfg.href; }
+    });
+
+    row.appendChild(btn);
+  }
+
   /* ---------- Auth Guard with spinner-based grace ---------- */
   function installAuthGuard() {
     if (isAuthPage() || isHome()) return;
@@ -355,10 +414,9 @@
     var lastUser = undefined;
 
     function startGrace() {
-      // show global loader on the main content or body
       var target = document.querySelector('main.content') || document.body;
       showLoader(target);
-      if (graceTimer) return; // already armed
+      if (graceTimer) return;
       graceTimer = setTimeout(function () {
         hideLoader(target);
         if (!lastUser) bounceToLogin();
@@ -388,15 +446,12 @@
           clearGrace();
           recordHeartbeat();
         } else {
-          // Don’t kick out immediately — let Firebase rehydrate
           startGrace();
         }
       });
 
-      // Safety: SDK never called back at all (firebase never initialized)
       setTimeout(function(){
         if (!gotFirstAuthCallback) {
-          // show loader briefly then bail to login
           startGrace();
         }
       }, 1200);
@@ -408,7 +463,6 @@
       tries++;
       if (!window.DF_FB || !window.DF_FB_API || !window.DF_FB.auth) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        // Firebase never showed → spinner then redirect after grace
         startGrace();
         return;
       }
@@ -417,27 +471,23 @@
         startGrace();
         return;
       }
-      // If already logged in right now, stamp heartbeat immediately
       try { if (window.DF_FB.auth.currentUser) recordHeartbeat(); } catch (_) {}
     })();
 
-    // If the tab regains focus while grace timer is running, give it another shot
     document.addEventListener('visibilitychange', function(){
       if (document.visibilityState === 'visible' && !lastUser && graceTimer) {
-        // extend by another short window
         clearTimeout(graceTimer);
         graceTimer = setTimeout(function(){
           var target = document.querySelector('main.content') || document.body;
           hideLoader(target);
           if (!lastUser) bounceToLogin();
-        }, Math.min(6000, GRACE_MS)); // extend up to 6s
+        }, Math.min(6000, GRACE_MS));
       }
     });
   }
 
   /* ---------- DOM Ready ---------- */
   document.addEventListener('DOMContentLoaded', function () {
-    // Prepare a loader container so it’s instant when we need it
     var host = document.querySelector('main.content') || document.body;
     attachLoader(host);
 
@@ -445,6 +495,7 @@
     installClock();
     injectVersionAndBuildDate();
     installBackButtonFlow();
+    injectQuickView();          // <<< NEW: adds Quick View when configured
     installAuthGuard();
   });
 
@@ -454,5 +505,9 @@
     if (!t) return;
     if (t.matches('[data-action="logout"], .logout')) { e.preventDefault(); handleLogout(e); }
   }, { passive: false });
+
+  // Expose for pages that want to programmatically refresh Quick View later
+  window.DF_UI = window.DF_UI || {};
+  window.DF_UI.refreshQuickView = injectQuickView;
 
 })();
