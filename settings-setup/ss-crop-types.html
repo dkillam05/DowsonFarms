@@ -17,12 +17,13 @@
     })();
   </script>
 
-  <!-- Honor your tree -->
+  <!-- Theme / app -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script type="module" src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
   <script defer src="../assets/data/menus.js"></script>
+  <!-- IMPORTANT: new fb-crop-types.js below defines DF_QUICKVIEW_PROVIDER -->
   <script type="module" src="../js/fb-crop-types.js"></script>
 
   <style>
@@ -98,11 +99,8 @@
     </ol>
   </nav>
 
-  <!-- data-quick-view tells core.js to add the button to the title row -->
-  <main class="content" data-has-form
-        data-quick-view="../reports/reports-predefined.html#crop-types"
-        data-qv-label="Quick View">
-
+  <!-- core.js will inject the Quick View button because the provider is defined in fb-crop-types.js -->
+  <main class="content" data-has-form>
     <h1 style="margin:0 0 8px;">🌾 Crop Types</h1>
 
     <!-- Add / Edit form -->
