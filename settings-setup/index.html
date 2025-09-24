@@ -1,8 +1,4 @@
-<!-- /settings-setup/index.html  (FULL FILE)
-     - Keeps all toasts ≥3s
-     - Forces cache-busted reload after update install so footer version updates immediately
-     - Registers root SW with explicit scope
--->
+<!-- /settings-setup/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,9 +12,9 @@
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme =
-      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+    var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+    document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
   })();
   </script>
 
@@ -79,7 +75,7 @@
   <script defer src="../assets/data/menus.js"></script>
   <script defer src="../js/ui-subnav.js"></script>
 
-  <!-- Update checker (≥3s toasts; cache-busted reload on install) -->
+  <!-- Update checker (spinner via DFLoader; ≥3s toasts; cache-busted reload on install) -->
   <script>
   (function(){
     const $ = s => document.querySelector(s);
@@ -142,6 +138,7 @@
         });
         return true;
       }
+      // Listen briefly for an update to appear
       let used = false;
       await new Promise(resolve => {
         const timer = setTimeout(resolve, 5000);
@@ -159,7 +156,7 @@
       return used;
     }
 
-    // Cache-busted reload so version.js updates immediately
+    // Cache-busted reload so version.js + footer update immediately
     function hardReloadAfter(ms = 3000) {
       toast('Update installed — reloading…', ms);
       setTimeout(() => {
@@ -228,7 +225,12 @@
         const href = a.getAttribute('href') || '';
         if (/#check-updates$/i.test(href)) {
           e.preventDefault();
-          checkForUpdates();
+          const container = document.querySelector('main.content') || document.body;
+          if (window.DFLoader && typeof DFLoader.withLoader === 'function') {
+            DFLoader.withLoader(container, checkForUpdates);
+          } else {
+            checkForUpdates();
+          }
           history.replaceState(null, '', '#check-updates');
         }
       });
@@ -236,7 +238,12 @@
 
     function maybeRunFromHash(){
       if (/#check-updates$/i.test(location.hash)) {
-        setTimeout(checkForUpdates, 250);
+        const container = document.querySelector('main.content') || document.body;
+        if (window.DFLoader && typeof DFLoader.withLoader === 'function') {
+          setTimeout(() => DFLoader.withLoader(container, checkForUpdates), 250);
+        } else {
+          setTimeout(checkForUpdates, 250);
+        }
       }
     }
 
@@ -245,10 +252,16 @@
       maybeRunFromHash();
     });
 
+    // Optional keyboard shortcut: U = check updates
     document.addEventListener('keydown', (e) => {
       if ((e.key === 'u' || e.key === 'U') && !/input|textarea|select/i.test(e.target.tagName)) {
         e.preventDefault();
-        checkForUpdates();
+        const container = document.querySelector('main.content') || document.body;
+        if (window.DFLoader && typeof DFLoader.withLoader === 'function') {
+          DFLoader.withLoader(container, checkForUpdates);
+        } else {
+          checkForUpdates();
+        }
       }
     });
   })();
