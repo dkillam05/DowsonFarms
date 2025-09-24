@@ -141,18 +141,13 @@ async function openForEdit(id){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-/* ----- form wiring ----- */
-function installForm(){
-  const form = $('#ct-form'); if (!form) return;
-  const resetBtn = $('#resetBtn');
+/* ----- number input behavior (single source of truth) ----- */
+function installNumberGuards(){
+  const m = $('#ctMoisture'), t = $('#ctTestWeight');
 
-  // key guards (no live rewriting -> caret never jumps)
   function guardOneDot(evt){
     const el = evt.target;
-    if (evt.key === '.') {
-      if (el.value.includes('.')) { evt.preventDefault(); return; }
-      return;
-    }
+    if (evt.key === '.') { if (el.value.includes('.')) evt.preventDefault(); return; }
     const ok = /[0-9]/.test(evt.key) ||
                ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End','Enter'].includes(evt.key);
     if (!ok) evt.preventDefault();
@@ -164,11 +159,18 @@ function installForm(){
     if (opts && typeof opts.max === 'number' && n > opts.max) n = opts.max;
     el.value = n.toFixed(1);
   }
-  const m = $('#ctMoisture'), t = $('#ctTestWeight');
   m && m.addEventListener('keydown', guardOneDot);
   t && t.addEventListener('keydown', guardOneDot);
   m && m.addEventListener('blur', ()=>fmt1(m,{min:0,max:100}));
   t && t.addEventListener('blur', ()=>fmt1(t,{min:0}));
+}
+
+/* ----- form wiring ----- */
+function installForm(){
+  const form = $('#ct-form'); if (!form) return;
+  const resetBtn = $('#resetBtn');
+
+  installNumberGuards();
 
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
