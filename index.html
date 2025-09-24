@@ -15,7 +15,8 @@
     var pref = localStorage.getItem('df_theme') || 'auto';
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-    document.documentElement.setAttribute('data-theme', pref);
+    // FIX: set data-theme to mode (not pref) so dark styles apply immediately
+    document.documentElement.setAttribute('data-theme', mode);
     document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
   })();
   </script>
@@ -43,8 +44,8 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol><li><span>Home</span></li></ol>
-    <!-- Added: logout button aligned to right of breadcrumbs -->
-    <button id="logout-btn" class="btn-logout">Logout</button>
+    <!-- Removed the hard-coded Logout button.
+         core.js injects a consistent, theme-aware one into this nav. -->
   </nav>
 
   <!-- Main -->
@@ -79,7 +80,8 @@
     }
   </script>
 
-  <!-- App scripts -->
+  <!-- App scripts (order matters: firebase-init first, then core) -->
+  <script type="module" src="js/firebase-init.js"></script>
   <script defer src="js/version.js"></script>
   <script defer src="js/core.js"></script>
   <!-- Bump ?v any time menus.js changes to defeat caches -->
