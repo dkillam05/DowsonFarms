@@ -35,11 +35,16 @@
 
     /* ---------- Form layout (grid, mobile-first) ---------- */
     #ct-form .req{color:#b00020;margin-left:.25rem;font-weight:700}
+
+    /* Add small gutters so inner inputs never kiss the card edge (fixes “too wide”) */
     .form-grid{
       display:grid;
       grid-template-columns: 1fr;
       gap:12px;
+      margin: 0 -6px;         /* pull out so child padding becomes visual gutters */
     }
+    .form-grid .field{ padding: 0 6px; }
+
     @media (min-width: 560px){
       .form-grid{
         grid-template-columns: 1fr 1fr;
@@ -54,6 +59,7 @@
       font-size:16px;   /* stops iOS zoom */
       height:44px;      /* exact match with Crop Type */
       width:100%;
+      box-sizing:border-box;
     }
 
     /* Square color picker with centered helper text */
@@ -81,7 +87,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs (no Quick View here) -->
+  <!-- Breadcrumbs (Logout is injected by core.js) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -92,12 +98,12 @@
     </ol>
   </nav>
 
-  <main class="content" data-has-form>
-    <!-- Title row with Quick View on the right (matches Account Roles) -->
-    <div class="row" style="align-items:center;justify-content:space-between;margin:0 0 8px;">
-      <h1 style="margin:0;">🌾 Crop Types</h1>
-      <button type="button" id="quickViewBtn" class="btn-outline">Quick View</button>
-    </div>
+  <!-- data-quick-view tells core.js to add the button to the title row -->
+  <main class="content" data-has-form
+        data-quick-view="../reports/reports-predefined.html#crop-types"
+        data-qv-label="Quick View">
+
+    <h1 style="margin:0 0 8px;">🌾 Crop Types</h1>
 
     <!-- Add / Edit form -->
     <form id="ct-form" class="card" novalidate>
@@ -179,7 +185,7 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Decimal behavior: guard keys + format on blur (no live rewriting) -->
+  <!-- Decimal behavior: guard keys + format on blur (no live rewriting / no caret jump) -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       function guardOneDot(evt){
@@ -207,15 +213,6 @@
       t && t.addEventListener('keydown', guardOneDot);
       m && m.addEventListener('blur', function(){ format1(m,{min:0,max:100}); });
       t && t.addEventListener('blur', function(){ format1(t,{min:0}); });
-
-      // Quick View click — wire to your target (same as Account Roles)
-      var qv = document.getElementById('quickViewBtn');
-      if (qv) {
-        qv.addEventListener('click', function(){
-          // update this URL to the actual quick view you use elsewhere
-          window.location.href = '../reports/reports-predefined.html#crop-types';
-        });
-      }
     });
   </script>
 
