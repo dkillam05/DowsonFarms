@@ -1,9 +1,7 @@
-/* /serviceworker.js  (FULL FILE at site ROOT)
-   Uses /js/version.js to derive cache version.
-*/
+/* /serviceworker.js  (ROOT) */
 
-try { importScripts('./js/version.js'); } catch (e) { /* ignore */ }
-const SW_VERSION    = (self.DF_VERSION || self.APP_VERSION || 'v0');
+try { importScripts('./js/version.js'); } catch (e) {}
+const SW_VERSION    = (typeof self !== 'undefined' && (self.DF_VERSION || self.APP_VERSION)) || 'v0';
 const CACHE_PREFIX  = 'df-cache';
 const STATIC_CACHE  = `${CACHE_PREFIX}-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}-rt-${SW_VERSION}`;
@@ -18,10 +16,9 @@ const STATIC_ASSETS = [
   './js/ui-nav.js',
   './js/ui-subnav.js',
   './assets/data/menus.js',
-  // Icons
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
-  './assets/icons/apple-touch-icon.png' // <-- ensure the iOS icon is cached
+  './assets/icons/apple-touch-icon.png'
 ];
 
 // Helpers
@@ -44,9 +41,7 @@ function isImage(req) {
 
 // Install
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then(c => c.addAll(STATIC_ASSETS))
-  );
+  event.waitUntil(caches.open(STATIC_CACHE).then(c => c.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
@@ -62,7 +57,7 @@ self.addEventListener('activate', (event) => {
     await self.clients.claim();
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of all) {
-      try { client.postMessage({ type: 'DF_SW_ACTIVATED' }); } catch (_) {}
+      try { client.postMessage({ type: 'DF_SW_ACTIVATED', version: SW_VERSION }); } catch (_) {}
     }
   })());
 });
@@ -73,22 +68,14 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  if (isHTML(req)) {
-    event.respondWith(htmlNetworkFirst(req));
-    return;
-  }
-  if (isStatic(req)) {
-    event.respondWith(staticCacheFirst(req));
-    return;
-  }
-  if (isImage(req)) {
-    event.respondWith(imageStaleWhileRevalidate(req));
-    return;
-  }
+  if (isHTML(req))   { event.respondWith(htmlNetworkFirst(req)); return; }
+  if (isStatic(req)) { event.respondWith(staticCacheFirst(req)); return; }
+  if (isImage(req))  { event.respondWith(imageStaleWhileRevalidate(req)); return; }
+
   event.respondWith(caches.match(req).then(res => res || fetch(req)));
 });
 
-// Messages (allow page to trigger skipWaiting explicitly)
+// Messages: allow page to trigger immediate activation
 self.addEventListener('message', (event) => {
   if (event?.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
@@ -120,9 +107,6 @@ async function staticCacheFirst(req) {
 async function imageStaleWhileRevalidate(req) {
   const rt = await caches.open(RUNTIME_CACHE);
   const cached = await rt.match(req);
-  const fetchPromise = fetch(req).then(res => {
-    rt.put(req, res.clone());
-    return res;
-  }).catch(() => cached);
+  const fetchPromise = fetch(req).then(res => { rt.put(req, res.clone()); return res; }).catch(() => cached);
   return cached || fetchPromise;
 }
