@@ -383,7 +383,7 @@ async function start(){
   }
 
   if (el.roleHint) el.roleHint.textContent = '';
-  setStatusMuted(`${roles.length} role${roles.length===1?'':'s'} loaded`);
+  //setStatusMuted(`${roles.length} role${roles.length===1?'':'s'} loaded`);
 
   let currentRoleId   = el.roleSelect.value || roles[0].id || roles[0].label;
   let currentRoleDoc  = await readRoleDoc(db, currentRoleId);
