@@ -1,10 +1,5 @@
 /* /serviceworker.js  (FULL FILE at site ROOT)
    Uses /js/version.js to derive cache version.
-   Expects:
-   - assets/css/theme.css
-   - assets/data/menus.js
-   - assets/icons/...
-   - js/core.js, js/version.js, js/ui-nav.js, js/ui-subnav.js
 */
 
 try { importScripts('./js/version.js'); } catch (e) { /* ignore */ }
@@ -23,8 +18,10 @@ const STATIC_ASSETS = [
   './js/ui-nav.js',
   './js/ui-subnav.js',
   './assets/data/menus.js',
+  // Icons
   './assets/icons/icon-192.png',
-  './assets/icons/maskable-512.png',
+  './assets/icons/icon-512.png',
+  './assets/icons/apple-touch-icon.png' // <-- ensure the iOS icon is cached
 ];
 
 // Helpers
