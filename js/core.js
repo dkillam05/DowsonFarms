@@ -443,12 +443,17 @@
   function installAuthGuard() {
     if (isAuthPage() || isHome()) return;
 
+    // ADDED: tiny bypass during update flows so checking SW never logs you out
+    function updateInProgress(){ try { return localStorage.getItem('df_update_in_progress') === '1'; } catch(_) { return false; } } // ADDED
+    if (updateInProgress()) return; // ADDED
+
     var MAX_TRIES = 150;          // ~12s waiting for firebase-init to load
     var GRACE_MS  = 15000;        // <-- show spinner & wait up to 15s before redirect
     var FORCE_LOGOUT_DAYS = 30;   // monthly sign-out safety
     var tries = 0;
 
     function bounceToLogin() {
+      if (updateInProgress()) return; // ADDED: never bounce during update check/reload
       var url = resolveAuthURL();
       try { window.location.replace(url); } catch (_) { window.location.href = url; }
     }
@@ -508,12 +513,12 @@
           clearGrace();
           recordHeartbeat();
         } else {
-          startGrace();
+          if (!updateInProgress()) startGrace(); // ADDED
         }
       });
 
       setTimeout(function(){
-        if (!gotFirstAuthCallback) {
+        if (!gotFirstAuthCallback && !updateInProgress()) { // ADDED
           startGrace();
         }
       }, 1200);
@@ -525,12 +530,12 @@
       tries++;
       if (!window.DF_FB || !window.DF_FB_API || !window.DF_FB.auth) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        startGrace();
+        if (!updateInProgress()) startGrace(); // ADDED
         return;
       }
       if (!subscribeAuth()) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        startGrace();
+        if (!updateInProgress()) startGrace(); // ADDED
         return;
       }
       try { if (window.DF_FB.auth.currentUser) recordHeartbeat(); } catch (_) {}
@@ -542,7 +547,7 @@
         graceTimer = setTimeout(function(){
           var target = document.querySelector('main.content') || document.body;
           hideLoader(target);
-          if (!lastUser) bounceToLogin();
+          if (!lastUser && !updateInProgress()) bounceToLogin(); // ADDED
         }, Math.min(6000, GRACE_MS));
       }
     });
