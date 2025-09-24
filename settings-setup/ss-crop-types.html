@@ -49,12 +49,10 @@
     }
 
     /* ---------- UNIFORM FIELD HEIGHTS ---------- */
-    /* Prevent iOS zoom and make every text/number field the same height as "Crop Type" */
     #ct-form input[type="text"],
     #ct-form input[type="number"]{
-      font-size:16px;    /* stops iOS zoom */
-      height:44px;       /* exact match */
-      line-height:44px;  /* keep caret centered consistently */
+      font-size:16px;   /* stops iOS zoom */
+      height:44px;      /* exact match with Crop Type */
       width:100%;
     }
 
@@ -70,27 +68,7 @@
     #ctColor::-webkit-color-swatch{ border:none; border-radius:8px; }
     #ctColor::-moz-color-swatch{ border:none; border-radius:8px; }
 
-    /* Consistent helper text */
     .hint{ display:block; margin-top:6px; font-size:.92rem; color:#9aa0a6; }
-
-    /* -------- Quick View (top-right, inside breadcrumbs) -------- */
-    .qv-host{
-      position:absolute; right:112px; top:50%; transform:translateY(-50%);
-      display:flex; gap:8px; z-index:2;
-    }
-    .qv-btn{
-      padding:5px 10px;
-      font-size:12px; font-weight:700; line-height:1;
-      border-radius:8px; border:2px solid var(--brand-green,#1B5E20);
-      background: var(--tile-bg); color: var(--brand-green);
-      box-shadow:0 1px 4px rgba(0,0,0,.08); cursor:pointer;
-      -webkit-tap-highlight-color:transparent;
-    }
-    :root[data-theme="dark"] .qv-btn { background:#15181b; color:#dff1e1; border-color:#2d7b35; }
-
-    /* highlight animation when Quick View jumps to table */
-    @keyframes qvflash { 0%{box-shadow:0 0 0 0 rgba(27,94,32,.0)} 30%{box-shadow:0 0 0 6px rgba(27,94,32,.25)} 100%{box-shadow:0 0 0 0 rgba(27,94,32,.0)} }
-    .qv-highlight { animation: qvflash 1.2s ease; border-radius:12px; }
   </style>
 </head>
 <body>
@@ -103,7 +81,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- Breadcrumbs (no Quick View here) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -112,14 +90,14 @@
       <li class="sep">›</li>
       <li><span>Crop Types</span></li>
     </ol>
-    <!-- Quick View (top-right) -->
-    <div class="qv-host">
-      <button id="qvBtn" class="qv-btn" type="button">Quick View</button>
-    </div>
   </nav>
 
   <main class="content" data-has-form>
-    <h1 style="margin:0 0 8px;">🌾 Crop Types</h1>
+    <!-- Title row with Quick View on the right (matches Account Roles) -->
+    <div class="row" style="align-items:center;justify-content:space-between;margin:0 0 8px;">
+      <h1 style="margin:0;">🌾 Crop Types</h1>
+      <button type="button" id="quickViewBtn" class="btn-outline">Quick View</button>
+    </div>
 
     <!-- Add / Edit form -->
     <form id="ct-form" class="card" novalidate>
@@ -164,7 +142,7 @@
     </form>
 
     <!-- List -->
-    <section class="card" id="ctListCard">
+    <section class="card">
       <div class="row" style="align-items:center;justify-content:space-between;">
         <h2 style="margin:0;">Existing Crop Types</h2>
         <span class="badge" id="ctCount">0</span>
@@ -201,19 +179,43 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Quick View behavior (scroll + highlight) -->
+  <!-- Decimal behavior: guard keys + format on blur (no live rewriting) -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
-      var btn = document.getElementById('qvBtn');
-      if (!btn) return;
-      btn.addEventListener('click', function(){
-        var card = document.getElementById('ctListCard');
-        if (!card) return;
-        card.classList.remove('qv-highlight');
-        card.scrollIntoView({behavior:'smooth', block:'start'});
-        setTimeout(function(){ card.classList.add('qv-highlight'); }, 220);
-        setTimeout(function(){ card.classList.remove('qv-highlight'); }, 1600);
-      });
+      function guardOneDot(evt){
+        const el = evt.target;
+        if (evt.key === '.') {
+          if (el.value.includes('.')) { evt.preventDefault(); return; }
+          return; // allow first dot
+        }
+        const ok = /[0-9]/.test(evt.key) ||
+                   ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End','Enter'].includes(evt.key);
+        if (!ok) evt.preventDefault();
+      }
+      function format1(el, opts){
+        var v = String(el.value || '').trim();
+        if (!v) return;
+        var n = Number(v);
+        if (!Number.isFinite(n)) return;
+        if (opts && typeof opts.min === 'number' && n < opts.min) n = opts.min;
+        if (opts && typeof opts.max === 'number' && n > opts.max) n = opts.max;
+        el.value = n.toFixed(1);
+      }
+      var m = document.getElementById('ctMoisture');
+      var t = document.getElementById('ctTestWeight');
+      m && m.addEventListener('keydown', guardOneDot);
+      t && t.addEventListener('keydown', guardOneDot);
+      m && m.addEventListener('blur', function(){ format1(m,{min:0,max:100}); });
+      t && t.addEventListener('blur', function(){ format1(t,{min:0}); });
+
+      // Quick View click — wire to your target (same as Account Roles)
+      var qv = document.getElementById('quickViewBtn');
+      if (qv) {
+        qv.addEventListener('click', function(){
+          // update this URL to the actual quick view you use elsewhere
+          window.location.href = '../reports/reports-predefined.html#crop-types';
+        });
+      }
     });
   </script>
 
