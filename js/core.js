@@ -1,20 +1,20 @@
 /* ===========================
    /js/core.js  (FULL REPLACEMENT)
-   - Logout (no Firebase; preserves df_theme; unregisters SW; redirects)
+   - Logout (preserves df_theme; unregisters SW; redirects)
    - Clock (America/Chicago)
    - Version/Build Date injection
-   - Back button (in-flow above footer) — HIDDEN on home and on /auth/*
-   - Logout button in Breadcrumb bar (right-aligned, consistent everywhere)
+   - Back button (in-flow above footer) — hidden on home and on /auth/*
+   - Logout button in Breadcrumb bar (right-aligned, consistent)
    - Honors <base href="/DowsonFarms/">
 
    ADDITIONS:
-   - Auth guard for all non-auth pages (waits for Firebase, redirects to /auth/index.html)
-   - Fix resolveAuthURL() to always build from repo root (prevents 404 in nested pages)
-   - Best-effort persistence = LOCAL (stay signed in across app restarts)
+   - Auth guard for all non-auth pages (waits for Firebase; redirects to /auth/index.html)
+   - resolveAuthURL() always builds from repo root (avoids nested 404s)
+   - Best-effort persistence = LOCAL (stay signed in)
    - Monthly forced logout (configurable)
-   - Bounce to login immediately if auth state becomes null
-   - Global loader utilities: DFLoader.attach/show/hide + withLoader wrapper
-   - setBreadcrumbs(items) helper (optional, no-op if you already render static crumbs)
+   - Grace timer to avoid redirecting on transient null during auth rehydration
+   - Global loader utilities: DFLoader.attach/show/hide + withLoader
+   - setBreadcrumbs(items) helper
    =========================== */
 
 (function () {
@@ -33,11 +33,8 @@
     if (seg.length > 0) return '/' + seg[0] + '/';
     return '/';
   }
-  function resolveAuthURL() {
-    // Always compute from repo root so nested pages never point to "folder/auth/index.html"
-    return getRepoRootPath() + 'auth/index.html';
-  }
-  function getHomeURL() { return getRepoRootPath() + 'index.html'; }
+  function resolveAuthURL() { return getRepoRootPath() + 'auth/index.html'; }
+  function getHomeURL()      { return getRepoRootPath() + 'index.html'; }
 
   function isHome() {
     var p = window.location.pathname.replace(/\/+$/, '');
@@ -61,7 +58,7 @@
     var keepTheme = null;
     try { keepTheme = localStorage.getItem('df_theme'); } catch (_) {}
 
-    // Try to sign out of Firebase too (best-effort, no dependency)
+    // Best-effort Firebase signout (if available)
     try {
       if (window.DF_FB_API && typeof window.DF_FB_API.signOut === 'function') {
         window.DF_FB_API.signOut().catch(function(){});
@@ -98,7 +95,7 @@
     var bc = document.querySelector('nav.breadcrumbs, .breadcrumbs');
     if (!bc) return;
 
-    // Remove any link-style logout in the breadcrumbs
+    // Remove any old logout elements
     var old = bc.querySelectorAll('#logout-btn, [data-action="logout"], .logout, a[href*="logout"]');
     for (var i = 0; i < old.length; i++) if (bc.contains(old[i])) old[i].remove();
 
@@ -191,7 +188,7 @@
   /* ---------- Back Button (skip home + login) ---------- */
   function installBackButtonFlow() {
     if (document.getElementById('df-back-flow')) return;
-    if (isHome() || isAuthPage()) return; // ← hide on login/auth pages and true home
+    if (isHome() || isAuthPage()) return;
 
     var content = document.querySelector('.content') || document.body;
 
@@ -248,7 +245,6 @@
   }
 
   /* ---------- Global loader helpers ---------- */
-  // Creates the overlay markup inside a container if missing
   function attachLoader(container) {
     if (!container) return null;
     container.setAttribute('data-has-loader', '');
@@ -278,24 +274,15 @@
     var c = container || document.querySelector('main.content') || document.body;
     c.setAttribute('data-loading', 'false');
   }
-  // Convenience: run an async fn while showing the loader on container
   async function withLoader(container, fn) {
     var c = container || document.querySelector('main.content') || document.body;
     showLoader(c);
     try { return await fn(); }
     finally { hideLoader(c); }
   }
-
-  // Expose to pages
-  window.DFLoader = {
-    attach: attachLoader,
-    show: showLoader,
-    hide: hideLoader,
-    withLoader: withLoader
-  };
+  window.DFLoader = { attach: attachLoader, show: showLoader, hide: hideLoader, withLoader: withLoader };
 
   /* ---------- setBreadcrumbs helper (optional) ---------- */
-  // Usage: setBreadcrumbs([{label:'Home',href:'../index.html'},{label:'Teams & Partners',href:'index.html'},{label:'Employees'}])
   window.setBreadcrumbs = function setBreadcrumbs(items) {
     try {
       var nav = document.querySelector('nav.breadcrumbs');
@@ -323,12 +310,11 @@
     } catch (_) {}
   };
 
-  /* ---------- Auth Guard (fixed) ---------- */
+  /* ---------- Auth Guard (with grace timer) ---------- */
   function installAuthGuard() {
-    // Skip guard on auth pages and true home screen
     if (isAuthPage() || isHome()) return;
 
-    var MAX_TRIES = 150; // wait up to ~12s (mobile-friendly)
+    var MAX_TRIES = 150; // ~12s
     var tries = 0;
 
     function bounceToLogin() {
@@ -340,16 +326,16 @@
       try { localStorage.setItem('df_last_auth_ok', String(Date.now())); } catch (_) {}
     }
 
-    // Force sign-out once every N days — ONLY if we’ve ever recorded a heartbeat
+    // Force sign-out once every N days — ONLY if a heartbeat was ever recorded
     var FORCE_LOGOUT_DAYS = 30;
     try {
       var raw = localStorage.getItem('df_last_auth_ok');
-      if (raw) { // <-- only enforce if key exists
+      if (raw) {
         var last = parseInt(raw, 10);
         if (!isNaN(last)) {
           var ms = Date.now() - last;
           if (ms > FORCE_LOGOUT_DAYS * 24 * 60 * 60 * 1000) {
-            handleLogout(); // will redirect to /auth
+            handleLogout();
             return;
           }
         }
@@ -359,49 +345,56 @@
     function subscribeAuth() {
       if (!window.DF_FB_API || typeof window.DF_FB_API.onAuth !== 'function') return false;
 
-      // Best-effort: set LOCAL persistence so sessions stick on phones
+      // Prefer LOCAL persistence so sessions stick on phones
       try {
         if (typeof window.DF_FB_API.setPersistence === 'function') {
           window.DF_FB_API.setPersistence(true).catch(function(){});
         }
       } catch (_) {}
 
-      // Only redirect AFTER we actually hear from Firebase once
       var gotFirstAuthCallback = false;
+      var lastUser = undefined;
+      var graceTimer = null;
+
+      function armGraceTimer() {
+        if (graceTimer) return;
+        graceTimer = setTimeout(function(){
+          if (!lastUser) bounceToLogin();
+        }, 1800); // allow rehydration on slower devices
+      }
 
       window.DF_FB_API.onAuth(function (user) {
         gotFirstAuthCallback = true;
+        lastUser = user || null;
+
         if (user) {
+          clearTimeout(graceTimer);
+          graceTimer = null;
           recordHeartbeat();
         } else {
-          bounceToLogin();
+          // Wait briefly; Firebase may still restore a persisted session
+          armGraceTimer();
         }
       });
 
-      // Safety: if we never get a callback (SDK didn’t init), fall back later
+      // Safety: SDK never called back at all
       setTimeout(function(){
         if (!gotFirstAuthCallback) bounceToLogin();
-      }, 12000); // matches MAX_TRIES
+      }, 12000);
 
       return true;
     }
 
     (function waitForFirebase() {
       tries++;
-      // Need both handles (firebase-init.js must have run)
       if (!window.DF_FB || !window.DF_FB_API || !window.DF_FB.auth) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        // Firebase never showed up → go to login
-        return bounceToLogin();
+        return bounceToLogin(); // Firebase never showed up
       }
-
-      // Firebase is present → subscribe (don’t redirect yet; wait for onAuth)
       if (!subscribeAuth()) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
         return bounceToLogin();
       }
-
-      // If already logged in right now, stamp heartbeat immediately
       try { if (window.DF_FB.auth.currentUser) recordHeartbeat(); } catch (_) {}
     })();
   }
@@ -412,10 +405,10 @@
     installClock();
     injectVersionAndBuildDate();
     installBackButtonFlow();
-    installAuthGuard(); // ← added
+    installAuthGuard();
   });
 
-  /* Keep legacy logout triggers working anywhere */
+  // Legacy logout triggers
   document.addEventListener('click', function (e) {
     var t = e.target;
     if (!t) return;
