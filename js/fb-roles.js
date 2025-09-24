@@ -1,5 +1,7 @@
 // /js/fb-roles.js
 // Account Roles — full UI to edit per-role permissions using DF_MENUS as the source of truth.
+// This version avoids red inline errors and silently no-ops if not signed in,
+// letting the global auth guard (core.js) handle routing/visibility.
 
 import {
   collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp
@@ -30,6 +32,7 @@ const el = {
 const ACTIONS = ['view','edit','add','archive','delete'];
 const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","ViewOnly"];
 
+/* ---------- UI helpers (muted + non-blocking) ---------- */
 function toast(msg='Saved'){
   if (!el.toastBox || !el.toastText) return;
   el.toastText.textContent = msg;
@@ -37,14 +40,13 @@ function toast(msg='Saved'){
   clearTimeout(window.__df_toast_t);
   window.__df_toast_t = setTimeout(()=> el.toastBox.style.display='none', 1800);
 }
-
-function setStatus(msg='', color){
+function setStatusMuted(msg=''){
   if (!el.roleStatus) return;
+  // Muted, non-red status line — or completely hidden if empty
   el.roleStatus.style.display = msg ? 'block' : 'none';
+  el.roleStatus.style.color = 'var(--crumb-fg, #666)';
   el.roleStatus.textContent = msg || '';
-  if (color) el.roleStatus.style.color = color;
 }
-
 function enableSave(enabled){
   if (!el.saveBtn || !el.discardBtn) return;
   if (enabled){
@@ -112,7 +114,6 @@ async function readRoleDoc(db, roleId){
   if (!snap.exists()) return null;
   return { id: snap.id, ...(snap.data()||{}) };
 }
-
 async function saveRoleDoc(db, roleId, payload){
   await setDoc(doc(db,'roles', roleId), {
     ...payload,
@@ -122,7 +123,6 @@ async function saveRoleDoc(db, roleId, payload){
 
 /* ---------- Permissions <-> UI state ---------- */
 function emptyPermShape(){
-  // Ensure every menu/submenu exists in the object
   const perms = {};
   Object.keys(MENUS).forEach(menu=>{
     perms[menu] = {};
@@ -133,7 +133,6 @@ function emptyPermShape(){
   return perms;
 }
 function mergePerms(base, incoming){
-  // base: full shape from MENUS; incoming: what's stored
   const out = emptyPermShape();
   Object.keys(out).forEach(menu=>{
     Object.keys(out[menu]).forEach(sub=>{
@@ -181,7 +180,6 @@ function summarizeChildren(perms, menu){
  */
 function buildPermissionsUI(container, startingPerms){
   container.innerHTML = '';
-  // local, mutable state
   const perms = mergePerms(emptyPermShape(), startingPerms||{});
 
   Object.keys(MENUS).forEach(menu=>{
@@ -197,7 +195,7 @@ function buildPermissionsUI(container, startingPerms){
 
     const body = document.createElement('div'); body.className='menu-body'; body.style.display='none';
 
-    // Parent action row: toggles all subs for that action
+    // Parent action row
     const grid = document.createElement('div'); grid.className='pill-grid';
     ACTIONS.forEach(name=>{
       const k = name;
@@ -217,7 +215,7 @@ function buildPermissionsUI(container, startingPerms){
     });
     body.appendChild(grid);
 
-    // Submenus (collapsed group)
+    // Submenus
     const subWrap     = document.createElement('div'); subWrap.className='subwrap';
     const subHead     = document.createElement('div'); subHead.className='subhead';
     const subLeft     = document.createElement('div'); subLeft.style.display='flex'; subLeft.style.alignItems='center'; subLeft.style.gap='8px';
@@ -242,7 +240,6 @@ function buildPermissionsUI(container, startingPerms){
           subSummary.textContent = summarizeChildren(perms, menu);
           right.textContent      = summarizeMenu(perms, menu);
 
-          // sync parent button if all on/off for this action
           const allOn  = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===true);
           const allOff = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===false);
           const parentBtn = body.querySelector(`.pill[aria-label="${menu}::${k}"]`);
@@ -280,7 +277,6 @@ function buildPermissionsUI(container, startingPerms){
 
   return {
     getPerms(){
-      // return only truthy grants to keep Firestore small
       const out = {};
       Object.keys(MENUS).forEach(menu=>{
         (MENUS[menu]||[]).forEach(sm=>{
@@ -321,26 +317,28 @@ function openQuickView(roleLabel, permsObj){
 /* ---------- Main flow ---------- */
 (async function start(){
   try{
+    // Menus must exist
     if (!Object.keys(MENUS).length){
-      setStatus('Global menus not found. Make sure ../assets/data/menus.js loads before fb-roles.js.', '#b00020');
+      setStatusMuted('Menus not loaded yet.');
       return;
     }
 
+    // Firebase ready
     if (el.roleHint) el.roleHint.textContent = 'Loading roles…';
     const db = await readyFirebase();
 
-    // Ensure we’re signed in (your guard should do this already)
-    if (!window.DF_FB.auth.currentUser){
-      setStatus('Not signed in', '#b00020'); 
-      el.roleHint && (el.roleHint.textContent = '');
+    // Respect global guard: if not signed-in, do nothing (no red errors)
+    if (!window.DF_FB?.auth?.currentUser){
+      setStatusMuted('');
+      if (el.roleHint) el.roleHint.textContent = '';
       return;
     }
 
     // Seed roles if empty, then fill dropdown
     const roles = await seedRolesIfEmpty(db);
     if (!roles.length){
-      setStatus('No roles found in /roles (and seeding failed).', '#b00020');
-      el.roleHint && (el.roleHint.textContent = '');
+      setStatusMuted('No roles found.');
+      if (el.roleHint) el.roleHint.textContent = '';
       return;
     }
 
@@ -358,9 +356,8 @@ function openQuickView(roleLabel, permsObj){
     }
 
     if (el.roleHint) el.roleHint.textContent = '';
-    setStatus(`${roles.length} role${roles.length===1?'':'s'} loaded`, '#2e7d32');
+    setStatusMuted(`${roles.length} role${roles.length===1?'':'s'} loaded`);
 
-    // Live UI state
     let currentRoleId   = el.roleSelect.value || roles[0].id || roles[0].label;
     let currentRoleDoc  = await readRoleDoc(db, currentRoleId);
     let ui              = null;
@@ -407,8 +404,9 @@ function openQuickView(roleLabel, permsObj){
     });
 
   }catch(err){
-    console.error(err);
-    setStatus('Failed to initialize Roles (check Firebase init, rules, or menus).', '#b00020');
+    // Only log to console; do not show red error in UI
+    console.error('[fb-roles] init error:', err);
     if (el.roleHint) el.roleHint.textContent = '';
+    setStatusMuted(''); // keep UI calm
   }
 })();
