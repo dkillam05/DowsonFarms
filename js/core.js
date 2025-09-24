@@ -3,17 +3,17 @@
    - Logout (preserves df_theme; unregisters SW; redirects)
    - Clock (America/Chicago)
    - Version/Build Date injection
-   - Back button (in-flow above footer) — hidden on home and on /auth/*
-   - Logout button in Breadcrumb bar (right-aligned, consistent)
+   - Back button (in-flow; hidden on home and /auth/*)
+   - Logout button in Breadcrumbs
    - Honors <base href="/DowsonFarms/">
 
    ADDITIONS:
    - Auth guard for all non-auth pages (waits for Firebase; redirects to /auth/index.html)
-   - resolveAuthURL() always builds from repo root (avoids nested 404s)
+   - resolveAuthURL() builds from repo root (avoids nested 404s)
    - Best-effort persistence = LOCAL (stay signed in)
    - Monthly forced logout (configurable)
-   - Grace timer to avoid redirecting on transient null during auth rehydration
-   - Global loader utilities: DFLoader.attach/show/hide + withLoader
+   - 3.5s grace timer to avoid redirect during auth rehydration
+   - Global loader utilities (DFLoader)
    - setBreadcrumbs(items) helper
    =========================== */
 
@@ -310,11 +310,11 @@
     } catch (_) {}
   };
 
-  /* ---------- Auth Guard (with grace timer) ---------- */
+  /* ---------- Auth Guard (graceful) ---------- */
   function installAuthGuard() {
     if (isAuthPage() || isHome()) return;
 
-    var MAX_TRIES = 150; // ~12s
+    var MAX_TRIES = 200; // ~16s (mobile friendly)
     var tries = 0;
 
     function bounceToLogin() {
@@ -326,7 +326,7 @@
       try { localStorage.setItem('df_last_auth_ok', String(Date.now())); } catch (_) {}
     }
 
-    // Force sign-out once every N days — ONLY if a heartbeat was ever recorded
+    // Force sign-out once every N days — ONLY if heartbeat exists
     var FORCE_LOGOUT_DAYS = 30;
     try {
       var raw = localStorage.getItem('df_last_auth_ok');
@@ -342,6 +342,18 @@
       }
     } catch (_) {}
 
+    // Keep heartbeat fresh when tab becomes visible or online again
+    function maybeHeartbeat() {
+      try {
+        var u = window.DF_FB && window.DF_FB.auth && window.DF_FB.auth.currentUser;
+        if (u) recordHeartbeat();
+      } catch(_) {}
+    }
+    document.addEventListener('visibilitychange', function(){
+      if (document.visibilityState === 'visible') maybeHeartbeat();
+    });
+    window.addEventListener('online', maybeHeartbeat);
+
     function subscribeAuth() {
       if (!window.DF_FB_API || typeof window.DF_FB_API.onAuth !== 'function') return false;
 
@@ -355,12 +367,13 @@
       var gotFirstAuthCallback = false;
       var lastUser = undefined;
       var graceTimer = null;
+      var GRACE_MS = 3500; // ← key tweak: be generous here
 
       function armGraceTimer() {
-        if (graceTimer) return;
+        clearTimeout(graceTimer);
         graceTimer = setTimeout(function(){
           if (!lastUser) bounceToLogin();
-        }, 1800); // allow rehydration on slower devices
+        }, GRACE_MS);
       }
 
       window.DF_FB_API.onAuth(function (user) {
@@ -372,7 +385,7 @@
           graceTimer = null;
           recordHeartbeat();
         } else {
-          // Wait briefly; Firebase may still restore a persisted session
+          // Give Firebase time to rehydrate persisted session
           armGraceTimer();
         }
       });
