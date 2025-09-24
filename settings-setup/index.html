@@ -19,6 +19,8 @@
 
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
+  <!-- ✅ Load Firebase before core.js so the auth guard sees it -->
+  <script type="module" src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
 
   <link rel="manifest" href="../manifest.webmanifest" />
