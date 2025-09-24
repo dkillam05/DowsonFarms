@@ -1,8 +1,8 @@
 /* ===========================
-   /js/fb-crop-types.js
+   /js/fb-crop-types.js  (FULL REPLACEMENT)
    - Firestore CRUD for crop types
    - Uses DFLoader for loading state
-   - Redirect to login when signed out (no banner)
+   - No page-level auth redirect (core.js handles grace + redirect)
    - Toasts on save/delete
    - Fields:
      name (string)            -> "Crop Type"
@@ -19,16 +19,6 @@ import {
 
 /* ----------------- tiny helpers ----------------- */
 const $ = (s) => document.querySelector(s);
-const repoRoot = (function getRepoRootPath(){
-  const baseEl = document.querySelector('base');
-  if (baseEl && baseEl.href) {
-    try { const u=new URL(baseEl.href); return u.pathname.endsWith('/')?u.pathname:(u.pathname+'/'); } catch(_){}
-  }
-  const seg=(window.location.pathname||'/').split('/').filter(Boolean);
-  if (seg.length>0) return '/'+seg[0]+'/';
-  return '/';
-})();
-const LOGIN_URL = repoRoot + 'auth/index.html';
 
 function showToast(msg) {
   const box = $('#dfToast'), txt = $('#dfToastText');
@@ -52,7 +42,9 @@ function fmtDate(ts){
   try{
     const d = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
     if(!d) return '—';
-    return new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(d);
+    return new Intl.DateTimeFormat(undefined,{
+      year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'
+    }).format(d);
   }catch(_){ return '—'; }
 }
 
@@ -62,26 +54,33 @@ function clampOneDecimal(raw, {min=0, max=99.9}={}){
   let n = Number(String(raw).replace(/[^\d.]/g,''));
   if (!Number.isFinite(n)) return null;
   n = Math.min(Math.max(n, min), max);
-  // one decimal
-  return Math.round(n * 10) / 10;
+  return Math.round(n * 10) / 10; // one decimal
 }
 function toXXdotXString(n){
   if (n==null || !Number.isFinite(n)) return '';
-  // keep at most two digits before decimal, one after
-  const fixed = Number(n).toFixed(1);
-  return fixed.length > 4 ? fixed.slice(-4) : fixed; // safety, but fixed is usually 4 chars like "15.5"
+  return Number(n).toFixed(1); // "15.5"
 }
 function installOneDecimalMask(input, opts){
   if (!input) return;
-  // prevent iOS zoom via CSS already; this handles content/format
+
   input.addEventListener('input', ()=>{
-    // allow digits and a single decimal; strip others
+    // Preserve caret to avoid “jump to first char” on iOS
+    const selStart = input.selectionStart;
+    const oldLen   = input.value.length;
+
+    // allow only digits and a single dot; max 2 digits before and 1 after
     let v = input.value;
-    // keep only first dot
-    const parts = v.replace(/[^\d.]/g,'').split('.');
+    const parts = v.replace(/[^\d.]/g,'').replace(/\.{2,}/g,'.').split('.');
     v = parts[0].slice(0,2) + (parts.length>1 ? '.' + parts[1].slice(0,1) : '');
     input.value = v;
+
+    // Restore caret as best effort (end if uncertain)
+    const newLen = v.length;
+    const delta  = Math.max(0, newLen - oldLen);
+    const pos    = (typeof selStart === 'number') ? Math.min(newLen, selStart + delta) : newLen;
+    try { input.setSelectionRange(pos, pos); } catch(_){}
   });
+
   input.addEventListener('blur', ()=>{
     const n = clampOneDecimal(input.value, opts);
     input.value = n==null ? '' : toXXdotXString(n);
@@ -189,7 +188,7 @@ function installForm(){
   const form = $('#ct-form'); if (!form) return;
   const resetBtn = $('#resetBtn');
 
-  // one-decimal maskers
+  // one-decimal masks (no caret jump)
   installOneDecimalMask($('#ctMoisture'),   {min:0, max:99.9});
   installOneDecimalMask($('#ctTestWeight'), {min:0, max:99.9});
 
@@ -199,24 +198,17 @@ function installForm(){
 
     const id = ($('#ctId').value || '').trim() || null;
     const name = titleCase(($('#ctName').value || '').trim());
-    const moisture = clampOneDecimal($('#ctMoisture').value, {min:0, max:99.9});
+    const moisture   = clampOneDecimal($('#ctMoisture').value,   {min:0, max:99.9});
     const testWeight = clampOneDecimal($('#ctTestWeight').value, {min:0, max:99.9});
     const color = ($('#ctColor').value || '').trim();
 
-    // Enforce required (all three fields)
     if (!name){ alert('Crop Type is required.'); $('#ctName').focus(); return; }
     if (moisture==null){ alert('Desired Moisture is required (xx.x).'); $('#ctMoisture').focus(); return; }
     if (testWeight==null){ alert('Test Weight is required (xx.x).'); $('#ctTestWeight').focus(); return; }
     if (!color){ alert('Color is required.'); $('#ctColor').focus(); return; }
 
     await DFLoader.with(document.querySelector('main.content'), async ()=>{
-      await upsert(db, {
-        id,
-        name,
-        moisture,
-        testWeight,
-        color
-      });
+      await upsert(db, { id, name, moisture, testWeight, color });
     });
 
     form.reset();
@@ -231,28 +223,9 @@ function installForm(){
   });
 }
 
-/* ----------------- auth redirect ----------------- */
-function installAuthRedirect(){
-  const { auth } = getHandles();
-  const goLogin = ()=> { try{ location.replace(LOGIN_URL); }catch(_){ location.href = LOGIN_URL; } };
-
-  if (!auth) return; // core.js guard will also handle this
-
-  if (!auth.currentUser) {
-    setTimeout(()=>{ if (!auth.currentUser) goLogin(); }, 250);
-  }
-
-  if (window.DF_FB_API?.onAuth) {
-    window.DF_FB_API.onAuth((user)=>{ if (!user) goLogin(); });
-  } else if (typeof auth.onAuthStateChanged === 'function') {
-    auth.onAuthStateChanged((user)=>{ if (!user) goLogin(); });
-  }
-}
-
 /* ----------------- init ----------------- */
 document.addEventListener('DOMContentLoaded', async ()=>{
   DFLoader.attach(document.querySelector('main.content'));
-  installAuthRedirect();
   installForm();
   await render();
 
