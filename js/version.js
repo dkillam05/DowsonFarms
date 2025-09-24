@@ -1,10 +1,11 @@
 // /js/version.js
-// Expose version/build for BOTH page (window) and service worker (self).
+// Dowson Farms — single source of truth for version/build.
+// Exposes to both page (window) and service worker (self). No update-side effects.
 
 (function () {
-  var VERSION = 'v4.2.0';  // bump this on each release
+  var VERSION = 'v4.2.1';  // ← bump this on each release
 
-  // Build date in Central Time
+  // Build date in Central Time (for footer display only)
   var BUILD_DATE = (function(){
     try {
       return new Date().toLocaleString('en-US', {
@@ -15,13 +16,15 @@
     } catch (_) { return ''; }
   })();
 
-  // Make available to page and SW
+  // Make available to Service Worker context
   try { if (typeof self   !== 'undefined') self.DF_VERSION     = VERSION; } catch (_) {}
   try { if (typeof self   !== 'undefined') self.DF_BUILD_DATE  = BUILD_DATE; } catch (_) {}
+
+  // Make available to Page context
   try { if (typeof window !== 'undefined') window.DF_VERSION    = VERSION; } catch (_) {}
   try { if (typeof window !== 'undefined') window.DF_BUILD_DATE = BUILD_DATE; } catch (_) {}
 
-  // Update footer + clear update flag when page is ready
+  // Update footer when DOM is ready (no other side effects)
   try {
     if (typeof document !== 'undefined') {
       document.addEventListener('DOMContentLoaded', function(){
@@ -29,7 +32,6 @@
         var dateEl = document.getElementById('report-date');
         if (verEl)  verEl.textContent  = VERSION;
         if (dateEl) dateEl.textContent = BUILD_DATE;
-        try { localStorage.removeItem('df_update_in_progress'); } catch(_){}
       });
     }
   } catch (_) {}
