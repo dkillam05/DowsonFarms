@@ -1,7 +1,7 @@
 // /js/fb-roles.js
-// Account Roles — full UI to edit per-role permissions using DF_MENUS as the source of truth.
-// This version avoids red inline errors and silently no-ops if not signed in,
-// letting the global auth guard (core.js) handle routing/visibility.
+// Account Roles — edit per-role permissions using DF_MENUS as source of truth.
+// This version waits for Firebase auth (onAuthStateChanged) before initializing,
+// and avoids red inline errors (quiet UX); no redirects here.
 
 import {
   collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp
@@ -32,7 +32,7 @@ const el = {
 const ACTIONS = ['view','edit','add','archive','delete'];
 const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","ViewOnly"];
 
-/* ---------- UI helpers (muted + non-blocking) ---------- */
+/* ---------- Small UI helpers (muted / non-blocking) ---------- */
 function toast(msg='Saved'){
   if (!el.toastBox || !el.toastText) return;
   el.toastText.textContent = msg;
@@ -42,7 +42,6 @@ function toast(msg='Saved'){
 }
 function setStatusMuted(msg=''){
   if (!el.roleStatus) return;
-  // Muted, non-red status line — or completely hidden if empty
   el.roleStatus.style.display = msg ? 'block' : 'none';
   el.roleStatus.style.color = 'var(--crumb-fg, #666)';
   el.roleStatus.textContent = msg || '';
@@ -71,12 +70,12 @@ function buildMenusFromDF(df){
   });
   return out;
 }
-const MENUS = buildMenusFromDF(window.DF_MENUS || {});
+let MENUS = buildMenusFromDF(window.DF_MENUS || {});
 
 /* ---------- Firebase handles ---------- */
 async function readyFirebase(){
   let tries = 0;
-  while ((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && tries < 200){
+  while ((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && tries < 250){
     await new Promise(r=>setTimeout(r,60));
     tries++;
   }
@@ -115,10 +114,7 @@ async function readRoleDoc(db, roleId){
   return { id: snap.id, ...(snap.data()||{}) };
 }
 async function saveRoleDoc(db, roleId, payload){
-  await setDoc(doc(db,'roles', roleId), {
-    ...payload,
-    updatedAt: serverTimestamp()
-  }, { merge:true });
+  await setDoc(doc(db,'roles', roleId), { ...payload, updatedAt: serverTimestamp() }, { merge:true });
 }
 
 /* ---------- Permissions <-> UI state ---------- */
@@ -314,99 +310,123 @@ function openQuickView(roleLabel, permsObj){
   el.qvBackdrop.addEventListener('click', (e)=>{ if(e.target===el.qvBackdrop) el.qvBackdrop.style.display='none'; }, {once:true});
 }
 
-/* ---------- Main flow ---------- */
-(async function start(){
-  try{
-    // Menus must exist
-    if (!Object.keys(MENUS).length){
-      setStatusMuted('Menus not loaded yet.');
-      return;
+/* ---------- Auth-aware boot ---------- */
+(function bootWithAuth(){
+  let initialized = false;
+
+  // If DF_MENUS wasn’t ready when this file parsed, rebuild once on DOM ready
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!Object.keys(MENUS).length && window.DF_MENUS) {
+      MENUS = buildMenusFromDF(window.DF_MENUS);
     }
+  });
 
-    // Firebase ready
-    if (el.roleHint) el.roleHint.textContent = 'Loading roles…';
-    const db = await readyFirebase();
-
-    // Respect global guard: if not signed-in, do nothing (no red errors)
-    if (!window.DF_FB?.auth?.currentUser){
-      setStatusMuted('');
+  function initOnce() {
+    if (initialized) return;
+    initialized = true;
+    start().catch(err => {
+      console.error('[fb-roles] init error:', err);
       if (el.roleHint) el.roleHint.textContent = '';
-      return;
-    }
-
-    // Seed roles if empty, then fill dropdown
-    const roles = await seedRolesIfEmpty(db);
-    if (!roles.length){
-      setStatusMuted('No roles found.');
-      if (el.roleHint) el.roleHint.textContent = '';
-      return;
-    }
-
-    // Build dropdown
-    el.roleSelect.innerHTML = roles.map(r=>{
-      const label = (r.label||r.id||'').toString();
-      const value = (r.id || r.label).toString();
-      return `<option value="${value}">${label}</option>`;
-    }).join('');
-
-    // Restore last selected
-    const last = localStorage.getItem('df_role_selected');
-    if (last && roles.some(r => (r.id===last || r.label===last))){
-      el.roleSelect.value = last;
-    }
-
-    if (el.roleHint) el.roleHint.textContent = '';
-    setStatusMuted(`${roles.length} role${roles.length===1?'':'s'} loaded`);
-
-    let currentRoleId   = el.roleSelect.value || roles[0].id || roles[0].label;
-    let currentRoleDoc  = await readRoleDoc(db, currentRoleId);
-    let ui              = null;
-
-    async function loadRole(roleId){
-      enableSave(false);
-      el.menusBox.innerHTML = '';
-      currentRoleDoc = await readRoleDoc(db, roleId);
-      const label    = currentRoleDoc?.label || roleId;
-      const perms    = currentRoleDoc?.permissions || {};
-      ui = buildPermissionsUI(el.menusBox, perms);
-
-      // Wire form save/discard
-      el.saveBtn.onclick = async (ev)=>{
-        ev.preventDefault();
-        const nextPerms = ui.getPerms();
-        await saveRoleDoc(db, roleId, { label, permissions: nextPerms });
-        enableSave(false);
-        toast('Permissions saved');
-      };
-      el.discardBtn.onclick = async ()=>{
-        await loadRole(roleId);
-        toast('Changes discarded');
-      };
-
-      // Quick View button (top-right)
-      const qvBtn = $('#quickViewBtn');
-      if (qvBtn){
-        qvBtn.onclick = ()=>{
-          const snap = ui.getPerms();
-          openQuickView(label, snap);
-        };
-      }
-    }
-
-    // Initial load
-    await loadRole(currentRoleId);
-
-    // Change role
-    el.roleSelect.addEventListener('change', async ()=>{
-      const roleId = el.roleSelect.value;
-      localStorage.setItem('df_role_selected', roleId);
-      await loadRole(roleId);
+      setStatusMuted(''); // keep UI calm
     });
-
-  }catch(err){
-    // Only log to console; do not show red error in UI
-    console.error('[fb-roles] init error:', err);
-    if (el.roleHint) el.roleHint.textContent = '';
-    setStatusMuted(''); // keep UI calm
   }
+
+  // Prefer the API’s onAuth so we start exactly when Firebase restores the session
+  const api = window.DF_FB_API;
+  if (api && typeof api.onAuth === 'function') {
+    api.onAuth(user => { if (user) initOnce(); });
+    // If Firebase already restored the user before our listener
+    try { if (window.DF_FB?.auth?.currentUser) initOnce(); } catch (_) {}
+    return;
+  }
+
+  // Fallback: poll for DF_FB + currentUser briefly
+  let tries = 0;
+  (function waitForAuth(){
+    if (window.DF_FB?.auth?.currentUser) { initOnce(); return; }
+    if (tries++ > 200) return; // give up quietly
+    setTimeout(waitForAuth, 60);
+  })();
 })();
+
+/* ---------- Main flow (runs after auth is ready) ---------- */
+async function start(){
+  // Menus must exist
+  if (!Object.keys(MENUS).length){
+    setStatusMuted('Menus not loaded yet.');
+    return;
+  }
+
+  // Firebase ready
+  if (el.roleHint) el.roleHint.textContent = 'Loading roles…';
+  const db = await readyFirebase();
+
+  // Seed roles if empty, then fill dropdown
+  const roles = await seedRolesIfEmpty(db);
+  if (!roles.length){
+    setStatusMuted('No roles found.');
+    if (el.roleHint) el.roleHint.textContent = '';
+    return;
+  }
+
+  // Build dropdown
+  el.roleSelect.innerHTML = roles.map(r=>{
+    const label = (r.label||r.id||'').toString();
+    const value = (r.id || r.label).toString();
+    return `<option value="${value}">${label}</option>`;
+  }).join('');
+
+  // Restore last selected
+  const last = localStorage.getItem('df_role_selected');
+  if (last && roles.some(r => (r.id===last || r.label===last))){
+    el.roleSelect.value = last;
+  }
+
+  if (el.roleHint) el.roleHint.textContent = '';
+  setStatusMuted(`${roles.length} role${roles.length===1?'':'s'} loaded`);
+
+  let currentRoleId   = el.roleSelect.value || roles[0].id || roles[0].label;
+  let currentRoleDoc  = await readRoleDoc(db, currentRoleId);
+  let ui              = null;
+
+  async function loadRole(roleId){
+    enableSave(false);
+    el.menusBox.innerHTML = '';
+    currentRoleDoc = await readRoleDoc(db, roleId);
+    const label    = currentRoleDoc?.label || roleId;
+    const perms    = currentRoleDoc?.permissions || {};
+    ui = buildPermissionsUI(el.menusBox, perms);
+
+    // Wire form save/discard
+    el.saveBtn.onclick = async (ev)=>{
+      ev.preventDefault();
+      const nextPerms = ui.getPerms();
+      await saveRoleDoc(db, roleId, { label, permissions: nextPerms });
+      enableSave(false);
+      toast('Permissions saved');
+    };
+    el.discardBtn.onclick = async ()=>{
+      await loadRole(roleId);
+      toast('Changes discarded');
+    };
+
+    // Quick View button (top-right)
+    const qvBtn = $('#quickViewBtn');
+    if (qvBtn){
+      qvBtn.onclick = ()=>{
+        const snap = ui.getPerms();
+        openQuickView(label, snap);
+      };
+    }
+  }
+
+  // Initial load
+  await loadRole(currentRoleId);
+
+  // Change role
+  el.roleSelect.addEventListener('change', async ()=>{
+    const roleId = el.roleSelect.value;
+    localStorage.setItem('df_role_selected', roleId);
+    await loadRole(roleId);
+  });
+}
