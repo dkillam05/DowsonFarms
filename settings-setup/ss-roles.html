@@ -6,115 +6,102 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Account Roles — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- Prepaint theme (no flash) -->
   <script>
-    (function(){
-      var pref=localStorage.getItem('df_theme')||'auto';
-      var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-theme', pref==='auto'?(dark?'dark':'light'):pref);
-      document.documentElement.style.colorScheme=((pref==='auto'?(dark?'dark':'light'):pref)==='dark')?'dark':'light';
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
+  <!-- Theme / app -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
+
+  <!-- This page lives one level down; tell core where /auth/ is -->
+  <script>window.DF_AUTH_URL = '../auth/index.html';</script>
+
+  <!-- Version / Core -->
   <script defer src="../js/version.js"></script>
-
-  <!-- ORDER MATTERS: init → core → menus (data) → roles (page) -->
-  <script type="module" src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
-  <script defer src="../assets/data/menus.js"></script>
-  <script type="module" src="../js/fb-roles.js"></script>
 
-  <style>
-    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
-    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
-    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
-    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
-    .menu-body{padding:16px;border-top:1px dashed var(--tile-border)}
-    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
-    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
-    .subbody{padding:8px 4px 2px}
-    .muted-sm{opacity:.85;font-size:.92rem}
-    .toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999}
-    .status{margin:6px 0 0;color:#b00020;font-size:.95rem}
-  </style>
+  <!-- Roles logic (Firestore) -->
+  <script defer src="../js/fb-roles.js"></script>
 </head>
 <body>
   <header class="app-header">
-    <div class="app-header__left">
-      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
+    <div class="header-left">
+      <img src="../assets/icons/logo.png" alt="" class="brand" />
+      <span class="brand-title">Dowson Farms</span>
     </div>
-    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+    <div class="header-right">
+      <span data-df-clock class="clock"></span>
+      <a href="#" class="btn btn-outline" id="logoutBtn" data-action="logout">Logout</a>
+    </div>
   </header>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="../index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><a href="index.html">Setup / Settings</a></li>
-      <li class="sep">›</li>
-      <li><span>Account Roles</span></li>
-    </ol>
+  <nav class="breadcrumbs">
+    <a href="../index.html">Home</a>
+    <span>›</span>
+    <a href="./index.html">Setup / Settings</a>
+    <span>›</span>
+    <span>Account Roles</span>
+    <a href="#" class="btn btn-accent quickview-btn" data-action="open-qv">Quick View</a>
   </nav>
 
-  <main class="content" data-has-form>
-    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
-      <h1 style="margin:0;">🛡️ Account Roles</h1>
-      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
-    </div>
+  <main class="content">
+    <section class="card">
+      <h1>Account Roles</h1>
 
-    <div style="margin-top:12px;"></div>
+      <div class="field">
+        <label for="df-role-select">Role</label>
+        <select id="df-role-select" class="input"></select>
+      </div>
 
-    <form id="role-form" novalidate>
-      <section class="card">
-        <div class="field">
-          <label for="roleName">Role</label>
-          <select id="roleName" required></select>
-          <small class="muted" id="roleHint" style="display:block;margin-top:4px;"></small>
-          <div id="roleStatus" class="status" style="display:none"></div>
-        </div>
-      </section>
+      <h2>Permissions</h2>
+      <p>Toggle actions at the menu level, or open “Manage submenus” to fine-tune individual screens.</p>
 
-      <section class="card" id="permCard">
-        <h2 style="margin:0 0 6px;">Permissions</h2>
-        <p class="muted">Toggle actions at the menu level, or open “Manage submenus” to fine-tune individual screens.</p>
-        <div id="menusContainer"></div>
-        <div class="row" style="gap:10px;justify-content:center;margin-top:12px;">
-          <button class="btn-primary" type="submit" id="saveBtn" disabled>Save permissions</button>
-          <button class="btn-outline" type="button" id="discardBtn" disabled>Discard changes</button>
-        </div>
-      </section>
-    </form>
+      <div class="perm-grid" data-df-permissions>
+        <!-- checkboxes render here -->
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" data-action="save-perms">Save permissions</button>
+        <button class="btn btn-outline" data-action="discard-perms">Discard changes</button>
+      </div>
+
+      <div class="footer-actions">
+        <a href="index.html" class="btn btn-ghost">Back</a>
+      </div>
+    </section>
   </main>
 
   <footer class="app-footer">
-    <span>Dowson Farms</span>
-    <span class="dot">•</span>
-    <span id="report-date">—</span>
-    <span class="dot">•</span>
-    <span id="version">v0.0.0</span>
+    <span data-df-footer></span>
+    <span class="build">v<span id="df-version"></span></span>
   </footer>
 
-  <div id="qvBackdrop" class="auth-modal__backdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
-      <h2 id="qvTitle">Role Permissions — <span id="qvRole">—</span></h2>
-      <ul id="qvList" style="list-style:disc; margin-left:1.2rem; padding-left:.4rem; max-height:min(60vh,520px); overflow:auto;"></ul>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="qvClose">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
-
   <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
-      });
-    }
+    // Page boot: load-or-logout, then roles
+    (async function () {
+      try {
+        await DF.ensureOnlineAuthOrLogout();   // <— global guard (no red inline error)
+        await DF.Roles.init();                 // <— populate dropdown + permissions
+      } catch (e) {
+        // If anything fails here (e.g., no roles), prefer a clean logout
+        DF.hardLogoutAndRedirect();
+      }
+    })();
+
+    // Optional Quick View binding (uses global DF.QuickView if you have a panel)
+    document.addEventListener('click', (e) => {
+      const open = e.target.closest('[data-action="open-qv"]');
+      if (open) { e.preventDefault(); DF.QuickView.open('#quickview'); }
+      const close = e.target.closest('[data-action="close-qv"]');
+      if (close) { e.preventDefault(); DF.QuickView.close('#quickview'); }
+    });
   </script>
 </body>
 </html>
