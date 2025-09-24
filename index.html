@@ -15,7 +15,6 @@
     var pref = localStorage.getItem('df_theme') || 'auto';
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-    // FIX: set data-theme to mode (not pref) so dark styles apply immediately
     document.documentElement.setAttribute('data-theme', mode);
     document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
   })();
@@ -28,6 +27,21 @@
 
   <!-- Theme -->
   <link rel="stylesheet" href="assets/css/theme.css" />
+
+  <!-- PWA manifest (Android/desktop) -->
+  <link rel="manifest" href="manifest.webmanifest?v=904" />
+
+  <!-- iOS: this is what Safari actually uses for the Homescreen icon -->
+  <!-- Use the icon that exists: assets/icons/apple-touch-icon.png -->
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=904" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=904" />
+  <!-- (Optional) additional sizes if you add them later:
+  <link rel="apple-touch-icon" sizes="152x152" href="assets/icons/apple-touch-icon-152.png?v=904" />
+  -->
+
+  <!-- Make it behave like an app when launched from the icon (optional) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 </head>
 <body class="home-page">
   <!-- Header -->
@@ -64,12 +78,6 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
-
   <!-- Service worker -->
   <script>
     if ('serviceWorker' in navigator) {
@@ -84,7 +92,7 @@
   <script defer src="js/version.js"></script>
   <script defer src="js/core.js"></script>
   <!-- Bump ?v any time menus.js changes to defeat caches -->
-  <script defer src="assets/data/menus.js?v=901"></script>
-  <script defer src="js/ui-nav.js?v=901"></script>
+  <script defer src="assets/data/menus.js?v=904"></script>
+  <script defer src="js/ui-nav.js?v=904"></script>
 </body>
 </html>
