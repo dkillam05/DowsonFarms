@@ -5,8 +5,8 @@
    - Toasts on save/delete
    - Fields: name, moisture, testWeight, color
    - Collection: "crop_types"
-   - NEW: DF_QUICKVIEW_PROVIDER for core.js Quick View modal
-   - REMOVED: page-level auth redirect (core.js owns auth now)
+   - Quick View: DF_QUICKVIEW_PROVIDER (used by core.js)
+   - No page-level auth redirection (core.js owns auth)
    =========================== */
 
 import {
@@ -16,18 +16,10 @@ import {
 
 /* ----- tiny helpers ----- */
 const $ = (s) => document.querySelector(s);
-const repoRoot = (function(){
-  const baseEl = document.querySelector('base');
-  if (baseEl && baseEl.href) {
-    try { const u = new URL(baseEl.href); return u.pathname.endsWith('/')?u.pathname:(u.pathname+'/'); } catch(_){}
-  }
-  const seg=(location.pathname||'/').split('/').filter(Boolean);
-  return seg.length ? '/'+seg[0]+'/' : '/';
-})();
 
 function showToast(msg){
   const box = $('#dfToast'), txt = $('#dfToastText');
-  if (!box || !txt) { alert(msg || 'Saved'); return; }
+  if (!box || !txt) { try { alert(msg || 'Saved'); } catch(_) {} return; }
   txt.textContent = msg || 'Saved';
   box.style.display = 'block';
   clearTimeout(window.__ctToastT);
@@ -51,8 +43,20 @@ function toOneDecString(n){
   return (n==null || !Number.isFinite(n)) ? '' : Number(n).toFixed(1);
 }
 
-/* ----- Firestore handles ----- */
+/* ----- Firebase handles + wait ----- */
 function getHandles(){ const fb = window.DF_FB || {}; return { db: fb.db, auth: fb.auth }; }
+
+async function waitForDb(maxMs = 12000){
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    const { db } = getHandles();
+    if (db) return db;
+    await new Promise(r => setTimeout(r, 120));
+  }
+  return null;
+}
+
+/* ----- collection ref ----- */
 function CT(db){ return collection(db, 'crop_types'); }
 
 /* ----- CRUD ----- */
@@ -61,20 +65,23 @@ async function listAll(db){
   const out=[]; snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
   return out;
 }
+
+// IMPORTANT: do not overwrite createdAt when editing
 async function upsert(db, item){
   const base = {
     name: item.name,
     moisture: item.moisture,
     testWeight: item.testWeight,
     color: item.color || '#1B5E20',
-    updatedAt: serverTimestamp(),
-    createdAt: item.createdAt || serverTimestamp()
+    updatedAt: serverTimestamp()
   };
   if (item.id) {
+    // edit — merge, but DO NOT set createdAt here
     await setDoc(doc(CT(db), item.id), base, { merge:true });
     return item.id;
   } else {
-    const ref = await addDoc(CT(db), base);
+    // create — set createdAt
+    const ref = await addDoc(CT(db), { ...base, createdAt: serverTimestamp() });
     return ref.id;
   }
 }
@@ -82,9 +89,15 @@ async function removeOne(db, id){ await deleteDoc(doc(CT(db), id)); }
 
 /* ----- table render ----- */
 async function render(){
-  const { db } = getHandles(); if (!db) return;
+  const db = await waitForDb();
   const tbody = $('#ctTbody'); const badge = $('#ctCount');
   const host = document.querySelector('main.content');
+
+  if (!db) {
+    if (badge) badge.textContent = '0';
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="muted-sm">Database not ready. Try again in a moment.</td></tr>`;
+    return;
+  }
 
   await DFLoader.with(host, async () => {
     const rows = await listAll(db);
@@ -117,7 +130,9 @@ async function render(){
       const id = btn.getAttribute('data-del');
       if (!id) return;
       if (!confirm('Delete this crop type?')) return;
-      await removeOne(getHandles().db, id);
+      const db = await waitForDb();
+      if (!db) { alert('Database not ready.'); return; }
+      await removeOne(db, id);
       await render();
       showToast('Deleted');
     });
@@ -126,9 +141,10 @@ async function render(){
 
 /* ----- edit load ----- */
 async function openForEdit(id){
-  const { db } = getHandles(); if (!db) return;
+  const db = await waitForDb();
+  if (!db) { alert('Database not ready.'); return; }
   const snap = await getDoc(doc(CT(db), id));
-  if (!snap.exists()) return alert('Not found');
+  if (!snap.exists()) { alert('Not found'); return; }
   const r = { id:snap.id, ...(snap.data()||{}) };
 
   $('#ctId').value = r.id;
@@ -172,7 +188,8 @@ function installForm(){
 
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const { db } = getHandles(); if (!db) return alert('Database not initialized yet. Try again.');
+    const db = await waitForDb();
+    if (!db) { alert('Database not initialized yet. Try again.'); return; }
 
     const id = ($('#ctId').value || '').trim() || null;
     const name = titleCase(($('#ctName').value || '').trim());
@@ -210,7 +227,7 @@ function installForm(){
 
 /* ---------- Quick View provider for core.js ---------- */
 window.DF_QUICKVIEW_PROVIDER = async () => {
-  const { db } = getHandles();
+  const db = await waitForDb();
   if (!db) return { title: 'Crop Types', html: '<div style="opacity:.7">Database not ready.</div>' };
 
   const rows = await listAll(db);
@@ -261,16 +278,18 @@ window.DF_QUICKVIEW_PROVIDER = async () => {
 /* ----- init ----- */
 document.addEventListener('DOMContentLoaded', async ()=>{
   DFLoader.attach(document.querySelector('main.content'));
-  // NOTE: removed installAuthRedirect(); core.js owns auth + grace now
   installForm();
   await render();
 
-  window.setBreadcrumbs && window.setBreadcrumbs([
-    {label:'Home', href:'../index.html'},
-    {label:'Setup / Settings', href:'./index.html'},
-    {label:'Crop Types'}
-  ]);
+  // Breadcrumbs (consistent)
+  try {
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'../index.html'},
+      {label:'Setup / Settings', href:'./index.html'},
+      {label:'Crop Types'}
+    ]);
+  } catch(_) {}
 
-  // If you ever need to refresh the Quick View button after this script loads
+  // If core injected the QV button before this loaded, re-check to wire provider
   try { window.DF_UI?.refreshQuickView?.(); } catch(_) {}
 });
