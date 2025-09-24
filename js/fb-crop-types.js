@@ -1,14 +1,10 @@
 /* ===========================
-   /js/fb-crop-types.js  (FULL REPLACEMENT)
+   /js/fb-crop-types.js
    - Firestore CRUD for crop types
    - Uses DFLoader for loading state
-   - No page-level auth redirect (core.js handles grace + redirect)
+   - Redirect to login when signed out
    - Toasts on save/delete
-   - Fields:
-     name (string)            -> "Crop Type"
-     moisture (number)        -> "Desired Moisture"
-     testWeight (number)      -> "Test Weight"
-     color (string, hex)      -> "Color for charting"
+   - Fields: name, moisture, testWeight, color
    - Collection: "crop_types"
    =========================== */
 
@@ -17,10 +13,19 @@ import {
   serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-/* ----------------- tiny helpers ----------------- */
+/* ----- tiny helpers ----- */
 const $ = (s) => document.querySelector(s);
+const repoRoot = (function(){
+  const baseEl = document.querySelector('base');
+  if (baseEl && baseEl.href) {
+    try { const u = new URL(baseEl.href); return u.pathname.endsWith('/')?u.pathname:(u.pathname+'/'); } catch(_){}
+  }
+  const seg=(location.pathname||'/').split('/').filter(Boolean);
+  return seg.length ? '/'+seg[0]+'/' : '/';
+})();
+const LOGIN_URL = repoRoot + 'auth/index.html';
 
-function showToast(msg) {
+function showToast(msg){
   const box = $('#dfToast'), txt = $('#dfToastText');
   if (!box || !txt) { alert(msg || 'Saved'); return; }
   txt.textContent = msg || 'Saved';
@@ -30,11 +35,8 @@ function showToast(msg) {
 }
 
 const DFLoader = {
-  attach(host) { try { window.DFLoader?.attach?.(host); } catch(_){} },
-  async with(host, fn){
-    if (window.DFLoader?.withLoader) return window.DFLoader.withLoader(host, fn);
-    return fn();
-  }
+  attach(host){ try{ window.DFLoader?.attach?.(host); }catch(_){} },
+  async with(host, fn){ return (window.DFLoader?.withLoader ? window.DFLoader.withLoader(host, fn) : fn()); }
 };
 
 function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g, c=>c.toUpperCase()); }
@@ -42,61 +44,20 @@ function fmtDate(ts){
   try{
     const d = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
     if(!d) return '—';
-    return new Intl.DateTimeFormat(undefined,{
-      year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'
-    }).format(d);
+    return new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(d);
   }catch(_){ return '—'; }
 }
-
-/* ----------------- number format: exactly one decimal (xx.x) ----------------- */
-function clampOneDecimal(raw, {min=0, max=99.9}={}){
-  if (raw==='' || raw==null) return null;
-  let n = Number(String(raw).replace(/[^\d.]/g,''));
-  if (!Number.isFinite(n)) return null;
-  n = Math.min(Math.max(n, min), max);
-  return Math.round(n * 10) / 10; // one decimal
-}
-function toXXdotXString(n){
-  if (n==null || !Number.isFinite(n)) return '';
-  return Number(n).toFixed(1); // "15.5"
-}
-function installOneDecimalMask(input, opts){
-  if (!input) return;
-
-  input.addEventListener('input', ()=>{
-    // Preserve caret to avoid “jump to first char” on iOS
-    const selStart = input.selectionStart;
-    const oldLen   = input.value.length;
-
-    // allow only digits and a single dot; max 2 digits before and 1 after
-    let v = input.value;
-    const parts = v.replace(/[^\d.]/g,'').replace(/\.{2,}/g,'.').split('.');
-    v = parts[0].slice(0,2) + (parts.length>1 ? '.' + parts[1].slice(0,1) : '');
-    input.value = v;
-
-    // Restore caret as best effort (end if uncertain)
-    const newLen = v.length;
-    const delta  = Math.max(0, newLen - oldLen);
-    const pos    = (typeof selStart === 'number') ? Math.min(newLen, selStart + delta) : newLen;
-    try { input.setSelectionRange(pos, pos); } catch(_){}
-  });
-
-  input.addEventListener('blur', ()=>{
-    const n = clampOneDecimal(input.value, opts);
-    input.value = n==null ? '' : toXXdotXString(n);
-  });
+function toOneDecString(n){
+  return (n==null || !Number.isFinite(n)) ? '' : Number(n).toFixed(1);
 }
 
-/* ----------------- Firestore handles ----------------- */
-function getHandles(){
-  const fb = window.DF_FB || {};
-  return { db: fb.db, auth: fb.auth };
-}
-function ctCollection(db){ return collection(db, 'crop_types'); }
+/* ----- Firestore handles ----- */
+function getHandles(){ const fb = window.DF_FB || {}; return { db: fb.db, auth: fb.auth }; }
+function CT(db){ return collection(db, 'crop_types'); }
 
-/* ----------------- CRUD ----------------- */
+/* ----- CRUD ----- */
 async function listAll(db){
-  const snaps = await getDocs(query(ctCollection(db), orderBy('name')));
+  const snaps = await getDocs(query(CT(db), orderBy('name')));
   const out=[]; snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
   return out;
 }
@@ -105,37 +66,34 @@ async function upsert(db, item){
     name: item.name,
     moisture: item.moisture,
     testWeight: item.testWeight,
-    color: (item.color || '#1B5E20'),
+    color: item.color || '#1B5E20',
     updatedAt: serverTimestamp(),
     createdAt: item.createdAt || serverTimestamp()
   };
   if (item.id) {
-    await setDoc(doc(ctCollection(db), item.id), base, { merge:true });
+    await setDoc(doc(CT(db), item.id), base, { merge:true });
     return item.id;
   } else {
-    const ref = await addDoc(ctCollection(db), base);
+    const ref = await addDoc(CT(db), base);
     return ref.id;
   }
 }
-async function remove(db, id){
-  await deleteDoc(doc(ctCollection(db), id));
-}
+async function removeOne(db, id){ await deleteDoc(doc(CT(db), id)); }
 
-/* ----------------- table render ----------------- */
+/* ----- table render ----- */
 async function render(){
   const { db } = getHandles(); if (!db) return;
-  const tbody = $('#ctTbody');
-  const badge = $('#ctCount');
+  const tbody = $('#ctTbody'); const badge = $('#ctCount');
   const host = document.querySelector('main.content');
 
   await DFLoader.with(host, async () => {
     const rows = await listAll(db);
     if (badge) badge.textContent = String(rows.length);
-
     if (!tbody) return;
+
     tbody.innerHTML = rows.length ? rows.map(r=>{
-      const moist = (typeof r.moisture==='number') ? `${toXXdotXString(r.moisture)}%` : '—';
-      const tw    = (typeof r.testWeight==='number') ? `${toXXdotXString(r.testWeight)} lb/bu` : '—';
+      const moist = (typeof r.moisture==='number') ? `${toOneDecString(r.moisture)}%` : '—';
+      const tw = (typeof r.testWeight==='number') ? `${toOneDecString(r.testWeight)} lb/bu` : '—';
       const swatch = `<span style="display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:6px;border:1px solid rgba(0,0,0,.18);vertical-align:-2px;background:${r.color||'#1B5E20'}"></span>`;
       return `<tr data-id="${r.id}">
         <td><strong>${r.name || '(Unnamed)'}</strong></td>
@@ -159,38 +117,58 @@ async function render(){
       const id = btn.getAttribute('data-del');
       if (!id) return;
       if (!confirm('Delete this crop type?')) return;
-      await remove(getHandles().db, id);
+      await removeOne(getHandles().db, id);
       await render();
       showToast('Deleted');
     });
   });
 }
 
-/* ----------------- edit load ----------------- */
+/* ----- edit load ----- */
 async function openForEdit(id){
   const { db } = getHandles(); if (!db) return;
-  const snap = await getDoc(doc(ctCollection(db), id));
+  const snap = await getDoc(doc(CT(db), id));
   if (!snap.exists()) return alert('Not found');
   const r = { id:snap.id, ...(snap.data()||{}) };
 
   $('#ctId').value = r.id;
   $('#ctName').value = r.name || '';
-  $('#ctMoisture').value = (typeof r.moisture==='number' ? toXXdotXString(r.moisture) : '');
-  $('#ctTestWeight').value = (typeof r.testWeight==='number' ? toXXdotXString(r.testWeight) : '');
+  $('#ctMoisture').value = (typeof r.moisture==='number' ? toOneDecString(r.moisture) : '');
+  $('#ctTestWeight').value = (typeof r.testWeight==='number' ? toOneDecString(r.testWeight) : '');
   $('#ctColor').value = r.color || '#1B5E20';
 
   $('#ctName').focus({preventScroll:false});
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-/* ----------------- form wiring ----------------- */
+/* ----- form wiring ----- */
 function installForm(){
   const form = $('#ct-form'); if (!form) return;
   const resetBtn = $('#resetBtn');
 
-  // one-decimal masks (no caret jump)
-  installOneDecimalMask($('#ctMoisture'),   {min:0, max:99.9});
-  installOneDecimalMask($('#ctTestWeight'), {min:0, max:99.9});
+  // key guards (no live rewriting -> caret never jumps)
+  function guardOneDot(evt){
+    const el = evt.target;
+    if (evt.key === '.') {
+      if (el.value.includes('.')) { evt.preventDefault(); return; }
+      return;
+    }
+    const ok = /[0-9]/.test(evt.key) ||
+               ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End','Enter'].includes(evt.key);
+    if (!ok) evt.preventDefault();
+  }
+  function fmt1(el, opts){
+    var v = String(el.value || '').trim(); if (!v) return;
+    var n = Number(v); if (!Number.isFinite(n)) return;
+    if (opts && typeof opts.min === 'number' && n < opts.min) n = opts.min;
+    if (opts && typeof opts.max === 'number' && n > opts.max) n = opts.max;
+    el.value = n.toFixed(1);
+  }
+  const m = $('#ctMoisture'), t = $('#ctTestWeight');
+  m && m.addEventListener('keydown', guardOneDot);
+  t && t.addEventListener('keydown', guardOneDot);
+  m && m.addEventListener('blur', ()=>fmt1(m,{min:0,max:100}));
+  t && t.addEventListener('blur', ()=>fmt1(t,{min:0}));
 
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -198,17 +176,24 @@ function installForm(){
 
     const id = ($('#ctId').value || '').trim() || null;
     const name = titleCase(($('#ctName').value || '').trim());
-    const moisture   = clampOneDecimal($('#ctMoisture').value,   {min:0, max:99.9});
-    const testWeight = clampOneDecimal($('#ctTestWeight').value, {min:0, max:99.9});
+    const moisture = Number(($('#ctMoisture').value || '').trim());
+    const testWeight = Number(($('#ctTestWeight').value || '').trim());
     const color = ($('#ctColor').value || '').trim();
 
+    // required fields
     if (!name){ alert('Crop Type is required.'); $('#ctName').focus(); return; }
-    if (moisture==null){ alert('Desired Moisture is required (xx.x).'); $('#ctMoisture').focus(); return; }
-    if (testWeight==null){ alert('Test Weight is required (xx.x).'); $('#ctTestWeight').focus(); return; }
+    if (!Number.isFinite(moisture)){ alert('Desired Moisture is required (xx.x).'); $('#ctMoisture').focus(); return; }
+    if (!Number.isFinite(testWeight)){ alert('Test Weight is required (xx.x).'); $('#ctTestWeight').focus(); return; }
     if (!color){ alert('Color is required.'); $('#ctColor').focus(); return; }
 
     await DFLoader.with(document.querySelector('main.content'), async ()=>{
-      await upsert(db, { id, name, moisture, testWeight, color });
+      await upsert(db, {
+        id,
+        name,
+        moisture: Number(moisture.toFixed(1)),
+        testWeight: Number(testWeight.toFixed(1)),
+        color
+      });
     });
 
     form.reset();
@@ -223,13 +208,26 @@ function installForm(){
   });
 }
 
-/* ----------------- init ----------------- */
+/* ----- auth redirect ----- */
+function installAuthRedirect(){
+  const { auth } = getHandles();
+  const goLogin = ()=> { try{ location.replace(LOGIN_URL); }catch(_){ location.href = LOGIN_URL; } };
+  if (!auth) return;
+  if (!auth.currentUser) setTimeout(()=>{ if (!auth.currentUser) goLogin(); }, 250);
+  if (window.DF_FB_API?.onAuth) {
+    window.DF_FB_API.onAuth((user)=>{ if (!user) goLogin(); });
+  } else if (typeof auth.onAuthStateChanged === 'function') {
+    auth.onAuthStateChanged((user)=>{ if (!user) goLogin(); });
+  }
+}
+
+/* ----- init ----- */
 document.addEventListener('DOMContentLoaded', async ()=>{
   DFLoader.attach(document.querySelector('main.content'));
+  installAuthRedirect();
   installForm();
   await render();
 
-  // Breadcrumbs helper (no-op if already static)
   window.setBreadcrumbs && window.setBreadcrumbs([
     {label:'Home', href:'../index.html'},
     {label:'Setup / Settings', href:'./index.html'},
