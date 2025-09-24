@@ -11,13 +11,13 @@
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var theme = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-      document.documentElement.setAttribute('data-theme', theme);
-      document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
-  <!-- Honor your tree exactly -->
+  <!-- Honor your tree -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script type="module" src="../js/firebase-init.js"></script>
@@ -32,33 +32,53 @@
     .table th,.table td{padding:10px;border-bottom:1px solid var(--tile-border)}
     .table th{text-align:left;font-weight:700}
     .badge{display:inline-block;padding:2px 8px;border-radius:12px;border:1px solid var(--tile-border);font-size:.85rem}
-    .row-gap{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
-    /* Required mark */
-    .req{color:#b00020;margin-left:6px;font-weight:800}
-
-    /* Uniform number fields (not taller, just wider like Crop Type) */
-    .field-num{flex:1 1 220px;}
-    .field-num input{
-      width:100%;
-      font-size:16px; /* stops iOS zoom */
+    /* ---------- Form layout (grid, mobile-first) ---------- */
+    #ct-form .req{color:#b00020;margin-left:.25rem;font-weight:700}
+    .form-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+    /* Wider: moisture/testWeight side-by-side */
+    @media (min-width: 560px){
+      .form-grid{
+        grid-template-columns: 1fr 1fr;
+        align-items:end;
+      }
+      .span-2{ grid-column: 1 / -1; }
     }
 
-    /* Square color picker */
+    /* Inputs: avoid iOS zoom & unify height */
+    #ct-form input[type="text"],
+    #ct-form input[type="number"]{
+      font-size:16px;            /* prevents iOS zoom */
+      height:44px;
+    }
+
+    /* Long fields: number inputs stretch full width (only longer, not taller) */
+    #ctMoisture, #ctTestWeight { width:100%; }
+
+    /* Square color picker with centered helper text */
+    .color-row{
+      display:flex; align-items:center; gap:12px;
+      height:44px;
+    }
     #ctColor{
       -webkit-appearance:none; appearance:none;
-      width:48px; height:48px;
-      padding:0; border:2px solid var(--tile-border);
-      border-radius:10px; background:transparent;
-      cursor:pointer;
+      width:44px; height:44px;
+      padding:0;
+      border:2px solid var(--tile-border);
+      border-radius:10px;
+      background:transparent; cursor:pointer;
+      flex:0 0 auto;
     }
     #ctColor::-webkit-color-swatch-wrapper{ padding:0; }
     #ctColor::-webkit-color-swatch{ border:none; border-radius:8px; }
     #ctColor::-moz-color-swatch{ border:none; border-radius:8px; }
 
-    /* Small chip for table */
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;border:1px solid var(--tile-border);border-radius:999px;font-size:.85rem}
-    .swatch{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.18);vertical-align:-2px}
+    /* Place the helper under each field, consistently */
+    .hint{ display:block; margin-top:6px; font-size:.92rem; color:#9aa0a6; }
   </style>
 </head>
 <body>
@@ -87,36 +107,43 @@
 
     <!-- Add / Edit form -->
     <form id="ct-form" class="card" novalidate>
-      <div class="row" style="align-items:flex-end;gap:12px;flex-wrap:wrap;">
-        <div class="field" style="flex:2 1 280px;">
+      <div class="form-grid">
+        <!-- Crop Type (full width) -->
+        <div class="field span-2">
           <label for="ctName">Crop Type <span class="req">*</span></label>
           <input id="ctName" type="text" placeholder="e.g., Corn" required />
-          <small class="muted">Friendly name (e.g., Corn, Soybeans, Wheat)</small>
+          <small class="hint">Friendly name (e.g., Corn, Soybeans, Wheat)</small>
         </div>
 
-        <div class="field field-num">
+        <!-- Desired Moisture -->
+        <div class="field">
           <label for="ctMoisture">Desired Moisture (%) <span class="req">*</span></label>
-          <input id="ctMoisture" type="text" inputmode="decimal" placeholder="e.g., 15.5" required />
-          <small class="muted">Target harvest/storage moisture</small>
+          <input id="ctMoisture" type="number" inputmode="decimal" step="0.1" min="0" max="100" placeholder="e.g., 15.5" required />
+          <small class="hint">Target harvest/storage moisture</small>
         </div>
 
-        <div class="field field-num">
+        <!-- Test Weight -->
+        <div class="field">
           <label for="ctTestWeight">Test Weight (lb/bu) <span class="req">*</span></label>
-          <input id="ctTestWeight" type="text" inputmode="decimal" placeholder="e.g., 56.0" required />
-          <small class="muted">Standard test weight</small>
+          <input id="ctTestWeight" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g., 56.0" required />
+          <small class="hint">Standard test weight</small>
         </div>
 
-        <div class="field" style="min-width:160px;">
+        <!-- Color (full width, but compact row) -->
+        <div class="field span-2">
           <label for="ctColor">Color for charting <span class="req">*</span></label>
-          <input id="ctColor" type="color" value="#1B5E20" required />
-          <small class="muted">Used on charts/maps</small>
-        </div>
-
-        <div class="row-gap">
-          <button class="btn-primary" type="submit" id="saveBtn">Save</button>
-          <button class="btn-outline" type="button" id="resetBtn">Reset</button>
+          <div class="color-row">
+            <input id="ctColor" type="color" value="#1B5E20" required />
+            <small class="hint" style="margin:0;">Used on charts/maps</small>
+          </div>
         </div>
       </div>
+
+      <div class="row-gap" style="margin-top:10px;">
+        <button class="btn-primary" type="submit" id="saveBtn">Save</button>
+        <button class="btn-outline" type="button" id="resetBtn">Reset</button>
+      </div>
+
       <input type="hidden" id="ctId" />
     </form>
 
@@ -158,6 +185,35 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
+  <!-- Enforce one-decimal format on blur (xx.x) and keep inputs long but not taller -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      function clamp1dec(el, opts){
+        var v = String(el.value || '').trim();
+        if (!v) return;
+        var n = Number(v);
+        if (!Number.isFinite(n)) return;
+        if (typeof opts?.min === 'number' && n < opts.min) n = opts.min;
+        if (typeof opts?.max === 'number' && n > opts.max) n = opts.max;
+        el.value = n.toFixed(1);
+      }
+      var m = document.getElementById('ctMoisture');
+      var t = document.getElementById('ctTestWeight');
+      m && m.addEventListener('blur', function(){ clamp1dec(m, {min:0, max:100}); });
+      t && t.addEventListener('blur', function(){ clamp1dec(t, {min:0}); });
+
+      // Also prevent accidental scientific notation or letters on iOS keyboards
+      function filterKey(evt){
+        // allow digits, one dot, nav, delete/backspace
+        const ok = /[0-9.]/.test(evt.key) ||
+                   ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(evt.key);
+        if (!ok) evt.preventDefault();
+      }
+      m && m.addEventListener('keydown', filterKey);
+      t && t.addEventListener('keydown', filterKey);
+    });
+  </script>
+
   <!-- Service worker (from /settings-setup/ → root) -->
   <script>
     if ("serviceWorker" in navigator) {
@@ -165,18 +221,6 @@
         navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
-
-    // Format moisture + test weight to xx.x
-    function normalizeDecimal(id){
-      const el = document.getElementById(id);
-      if(!el) return;
-      el.addEventListener('blur', ()=>{
-        let v = parseFloat(el.value);
-        if(!isNaN(v)) el.value = v.toFixed(1);
-      });
-    }
-    normalizeDecimal('ctMoisture');
-    normalizeDecimal('ctTestWeight');
   </script>
 </body>
 </html>
