@@ -3,18 +3,17 @@
    - Logout (preserves df_theme; unregisters SW; redirects)
    - Clock (America/Chicago)
    - Version/Build Date injection
-   - Back button (in-flow; hidden on home and /auth/*)
-   - Logout button in Breadcrumbs
+   - Back button (in-flow above footer) — hidden on home and on /auth/*
+   - Logout button in Breadcrumb bar (right-aligned, consistent)
    - Honors <base href="/DowsonFarms/">
 
-   ADDITIONS:
-   - Auth guard for all non-auth pages (waits for Firebase; redirects to /auth/index.html)
-   - resolveAuthURL() builds from repo root (avoids nested 404s)
-   - Best-effort persistence = LOCAL (stay signed in)
-   - Monthly forced logout (configurable)
-   - 3.5s grace timer to avoid redirect during auth rehydration
-   - Global loader utilities (DFLoader)
-   - setBreadcrumbs(items) helper
+   NEW: "Don't kick me out" auth guard
+   - Local persistence (stay signed in)
+   - Shows a global spinner while Firebase rehydrates sessions
+   - 15s grace before redirecting to login (configurable)
+   - Redirect happens only if still signed out after grace
+   - Monthly forced logout remains (30 days, configurable)
+   - DFLoader utilities + setBreadcrumbs helper
    =========================== */
 
 (function () {
@@ -245,23 +244,32 @@
   }
 
   /* ---------- Global loader helpers ---------- */
+  function ensureLoaderCSS() {
+    if (document.getElementById('df-loader-style')) return;
+    var s = document.createElement('style');
+    s.id = 'df-loader-style';
+    s.textContent =
+      '.df-loader{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:4000;background:rgba(0,0,0,.28)}' +
+      '[data-loading="true"]>.df-loader,[data-loading="true"] .df-loader{display:flex}' +
+      '.df-loader__spinner{width:56px;height:56px;border-radius:50%;border:5px solid rgba(255,255,255,.5);border-top-color:#1B5E20;animation:dfspin 1s linear infinite;background:transparent}' +
+      '@keyframes dfspin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(s);
+  }
   function attachLoader(container) {
+    ensureLoaderCSS();
     if (!container) return null;
     container.setAttribute('data-has-loader', '');
     var existing = container.querySelector(':scope > .df-loader');
     if (existing) return existing;
-
     var wrap = document.createElement('div');
     wrap.className = 'df-loader';
     wrap.setAttribute('aria-live', 'polite');
     wrap.setAttribute('aria-busy', 'true');
-
     var sp = document.createElement('div');
     sp.className = 'df-loader__spinner';
     sp.setAttribute('role', 'img');
     sp.setAttribute('aria-label', 'Loading');
     wrap.appendChild(sp);
-
     container.appendChild(wrap);
     return wrap;
   }
@@ -310,24 +318,24 @@
     } catch (_) {}
   };
 
-  /* ---------- Auth Guard (graceful) ---------- */
+  /* ---------- Auth Guard with spinner-based grace ---------- */
   function installAuthGuard() {
     if (isAuthPage() || isHome()) return;
 
-    var MAX_TRIES = 200; // ~16s (mobile friendly)
+    var MAX_TRIES = 150;          // ~12s waiting for firebase-init to load
+    var GRACE_MS  = 15000;        // <-- show spinner & wait up to 15s before redirect
+    var FORCE_LOGOUT_DAYS = 30;   // monthly sign-out safety
     var tries = 0;
 
     function bounceToLogin() {
       var url = resolveAuthURL();
       try { window.location.replace(url); } catch (_) { window.location.href = url; }
     }
-
     function recordHeartbeat() {
       try { localStorage.setItem('df_last_auth_ok', String(Date.now())); } catch (_) {}
     }
 
-    // Force sign-out once every N days — ONLY if heartbeat exists
-    var FORCE_LOGOUT_DAYS = 30;
+    // Monthly forced logout (only if we've ever been authed before)
     try {
       var raw = localStorage.getItem('df_last_auth_ok');
       if (raw) {
@@ -342,17 +350,25 @@
       }
     } catch (_) {}
 
-    // Keep heartbeat fresh when tab becomes visible or online again
-    function maybeHeartbeat() {
-      try {
-        var u = window.DF_FB && window.DF_FB.auth && window.DF_FB.auth.currentUser;
-        if (u) recordHeartbeat();
-      } catch(_) {}
+    var graceTimer = null;
+    var gotFirstAuthCallback = false;
+    var lastUser = undefined;
+
+    function startGrace() {
+      // show global loader on the main content or body
+      var target = document.querySelector('main.content') || document.body;
+      showLoader(target);
+      if (graceTimer) return; // already armed
+      graceTimer = setTimeout(function () {
+        hideLoader(target);
+        if (!lastUser) bounceToLogin();
+      }, GRACE_MS);
     }
-    document.addEventListener('visibilitychange', function(){
-      if (document.visibilityState === 'visible') maybeHeartbeat();
-    });
-    window.addEventListener('online', maybeHeartbeat);
+    function clearGrace() {
+      var target = document.querySelector('main.content') || document.body;
+      hideLoader(target);
+      if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; }
+    }
 
     function subscribeAuth() {
       if (!window.DF_FB_API || typeof window.DF_FB_API.onAuth !== 'function') return false;
@@ -364,36 +380,26 @@
         }
       } catch (_) {}
 
-      var gotFirstAuthCallback = false;
-      var lastUser = undefined;
-      var graceTimer = null;
-      var GRACE_MS = 3500; // ← key tweak: be generous here
-
-      function armGraceTimer() {
-        clearTimeout(graceTimer);
-        graceTimer = setTimeout(function(){
-          if (!lastUser) bounceToLogin();
-        }, GRACE_MS);
-      }
-
       window.DF_FB_API.onAuth(function (user) {
         gotFirstAuthCallback = true;
         lastUser = user || null;
 
         if (user) {
-          clearTimeout(graceTimer);
-          graceTimer = null;
+          clearGrace();
           recordHeartbeat();
         } else {
-          // Give Firebase time to rehydrate persisted session
-          armGraceTimer();
+          // Don’t kick out immediately — let Firebase rehydrate
+          startGrace();
         }
       });
 
-      // Safety: SDK never called back at all
+      // Safety: SDK never called back at all (firebase never initialized)
       setTimeout(function(){
-        if (!gotFirstAuthCallback) bounceToLogin();
-      }, 12000);
+        if (!gotFirstAuthCallback) {
+          // show loader briefly then bail to login
+          startGrace();
+        }
+      }, 1200);
 
       return true;
     }
@@ -402,18 +408,39 @@
       tries++;
       if (!window.DF_FB || !window.DF_FB_API || !window.DF_FB.auth) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        return bounceToLogin(); // Firebase never showed up
+        // Firebase never showed → spinner then redirect after grace
+        startGrace();
+        return;
       }
       if (!subscribeAuth()) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        return bounceToLogin();
+        startGrace();
+        return;
       }
+      // If already logged in right now, stamp heartbeat immediately
       try { if (window.DF_FB.auth.currentUser) recordHeartbeat(); } catch (_) {}
     })();
+
+    // If the tab regains focus while grace timer is running, give it another shot
+    document.addEventListener('visibilitychange', function(){
+      if (document.visibilityState === 'visible' && !lastUser && graceTimer) {
+        // extend by another short window
+        clearTimeout(graceTimer);
+        graceTimer = setTimeout(function(){
+          var target = document.querySelector('main.content') || document.body;
+          hideLoader(target);
+          if (!lastUser) bounceToLogin();
+        }, Math.min(6000, GRACE_MS)); // extend up to 6s
+      }
+    });
   }
 
   /* ---------- DOM Ready ---------- */
   document.addEventListener('DOMContentLoaded', function () {
+    // Prepare a loader container so it’s instant when we need it
+    var host = document.querySelector('main.content') || document.body;
+    attachLoader(host);
+
     injectBreadcrumbLogout();
     installClock();
     injectVersionAndBuildDate();
