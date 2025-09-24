@@ -13,6 +13,7 @@
        <main class="content" data-quick-view="URL" data-qv-label="Quick View"></main>
      • Or <meta name="df-quickview" content="URL">
      • Or window.DF_QUICKVIEW = { href, label }
+     • Or window.DF_QUICKVIEW_PROVIDER = async () => ({ title, html|node })
    =========================== */
 
 (function () {
@@ -317,7 +318,54 @@
     } catch (_) {}
   };
 
-  /* ---------- Quick View (global injection) ---------- */
+  /* ---------- Quick View (global) ---------- */
+
+  // Tiny modal for Quick View
+  function ensureQVModal() {
+    if (document.getElementById('df-qv-backdrop')) return;
+
+    var css = document.createElement('style');
+    css.textContent = `
+      #df-qv-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.38);z-index:3000}
+      #df-qv-modal{width:min(720px,92vw);max-height:80vh;overflow:auto;background:var(--tile-bg,#fff);color:var(--ink,#222);border:2px solid var(--tile-border,#2d6a31);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+      #df-qv-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--tile-border,#2d6a31);position:sticky;top:0;background:inherit}
+      #df-qv-ttl{font-weight:700;margin:0}
+      #df-qv-x{background:transparent;border:0;font-size:20px;line-height:1;cursor:pointer;color:inherit}
+      #df-qv-bd{padding:12px 14px}
+    `;
+    document.head.appendChild(css);
+
+    var bp = document.createElement('div'); bp.id = 'df-qv-backdrop';
+    var md = document.createElement('div'); md.id = 'df-qv-modal';
+    var hd = document.createElement('div'); hd.id = 'df-qv-hd';
+    var ttl= document.createElement('h3'); ttl.id = 'df-qv-ttl';
+    var x  = document.createElement('button'); x.id = 'df-qv-x'; x.type='button'; x.textContent = '×';
+    var bd = document.createElement('div'); bd.id = 'df-qv-bd';
+
+    x.addEventListener('click', closeQVModal);
+    bp.addEventListener('click', function(e){ if (e.target===bp) closeQVModal(); });
+
+    hd.appendChild(ttl); hd.appendChild(x);
+    md.appendChild(hd);  md.appendChild(bd);
+    bp.appendChild(md);
+    document.body.appendChild(bp);
+  }
+  function openQVModal(title, contentNodeOrHTML){
+    ensureQVModal();
+    var bp = document.getElementById('df-qv-backdrop');
+    var ttl= document.getElementById('df-qv-ttl');
+    var bd = document.getElementById('df-qv-bd');
+    ttl.textContent = title || 'Quick View';
+    bd.innerHTML = '';
+    if (contentNodeOrHTML instanceof Node) bd.appendChild(contentNodeOrHTML);
+    else bd.innerHTML = String(contentNodeOrHTML || '');
+    bp.style.display = 'flex';
+  }
+  function closeQVModal(){
+    var bp = document.getElementById('df-qv-backdrop');
+    if (bp) bp.style.display = 'none';
+  }
+
   function getQuickViewConfig() {
     var main = document.querySelector('main.content') || document.body;
     var href =
@@ -325,9 +373,7 @@
       (function(){ var m=document.querySelector('meta[name="df-quickview"]'); return m && m.getAttribute('content'); })() ||
       (window.DF_QUICKVIEW && window.DF_QUICKVIEW.href) ||
       '';
-
     href = (href || '').trim();
-    if (!href) return null;
 
     var label =
       (main && main.getAttribute('data-qv-label')) ||
@@ -342,7 +388,10 @@
     if (document.getElementById('df-quick-view')) return;
 
     var cfg = getQuickViewConfig();
-    if (!cfg) return;
+    var hasProvider = (typeof window.DF_QUICKVIEW_PROVIDER === 'function');
+
+    // If neither provider nor URL, do nothing (page opted out)
+    if (!hasProvider && !cfg.href) return;
 
     var main = document.querySelector('main.content') || document.body;
     var h1   = main.querySelector('h1');
@@ -353,11 +402,9 @@
     row.setAttribute('style','align-items:center;justify-content:space-between;margin:0 0 8px;');
 
     if (h1) {
-      // move existing h1 into row (first child)
       h1.parentNode.insertBefore(row, h1);
       row.appendChild(h1);
     } else {
-      // no h1? create a placeholder to hold the button neatly
       var spacer = document.createElement('div'); spacer.textContent = '';
       row.appendChild(spacer);
       main.insertBefore(row, main.firstChild);
@@ -369,9 +416,24 @@
     btn.type = 'button';
     btn.className = 'btn-outline';
     btn.textContent = cfg.label || 'Quick View';
-    btn.addEventListener('click', function(){
-      try { window.location.assign(cfg.href); }
-      catch(_) { window.location.href = cfg.href; }
+    btn.addEventListener('click', async function(){
+      try {
+        // 1) Provider wins: show modal content
+        if (typeof window.DF_QUICKVIEW_PROVIDER === 'function') {
+          var res = await window.DF_QUICKVIEW_PROVIDER();
+          var title = (res && res.title) || 'Quick View';
+          var content = (res && (res.node || res.html)) || '<div style="opacity:.7">Nothing to show.</div>';
+          openQVModal(title, content);
+          return;
+        }
+        // 2) Fallback: navigate to provided URL
+        if (cfg && cfg.href) {
+          window.location.assign(cfg.href);
+          return;
+        }
+      } catch(e) {
+        console.error('Quick View error:', e);
+      }
     });
 
     row.appendChild(btn);
@@ -495,7 +557,7 @@
     installClock();
     injectVersionAndBuildDate();
     installBackButtonFlow();
-    injectQuickView();          // <<< NEW: adds Quick View when configured
+    injectQuickView();          // adds Quick View (provider or URL)
     installAuthGuard();
   });
 
