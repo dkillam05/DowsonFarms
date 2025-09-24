@@ -23,8 +23,9 @@
   <script type="module" src="../js/firebase-init.js"></script>
   <script defer src="../js/core.js"></script>
   <script defer src="../assets/data/menus.js"></script>
-  <!-- IMPORTANT: new fb-crop-types.js below defines DF_QUICKVIEW_PROVIDER -->
-  <script type="module" src="../js/fb-crop-types.js"></script>
+
+  <!-- IMPORTANT: add cache-buster so SW can’t serve an old copy -->
+  <script type="module" src="../js/fb-crop-types.js?v=ct-diagnostics-1"></script>
 
   <style>
     .muted-sm{opacity:.85;font-size:.92rem}
@@ -42,7 +43,7 @@
       display:grid;
       grid-template-columns: 1fr;
       gap:12px;
-      margin: 0 -6px;         /* pull out so child padding becomes visual gutters */
+      margin: 0 -6px;
     }
     .form-grid .field{ padding: 0 6px; }
 
@@ -58,7 +59,7 @@
     #ct-form input[type="text"],
     #ct-form input[type="number"]{
       font-size:16px;   /* stops iOS zoom */
-      height:44px;      /* exact match with Crop Type */
+      height:44px;
       width:100%;
       box-sizing:border-box;
     }
@@ -99,7 +100,7 @@
     </ol>
   </nav>
 
-  <!-- core.js will inject the Quick View button because the provider is defined in fb-crop-types.js -->
+  <!-- core.js injects the Quick View button because the provider is in fb-crop-types.js -->
   <main class="content" data-has-form>
     <h1 style="margin:0 0 8px;">🌾 Crop Types</h1>
 
@@ -183,14 +184,14 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Decimal behavior: guard keys + format on blur (no live rewriting / no caret jump) -->
+  <!-- Decimal behavior -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       function guardOneDot(evt){
         const el = evt.target;
         if (evt.key === '.') {
           if (el.value.includes('.')) { evt.preventDefault(); return; }
-          return; // allow first dot
+          return;
         }
         const ok = /[0-9]/.test(evt.key) ||
                    ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End','Enter'].includes(evt.key);
