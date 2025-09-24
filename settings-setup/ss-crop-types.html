@@ -202,9 +202,8 @@
       m && m.addEventListener('blur', function(){ clamp1dec(m, {min:0, max:100}); });
       t && t.addEventListener('blur', function(){ clamp1dec(t, {min:0}); });
 
-      // Also prevent accidental scientific notation or letters on iOS keyboards
+      // Filter keys for clean numeric input (helps iOS)
       function filterKey(evt){
-        // allow digits, one dot, nav, delete/backspace
         const ok = /[0-9.]/.test(evt.key) ||
                    ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(evt.key);
         if (!ok) evt.preventDefault();
