@@ -19,44 +19,8 @@
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
 
-  <!-- ORDER MATTERS: init → guard → core → menus (data) → roles (page) -->
+  <!-- ORDER MATTERS: init → core → menus (data) → roles (page) -->
   <script type="module" src="../js/firebase-init.js"></script>
-
-  <!-- === Page-local guard: load-or-logout (no globals touched) === -->
-  <script type="module">
-    // Runs before fb-roles.js; if anything is unhealthy, logout + redirect.
-    const fb   = window.firebase;
-    const auth = fb && fb.auth && fb.auth();
-    const db   = fb && fb.firestore && fb.firestore();
-
-    function goAuth() {
-      try { auth && auth.signOut && auth.signOut(); } catch(e) {}
-      // Roles lives under settings-setup/, so ../auth/
-      location.replace('../auth/index.html');
-    }
-
-    // 1) Basic presence checks
-    if (!fb || !auth || !db) {
-      goAuth();
-    } else {
-      // 2) Ensure user is signed in (quick currentUser, then one-shot listener)
-      const user = auth.currentUser || await new Promise(res => {
-        const off = auth.onAuthStateChanged(u => { try{off();}catch(_){} res(u); });
-      });
-      if (!user) {
-        goAuth();
-      } else {
-        // 3) Firestore reachability + roles existence
-        try {
-          const snap = await db.collection('roles').limit(1).get();
-          if (snap.empty) goAuth(); // treat empty as not ready → redirect
-        } catch (err) {
-          goAuth(); // any error → redirect
-        }
-      }
-    }
-  </script>
-
   <script defer src="../js/core.js"></script>
   <script defer src="../assets/data/menus.js"></script>
   <script type="module" src="../js/fb-roles.js"></script>
