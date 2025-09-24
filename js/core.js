@@ -7,13 +7,10 @@
    - Logout button in Breadcrumb bar (right-aligned, consistent)
    - Honors <base href="/DowsonFarms/">
 
-   NEW: "Don't kick me out" auth guard
-   NEW: Quick View injection (global, consistent)
-     • Pages opt-in with:
-       <main class="content" data-quick-view="URL" data-qv-label="Quick View"></main>
-     • Or <meta name="df-quickview" content="URL">
-     • Or window.DF_QUICKVIEW = { href, label }
-     • Or window.DF_QUICKVIEW_PROVIDER = async () => ({ title, html|node })
+   Auth guard is now PASSIVE:
+     • No spinner on timers
+     • No auto-redirect to login
+     • If Firebase isn't ready or user is null, page stays put
    =========================== */
 
 (function () {
@@ -311,7 +308,7 @@
         }
         ol.appendChild(li);
         if (i < items.length - 1) {
-          var sep = document.createElement('li'); sep.className = 'sep'; sep.textContent = '›';
+          var sep = document.createElement('li'); sep.className = 'sep'; text = '›'; sep.textContent = text;
           ol.appendChild(sep);
         }
       });
@@ -320,7 +317,6 @@
 
   /* ---------- Quick View (global) ---------- */
 
-  // Tiny modal for Quick View
   function ensureQVModal() {
     if (document.getElementById('df-qv-backdrop')) return;
 
@@ -396,7 +392,6 @@
     var main = document.querySelector('main.content') || document.body;
     var h1   = main.querySelector('h1');
 
-    // Create a header row (matches the Account Roles layout)
     var row = document.createElement('div');
     row.className = 'row';
     row.setAttribute('style','align-items:center;justify-content:space-between;margin:0 0 8px;');
@@ -410,7 +405,6 @@
       main.insertBefore(row, main.firstChild);
     }
 
-    // Button
     var btn = document.createElement('button');
     btn.id = 'df-quick-view';
     btn.type = 'button';
@@ -418,7 +412,6 @@
     btn.textContent = cfg.label || 'Quick View';
     btn.addEventListener('click', async function(){
       try {
-        // 1) Provider wins: show modal content
         if (typeof window.DF_QUICKVIEW_PROVIDER === 'function') {
           var res = await window.DF_QUICKVIEW_PROVIDER();
           var title = (res && res.title) || 'Quick View';
@@ -426,7 +419,6 @@
           openQVModal(title, content);
           return;
         }
-        // 2) Fallback: navigate to provided URL
         if (cfg && cfg.href) {
           window.location.assign(cfg.href);
           return;
@@ -439,55 +431,15 @@
     row.appendChild(btn);
   }
 
-  /* ---------- Auth Guard with spinner-based grace ---------- */
+  /* ---------- PASSIVE Auth Guard (no auto-redirect, no timer) ---------- */
   function installAuthGuard() {
     if (isAuthPage() || isHome()) return;
 
-    var MAX_TRIES = 150;          // ~12s waiting for firebase-init to load
-    var GRACE_MS  = 15000;        // show spinner & wait up to 15s before redirect
-    var FORCE_LOGOUT_DAYS = 30;   // monthly sign-out safety
+    var MAX_TRIES = 150; // ~12s polling for firebase-init to load
     var tries = 0;
 
-    function bounceToLogin() {
-      var url = resolveAuthURL();
-      try { window.location.replace(url); } catch (_) { window.location.href = url; }
-    }
     function recordHeartbeat() {
       try { localStorage.setItem('df_last_auth_ok', String(Date.now())); } catch (_) {}
-    }
-
-    // Monthly forced logout (only if we've ever been authed before)
-    try {
-      var raw = localStorage.getItem('df_last_auth_ok');
-      if (raw) {
-        var last = parseInt(raw, 10);
-        if (!isNaN(last)) {
-          var ms = Date.now() - last;
-          if (ms > FORCE_LOGOUT_DAYS * 24 * 60 * 60 * 1000) {
-            handleLogout();
-            return;
-          }
-        }
-      }
-    } catch (_) {}
-
-    var graceTimer = null;
-    var gotFirstAuthCallback = false;
-    var lastUser = undefined;
-
-    function startGrace() {
-      var target = document.querySelector('main.content') || document.body;
-      showLoader(target);
-      if (graceTimer) return;
-      graceTimer = setTimeout(function () {
-        hideLoader(target);
-        if (!lastUser) bounceToLogin();
-      }, GRACE_MS);
-    }
-    function clearGrace() {
-      var target = document.querySelector('main.content') || document.body;
-      hideLoader(target);
-      if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; }
     }
 
     function subscribeAuth() {
@@ -501,22 +453,9 @@
       } catch (_) {}
 
       window.DF_FB_API.onAuth(function (user) {
-        gotFirstAuthCallback = true;
-        lastUser = user || null;
-
-        if (user) {
-          clearGrace();
-          recordHeartbeat();
-        } else {
-          startGrace();
-        }
+        // Passive: do nothing if user is null. No spinner, no redirect.
+        if (user) recordHeartbeat();
       });
-
-      setTimeout(function(){
-        if (!gotFirstAuthCallback) {
-          startGrace();
-        }
-      }, 1200);
 
       return true;
     }
@@ -525,27 +464,15 @@
       tries++;
       if (!window.DF_FB || !window.DF_FB_API || !window.DF_FB.auth) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        startGrace();
+        // Passive: give up quietly if Firebase never appears
         return;
       }
       if (!subscribeAuth()) {
         if (tries < MAX_TRIES) return setTimeout(waitForFirebase, 80);
-        startGrace();
         return;
       }
       try { if (window.DF_FB.auth.currentUser) recordHeartbeat(); } catch (_) {}
     })();
-
-    document.addEventListener('visibilitychange', function(){
-      if (document.visibilityState === 'visible' && !lastUser && graceTimer) {
-        clearTimeout(graceTimer);
-        graceTimer = setTimeout(function(){
-          var target = document.querySelector('main.content') || document.body;
-          hideLoader(target);
-          if (!lastUser) bounceToLogin();
-        }, Math.min(6000, GRACE_MS));
-      }
-    });
   }
 
   /* ---------- DOM Ready ---------- */
@@ -558,7 +485,7 @@
     injectVersionAndBuildDate();
     installBackButtonFlow();
     injectQuickView();          // adds Quick View (provider or URL)
-    installAuthGuard();
+    installAuthGuard();         // now passive — no kicks
   });
 
   // Legacy logout triggers
