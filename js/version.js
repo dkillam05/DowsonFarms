@@ -2,7 +2,7 @@
 // Expose version/build for BOTH page (window) and service worker (self).
 
 (function () {
-  var VERSION = 'v4.0.2';  // ← bump this on each release
+  var VERSION = 'v4.1.0';  // ← bump this on each release
 
   // Build date in Central Time
   var BUILD_DATE = (function(){
