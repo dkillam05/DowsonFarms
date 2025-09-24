@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Types — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- Prepaint theme (no flash) -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -40,7 +40,6 @@
       grid-template-columns: 1fr;
       gap:12px;
     }
-    /* Wider: moisture/testWeight side-by-side */
     @media (min-width: 560px){
       .form-grid{
         grid-template-columns: 1fr 1fr;
@@ -49,35 +48,28 @@
       .span-2{ grid-column: 1 / -1; }
     }
 
-    /* Inputs: avoid iOS zoom & unify height */
+    /* ---------- UNIFORM FIELD HEIGHTS ---------- */
+    /* Prevent iOS zoom and make every text/number field the same height as "Crop Type" */
     #ct-form input[type="text"],
     #ct-form input[type="number"]{
-      font-size:16px;            /* prevents iOS zoom */
-      height:44px;
+      font-size:16px;   /* stops iOS zoom */
+      height:44px;      /* exact match */
+      width:100%;
     }
-
-    /* Long fields: number inputs stretch full width (only longer, not taller) */
-    #ctMoisture, #ctTestWeight { width:100%; }
 
     /* Square color picker with centered helper text */
-    .color-row{
-      display:flex; align-items:center; gap:12px;
-      height:44px;
-    }
+    .color-row{ display:flex; align-items:center; gap:12px; height:44px; }
     #ctColor{
       -webkit-appearance:none; appearance:none;
-      width:44px; height:44px;
-      padding:0;
-      border:2px solid var(--tile-border);
-      border-radius:10px;
-      background:transparent; cursor:pointer;
+      width:44px; height:44px; padding:0;
+      border:2px solid var(--tile-border); border-radius:10px; background:transparent; cursor:pointer;
       flex:0 0 auto;
     }
     #ctColor::-webkit-color-swatch-wrapper{ padding:0; }
     #ctColor::-webkit-color-swatch{ border:none; border-radius:8px; }
     #ctColor::-moz-color-swatch{ border:none; border-radius:8px; }
 
-    /* Place the helper under each field, consistently */
+    /* Consistent helper text */
     .hint{ display:block; margin-top:6px; font-size:.92rem; color:#9aa0a6; }
   </style>
 </head>
@@ -108,7 +100,7 @@
     <!-- Add / Edit form -->
     <form id="ct-form" class="card" novalidate>
       <div class="form-grid">
-        <!-- Crop Type (full width) -->
+        <!-- Crop Type -->
         <div class="field span-2">
           <label for="ctName">Crop Type <span class="req">*</span></label>
           <input id="ctName" type="text" placeholder="e.g., Corn" required />
@@ -129,7 +121,7 @@
           <small class="hint">Standard test weight</small>
         </div>
 
-        <!-- Color (full width, but compact row) -->
+        <!-- Color -->
         <div class="field span-2">
           <label for="ctColor">Color for charting <span class="req">*</span></label>
           <div class="color-row">
@@ -185,35 +177,38 @@
   <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Enforce one-decimal format on blur (xx.x) and keep inputs long but not taller -->
+  <!-- Decimal behavior: guard keys + format on blur (no live rewriting) -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
-      function clamp1dec(el, opts){
+      function guardOneDot(evt){
+        const el = evt.target;
+        if (evt.key === '.') {
+          if (el.value.includes('.')) { evt.preventDefault(); return; }
+          return; // allow the first dot
+        }
+        const ok = /[0-9]/.test(evt.key) ||
+                   ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End','Enter'].includes(evt.key);
+        if (!ok) evt.preventDefault();
+      }
+      function format1(el, opts){
         var v = String(el.value || '').trim();
         if (!v) return;
         var n = Number(v);
         if (!Number.isFinite(n)) return;
-        if (typeof opts?.min === 'number' && n < opts.min) n = opts.min;
-        if (typeof opts?.max === 'number' && n > opts.max) n = opts.max;
+        if (opts && typeof opts.min === 'number' && n < opts.min) n = opts.min;
+        if (opts && typeof opts.max === 'number' && n > opts.max) n = opts.max;
         el.value = n.toFixed(1);
       }
       var m = document.getElementById('ctMoisture');
       var t = document.getElementById('ctTestWeight');
-      m && m.addEventListener('blur', function(){ clamp1dec(m, {min:0, max:100}); });
-      t && t.addEventListener('blur', function(){ clamp1dec(t, {min:0}); });
-
-      // Filter keys for clean numeric input (helps iOS)
-      function filterKey(evt){
-        const ok = /[0-9.]/.test(evt.key) ||
-                   ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(evt.key);
-        if (!ok) evt.preventDefault();
-      }
-      m && m.addEventListener('keydown', filterKey);
-      t && t.addEventListener('keydown', filterKey);
+      m && m.addEventListener('keydown', guardOneDot);
+      t && t.addEventListener('keydown', guardOneDot);
+      m && m.addEventListener('blur', function(){ format1(m,{min:0,max:100}); });
+      t && t.addEventListener('blur', function(){ format1(t,{min:0}); });
     });
   </script>
 
-  <!-- Service worker (from /settings-setup/ → root) -->
+  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
