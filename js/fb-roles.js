@@ -1,11 +1,13 @@
 // /js/fb-roles.js
 // Account Roles — edit per-role permissions using DF_MENUS as source of truth.
-// This version waits for Firebase auth (onAuthStateChanged) before initializing,
-// and avoids red inline errors (quiet UX); no redirects here.
+// Waits for Firebase auth restoration, quiet UX (toasts/status, no alerts/redirects).
 
 import {
   collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+/* ---------- Blanket-rules perm key ---------- */
+const PERM_KEY = "Settings & Setup › Account Roles";
 
 /* ---------- DOM refs ---------- */
 const $ = s => document.querySelector(s);
@@ -101,7 +103,13 @@ async function seedRolesIfEmpty(db){
   const current = await fetchRoles(db);
   if (current.length) return current;
   await Promise.all(DEFAULT_ROLES.map(name =>
-    setDoc(doc(db,'roles', name), { label:name, permissions:{} }, { merge:true })
+    setDoc(doc(db,'roles', name), {
+      label: name,
+      permissions: {},
+      permKey: PERM_KEY,                 // <-- ensures seeded docs comply with blanket rules
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }, { merge:true })
   ));
   return await fetchRoles(db);
 }
@@ -114,7 +122,12 @@ async function readRoleDoc(db, roleId){
   return { id: snap.id, ...(snap.data()||{}) };
 }
 async function saveRoleDoc(db, roleId, payload){
-  await setDoc(doc(db,'roles', roleId), { ...payload, updatedAt: serverTimestamp() }, { merge:true });
+  // Always write permKey so blanket rules apply consistently
+  await setDoc(
+    doc(db,'roles', roleId),
+    { ...payload, permKey: PERM_KEY, updatedAt: serverTimestamp() },
+    { merge:true }
+  );
 }
 
 /* ---------- Permissions <-> UI state ---------- */
