@@ -106,7 +106,7 @@ async function seedRolesIfEmpty(db){
     setDoc(doc(db,'roles', name), {
       label: name,
       permissions: {},
-      permKey: PERM_KEY,                 // <-- ensures seeded docs comply with blanket rules
+      permKey: PERM_KEY,                 // ensure seeded docs comply with blanket rules
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }, { merge:true })
@@ -396,7 +396,6 @@ async function start(){
   }
 
   if (el.roleHint) el.roleHint.textContent = '';
-  //setStatusMuted(`${roles.length} role${roles.length===1?'':'s'} loaded`);
 
   let currentRoleId   = el.roleSelect.value || roles[0].id || roles[0].label;
   let currentRoleDoc  = await readRoleDoc(db, currentRoleId);
@@ -443,3 +442,30 @@ async function start(){
     await loadRole(roleId);
   });
 }
+
+/* =====================================================
+   One-time admin helper: backfill permKey on old role docs
+   -------------------------------------------------------
+   Use from the browser console while logged in as admin:
+
+     await DF_seedRolesPermKey()
+
+   or import and call:
+
+     await seedRolesPermKey()
+   ===================================================== */
+export async function seedRolesPermKey(){
+  const db = await readyFirebase();
+  const snaps = await getDocs(collection(db,'roles'));
+  let n = 0;
+  for (const s of snaps.docs) {
+    const d = s.data() || {};
+    if (d.permKey !== PERM_KEY) {
+      await setDoc(doc(db,'roles', s.id), { permKey: PERM_KEY, updatedAt: serverTimestamp() }, { merge:true });
+      n++;
+    }
+  }
+  console.log(`[Roles] permKey backfilled on ${n} doc(s).`);
+  return n;
+}
+try { window.DF_seedRolesPermKey = seedRolesPermKey; } catch(_) {}
