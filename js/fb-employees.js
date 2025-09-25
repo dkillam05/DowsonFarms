@@ -2,7 +2,8 @@
 // Usage:
 //   import {
 //     listEmployees, getEmployee, saveEmployee,
-//     inviteEmployee, archiveEmployee, deleteEmployee, saveAndInvite
+//     inviteEmployee, archiveEmployee, deleteEmployee, saveAndInvite,
+//     seedEmployeesPermKey
 //   } from '../js/fb-employees.js';
 
 import {
@@ -24,7 +25,7 @@ if (!app || !auth || !db) {
 // ---- Config / constants
 const USERS = collection(db, 'users');
 const THROTTLE_MS = 10 * 60 * 1000; // 10 minutes
-const PERM_KEY = "Teams & Partners › Employees"; // permanent permission key
+const PERM_KEY = "Teams & Partners › Employees"; // permanent permission key for blanket rules
 
 // ---- Utils
 const toId = (email) => String(email || '').trim().toLowerCase();
@@ -77,7 +78,7 @@ export async function saveEmployee(payload) {
   const data = {
     id: email,
     type: 'employee',
-    permKey: PERM_KEY, // add permanent permission key
+    permKey: PERM_KEY,              // blanket-rule anchor
     archived: false,
     ...payload,
     email,
@@ -96,7 +97,7 @@ export async function saveEmployee(payload) {
 export async function archiveEmployee(idOrEmail, archived = true) {
   await setDoc(userRef(idOrEmail), {
     archived,
-    permKey: PERM_KEY, // always reinforce permKey
+    permKey: PERM_KEY,              // reinforce on updates
     updatedAt: serverTimestamp()
   }, { merge: true });
 }
@@ -139,7 +140,7 @@ export async function inviteEmployee(email, { throttleMs = THROTTLE_MS } = {}) {
       id,
       email: id,
       type: 'employee',
-      permKey: PERM_KEY, // set on first creation
+      permKey: PERM_KEY,            // set on first creation
       archived: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -160,7 +161,7 @@ export async function inviteEmployee(email, { throttleMs = THROTTLE_MS } = {}) {
   await ensureAuthUserAndSendReset(id);
   await setDoc(ref, {
     invitedAt: Date.now(),
-    permKey: PERM_KEY, // reinforce permKey on invite
+    permKey: PERM_KEY,              // reinforce permKey on invite
     updatedAt: serverTimestamp()
   }, { merge: true });
   return true;
@@ -177,3 +178,30 @@ export async function saveAndInvite(payload, { throttleMs = THROTTLE_MS } = {}) 
     throw e;
   }
 }
+
+/* =====================================================
+   One-time admin helper: backfill permKey on old docs
+   -----------------------------------------------------
+   Use from the browser console while logged in as admin:
+
+     await DF_seedEmployeesPermKey()
+
+   or, if importing this module:
+
+     await seedEmployeesPermKey()
+   ===================================================== */
+export async function seedEmployeesPermKey(){
+  const snaps = await getDocs(query(USERS, where('type', '==', 'employee')));
+  let n = 0;
+  for (const s of snaps.docs) {
+    const d = s.data() || {};
+    if (d.permKey !== PERM_KEY) {
+      await setDoc(doc(USERS, s.id), { permKey: PERM_KEY, updatedAt: serverTimestamp() }, { merge: true });
+      n++;
+    }
+  }
+  console.log(`[Employees] permKey backfilled on ${n} doc(s).`);
+  return n;
+}
+// also expose on window for convenience
+try { window.DF_seedEmployeesPermKey = seedEmployeesPermKey; } catch(_) {}
