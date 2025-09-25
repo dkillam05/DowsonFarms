@@ -2,7 +2,7 @@
    /js/core.js  (FULL REPLACEMENT)
    - Logout (preserves df_theme; unregisters SW; redirects)
    - Clock (America/Chicago)
-   - Version/Build Date injection
+   - Version/Build Date injection + GLOBAL network-truth refresh
    - Back button (in-flow above footer) — hidden on home and on /auth/*
    - Logout button in Breadcrumb bar (right-aligned, consistent)
    - Honors <base href="/DowsonFarms/">
@@ -31,6 +31,7 @@
   }
   function resolveAuthURL() { return getRepoRootPath() + 'auth/index.html'; }
   function getHomeURL()      { return getRepoRootPath() + 'index.html'; }
+  function resolveAppURL(rel){ return new URL(rel.replace(/^\.\//,''), location.origin + getRepoRootPath()).toString(); }
 
   function isHome() {
     var p = window.location.pathname.replace(/\/+$/, '');
@@ -179,6 +180,25 @@
         });
       } catch (_) {}
     }
+  }
+
+  // NEW: network-truth refresh for DF_VERSION (global, every page)
+  async function refreshVersionFromNetwork() {
+    try {
+      const url = resolveAppURL('./js/version.js');
+      const res = await fetch(url, { cache: 'no-store' });
+      const txt = await res.text();
+      const m = txt.match(/DF_VERSION\s*=\s*['"]([^'"]+)['"]/i) || txt.match(/var\s+VERSION\s*=\s*['"]([^'"]+)['"]/i);
+      const ver = m ? m[1] : null;
+      if (ver) {
+        window.DF_VERSION = ver;
+        // Update footer immediately
+        var verEl = document.getElementById('version') || document.getElementById('df-version');
+        if (verEl) verEl.textContent = ver;
+        // Optional: broadcast so widgets could react
+        try { window.dispatchEvent(new CustomEvent('df:version', { detail: { version: ver } })); } catch(_) {}
+      }
+    } catch (_) { /* silent */ }
   }
 
   /* ---------- Back Button (skip home + login) ---------- */
@@ -491,7 +511,12 @@
 
     injectBreadcrumbLogout();
     installClock();
+
+    // 1) write whatever DF_VERSION is currently
     injectVersionAndBuildDate();
+    // 2) then refresh from NETWORK and update footer when it returns
+    refreshVersionFromNetwork();
+
     installBackButtonFlow();
     injectQuickView();          // adds Quick View (provider or URL)
     installAuthGuard();         // now passive — no kicks
