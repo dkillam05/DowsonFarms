@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
 
-  <!-- IMPORTANT: seed a stub Quick View provider BEFORE core.js so it injects the button -->
+  <!-- Seed a stub Quick View provider BEFORE core.js so the button always renders -->
   <script>
     window.DF_QUICKVIEW_PROVIDER = async function () {
       return { title: 'Employees', html: '<div style="opacity:.65">Loading…</div>' };
@@ -48,7 +48,7 @@
     /* Toast */
     #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
       padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
+      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:50000;}
     #dfToast.show{display:block; animation:dfToastIn .18s ease-out}
     @keyframes dfToastIn{from{transform:translateX(-50%) translateY(8px);opacity:.0} to{transform:translateX(-50%) translateY(0);opacity:1}}
 
@@ -69,6 +69,15 @@
     .muted{opacity:.8}
     .req-star{color:#b00020}
     .search{flex:1;min-width:200px}
+
+    /* Modal (Overrides) — bumped z-index well above everything */
+    .modal-backdrop{display:none;position:fixed;inset:0;z-index:60000;background:rgba(0,0,0,.45);
+      align-items:center;justify-content:center;padding:20px}
+    .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
+      width:min(860px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
+    .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .modal .body{padding:12px 16px;overflow:auto}
+    .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
   </style>
 </head>
 <body>
@@ -94,7 +103,7 @@
 
   <!-- ========== MAIN ========== -->
   <main class="content" data-has-form data-qv-label="Quick View">
-    <!-- Leave only H1 — core.js injects its own row + Quick View on the right -->
+    <!-- Keep just the H1 — core.js injects a row and puts Quick View on the right -->
     <h1 style="margin:0;">👥 Employees</h1>
     <div style="margin-top:12px;"></div>
 
@@ -186,7 +195,6 @@
   <!-- ========== TOAST (global, bullet-proof) ========== -->
   <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
   <script>
-    // Toast helper is global so handlers can always call it without crashing.
     window.showToast = function showToast(msg){
       try{
         const box = document.getElementById('dfToast');
@@ -196,21 +204,28 @@
         box.classList.add('show');
         clearTimeout(window.__toastT);
         window.__toastT = setTimeout(()=> box.classList.remove('show'), 2000);
-      }catch(_){ /* never let toasts crash the page */ }
+      }catch(_){}
     };
   </script>
 
   <!-- ========== PAGE LOGIC (MODULE) ========== -->
   <script type="module">
-    // Firebase handles (from ../js/firebase-init.js)
-    const { db } = window.DF_FB;
+    /* -------------- Robust Firebase wait (prevents early crashes) -------------- */
+    async function waitForFirebase(maxMs=12000){
+      const start = performance.now();
+      while (performance.now() - start < maxMs){
+        if (window.DF_FB && window.DF_FB.db) return window.DF_FB;
+        await new Promise(r=>setTimeout(r, 60));
+      }
+      throw new Error('Firebase not initialized');
+    }
+    const { db } = await waitForFirebase();
 
-    // Firestore primitives we need here
+    /* Imports after DF_FB is guaranteed */
     import {
       collection, doc, getDoc, getDocs, query, where, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-    // Shared Employees helper (all CRUD + invites)
     import {
       listEmployees, getEmployee, saveAndInvite, inviteEmployee
     } from '../js/fb-employees.js';
@@ -234,7 +249,7 @@
     const ACTIONS = ['view','edit','add','archive','delete'];
 
     /* ===========================
-       DOM + tiny utils */
+       DOM + utils */
     const $ = (s)=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
     function formatPhoneDigits(d){
@@ -289,7 +304,7 @@
     }
 
     /* ===========================
-       Overrides UI (Option B) — same behavior */
+       Overrides UI (Option B) — unchanged */
     function ensureShapeFromMenus(source){
       const perms = {};
       Object.keys(MENUS).forEach(menu=>{
@@ -653,7 +668,7 @@
       return { title: 'Employees', node: ul };
     };
 
-    // Make sure core.js injects (or updates) the global Quick View button now
+    // Ask core.js to (re)inject the global Quick View button now
     if (window.DF_UI && typeof window.DF_UI.refreshQuickView === 'function') {
       window.DF_UI.refreshQuickView();
     }
