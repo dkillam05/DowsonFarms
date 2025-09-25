@@ -2,7 +2,8 @@
 // Usage:
 //   import {
 //     listEmployees, getEmployee, saveEmployee,
-//     inviteEmployee, archiveEmployee, deleteEmployee, saveAndInvite
+//     inviteEmployee, archiveEmployee, deleteEmployee, saveAndInvite,
+//     writePermsForUid
 //   } from '../js/fb-employees.js';
 
 import {
@@ -23,6 +24,7 @@ if (!app || !auth || !db) {
 
 // ---- Config / constants
 const USERS = collection(db, 'users');
+const PERM  = collection(db, 'perm');
 const THROTTLE_MS = 10 * 60 * 1000; // 10 minutes
 
 // ---- Utils
@@ -31,6 +33,10 @@ function userRef(idOrEmail) {
   const id = toId(idOrEmail);
   if (!id) throw new Error('Employee id/email is required');
   return doc(USERS, id);
+}
+function permRef(uid) {
+  if (!uid) throw new Error('permRef: uid required');
+  return doc(PERM, uid);
 }
 function getPrimaryConfig() {
   const o = (app && app.options) || {};
@@ -99,7 +105,15 @@ export async function deleteEmployee(idOrEmail) {
   await deleteDoc(userRef(idOrEmail));
 }
 
+// ---- Permissions writer (optional helper you can call if you already know uid)
+export async function writePermsForUid(uid, effectivePerms) {
+  if (!uid) throw new Error('writePermsForUid: uid required');
+  const perms = effectivePerms && typeof effectivePerms === 'object' ? effectivePerms : {};
+  await setDoc(permRef(uid), { perms, updatedAt: serverTimestamp() }, { merge: true });
+}
+
 // ---- Invite (password-reset flow with secondary app so admin stays logged in)
+// Returns: { uid: string|null, created: boolean }
 async function ensureAuthUserAndSendReset(email) {
   const id = toId(email);
   if (!id) throw new Error('inviteEmployee: email required');
@@ -111,17 +125,25 @@ async function ensureAuthUserAndSendReset(email) {
     const secondary = initializeApp(cfg, 'DF-Secondary');
     try {
       const sAuth = getAuth(secondary);
-      await createUserWithEmailAndPassword(sAuth, id, randPwd());
+      const cred = await createUserWithEmailAndPassword(sAuth, id, randPwd());
+      const uid  = cred && cred.user ? cred.user.uid : null;
       await sendPasswordResetEmail(sAuth, id);
+      return { uid, created: true };
     } finally {
       try { await deleteApp(secondary); } catch {}
     }
   } else {
     await sendPasswordResetEmail(auth, id);
+    return { uid: null, created: false }; // Existing user — client can’t resolve uid by email
   }
 }
 
-export async function inviteEmployee(email, { throttleMs = THROTTLE_MS } = {}) {
+/**
+ * Invite an employee by email.
+ * If `effectivePerms` is provided and a new Auth user is created,
+ * this will also write /perm/{uid} with those permissions and store authUid on /users/{email}.
+ */
+export async function inviteEmployee(email, { throttleMs = THROTTLE_MS, effectivePerms = null } = {}) {
   const id = toId(email);
   if (!id) throw new Error('inviteEmployee: email required');
 
@@ -146,16 +168,34 @@ export async function inviteEmployee(email, { throttleMs = THROTTLE_MS } = {}) {
     throw e;
   }
 
-  await ensureAuthUserAndSendReset(id);
+  const res = await ensureAuthUserAndSendReset(id);
+
+  // If we just created the Auth user, we have the uid: write perms + store uid on user doc.
+  if (res && res.created && res.uid) {
+    try {
+      if (effectivePerms && typeof effectivePerms === 'object') {
+        await writePermsForUid(res.uid, effectivePerms);
+      }
+      await setDoc(ref, { authUid: res.uid }, { merge: true });
+    } catch (e) {
+      // Non-fatal: invite should still succeed
+      console.warn('[fb-employees] Could not write perms/authUid on invite:', e);
+    }
+  }
+
   await setDoc(ref, { invitedAt: Date.now(), updatedAt: serverTimestamp() }, { merge: true });
   return true;
 }
 
-// ---- Convenience: save + auto-invite in one call
+/**
+ * Convenience: save + auto-invite in one call
+ * Accepts payload fields + optional `effectivePerms` (flattened boolean map).
+ */
 export async function saveAndInvite(payload, { throttleMs = THROTTLE_MS } = {}) {
-  const id = await saveEmployee(payload);
+  const { effectivePerms, ...core } = (payload || {});
+  const id = await saveEmployee(core);
   try {
-    await inviteEmployee(id, { throttleMs });
+    await inviteEmployee(id, { throttleMs, effectivePerms: effectivePerms || null });
     return { id, invited: true };
   } catch (e) {
     if (e && e.code === 'throttled') return { id, invited: false, throttled: true, msRemaining: e.msRemaining };
