@@ -16,14 +16,13 @@
     })();
   </script>
 
-  <!-- ========== YOUR TREE (match the rest of the app) ========== -->
+  <!-- Theme / App -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
 
-  <!-- Firebase bootstrap (ES module init used across the app) -->
+  <!-- Firebase init + Menus -->
   <script type="module" src="../js/firebase-init.js"></script>
-  <!-- Global menus (single source of truth) -->
   <script defer src="../assets/data/menus.js"></script>
 
   <!-- ========== PAGE-LOCAL STYLES ========== -->
@@ -56,15 +55,6 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px;display:none}
     .muted-sm{opacity:.85;font-size:.92rem}
-
-    /* Modal (Overrides) */
-    .modal-backdrop{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);
-      align-items:center;justify-content:center;padding:20px}
-    .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
-      width:min(860px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
-    .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
-    .modal .body{padding:12px 16px;overflow:auto}
-    .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
   </style>
 </head>
 <body>
@@ -92,7 +82,8 @@
   <main class="content" data-has-form>
     <div class="line" style="justify-content:space-between;">
       <h1 style="margin:0;">👥 Employees</h1>
-      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+      <!-- Quick View comes from core.js via DF_QUICKVIEW_PROVIDER -->
+      <button type="button" class="btn-secondary" id="quickViewBtn" style="display:none">Quick View</button>
     </div>
     <div style="margin-top:12px;"></div>
 
@@ -163,49 +154,23 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- ========== QUICK VIEW MODAL ========== -->
-  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
-      <h2 id="qvTitle">Employees</h2>
-      <ul id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="qvClose">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== OVERRIDES MODAL (mirrors Account Roles) ========== -->
-  <div id="ovB" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
-    <div class="modal" role="document">
-      <header>
-        <h2 id="ovTitle" style="margin:0;">Permission Overrides</h2>
-        <label class="muted-small" style="display:flex;align-items:center;gap:8px;">
-          <input type="checkbox" id="ovEnabled" />
-          Enable overrides for this employee
-        </label>
-      </header>
-      <div id="ovBody" class="body"><!-- built at runtime --></div>
-      <div class="actions">
-        <button class="btn-outline" id="ovCancel" type="button">Cancel</button>
-        <button class="btn-primary" id="ovSave" type="button">Save Overrides</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ========== TOAST ========== -->
   <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
 
   <!-- ========== PAGE LOGIC (MODULE) ========== -->
   <script type="module">
-    // Firebase handles (from ../js/firebase-init.js)
-    const { auth, db } = window.DF_FB;
+    // Firebase handles
+    const { auth, db, app } = window.DF_FB;
 
     // Import Firebase pieces
-    import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import {
+      sendPasswordResetEmail, fetchSignInMethodsForEmail, getAuth, createUserWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import {
       collection, doc, setDoc, deleteDoc, getDocs, getDoc,
       serverTimestamp, query, where, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 
     /* ===========================
        MENUS from DF_MENUS → shape map
@@ -235,7 +200,7 @@
       txt.textContent = msg || 'Saved';
       box.style.display='block';
       clearTimeout(window.__toastT);
-      window.__toastT=setTimeout(()=> box.style.display='none', 1800);
+      window.__toastT=setTimeout(()=> box.style.display='none', 2000);
     }
 
     /* ===========================
@@ -263,7 +228,6 @@
       sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
         roles.map(r=>{
           const label = (r.label||r.id||'').toString();
-          // value used as doc id first (most installs use ID === label)
           return `<option value="${r.id || label}">${label}</option>`;
         }).join('');
       if (value) sel.value=value;
@@ -308,22 +272,46 @@
       }, { merge:true });
       return id;
     }
-    async function removeById(id){ await deleteDoc(doc(USERS, id)); }
 
-    // Read a role’s baseline permissions object
-    async function readRolePermissions(roleId){
-      if (!roleId) return {};
-      const snap = await getDoc(doc(collection(db,'roles'), roleId));
-      const data = snap.exists() ? (snap.data()||{}) : {};
-      // expected shape: { permissions: { Menu: { Submenu: {view:true,...} } } }
-      return (data.permissions && typeof data.permissions==='object') ? data.permissions : {};
+    // ----- Invite helpers (password-based) -----
+    function getFirebaseConfigFromPrimaryApp(){
+      const o = (app && app.options) || {};
+      return {
+        apiKey: o.apiKey, authDomain: o.authDomain, projectId: o.projectId,
+        storageBucket: o.storageBucket, appId: o.appId,
+        messagingSenderId: o.messagingSenderId, measurementId: o.measurementId
+      };
+    }
+    function randomTempPassword(){
+      return crypto.getRandomValues(new Uint32Array(4)).join('-');
+    }
+    async function ensureAuthUserAndSendReset(email){
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (!methods || methods.length === 0) {
+        // Create via secondary app so we don't sign out the admin
+        const cfg = getFirebaseConfigFromPrimaryApp();
+        const secondary = initializeApp(cfg, 'DF-Secondary');
+        const sAuth = getAuth(secondary);
+        const tmp = randomTempPassword();
+        await createUserWithEmailAndPassword(sAuth, email, tmp);
+        await sendPasswordResetEmail(sAuth, email);
+        try { await deleteApp(secondary); } catch {}
+      } else {
+        await sendPasswordResetEmail(auth, email);
+      }
+    }
+    async function maybeThrottleInvite(docSnap){
+      const data = docSnap && docSnap.data ? docSnap.data() : (docSnap || {});
+      const last = data && data.invitedAt ? Number(data.invitedAt) : 0;
+      const now = Date.now();
+      const TEN_MIN = 10 * 60 * 1000;
+      return (last && (now - last) < TEN_MIN); // true if throttled
     }
 
     /* ===========================
-       Overrides UI (Option B)
-       - Show EFFECTIVE = override ?? baseline
-       - Save ONLY overrides
+       Overrides UI (kept intact)
        =========================== */
+    const ACTION_KEYS = ['view','edit','add','archive','delete'];
     function ensureShapeFromMenus(source){
       const perms = {};
       Object.keys(MENUS).forEach(menu=>{
@@ -338,7 +326,6 @@
       return perms;
     }
     function mergeEffective(baseline, overrides){
-      // effective[action] = (overrides has bool ? that : baseline)
       const eff = {};
       Object.keys(MENUS).forEach(menu=>{
         eff[menu]={};
@@ -346,9 +333,7 @@
           const b = (baseline?.[menu]?.[sm]) || {};
           const o = (overrides?.[menu]?.[sm]) || {};
           const obj = {};
-          ACTIONS.forEach(k=>{
-            obj[k] = (k in o) ? !!o[k] : !!b[k];
-          });
+          ACTION_KEYS.forEach(k=>{ obj[k] = (k in o) ? !!o[k] : !!b[k]; });
           eff[menu][sm] = obj;
         });
       });
@@ -383,18 +368,14 @@
       return `${on} of ${keys.length} submenus`;
     }
 
-    // Build modal using baseline + overrides, edit overrides only
     function openOverridesModal(baseline, overrides){
-      const B = $('#ovB'), body = $('#ovBody'), enabled = $('#ovEnabled');
+      const B = document.getElementById('ovB'), body = document.getElementById('ovBody'), enabled = document.getElementById('ovEnabled');
       const base = ensureShapeFromMenus(baseline||{});
-      // normalize overrides to menu/sub/action subset
       const draftOverrides = ensureShapeFromMenus(overrides||{});
-      // EFFECTIVE view
       let effective = mergeEffective(base, overrides||{});
 
       B.style.display='flex';
       enabled.checked = !!(overrides && Object.keys(overrides).length);
-
       body.innerHTML = '';
 
       Object.keys(MENUS).forEach(menu=>{
@@ -408,9 +389,8 @@
         const right = document.createElement('div'); right.className='muted-sm';
         head.append(left,right);
 
-        const mbody = document.createElement('div'); mbody.className='menu-body'; // collapsed by default
+        const mbody = document.createElement('div'); mbody.className='menu-body';
 
-        // Parent row = set ALL submenus for each action (writes to overrides)
         const grid = document.createElement('div'); grid.className='pill-grid';
         ACTIONS.forEach(name=>{
           const k = name;
@@ -420,11 +400,8 @@
           p.addEventListener('click', ()=>{
             const isOn = p.getAttribute('aria-pressed')==='true';
             (MENUS[menu]||[]).forEach(sm => {
-              // write the CHOICE to overrides (absolute)
               draftOverrides[menu][sm][k] = isOn;
-              // reflect in effective view
               effective[menu][sm][k] = isOn;
-              // sync all child buttons for this action
               mbody.querySelectorAll(`[data-sub="${menu}::${k}"]`).forEach(btn=>{
                 btn.setAttribute('aria-pressed', isOn ? 'true':'false');
               });
@@ -436,7 +413,6 @@
         });
         mbody.appendChild(grid);
 
-        // Submenu section (collapsed)
         const subWrap = document.createElement('div'); subWrap.className='subwrap';
         const sh = document.createElement('div'); sh.className='subhead';
         const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
@@ -445,7 +421,7 @@
         shL.append(subCaret, shT);
         const shRight = document.createElement('span'); shRight.className='muted-sm';
         sh.append(shL, shRight);
-        const subBody = document.createElement('div'); subBody.className='subbody'; // collapsed
+        const subBody = document.createElement('div'); subBody.className='subbody';
 
         (MENUS[menu]||[]).forEach(sm=>{
           const section = document.createElement('section'); section.style.margin='10px 0 14px';
@@ -457,13 +433,10 @@
             btn.setAttribute('data-sub', `${menu}::${k}`);
             btn.addEventListener('click', ()=>{
               const isOn = btn.getAttribute('aria-pressed')==='true';
-              // write absolute choice to overrides
               draftOverrides[menu][sm][k] = isOn;
-              // reflect in effective state
               effective[menu][sm][k] = isOn;
               shRight.textContent = summarizeChildren(effective, menu);
               right.textContent = menuSummary(effective, menu);
-              // update the parent pill for this action (if all on/off)
               const allOn  = (MENUS[menu]||[]).every(s=>effective[menu][s][k]===true);
               const allOff = (MENUS[menu]||[]).every(s=>effective[menu][s][k]===false);
               const parentBtn = mbody.querySelector(`.pill[aria-label="${menu}::${k}"]`);
@@ -497,10 +470,10 @@
         body.appendChild(card);
       });
 
-      $('#ovCancel').onclick = ()=> B.style.display='none';
+      document.getElementById('ovCancel').onclick = ()=> B.style.display='none';
 
-      $('#ovSave').onclick = ()=>{
-        // Clean overrides: drop entries identical to baseline, and drop all-false rows
+      document.getElementById('ovSave').onclick = ()=>{
+        // Clean overrides: only differences from baseline
         const clean = {};
         Object.keys(MENUS).forEach(menu=>{
           (MENUS[menu]||[]).forEach(sm=>{
@@ -508,22 +481,17 @@
             const o = (draftOverrides?.[menu]?.[sm]) || {};
             const out = {};
             ACTIONS.forEach(k=>{
-              // Only persist if it differs from baseline OR you explicitly set false while baseline true
-              const hasOverride = (k in o);
-              if (hasOverride && o[k] !== !!b[k]) out[k] = !!o[k];
+              if (k in o && o[k] !== !!b[k]) out[k] = !!o[k];
             });
-            const any = Object.keys(out).length>0;
-            if (any){
+            if (Object.keys(out).length){
               clean[menu] = clean[menu] || {};
               clean[menu][sm] = out;
             }
           });
         });
-
         const payload = enabled.checked ? clean : {};
-        // stash on the button; actual save happens when you Save the employee
-        $('#exceptionsBtn').dataset.payload = JSON.stringify({enabled: enabled.checked, grants: payload});
-        $('#ovB').style.display='none';
+        document.getElementById('exceptionsBtn').dataset.payload = JSON.stringify({enabled: enabled.checked, grants: payload});
+        document.getElementById('ovB').style.display='none';
         const nSubs = Object.values(payload||{}).reduce((sum,subs)=> sum + Object.keys(subs||{}).length, 0);
         showToast(enabled.checked ? `Overrides saved (${nSubs} submenus)` : 'Overrides disabled');
       };
@@ -533,15 +501,15 @@
        Saved list / manage / invite
        =========================== */
     async function render(){
-      const q=($('#searchInput').value||'').toLowerCase().trim();
-      const showA=$('#toggleShowArchived').checked;
+      const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+      const showA=document.getElementById('toggleShowArchived').checked;
       const rows=(await listEmployees())
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
         .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
                       (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
 
-      const L=$('#savedList');
+      const L=document.getElementById('savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
         const ex = r.exceptions || {};
@@ -562,7 +530,7 @@
       }).join('') : '<li class="muted">No employees yet.</li>';
 
       L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
-      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteEmployee(b.getAttribute('data-invite'))));
+      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteExisting(b.getAttribute('data-invite'))));
     }
 
     async function openManage(id){
@@ -570,101 +538,158 @@
       if (!snap.exists()){ alert('Not found'); return; }
       const e = { id: snap.id, ...(snap.data()||{}) };
 
-      $('#empFirst').value = e.first||'';
-      $('#empLast').value  = e.last||'';
-      $('#empPhone').value = e.phone||'';
-      $('#empEmail').value = e.email||'';
-      await fillRoleSelect($('#empRole'), e.role||'');
+      document.getElementById('empFirst').value = e.first||'';
+      document.getElementById('empLast').value  = e.last||'';
+      document.getElementById('empPhone').value = e.phone||'';
+      document.getElementById('empEmail').value = e.email||'';
+      await fillRoleSelect(document.getElementById('empRole'), e.role||'');
 
-      // preload current overrides payload (store JSON on button)
       const payload = e.exceptions || {enabled:false,grants:{}};
-      $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
+      document.getElementById('exceptionsBtn').dataset.payload = JSON.stringify(payload);
 
       window.scrollTo({top:0, behavior:'smooth'});
-      $('#empFirst').focus();
+      document.getElementById('empFirst').focus();
     }
 
-    async function inviteEmployee(id){
-      const snap = await getDoc(doc(USERS, id));
+    async function inviteExisting(id){
+      const ref = doc(USERS, id);
+      const snap = await getDoc(ref);
       if (!snap.exists()){ alert('Employee not found'); return; }
       const e = { id: snap.id, ...(snap.data()||{}) };
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
 
-      const actionCodeSettings = {
-        url: new URL('../teams-partners/index.html', document.baseURI).href,
-        handleCodeInApp: true
-      };
+      if (await maybeThrottleInvite(e)) { showToast('Invite already sent recently'); return; }
 
       try{
-        await sendSignInLinkToEmail(auth, e.email, actionCodeSettings);
-        e.invitedAt = Date.now();
-        await upsertEmployee(e);
+        await ensureAuthUserAndSendReset(e.email);
+        await setDoc(ref, { invitedAt: Date.now() }, { merge:true });
         await render();
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Could not send invite. Check Firebase Auth (Authorized domains, Email templates).');
+        alert('Could not send invite. Ensure Email/Password is enabled and domain is authorized.');
       }
     }
 
     /* ===========================
        Wire form
        =========================== */
-    attachPhoneMask($('#empPhone'));
-    await fillRoleSelect($('#empRole'));
+    attachPhoneMask(document.getElementById('empPhone'));
+    await fillRoleSelect(document.getElementById('empRole'));
 
-    // Open overrides: load baseline from role, merge with existing employee overrides
-    $('#exceptionsBtn').addEventListener('click', async ()=>{
-      const roleId = $('#empRole').value;
+    // Permission overrides
+    document.getElementById('exceptionsBtn').addEventListener('click', async ()=>{
+      const roleId = document.getElementById('empRole').value;
       if (!roleId){ alert('Choose a Role first.'); return; }
-      const base = await readRolePermissions(roleId);
-      const prevPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
-      openOverridesModal(base, prevPayload.enabled ? prevPayload.grants : {});
+      // Read baseline from roles
+      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js").then(async ({ doc, getDoc, collection })=>{
+        const snap = await getDoc(doc(collection(db,'roles'), roleId));
+        const baseline = snap.exists() ? (snap.data()||{}).permissions : {};
+        const prevPayload = document.getElementById('exceptionsBtn').dataset.payload
+          ? JSON.parse(document.getElementById('exceptionsBtn').dataset.payload)
+          : {enabled:false,grants:{}};
+        // Open modal (same UI you had)
+        openOverridesModal(baseline, prevPayload.enabled ? prevPayload.grants : {});
+      });
     });
 
+    // Save = upsert Firestore + auto invite
     document.getElementById('emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim());
-      const phone = $('#empPhone').value;
-      const email = ($('#empEmail').value||'').trim().toLowerCase();
-      const role  = $('#empRole').value;
+      const first = titleCase((document.getElementById('empFirst').value||'').trim());
+      const last  = titleCase((document.getElementById('empLast').value||'').trim());
+      const phone = document.getElementById('empPhone').value;
+      const email = (document.getElementById('empEmail').value||'').trim().toLowerCase();
+      const role  = document.getElementById('empRole').value;
 
       if(!first || !last){ alert('First and Last name are required.'); return; }
       if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
       if(!isEmail(email)){ alert('Valid email is required.'); return; }
       if(!role){ alert('Role is required.'); return; }
 
-      const ovPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
+      const ovPayload = document.getElementById('exceptionsBtn').dataset.payload
+        ? JSON.parse(document.getElementById('exceptionsBtn').dataset.payload)
+        : {enabled:false,grants:{}};
 
-      await upsertEmployee({
+      const id = email;
+      const ref = doc(USERS, id);
+
+      // Write/merge Firestore
+      await setDoc(ref, {
         first, last, phone, email, role,
         archived:false,
-        exceptions: ovPayload,        // ← save ONLY overrides here
-        createdAt: Date.now(), updatedAt: Date.now()
-      });
+        exceptions: ovPayload,
+        type: 'employee',
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp()
+      }, { merge:true });
+
+      // Throttle check
+      const afterSaveSnap = await getDoc(ref);
+      if (!(await maybeThrottleInvite(afterSaveSnap.data()))) {
+        try {
+          await ensureAuthUserAndSendReset(email);
+          await setDoc(ref, { invitedAt: Date.now() }, { merge:true });
+          showToast('Employee saved + invite sent');
+        } catch (err) {
+          console.error(err);
+          showToast('Employee saved (invite failed)');
+          alert('Invite failed. Check Email/Password sign-in & authorized domains.');
+        }
+      } else {
+        showToast('Employee saved (invite already sent recently)');
+      }
 
       e.target.reset();
-      delete $('#exceptionsBtn').dataset.payload;
+      delete document.getElementById('exceptionsBtn').dataset.payload;
       await render();
-      showToast('Employee saved');
     });
 
-    $('#clearBtn').addEventListener('click', ()=>{
-      $('#emp-form').reset();
-      delete $('#exceptionsBtn').dataset.payload;
+    // Clear
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      document.getElementById('emp-form').reset();
+      delete document.getElementById('exceptionsBtn').dataset.payload;
     });
 
-    $('#searchInput').addEventListener('input', render);
-    $('#toggleShowArchived').addEventListener('change', render);
+    // Invite from form
+    document.getElementById('inviteBtn').addEventListener('click', async ()=>{
+      const email = (document.getElementById('empEmail').value||'').trim().toLowerCase();
+      if(!isEmail(email)){ alert('Valid email is required before sending invite.'); return; }
 
-    // Quick View
-    $('#quickViewBtn').addEventListener('click', async ()=>{
+      const id = email;
+      const ref = doc(USERS, id);
+      const snap = await getDoc(ref);
+      // If not in Firestore yet, minimally create the doc so list shows them
+      if (!snap.exists()){
+        await setDoc(ref, { email, type:'employee', archived:false, updatedAt: serverTimestamp(), createdAt: serverTimestamp() }, { merge:true });
+      }
+
+      if (await maybeThrottleInvite(snap.exists() ? snap.data() : {})) { showToast('Invite already sent recently'); return; }
+
+      try{
+        await ensureAuthUserAndSendReset(email);
+        await setDoc(ref, { invitedAt: Date.now() }, { merge:true });
+        await render();
+        showToast('Invite sent');
+      }catch(err){
+        console.error(err);
+        alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
+      }
+    });
+
+    document.getElementById('searchInput').addEventListener('input', render);
+    document.getElementById('toggleShowArchived').addEventListener('change', render);
+
+    // ===== Quick View provider for core.js global modal =====
+    window.DF_QUICKVIEW_PROVIDER = async function(){
       const rows=(await listEmployees()).filter(x=>!x.archived)
         .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
                       (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
-      const L=$('#qvList'), B=$('#qvBackdrop');
-      L.innerHTML = rows.length ? rows.map(r=>{
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+      ul.style.padding = '0';
+      ul.style.margin = '8px 0 0';
+      ul.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
         const contact = [r.phone, r.email].filter(Boolean).join(' • ');
         return `<li class="card" style="padding:10px; margin:8px 0;">
@@ -672,52 +697,16 @@
           ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
         </li>`;
       }).join('') : '<li class="muted">No employees yet.</li>';
-      B.style.display='flex';
-      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
-      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
-    });
+      return { title: 'Employees', node: ul };
+    };
 
-    // Initial render
+    // Initial render + breadcrumbs
     await render();
-
-    // Breadcrumbs helper if provided by core.js
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
       {label:'Teams & Partners', href:'./index.html'},
       {label:'Employees'}
     ]);
-  </script>
-
-  <!-- ========== FALLBACKS (NON-MODULE) ========== -->
-  <script>
-    (function () {
-      // Clock (fallback if core.js didn’t set it)
-      const $clock = document.getElementById('clock');
-      function tick(){
-        try{
-          const d=new Date();
-          const hh=String(d.getHours()).padStart(2,'0');
-          const mm=String(d.getMinutes()).padStart(2,'0');
-          $clock && ($clock.textContent = hh+':'+mm);
-        }catch{}
-      }
-      tick(); setInterval(tick, 30_000);
-
-      // Report date
-      const $date = document.getElementById('report-date');
-      if ($date && (!$date.textContent || $date.textContent==='—')){
-        const d=new Date();
-        const opts={year:'numeric',month:'long',day:'numeric'};
-        $date.textContent = new Intl.DateTimeFormat(undefined, opts).format(d);
-      }
-
-      // Version
-      const $ver = document.getElementById('version');
-      const possible = (window.DF_VERSION || window.__DF_VERSION || window.APP_VERSION || '').toString();
-      if ($ver && (! $ver.textContent || /^(v0\.0\.0|—)$/.test($ver.textContent))){
-        $ver.textContent = possible ? possible : 'v0.0.0';
-      }
-    })();
   </script>
 
   <!-- ========== SERVICE WORKER ========== -->
