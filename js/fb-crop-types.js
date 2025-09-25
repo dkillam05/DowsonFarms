@@ -1,13 +1,10 @@
 /* ===========================
    /js/fb-crop-types.js
    - Firestore CRUD for crop types
-   - DFLoader integration for loading state
-   - Toasts on save/delete
-   - Graceful error handling (no blocking alerts)
-   - Quick View provider (works even when empty or on error)
-   - Collection: "crop_types"
-   - Adds permKey for blanket security rules
-   - Auth redirect logic is owned by core.js (none here)
+   - Uses blanket Firestore rules via `permKey`
+   - DFLoader integration + friendly toasts
+   - Quick View provider
+   - Exposes admin helper: window.DF_seedCropTypesPermKey()
    =========================== */
 
 import {
@@ -48,10 +45,12 @@ function toOneDecString(n){
 }
 
 /* ----- Firestore handles ----- */
-function getHandles(){ const fb = window.DF_FB || {}; return { db: fb.db, auth: fb.auth }; }
+function fb(){ return (window.DF_FB || {}); }
 function CT(db){ return collection(db, 'crop_types'); }
 
-/* ----- CRUD (with error surfaces) ----- */
+/* ===========================
+   CRUD (with permKey on writes)
+   =========================== */
 async function listAll(db){
   try {
     const snaps = await getDocs(query(CT(db), orderBy('name')));
@@ -61,13 +60,14 @@ async function listAll(db){
     return { rows: [], error: err };
   }
 }
+
 async function upsert(db, item){
-  // Always include permKey for blanket rules
   const base = {
     name: item.name,
     moisture: item.moisture,
     testWeight: item.testWeight,
     color: item.color || '#1B5E20',
+    // blanket-rules anchor:
     permKey: PERM_KEY,
     updatedAt: serverTimestamp(),
     createdAt: item.createdAt || serverTimestamp()
@@ -80,11 +80,16 @@ async function upsert(db, item){
     return ref.id;
   }
 }
-async function removeOne(db, id){ await deleteDoc(doc(CT(db), id)); }
 
-/* ----- table render ----- */
+async function removeOne(db, id){
+  await deleteDoc(doc(CT(db), id));
+}
+
+/* ===========================
+   TABLE RENDER
+   =========================== */
 async function render(){
-  const { db } = getHandles(); 
+  const { db } = fb(); 
   const host = document.querySelector('main.content');
   const tbody = $('#ctTbody'); 
   const badge = $('#ctCount');
@@ -102,8 +107,11 @@ async function render(){
     if (!tbody) return;
 
     if (error) {
-      const msg = (error && error.code) ? error.code : 'error';
-      tbody.innerHTML = `<tr><td colspan="6" class="muted-sm">Error loading crop types: ${msg}</td></tr>`;
+      const code = (error && error.code) || 'error';
+      const hint = code === 'permission-denied'
+        ? 'Tip: older docs may be missing permKey. Run DF_seedCropTypesPermKey() once (admin).'
+        : '';
+      tbody.innerHTML = `<tr><td colspan="6" class="muted-sm">Error loading crop types: ${code}${hint ? ' — ' + hint : ''}</td></tr>`;
       return;
     }
 
@@ -140,7 +148,7 @@ async function render(){
       if (!id) return;
       if (!confirm('Delete this crop type?')) return;
       try {
-        await removeOne(getHandles().db, id);
+        await removeOne(fb().db, id);
         await render();
         showToast('Deleted');
       } catch (e) {
@@ -150,9 +158,11 @@ async function render(){
   });
 }
 
-/* ----- edit load ----- */
+/* ===========================
+   EDIT LOAD
+   =========================== */
 async function openForEdit(id){
-  const { db } = getHandles(); if (!db) return;
+  const { db } = fb(); if (!db) return;
   try {
     const snap = await getDoc(doc(CT(db), id));
     if (!snap.exists()) { showToast('Not found'); return; }
@@ -171,7 +181,9 @@ async function openForEdit(id){
   }
 }
 
-/* ----- form wiring ----- */
+/* ===========================
+   FORM WIRING
+   =========================== */
 function installForm(){
   const form = $('#ct-form'); if (!form) return;
   const resetBtn = $('#resetBtn');
@@ -202,7 +214,7 @@ function installForm(){
 
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const { db } = getHandles(); 
+    const { db } = fb(); 
     if (!db) { showToast('Database not ready'); return; }
 
     const id = ($('#ctId').value || '').trim() || null;
@@ -241,16 +253,21 @@ function installForm(){
   });
 }
 
-/* ---------- Quick View provider for core.js ---------- */
+/* ===========================
+   Quick View provider
+   =========================== */
 window.DF_QUICKVIEW_PROVIDER = async () => {
-  const { db } = getHandles();
+  const { db } = fb();
   if (!db) return { title: 'Crop Types', html: '<div style="opacity:.7">Database not ready.</div>' };
 
   const { rows, error } = await listAll(db);
 
   if (error) {
-    const msg = (error && error.code) ? error.code : 'error';
-    return { title: 'Crop Types', html: `<div style="opacity:.7">Error: ${msg}</div>` };
+    const code = (error && error.code) || 'error';
+    const hint = code === 'permission-denied'
+      ? '<br>Tip: older docs may be missing <code>permKey</code>. Run <code>DF_seedCropTypesPermKey()</code> once (admin).'
+      : '';
+    return { title: 'Crop Types', html: `<div style="opacity:.7">Error: ${code}${hint}</div>` };
   }
   if (!rows.length) {
     return { title: 'Crop Types', html: '<div style="opacity:.7">No crop types yet.</div>' };
@@ -296,7 +313,34 @@ window.DF_QUICKVIEW_PROVIDER = async () => {
   return { title: 'Crop Types', node: wrap };
 };
 
-/* ----- init ----- */
+/* ===========================
+   Admin helper (one-time backfill)
+   =========================== */
+window.DF_seedCropTypesPermKey = async function DF_seedCropTypesPermKey(){
+  try{
+    const { db } = fb();
+    if (!db) throw new Error('Firebase not ready');
+    const snaps = await getDocs(CT(db));
+    let n = 0;
+    for (const s of snaps.docs) {
+      const d = s.data() || {};
+      if (d.permKey !== PERM_KEY) {
+        await setDoc(doc(db, 'crop_types', s.id), { permKey: PERM_KEY }, { merge:true });
+        n++;
+      }
+    }
+    console.log(`[CropTypes] permKey backfilled on ${n} doc(s).`);
+    showToast('permKey backfill complete');
+    await render();
+  }catch(e){
+    console.error('DF_seedCropTypesPermKey error:', e);
+    showToast('Backfill failed (see console)');
+  }
+};
+
+/* ===========================
+   Init
+   =========================== */
 document.addEventListener('DOMContentLoaded', async ()=>{
   DFLoader.attach(document.querySelector('main.content'));
   installForm();
