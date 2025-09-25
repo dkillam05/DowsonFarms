@@ -49,7 +49,7 @@
     #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
       padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
       background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
-    #dfToast.show{display:block; animation:dfToastIn .2s ease-out}
+    #dfToast.show{display:block; animation:dfToastIn .18s ease-out}
     @keyframes dfToastIn{from{transform:translateX(-50%) translateY(8px);opacity:.0} to{transform:translateX(-50%) translateY(0);opacity:1}}
 
     /* Pills + cards (shared look with Roles page) */
@@ -66,15 +66,9 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px;display:none}
     .muted-sm{opacity:.85;font-size:.92rem}
-
-    /* Modal (Overrides) */
-    .modal-backdrop{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);
-      align-items:center;justify-content:center;padding:20px}
-    .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
-      width:min(860px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
-    .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
-    .modal .body{padding:12px 16px;overflow:auto}
-    .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
+    .muted{opacity:.8}
+    .req-star{color:#b00020}
+    .search{flex:1;min-width:200px}
   </style>
 </head>
 <body>
@@ -189,24 +183,36 @@
     </div>
   </div>
 
-  <!-- ========== TOAST ========== -->
+  <!-- ========== TOAST (global, bullet-proof) ========== -->
   <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
+  <script>
+    // Toast helper is global so handlers can always call it without crashing.
+    window.showToast = function showToast(msg){
+      try{
+        const box = document.getElementById('dfToast');
+        const txt = document.getElementById('dfToastText');
+        if (!box || !txt) { alert(msg || 'Done'); return; }
+        txt.textContent = msg || 'Saved';
+        box.classList.add('show');
+        clearTimeout(window.__toastT);
+        window.__toastT = setTimeout(()=> box.classList.remove('show'), 2000);
+      }catch(_){ /* never let toasts crash the page */ }
+    };
+  </script>
 
   <!-- ========== PAGE LOGIC (MODULE) ========== -->
   <script type="module">
     // Firebase handles (from ../js/firebase-init.js)
     const { db } = window.DF_FB;
 
-    // Firebase pieces used locally (roles + menus only)
+    // Firestore primitives we need here
     import {
-      collection, doc, setDoc, getDocs, getDoc,
-      serverTimestamp, query, where, orderBy
+      collection, doc, getDoc, getDocs, query, where, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
     // Shared Employees helper (all CRUD + invites)
     import {
-      listEmployees, getEmployee, saveAndInvite,
-      inviteEmployee
+      listEmployees, getEmployee, saveAndInvite, inviteEmployee
     } from '../js/fb-employees.js';
 
     /* ===========================
@@ -228,20 +234,25 @@
     const ACTIONS = ['view','edit','add','archive','delete'];
 
     /* ===========================
-       DOM + toast */
+       DOM + tiny utils */
     const $ = (s)=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
-    function showToast(msg){
-      const box = $('#dfToast'), txt = $('#dfToastText');
-      if (!box || !txt) return;
-      txt.textContent = msg || 'Saved';
-      box.classList.add('show');
-      clearTimeout(window.__toastT);
-      window.__toastT = setTimeout(()=> box.classList.remove('show'), 2000);
+    function formatPhoneDigits(d){
+      const x=d.replace(/\D/g,'').slice(0,10);
+      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
+      if(x.length<=3) return x ? `(${a}` : '';
+      if(x.length<=6) return `(${a}) ${b}`;
+      return `(${a}) ${b}-${c}`;
     }
+    function attachPhoneMask(input){
+      input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
+      input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
+    }
+    const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
+    const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
+    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    /* ===========================
-       Roles dropdown (/roles) */
+    // Roles select
     async function fetchRoles(){
       try {
         const snaps = await getDocs(query(collection(db,'roles'), orderBy('label')));
@@ -269,23 +280,6 @@
       if (value) sel.value=value;
     }
 
-    /* ===========================
-       Utilities */
-    function formatPhoneDigits(d){
-      const x=d.replace(/\D/g,'').slice(0,10);
-      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
-      if(x.length<=3) return x ? `(${a}` : '';
-      if(x.length<=6) return `(${a}) ${b}`;
-      return `(${a}) ${b}-${c}`;
-    }
-    function attachPhoneMask(input){
-      input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
-      input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
-    }
-    const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
-    const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
-    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
-
     // Read a role’s baseline permissions object
     async function readRolePermissions(roleId){
       if (!roleId) return {};
@@ -295,8 +289,7 @@
     }
 
     /* ===========================
-       Overrides UI (Option B) — identical behavior */
-    const ACTION_KEYS = ['view','edit','add','archive','delete'];
+       Overrides UI (Option B) — same behavior */
     function ensureShapeFromMenus(source){
       const perms = {};
       Object.keys(MENUS).forEach(menu=>{
@@ -376,7 +369,7 @@
         const right = document.createElement('div'); right.className='muted-sm';
         head.append(left,right);
 
-        const mbody = document.createElement('div'); mbody.className='menu-body'; // collapsed by default
+        const mbody = document.createElement('div'); mbody.className='menu-body';
 
         const grid = document.createElement('div'); grid.className='pill-grid';
         ACTIONS.forEach(name=>{
@@ -408,7 +401,7 @@
         shL.append(subCaret, shT);
         const shRight = document.createElement('span'); shRight.className='muted-sm';
         sh.append(shL, shRight);
-        const subBody = document.createElement('div'); subBody.className='subbody'; // collapsed
+        const subBody = document.createElement('div'); subBody.className='subbody';
 
         (MENUS[menu]||[]).forEach(sm=>{
           const section = document.createElement('section'); section.style.margin='10px 0 14px';
@@ -489,34 +482,39 @@
     /* ===========================
        Saved list / manage / invite */
     async function render(){
-      const q=($('#searchInput').value||'').toLowerCase().trim();
-      const showA=$('#toggleShowArchived').checked;
+      try{
+        const q=($('#searchInput').value||'').toLowerCase().trim();
+        const showA=$('#toggleShowArchived').checked;
 
-      const rows=(await listEmployees({ includeArchived: showA }))
-        .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)));
+        const rows=(await listEmployees({ includeArchived: showA }))
+          .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)));
 
-      const L=$('#savedList');
-      L.innerHTML = rows.length ? rows.map(r=>{
-        const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
-        const ex = r.exceptions || {};
-        const exEnabled = !!ex.enabled;
-        const exCount = exEnabled ? Object.values(ex.grants||{}).reduce((n,subs)=> n + Object.keys(subs||{}).length, 0) : 0;
-        return `<li class="card" style="padding:10px; margin:8px 0;">
-          <div class="line">
-            <strong>${name}</strong>
-            ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
-            ${exEnabled ? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`:''}
-            ${r.archived ? `<span class="chip">Archived</span>` : (r.invitedAt ? `<span class="chip">Invited</span>`:'')}
-          </div>
-          <div class="line" style="margin-top:8px;">
-            <button class="btn-secondary" data-edit="${r.id}">Manage</button>
-            <button class="btn-outline" data-invite="${r.id}">Invite</button>
-          </div>
-        </li>`;
-      }).join('') : '<li class="muted">No employees yet.</li>';
+        const L=$('#savedList');
+        L.innerHTML = rows.length ? rows.map(r=>{
+          const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
+          const ex = r.exceptions || {};
+          const exEnabled = !!ex.enabled;
+          const exCount = exEnabled ? Object.values(ex.grants||{}).reduce((n,subs)=> n + Object.keys(subs||{}).length, 0) : 0;
+          return `<li class="card" style="padding:10px; margin:8px 0;">
+            <div class="line">
+              <strong>${name}</strong>
+              ${chip(r.role)} ${chip(r.phone)} ${chip(r.email)}
+              ${exEnabled ? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`:''}
+              ${r.archived ? `<span class="chip">Archived</span>` : (r.invitedAt ? `<span class="chip">Invited</span>`:'')}
+            </div>
+            <div class="line" style="margin-top:8px;">
+              <button class="btn-secondary" data-edit="${r.id}">Manage</button>
+              <button class="btn-outline" data-invite="${r.id}">Invite</button>
+            </div>
+          </li>`;
+        }).join('') : '<li class="muted">No employees yet.</li>';
 
-      L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
-      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteExisting(b.getAttribute('data-invite'))));
+        L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
+        L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteExisting(b.getAttribute('data-invite'))));
+      }catch(e){
+        console.error('render error', e);
+        showToast('Could not load employees');
+      }
     }
 
     async function openManage(id){
@@ -537,18 +535,18 @@
     }
 
     async function inviteExisting(id){
-      const e = await getEmployee(id);
-      if (!e || !e.email){ alert('Employee email is required to send invite.'); return; }
       try{
+        const e = await getEmployee(id);
+        if (!e || !e.email){ showToast('Email required to invite'); return; }
         await inviteEmployee(e.email);
         await render();
         showToast('Invite sent');
       }catch(err){
-        console.error(err);
+        console.error('inviteExisting', err);
         if (err && err.code === 'throttled') {
           showToast('Invite already sent recently');
         } else {
-          alert('Could not send invite. Check Email/Password is enabled and domain is authorized.');
+          showToast('Invite failed'); alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
         }
       }
     }
@@ -558,10 +556,10 @@
     attachPhoneMask($('#empPhone'));
     await fillRoleSelect($('#empRole'));
 
-    // Open overrides: load baseline from role, merge with existing employee overrides
+    // Open overrides modal
     $('#exceptionsBtn').addEventListener('click', async ()=>{
       const roleId = $('#empRole').value;
-      if (!roleId){ alert('Choose a Role first.'); return; }
+      if (!roleId){ showToast('Choose a Role first'); return; }
       const base = await readRolePermissions(roleId);
       const prevPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
       openOverridesModal(base, prevPayload.enabled ? prevPayload.grants : {});
@@ -570,22 +568,22 @@
     // Save = upsert Firestore + auto invite (password reset)
     document.getElementById('emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const first = titleCase(($('#empFirst').value||'').trim());
-      const last  = titleCase(($('#empLast').value||'').trim());
-      const phone = $('#empPhone').value;
-      const email = ($('#empEmail').value||'').trim().toLowerCase();
-      const role  = $('#empRole').value;
+      try{
+        const first = titleCase(($('#empFirst').value||'').trim());
+        const last  = titleCase(($('#empLast').value||'').trim());
+        const phone = $('#empPhone').value;
+        const email = ($('#empEmail').value||'').trim().toLowerCase();
+        const role  = $('#empRole').value;
 
-      if(!first || !last){ alert('First and Last name are required.'); return; }
-      if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
-      if(!isEmail(email)){ alert('Valid email is required.'); return; }
-      if(!role){ alert('Role is required.'); return; }
+        if(!first || !last){ showToast('First & Last are required'); return; }
+        if(!isValidPhoneUS(phone)){ showToast('Phone must be (###) ###-####'); return; }
+        if(!isEmail(email)){ showToast('Valid email is required'); return; }
+        if(!role){ showToast('Role is required'); return; }
 
-      const ovPayload = $('#exceptionsBtn').dataset.payload
-        ? JSON.parse($('#exceptionsBtn').dataset.payload)
-        : {enabled:false,grants:{}};
+        const ovPayload = $('#exceptionsBtn').dataset.payload
+          ? JSON.parse($('#exceptionsBtn').dataset.payload)
+          : {enabled:false,grants:{}};
 
-      try {
         const res = await saveAndInvite({
           first, last, phone, email, role,
           exceptions: ovPayload,
@@ -595,19 +593,18 @@
         if (res.invited) {
           showToast('Employee saved + invite sent');
         } else if (res.throttled) {
-          showToast('Employee saved (invite already sent recently)');
+          showToast('Employee saved (invite recently sent)');
         } else {
           showToast('Employee saved');
         }
-      } catch (err) {
-        console.error(err);
-        showToast('Employee saved (invite failed)');
-        alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
-      }
 
-      e.target.reset();
-      delete $('#exceptionsBtn').dataset.payload;
-      await render();
+        e.target.reset();
+        delete $('#exceptionsBtn').dataset.payload;
+        await render();
+      }catch(err){
+        console.error('save submit', err);
+        showToast('Save failed'); alert('Save or invite failed. Check console for details.');
+      }
     });
 
     // Clear
@@ -619,19 +616,18 @@
 
     // Invite (from the form)
     $('#inviteBtn').addEventListener('click', async ()=>{
-      const email = ($('#empEmail').value||'').trim().toLowerCase();
-      if(!isEmail(email)){ alert('Valid email is required before sending invite.'); return; }
-
       try{
+        const email = ($('#empEmail').value||'').trim().toLowerCase();
+        if(!isEmail(email)){ showToast('Valid email required'); return; }
         await inviteEmployee(email);
         await render();
         showToast('Invite sent');
       }catch(err){
-        console.error(err);
+        console.error('inviteBtn', err);
         if (err && err.code === 'throttled') {
           showToast('Invite already sent recently');
         } else {
-          alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
+          showToast('Invite failed'); alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
         }
       }
     });
@@ -663,6 +659,7 @@
     }
 
     // Initial render + breadcrumbs
+    attachPhoneMask($('#empPhone'));
     await render();
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
