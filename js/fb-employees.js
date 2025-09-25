@@ -2,7 +2,7 @@
 // Usage:
 //   import {
 //     listEmployees, getEmployee, saveEmployee,
-//     inviteEmployee, archiveEmployee, deleteEmployee
+//     inviteEmployee, archiveEmployee, deleteEmployee, saveAndInvite
 //   } from '../js/fb-employees.js';
 
 import {
