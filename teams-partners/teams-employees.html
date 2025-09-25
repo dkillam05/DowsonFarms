@@ -189,6 +189,10 @@
 
     // Import Firebase pieces
     import {
+      listEmployees, getEmployee, saveAndInvite,
+      inviteEmployee, archiveEmployee, saveEmployee
+    } from '../js/fb-employees.js';
+    import {
       sendPasswordResetEmail, fetchSignInMethodsForEmail, getAuth, createUserWithEmailAndPassword
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import {
@@ -280,23 +284,6 @@
        Firestore
        =========================== */
     const USERS = collection(db, "users");
-
-    async function listEmployees(){
-      const snaps = await getDocs(query(USERS, where('type','==','employee')));
-      const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
-      return out;
-    }
-    async function upsertEmployee(item){
-      const id = (item.email ? String(item.email).toLowerCase() : crypto.randomUUID());
-      await setDoc(doc(USERS, id), {
-        ...item,
-        id,
-        type: 'employee',
-        updatedAt: serverTimestamp(),
-        createdAt: item.createdAt || serverTimestamp()
-      }, { merge:true });
-      return id;
-    }
 
     // Read a role’s baseline permissions object
     async function readRolePermissions(roleId){
@@ -500,14 +487,6 @@
     /* ===========================
        Invite helpers (password-based, secondary app)
        =========================== */
-    function getFirebaseConfigFromPrimaryApp(){
-      const o = (app && app.options) || {};
-      return {
-        apiKey: o.apiKey, authDomain: o.authDomain, projectId: o.projectId,
-        storageBucket: o.storageBucket, appId: o.appId,
-        messagingSenderId: o.messagingSenderId, measurementId: o.measurementId
-      };
-    }
     function randomTempPassword(){ return crypto.getRandomValues(new Uint32Array(4)).join('-'); }
     async function ensureAuthUserAndSendReset(email){
       const methods = await fetchSignInMethodsForEmail(auth, email);
@@ -584,24 +563,21 @@
       $('#empFirst').focus();
     }
 
-    async function inviteExisting(id){
-      const ref = doc(USERS, id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()){ alert('Employee not found'); return; }
-      const e = { id: snap.id, ...(snap.data()||{}) };
-      if(!e.email){ alert('Employee email is required to send invite.'); return; }
-      if (inviteThrottleSoon(e.invitedAt)) { showToast('Invite already sent recently'); return; }
+   const e = await getEmployee(id);
+    if (!e || !e.email) { alert('Employee email is required to send invite.'); return; }
 
-      try{
-        await ensureAuthUserAndSendReset(e.email);
-        await setDoc(ref, { invitedAt: Date.now() }, { merge:true });
-        await render();
-        showToast('Invite sent');
-      }catch(err){
-        console.error(err);
-        alert('Could not send invite. Check Email/Password is enabled and domain is authorized.');
-      }
-    }
+    try {
+  await inviteEmployee(e.email);
+  await render();
+  showToast('Invite sent');
+} catch (err) {
+  console.error(err);
+  if (err && err.code === 'throttled') {
+    showToast('Invite already sent recently');
+  } else {
+    alert('Could not send invite. Check Email/Password is enabled and domain is authorized.');
+  }
+}
 
     /* ===========================
        Wire form
