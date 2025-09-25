@@ -16,13 +16,14 @@
     })();
   </script>
 
-  <!-- Theme / App -->
+  <!-- ========== YOUR TREE (match the rest of the app) ========== -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
 
-  <!-- Firebase init + Menus -->
+  <!-- Firebase bootstrap (ES module init used across the app) -->
   <script type="module" src="../js/firebase-init.js"></script>
+  <!-- Global menus (single source of truth) -->
   <script defer src="../assets/data/menus.js"></script>
 
   <!-- ========== PAGE-LOCAL STYLES ========== -->
@@ -55,6 +56,15 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px;display:none}
     .muted-sm{opacity:.85;font-size:.92rem}
+
+    /* Modal (Overrides) */
+    .modal-backdrop{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);
+      align-items:center;justify-content:center;padding:20px}
+    .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
+      width:min(860px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
+    .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .modal .body{padding:12px 16px;overflow:auto}
+    .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
   </style>
 </head>
 <body>
@@ -79,10 +89,10 @@
   </nav>
 
   <!-- ========== MAIN ========== -->
-  <main class="content" data-has-form>
+  <main class="content" data-has-form data-qv-label="Quick View">
     <div class="line" style="justify-content:space-between;">
       <h1 style="margin:0;">👥 Employees</h1>
-      <!-- Quick View comes from core.js via DF_QUICKVIEW_PROVIDER -->
+      <!-- Button is provided by core.js via DF_QUICKVIEW_PROVIDER; keep a local fallback hidden -->
       <button type="button" class="btn-secondary" id="quickViewBtn" style="display:none">Quick View</button>
     </div>
     <div style="margin-top:12px;"></div>
@@ -154,12 +164,30 @@
     <span id="version">v0.0.0</span>
   </footer>
 
+  <!-- ========== OVERRIDES MODAL (mirrors Account Roles) ========== -->
+  <div id="ovB" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+    <div class="modal" role="document">
+      <header>
+        <h2 id="ovTitle" style="margin:0;">Permission Overrides</h2>
+        <label class="muted-small" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="ovEnabled" />
+          Enable overrides for this employee
+        </label>
+      </header>
+      <div id="ovBody" class="body"><!-- built at runtime --></div>
+      <div class="actions">
+        <button class="btn-outline" id="ovCancel" type="button">Cancel</button>
+        <button class="btn-primary" id="ovSave" type="button">Save Overrides</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ========== TOAST ========== -->
   <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
 
   <!-- ========== PAGE LOGIC (MODULE) ========== -->
   <script type="module">
-    // Firebase handles
+    // Firebase handles (from ../js/firebase-init.js)
     const { auth, db, app } = window.DF_FB;
 
     // Import Firebase pieces
@@ -273,44 +301,16 @@
       return id;
     }
 
-    // ----- Invite helpers (password-based) -----
-    function getFirebaseConfigFromPrimaryApp(){
-      const o = (app && app.options) || {};
-      return {
-        apiKey: o.apiKey, authDomain: o.authDomain, projectId: o.projectId,
-        storageBucket: o.storageBucket, appId: o.appId,
-        messagingSenderId: o.messagingSenderId, measurementId: o.measurementId
-      };
-    }
-    function randomTempPassword(){
-      return crypto.getRandomValues(new Uint32Array(4)).join('-');
-    }
-    async function ensureAuthUserAndSendReset(email){
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (!methods || methods.length === 0) {
-        // Create via secondary app so we don't sign out the admin
-        const cfg = getFirebaseConfigFromPrimaryApp();
-        const secondary = initializeApp(cfg, 'DF-Secondary');
-        const sAuth = getAuth(secondary);
-        const tmp = randomTempPassword();
-        await createUserWithEmailAndPassword(sAuth, email, tmp);
-        await sendPasswordResetEmail(sAuth, email);
-        try { await deleteApp(secondary); } catch {}
-      } else {
-        await sendPasswordResetEmail(auth, email);
-      }
-    }
-    async function maybeThrottleInvite(docSnap){
-      const data = docSnap && docSnap.data ? docSnap.data() : (docSnap || {});
-      const last = data && data.invitedAt ? Number(data.invitedAt) : 0;
-      const now = Date.now();
-      const TEN_MIN = 10 * 60 * 1000;
-      return (last && (now - last) < TEN_MIN); // true if throttled
+    // Read a role’s baseline permissions object
+    async function readRolePermissions(roleId){
+      if (!roleId) return {};
+      const snap = await getDoc(doc(collection(db,'roles'), roleId));
+      const data = snap.exists() ? (snap.data()||{}) : {};
+      return (data.permissions && typeof data.permissions==='object') ? data.permissions : {};
     }
 
     /* ===========================
-       Overrides UI (kept intact)
-       =========================== */
+       Overrides UI (Option B) — unchanged */
     const ACTION_KEYS = ['view','edit','add','archive','delete'];
     function ensureShapeFromMenus(source){
       const perms = {};
@@ -369,7 +369,7 @@
     }
 
     function openOverridesModal(baseline, overrides){
-      const B = document.getElementById('ovB'), body = document.getElementById('ovBody'), enabled = document.getElementById('ovEnabled');
+      const B = $('#ovB'), body = $('#ovBody'), enabled = $('#ovEnabled');
       const base = ensureShapeFromMenus(baseline||{});
       const draftOverrides = ensureShapeFromMenus(overrides||{});
       let effective = mergeEffective(base, overrides||{});
@@ -389,7 +389,7 @@
         const right = document.createElement('div'); right.className='muted-sm';
         head.append(left,right);
 
-        const mbody = document.createElement('div'); mbody.className='menu-body';
+        const mbody = document.createElement('div'); mbody.className='menu-body'; // collapsed by default
 
         const grid = document.createElement('div'); grid.className='pill-grid';
         ACTIONS.forEach(name=>{
@@ -421,7 +421,7 @@
         shL.append(subCaret, shT);
         const shRight = document.createElement('span'); shRight.className='muted-sm';
         sh.append(shL, shRight);
-        const subBody = document.createElement('div'); subBody.className='subbody';
+        const subBody = document.createElement('div'); subBody.className='subbody'; // collapsed
 
         (MENUS[menu]||[]).forEach(sm=>{
           const section = document.createElement('section'); section.style.margin='10px 0 14px';
@@ -470,10 +470,10 @@
         body.appendChild(card);
       });
 
-      document.getElementById('ovCancel').onclick = ()=> B.style.display='none';
+      $('#ovCancel').onclick = ()=> B.style.display='none';
 
-      document.getElementById('ovSave').onclick = ()=>{
-        // Clean overrides: only differences from baseline
+      $('#ovSave').onclick = ()=>{
+        // Clean overrides: drop entries identical to baseline, and drop all-false rows
         const clean = {};
         Object.keys(MENUS).forEach(menu=>{
           (MENUS[menu]||[]).forEach(sm=>{
@@ -481,35 +481,70 @@
             const o = (draftOverrides?.[menu]?.[sm]) || {};
             const out = {};
             ACTIONS.forEach(k=>{
-              if (k in o && o[k] !== !!b[k]) out[k] = !!o[k];
+              const hasOverride = (k in o);
+              if (hasOverride && o[k] !== !!b[k]) out[k] = !!o[k];
             });
-            if (Object.keys(out).length){
+            const any = Object.keys(out).length>0;
+            if (any){
               clean[menu] = clean[menu] || {};
               clean[menu][sm] = out;
             }
           });
         });
+
         const payload = enabled.checked ? clean : {};
-        document.getElementById('exceptionsBtn').dataset.payload = JSON.stringify({enabled: enabled.checked, grants: payload});
-        document.getElementById('ovB').style.display='none';
+        $('#exceptionsBtn').dataset.payload = JSON.stringify({enabled: enabled.checked, grants: payload});
+        $('#ovB').style.display='none';
         const nSubs = Object.values(payload||{}).reduce((sum,subs)=> sum + Object.keys(subs||{}).length, 0);
         showToast(enabled.checked ? `Overrides saved (${nSubs} submenus)` : 'Overrides disabled');
       };
     }
 
     /* ===========================
+       Invite helpers (password-based, secondary app)
+       =========================== */
+    function getFirebaseConfigFromPrimaryApp(){
+      const o = (app && app.options) || {};
+      return {
+        apiKey: o.apiKey, authDomain: o.authDomain, projectId: o.projectId,
+        storageBucket: o.storageBucket, appId: o.appId,
+        messagingSenderId: o.messagingSenderId, measurementId: o.measurementId
+      };
+    }
+    function randomTempPassword(){ return crypto.getRandomValues(new Uint32Array(4)).join('-'); }
+    async function ensureAuthUserAndSendReset(email){
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (!methods || methods.length === 0) {
+        const cfg = getFirebaseConfigFromPrimaryApp();
+        const secondary = initializeApp(cfg, 'DF-Secondary');
+        const sAuth = getAuth(secondary);
+        await createUserWithEmailAndPassword(sAuth, email, randomTempPassword());
+        await sendPasswordResetEmail(sAuth, email);
+        try { await deleteApp(secondary); } catch {}
+      } else {
+        await sendPasswordResetEmail(auth, email);
+      }
+    }
+    function inviteThrottleSoon(lastTs){
+      const last = Number(lastTs||0);
+      if (!last) return false;
+      const TEN_MIN = 10*60*1000;
+      return (Date.now() - last) < TEN_MIN;
+    }
+
+    /* ===========================
        Saved list / manage / invite
        =========================== */
     async function render(){
-      const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
-      const showA=document.getElementById('toggleShowArchived').checked;
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
       const rows=(await listEmployees())
         .filter(x=>showA?true:!x.archived)
         .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
         .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
                       (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
 
-      const L=document.getElementById('savedList');
+      const L=$('#savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
         const name = `${r.first||''} ${r.last||''}`.trim() || '(No Name)';
         const ex = r.exceptions || {};
@@ -538,17 +573,18 @@
       if (!snap.exists()){ alert('Not found'); return; }
       const e = { id: snap.id, ...(snap.data()||{}) };
 
-      document.getElementById('empFirst').value = e.first||'';
-      document.getElementById('empLast').value  = e.last||'';
-      document.getElementById('empPhone').value = e.phone||'';
-      document.getElementById('empEmail').value = e.email||'';
-      await fillRoleSelect(document.getElementById('empRole'), e.role||'');
+      $('#empFirst').value = e.first||'';
+      $('#empLast').value  = e.last||'';
+      $('#empPhone').value = e.phone||'';
+      $('#empEmail').value = e.email||'';
+      await fillRoleSelect($('#empRole'), e.role||'');
 
+      // preload current overrides payload (store JSON on button)
       const payload = e.exceptions || {enabled:false,grants:{}};
-      document.getElementById('exceptionsBtn').dataset.payload = JSON.stringify(payload);
+      $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
 
       window.scrollTo({top:0, behavior:'smooth'});
-      document.getElementById('empFirst').focus();
+      $('#empFirst').focus();
     }
 
     async function inviteExisting(id){
@@ -557,8 +593,7 @@
       if (!snap.exists()){ alert('Employee not found'); return; }
       const e = { id: snap.id, ...(snap.data()||{}) };
       if(!e.email){ alert('Employee email is required to send invite.'); return; }
-
-      if (await maybeThrottleInvite(e)) { showToast('Invite already sent recently'); return; }
+      if (inviteThrottleSoon(e.invitedAt)) { showToast('Invite already sent recently'); return; }
 
       try{
         await ensureAuthUserAndSendReset(e.email);
@@ -567,54 +602,43 @@
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Could not send invite. Ensure Email/Password is enabled and domain is authorized.');
+        alert('Could not send invite. Check Email/Password is enabled and domain is authorized.');
       }
     }
 
     /* ===========================
        Wire form
        =========================== */
-    attachPhoneMask(document.getElementById('empPhone'));
-    await fillRoleSelect(document.getElementById('empRole'));
+    attachPhoneMask($('#empPhone'));
+    await fillRoleSelect($('#empRole'));
 
-    // Permission overrides
-    document.getElementById('exceptionsBtn').addEventListener('click', async ()=>{
-      const roleId = document.getElementById('empRole').value;
+    // Open overrides: load baseline from role, merge with existing employee overrides
+    $('#exceptionsBtn').addEventListener('click', async ()=>{
+      const roleId = $('#empRole').value;
       if (!roleId){ alert('Choose a Role first.'); return; }
-      // Read baseline from roles
-      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js").then(async ({ doc, getDoc, collection })=>{
-        const snap = await getDoc(doc(collection(db,'roles'), roleId));
-        const baseline = snap.exists() ? (snap.data()||{}).permissions : {};
-        const prevPayload = document.getElementById('exceptionsBtn').dataset.payload
-          ? JSON.parse(document.getElementById('exceptionsBtn').dataset.payload)
-          : {enabled:false,grants:{}};
-        // Open modal (same UI you had)
-        openOverridesModal(baseline, prevPayload.enabled ? prevPayload.grants : {});
-      });
+      const base = await readRolePermissions(roleId);
+      const prevPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
+      openOverridesModal(base, prevPayload.enabled ? prevPayload.grants : {});
     });
 
-    // Save = upsert Firestore + auto invite
+    // Save = upsert Firestore + auto invite (password reset)
     document.getElementById('emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const first = titleCase((document.getElementById('empFirst').value||'').trim());
-      const last  = titleCase((document.getElementById('empLast').value||'').trim());
-      const phone = document.getElementById('empPhone').value;
-      const email = (document.getElementById('empEmail').value||'').trim().toLowerCase();
-      const role  = document.getElementById('empRole').value;
+      const first = titleCase(($('#empFirst').value||'').trim());
+      const last  = titleCase(($('#empLast').value||'').trim());
+      const phone = $('#empPhone').value;
+      const email = ($('#empEmail').value||'').trim().toLowerCase();
+      const role  = $('#empRole').value;
 
       if(!first || !last){ alert('First and Last name are required.'); return; }
       if(!isValidPhoneUS(phone)){ alert('Phone must be (###) ###-####'); return; }
       if(!isEmail(email)){ alert('Valid email is required.'); return; }
       if(!role){ alert('Role is required.'); return; }
 
-      const ovPayload = document.getElementById('exceptionsBtn').dataset.payload
-        ? JSON.parse(document.getElementById('exceptionsBtn').dataset.payload)
-        : {enabled:false,grants:{}};
-
+      const ovPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
       const id = email;
       const ref = doc(USERS, id);
 
-      // Write/merge Firestore
       await setDoc(ref, {
         first, last, phone, email, role,
         archived:false,
@@ -624,9 +648,10 @@
         createdAt: serverTimestamp()
       }, { merge:true });
 
-      // Throttle check
-      const afterSaveSnap = await getDoc(ref);
-      if (!(await maybeThrottleInvite(afterSaveSnap.data()))) {
+      const after = await getDoc(ref);
+      const invitedAt = (after.exists() && after.data().invitedAt) || 0;
+
+      if (!inviteThrottleSoon(invitedAt)) {
         try {
           await ensureAuthUserAndSendReset(email);
           await setDoc(ref, { invitedAt: Date.now() }, { merge:true });
@@ -634,37 +659,36 @@
         } catch (err) {
           console.error(err);
           showToast('Employee saved (invite failed)');
-          alert('Invite failed. Check Email/Password sign-in & authorized domains.');
+          alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
         }
       } else {
         showToast('Employee saved (invite already sent recently)');
       }
 
       e.target.reset();
-      delete document.getElementById('exceptionsBtn').dataset.payload;
+      delete $('#exceptionsBtn').dataset.payload;
       await render();
     });
 
     // Clear
-    document.getElementById('clearBtn').addEventListener('click', ()=>{
-      document.getElementById('emp-form').reset();
-      delete document.getElementById('exceptionsBtn').dataset.payload;
+    $('#clearBtn').addEventListener('click', ()=>{
+      $('#emp-form').reset();
+      delete $('#exceptionsBtn').dataset.payload;
     });
 
-    // Invite from form
-    document.getElementById('inviteBtn').addEventListener('click', async ()=>{
-      const email = (document.getElementById('empEmail').value||'').trim().toLowerCase();
+    // Invite (from the form)
+    $('#inviteBtn').addEventListener('click', async ()=>{
+      const email = ($('#empEmail').value||'').trim().toLowerCase();
       if(!isEmail(email)){ alert('Valid email is required before sending invite.'); return; }
 
       const id = email;
       const ref = doc(USERS, id);
       const snap = await getDoc(ref);
-      // If not in Firestore yet, minimally create the doc so list shows them
       if (!snap.exists()){
         await setDoc(ref, { email, type:'employee', archived:false, updatedAt: serverTimestamp(), createdAt: serverTimestamp() }, { merge:true });
       }
-
-      if (await maybeThrottleInvite(snap.exists() ? snap.data() : {})) { showToast('Invite already sent recently'); return; }
+      const invitedAt = snap.exists() ? (snap.data().invitedAt || 0) : 0;
+      if (inviteThrottleSoon(invitedAt)) { showToast('Invite already sent recently'); return; }
 
       try{
         await ensureAuthUserAndSendReset(email);
@@ -677,10 +701,10 @@
       }
     });
 
-    document.getElementById('searchInput').addEventListener('input', render);
-    document.getElementById('toggleShowArchived').addEventListener('change', render);
+    $('#searchInput').addEventListener('input', render);
+    $('#toggleShowArchived').addEventListener('change', render);
 
-    // ===== Quick View provider for core.js global modal =====
+    // ===== Quick View provider for core.js global button =====
     window.DF_QUICKVIEW_PROVIDER = async function(){
       const rows=(await listEmployees()).filter(x=>!x.archived)
         .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
@@ -699,6 +723,11 @@
       }).join('') : '<li class="muted">No employees yet.</li>';
       return { title: 'Employees', node: ul };
     };
+
+    // Force core.js to (re)inject the Quick View button now that provider exists
+    if (window.DF_UI && typeof window.DF_UI.refreshQuickView === 'function') {
+      window.DF_UI.refreshQuickView();
+    }
 
     // Initial render + breadcrumbs
     await render();
