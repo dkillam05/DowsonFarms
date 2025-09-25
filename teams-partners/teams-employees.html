@@ -1,40 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ========== META & THEME PREPAINT ========== -->
+  <!-- ========= META & THEME ========= -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Employees — Dowson Farms</title>
   <script>
     (function () {
-      var pref = localStorage.getItem('df_theme') || 'auto';
-      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-      document.documentElement.style.colorScheme =
-        (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+      const pref = localStorage.getItem('df_theme') || 'auto';
+      const dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      const mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode;
     })();
   </script>
 
-  <!-- ========== GLOBAL THEME/CORE ASSETS ========== -->
+  <!-- ========= GLOBAL ASSETS ========= -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
 
-  <!-- Seed a stub Quick View provider BEFORE core.js so the button always renders -->
+  <!-- Seed a stub QV so the button renders even before our provider is ready -->
   <script>
-    window.DF_QUICKVIEW_PROVIDER = async function () {
-      return { title: 'Employees', html: '<div style="opacity:.65">Loading…</div>' };
-    };
+    window.DF_QUICKVIEW_PROVIDER = async () => ({ title: 'Employees', html: '<div style="opacity:.65">Loading…</div>' });
   </script>
   <script defer src="../js/core.js"></script>
 
-  <!-- Firebase bootstrap (ES module init used across the app) -->
+  <!-- Firebase bootstrap -->
   <script type="module" src="../js/firebase-init.js"></script>
 
-  <!-- Global menus (single source of truth) -->
+  <!-- Menus (for overrides UI) -->
   <script defer src="../assets/data/menus.js"></script>
 
-  <!-- ========== PAGE-LOCAL STYLES ========== -->
+  <!-- ========= PAGE STYLES ========= -->
   <style>
     .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -51,11 +49,11 @@
     /* Toast */
     #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
       padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:50000;}
+      background:var(--tile-bg,#fff); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:50000;}
     #dfToast.show{display:block; animation:dfToastIn .18s ease-out}
     @keyframes dfToastIn{from{transform:translateX(-50%) translateY(8px);opacity:.0} to{transform:translateX(-50%) translateY(0);opacity:1}}
 
-    /* Pills + cards (shared look with Roles page) */
+    /* Overrides UI bits (same look as Roles page) */
     .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
     .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;
       border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);
@@ -68,7 +66,6 @@
     .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px;display:none}
-    .muted-sm{opacity:.85;font-size:.92rem}
 
     /* Modal (Overrides) */
     .modal-backdrop{display:none;position:fixed;inset:0;z-index:60000;background:rgba(0,0,0,.45);
@@ -81,7 +78,7 @@
   </style>
 </head>
 <body>
-  <!-- ========== HEADER ========== -->
+  <!-- ========= HEADER ========= -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -90,7 +87,7 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- ========== BREADCRUMBS ========== -->
+  <!-- ========= BREADCRUMBS ========= -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -101,9 +98,8 @@
     </ol>
   </nav>
 
-  <!-- ========== MAIN ========== -->
+  <!-- ========= MAIN ========= -->
   <main class="content" data-has-form data-qv-label="Quick View">
-    <!-- Keep just the H1 — core.js injects a row and puts Quick View on the right -->
     <h1 style="margin:0;">👥 Employees</h1>
     <div style="margin-top:12px;"></div>
 
@@ -145,14 +141,14 @@
 
       <section class="card" style="padding:12px; margin-top:8px;">
         <div class="grid3">
-          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
-          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+          <button class="btn-primary"   type="submit" id="saveBtn"   style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline"   type="reset"  id="clearBtn"  style="width:92px;height:92px;">Clear</button>
           <button class="btn-secondary" type="button" id="inviteBtn" style="width:92px;height:92px;">Invite</button>
         </div>
       </section>
     </form>
 
-    <!-- SAVED LIST -->
+    <!-- LIST -->
     <section class="card" id="savedCard" style="margin-top:16px;">
       <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
       <div class="line">
@@ -165,7 +161,7 @@
     </section>
   </main>
 
-  <!-- ========== FOOTER ========== -->
+  <!-- ========= FOOTER ========= -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -174,7 +170,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- ========== OVERRIDES MODAL (mirrors Account Roles) ========== -->
+  <!-- ========= OVERRIDES MODAL ========= -->
   <div id="ovB" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
     <div class="modal" role="document">
       <header>
@@ -192,10 +188,10 @@
     </div>
   </div>
 
-  <!-- ========== TOAST (global, bullet-proof) ========== -->
+  <!-- ========= TOAST ========= -->
   <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
   <script>
-    window.showToast = function showToast(msg){
+    window.showToast = function(msg){
       try{
         const box = document.getElementById('dfToast');
         const txt = document.getElementById('dfToastText');
@@ -208,49 +204,45 @@
     };
   </script>
 
-  <!-- ========== PAGE LOGIC (MODULE) ========== -->
+  <!-- ========= PAGE LOGIC ========= -->
   <script type="module">
-    /* -------------- Robust Firebase wait (prevents early crashes) -------------- */
+    /* Robust wait so DF_FB is definitely ready */
     async function waitForFirebase(maxMs=12000){
-      const start = performance.now();
-      while (performance.now() - start < maxMs){
+      const t0 = performance.now();
+      while (performance.now() - t0 < maxMs){
         if (window.DF_FB && window.DF_FB.db) return window.DF_FB;
-        await new Promise(r=>setTimeout(r, 60));
+        await new Promise(r=>setTimeout(r,60));
       }
       throw new Error('Firebase not initialized');
     }
     const { db } = await waitForFirebase();
 
-    /* Imports after DF_FB is guaranteed */
     import {
       collection, doc, getDoc, getDocs, query, where, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
     import {
-      listEmployees, getEmployee, saveAndInvite, inviteEmployee
+      listEmployees, getEmployee, saveAndInvite, inviteEmployee,
+      archiveEmployee, deleteEmployee
     } from '../js/fb-employees.js';
 
-    /* ===========================
-       MENUS from DF_MENUS → shape map */
+    /* ---------- Menus map for overrides ---------- */
     function buildMenusFromDF(df){
       const out = {};
       if (!df || !Array.isArray(df.tiles)) return out;
-      df.tiles.forEach(tile => {
-        const top = String(tile.label || '').trim();
-        if (!top) return;
-        const kids = Array.isArray(tile.children) ? tile.children : [];
-        const subs = kids.map(k => String(k.label || '').trim()).filter(Boolean);
+      df.tiles.forEach(tile=>{
+        const top = String(tile.label||'').trim(); if (!top) return;
+        const subs = (tile.children||[]).map(k=>String(k.label||'').trim()).filter(Boolean);
         if (subs.length) out[top] = subs;
       });
       return out;
     }
-    const MENUS = buildMenusFromDF(window.DF_MENUS || {});
+    const MENUS   = buildMenusFromDF(window.DF_MENUS || {});
     const ACTIONS = ['view','edit','add','archive','delete'];
 
-    /* ===========================
-       DOM + utils */
-    const $ = (s)=>document.querySelector(s);
-    const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
+    /* ---------- DOM/utils ---------- */
+    const $ = s => document.querySelector(s);
+    const chip = s => s ? `<span class="chip">${s}</span>` : '';
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -262,17 +254,17 @@
       input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
       input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
     }
-    const isValidPhoneUS = (s)=> /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
-    const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
-    const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
+    const isValidPhoneUS = s => /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
+    const isEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
+    const titleCase = s => (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    // Roles select
+    /* ---------- Roles dropdown ---------- */
     async function fetchRoles(){
-      try {
+      try{
         const snaps = await getDocs(query(collection(db,'roles'), orderBy('label')));
         const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
         return out;
-      } catch {
+      }catch{
         const snaps = await getDocs(collection(db,'roles'));
         const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
         return out;
@@ -294,7 +286,7 @@
       if (value) sel.value=value;
     }
 
-    // Read a role’s baseline permissions object
+    /* ---------- Read baseline perms for role ---------- */
     async function readRolePermissions(roleId){
       if (!roleId) return {};
       const snap = await getDoc(doc(collection(db,'roles'), roleId));
@@ -302,8 +294,7 @@
       return (data.permissions && typeof data.permissions==='object') ? data.permissions : {};
     }
 
-    /* ===========================
-       Overrides UI (Option B) — unchanged */
+    /* ---------- Overrides UI ---------- */
     function ensureShapeFromMenus(source){
       const perms = {};
       Object.keys(MENUS).forEach(menu=>{
@@ -325,26 +316,11 @@
           const b = (baseline?.[menu]?.[sm]) || {};
           const o = (overrides?.[menu]?.[sm]) || {};
           const obj = {};
-          ACTIONS.forEach(k=>{
-            obj[k] = (k in o) ? !!o[k] : !!b[k];
-          });
+          ACTIONS.forEach(k=>{ obj[k] = (k in o) ? !!o[k] : !!b[k]; });
           eff[menu][sm] = obj;
         });
       });
       return eff;
-    }
-    function flattenPerms(effective){
-      const out = {};
-      Object.keys(effective||{}).forEach(menu=>{
-        Object.keys(effective[menu]||{}).forEach(sub=>{
-          const p = effective[menu][sub] || {};
-          ACTIONS.forEach(k=>{
-            const key = `${menu}${sub ? ' › ' + sub : ''}.${k}`;
-            if (p[k] === true) out[key] = true;
-          });
-        });
-      });
-      return out;
     }
     function pill(label, pressed){
       const b=document.createElement('button');
@@ -374,7 +350,6 @@
       if (on===keys.length) return 'All submenus';
       return `${on} of ${keys.length} submenus`;
     }
-
     function openOverridesModal(baseline, overrides){
       const B = $('#ovB'), body = $('#ovBody'), enabled = $('#ovEnabled');
       const base = ensureShapeFromMenus(baseline||{});
@@ -393,7 +368,7 @@
         const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
         const title = document.createElement('strong'); title.textContent = menu;
         left.append(caret,title);
-        const right = document.createElement('div'); right.className='muted-sm';
+        const right = document.createElement('div'); right.className='muted-small';
         head.append(left,right);
 
         const mbody = document.createElement('div'); mbody.className='menu-body';
@@ -426,7 +401,7 @@
         const subCaret = document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
         const shT = document.createElement('strong'); shT.textContent='Manage submenus';
         shL.append(subCaret, shT);
-        const shRight = document.createElement('span'); shRight.className='muted-sm';
+        const shRight = document.createElement('span'); shRight.className='muted-small';
         sh.append(shL, shRight);
         const subBody = document.createElement('div'); subBody.className='subbody';
 
@@ -443,7 +418,7 @@
               draftOverrides[menu][sm][k] = isOn;
               effective[menu][sm][k] = isOn;
               shRight.textContent = summarizeChildren(effective, menu);
-              right.textContent = menuSummary(effective, menu);
+              right.textContent   = menuSummary(effective, menu);
               const allOn  = (MENUS[menu]||[]).every(s=>effective[menu][s][k]===true);
               const allOff = (MENUS[menu]||[]).every(s=>effective[menu][s][k]===false);
               const parentBtn = mbody.querySelector(`.pill[aria-label="${menu}::${k}"]`);
@@ -490,8 +465,7 @@
               const hasOverride = (k in o);
               if (hasOverride && o[k] !== !!b[k]) out[k] = !!o[k];
             });
-            const any = Object.keys(out).length>0;
-            if (any){
+            if (Object.keys(out).length){
               clean[menu] = clean[menu] || {};
               clean[menu][sm] = out;
             }
@@ -506,8 +480,7 @@
       };
     }
 
-    /* ===========================
-       Saved list / manage / invite */
+    /* ---------- Render list (with Archive/Delete) ---------- */
     async function render(){
       try{
         const q=($('#searchInput').value||'').toLowerCase().trim();
@@ -522,6 +495,7 @@
           const ex = r.exceptions || {};
           const exEnabled = !!ex.enabled;
           const exCount = exEnabled ? Object.values(ex.grants||{}).reduce((n,subs)=> n + Object.keys(subs||{}).length, 0) : 0;
+          const canDelete = !!r.archived; // require archived first
           return `<li class="card" style="padding:10px; margin:8px 0;">
             <div class="line">
               <strong>${name}</strong>
@@ -531,68 +505,78 @@
             </div>
             <div class="line" style="margin-top:8px;">
               <button class="btn-secondary" data-edit="${r.id}">Manage</button>
-              <button class="btn-outline" data-invite="${r.id}">Invite</button>
+              <button class="btn-outline" data-archive="${r.id}" data-archived="${r.archived ? '1':'0'}">
+                ${r.archived ? 'Unarchive' : 'Archive'}
+              </button>
+              <button class="btn-outline" data-del="${r.id}" ${canDelete?'':'disabled title="Archive first to enable delete"'}>Delete</button>
             </div>
           </li>`;
         }).join('') : '<li class="muted">No employees yet.</li>';
 
         L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
-        L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteExisting(b.getAttribute('data-invite'))));
+        L.querySelectorAll('[data-archive]').forEach(b=> b.addEventListener('click', async ()=>{
+          const id = b.getAttribute('data-archive');
+          const archived = b.getAttribute('data-archived') === '1';
+          try{
+            await archiveEmployee(id, !archived);
+            await render();
+            showToast(archived ? 'Unarchived' : 'Archived');
+          }catch(e){
+            console.error(e); showToast('Archive failed');
+          }
+        }));
+        L.querySelectorAll('[data-del]').forEach(b=> b.addEventListener('click', async ()=>{
+          const id = b.getAttribute('data-del');
+          if (b.hasAttribute('disabled')) { showToast('Archive first to enable delete'); return; }
+          if (!confirm('Permanently delete this employee? This cannot be undone.')) return;
+          try{
+            await deleteEmployee(id);
+            await render();
+            showToast('Deleted');
+          }catch(e){
+            console.error(e); showToast('Delete failed');
+          }
+        }));
       }catch(e){
         console.error('render error', e);
         showToast('Could not load employees');
       }
     }
 
+    /* ---------- Manage existing ---------- */
     async function openManage(id){
       const e = await getEmployee(id);
-      if (!e){ alert('Not found'); return; }
-
+      if (!e){ showToast('Not found'); return; }
       $('#empFirst').value = e.first||'';
       $('#empLast').value  = e.last||'';
       $('#empPhone').value = e.phone||'';
       $('#empEmail').value = e.email||'';
       await fillRoleSelect($('#empRole'), e.role||'');
-
       const payload = e.exceptions || {enabled:false,grants:{}};
       $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
-
       window.scrollTo({top:0, behavior:'smooth'});
       $('#empFirst').focus();
     }
 
+    /* ---------- Invite existing ---------- */
     async function inviteExisting(id){
       try{
         const e = await getEmployee(id);
         if (!e || !e.email){ showToast('Email required to invite'); return; }
-
-        // If we know their role + overrides, compute effective and pass it along
-        let effectivePerms = null;
-        if (e.role) {
-          const base = await readRolePermissions(e.role);
-          const eff = mergeEffective(base, (e.exceptions && e.exceptions.enabled) ? e.exceptions.grants : {});
-          effectivePerms = flattenPerms(eff);
-        }
-
-        await inviteEmployee(e.email, { effectivePerms });
+        await inviteEmployee(e.email);
         await render();
         showToast('Invite sent');
       }catch(err){
         console.error('inviteExisting', err);
-        if (err && err.code === 'throttled') {
-          showToast('Invite already sent recently');
-        } else {
-          showToast('Invite failed'); alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
-        }
+        if (err && err.code === 'throttled') showToast('Invite already sent recently');
+        else { showToast('Invite failed'); alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.'); }
       }
     }
 
-    /* ===========================
-       Wire form */
+    /* ---------- Wire form ---------- */
     attachPhoneMask($('#empPhone'));
     await fillRoleSelect($('#empRole'));
 
-    // Open overrides modal
     $('#exceptionsBtn').addEventListener('click', async ()=>{
       const roleId = $('#empRole').value;
       if (!roleId){ showToast('Choose a Role first'); return; }
@@ -601,7 +585,6 @@
       openOverridesModal(base, prevPayload.enabled ? prevPayload.grants : {});
     });
 
-    // Save = upsert Firestore + auto invite (password reset)
     document.getElementById('emp-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       try{
@@ -620,26 +603,15 @@
           ? JSON.parse($('#exceptionsBtn').dataset.payload)
           : {enabled:false,grants:{}};
 
-        // Compute effective perms now so /perm/{uid} can be written for brand-new users
-        const base = await readRolePermissions(role);
-        const eff = mergeEffective(base, ovPayload.enabled ? ovPayload.grants : {});
-        const effectivePerms = flattenPerms(eff);
-
         const res = await saveAndInvite({
           first, last, phone, email, role,
           exceptions: ovPayload,
-          archived:false,
-          // NOTE: this is only used when a brand-new Auth user is created (we have uid then)
-          effectivePerms
+          archived:false
         });
 
-        if (res.invited) {
-          showToast('Employee saved + invite sent');
-        } else if (res.throttled) {
-          showToast('Employee saved (invite recently sent)');
-        } else {
-          showToast('Employee saved');
-        }
+        if (res.invited) showToast('Employee saved + invite sent');
+        else if (res.throttled) showToast('Employee saved (invite recently sent)');
+        else showToast('Employee saved');
 
         e.target.reset();
         delete $('#exceptionsBtn').dataset.payload;
@@ -650,48 +622,30 @@
       }
     });
 
-    // Clear
     $('#clearBtn').addEventListener('click', ()=>{
       $('#emp-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
       showToast('Cleared');
     });
 
-    // Invite (from the form)
     $('#inviteBtn').addEventListener('click', async ()=>{
       try{
         const email = ($('#empEmail').value||'').trim().toLowerCase();
-        const role  = $('#empRole').value;
         if(!isEmail(email)){ showToast('Valid email required'); return; }
-
-        // If role chosen, compute effective perms to attach during invite (new users only)
-        let effectivePerms = null;
-        if (role) {
-          const base = await readRolePermissions(role);
-          const ovPayload = $('#exceptionsBtn').dataset.payload
-            ? JSON.parse($('#exceptionsBtn').dataset.payload)
-            : {enabled:false,grants:{}};
-          const eff = mergeEffective(base, ovPayload.enabled ? ovPayload.grants : {});
-          effectivePerms = flattenPerms(eff);
-        }
-
-        await inviteEmployee(email, { effectivePerms });
+        await inviteEmployee(email);
         await render();
         showToast('Invite sent');
       }catch(err){
         console.error('inviteBtn', err);
-        if (err && err.code === 'throttled') {
-          showToast('Invite already sent recently');
-        } else {
-          showToast('Invite failed'); alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
-        }
+        if (err && err.code === 'throttled') showToast('Invite already sent recently');
+        else { showToast('Invite failed'); alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.'); }
       }
     });
 
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
 
-    // ===== Quick View provider for core.js global button (overwrites stub) =====
+    // Quick View provider (overwrites stub)
     window.DF_QUICKVIEW_PROVIDER = async function(){
       const rows=(await listEmployees({ includeArchived:false }));
       const ul = document.createElement('ul');
@@ -709,13 +663,10 @@
       return { title: 'Employees', node: ul };
     };
 
-    // Ask core.js to (re)inject the global Quick View button now
-    if (window.DF_UI && typeof window.DF_UI.refreshQuickView === 'function') {
-      window.DF_UI.refreshQuickView();
-    }
+    // Ask core.js to inject the global QV button (now that provider exists)
+    try { window.DF_UI?.refreshQuickView?.(); } catch(_) {}
 
     // Initial render + breadcrumbs
-    attachPhoneMask($('#empPhone'));
     await render();
     window.setBreadcrumbs && window.setBreadcrumbs([
       {label:'Home', href:'../index.html'},
@@ -724,7 +675,7 @@
     ]);
   </script>
 
-  <!-- ========== SERVICE WORKER ========== -->
+  <!-- ========= SERVICE WORKER ========= -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
