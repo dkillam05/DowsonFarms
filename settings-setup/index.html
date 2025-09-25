@@ -30,6 +30,35 @@
   <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+
+  <!-- Toast banner styles (single line, no wrapping) -->
+  <style>
+    .df-toast{
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%) translateY(16px);
+      max-width: 92vw;
+      padding: 10px 16px;
+      background: var(--brand-green, #1B5E20);
+      color: #fff;
+      border-radius: 9999px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;          /* no stacking */
+      overflow: hidden;             /* clip overflow */
+      text-overflow: ellipsis;      /* add … if too long */
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .df-toast.show{
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
 </head>
 <body>
   <header class="app-header">
@@ -63,7 +92,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Toast (re-uses theme styles if present) -->
+  <!-- Toast -->
   <div id="dfToast" class="df-toast" role="status" aria-live="polite" style="display:none;"></div>
 
   <!-- Root SW registration (scope = repo root). This does NOT trigger any check/update on load. -->
@@ -73,7 +102,7 @@
         var base = (function(){
           var b = document.querySelector('base');
           if (b && b.href) { try { return new URL(b.href).pathname; } catch(_){} }
-          var seg = (location.pathname || '/').split('/').filter(Boolean);
+        var seg = (location.pathname || '/').split('/').filter(Boolean);
           return seg.length ? ('/' + seg[0] + '/') : '/';
         })();
         navigator.serviceWorker.register('../serviceworker.js', { scope: base }).catch(console.error);
@@ -89,18 +118,22 @@
   (function(){
     const $ = s => document.querySelector(s);
 
-    // Minimal toast helper (keeps toasts ≥3s)
+    // Toast helper: keep ≥4s, single-line banner
     function toast(msg, ms = 4000){
       ms = Math.max(ms, 4000);
       const el = $('#dfToast');
-      if (!el) return; // silent if you remove the toast div
+      if (!el) return;
       el.textContent = msg;
       el.style.display = 'block';
+      el.setAttribute('aria-hidden', 'false');
       requestAnimationFrame(()=> el.classList.add('show'));
       clearTimeout(el._hideTimer);
       el._hideTimer = setTimeout(()=>{
         el.classList.remove('show');
-        setTimeout(()=>{ el.style.display='none'; }, 220);
+        setTimeout(()=>{
+          el.style.display='none';
+          el.setAttribute('aria-hidden', 'true');
+        }, 220);
       }, ms);
     }
 
@@ -118,7 +151,6 @@
         url.searchParams.set('ts', Date.now().toString());           // bypass caches
         const res = await fetch(url.toString(), { cache:'no-store' });
         const txt = await res.text();
-        // Matches either window.DF_VERSION = 'vX.Y.Z' or var VERSION = 'vX.Y.Z'
         const m = txt.match(/DF_VERSION\s*=\s*['"]([^'"]+)['"]/i) || txt.match(/var\s+VERSION\s*=\s*['"]([^'"]+)['"]/i);
         return m ? m[1] : null;
       } catch { return null; }
@@ -168,67 +200,73 @@
         const reg = await getRootSWRegistration();
         try { if (reg && reg.update) await reg.update(); } catch {}
 
-        // Step 2: If a new SW is already waiting/installing, force-activate and reload on takeover
+        // Step 2: If a new SW is already waiting/installing, delay activation slightly so the toast is readable
         let willReloadViaSW = false;
-        if ('serviceWorker' in navigator) {
+
+        if ('serviceWorker' in navigator && reg) {
           const onCC = () => { navigator.serviceWorker.removeEventListener('controllerchange', onCC); cacheBustedReload(); };
           navigator.serviceWorker.addEventListener('controllerchange', onCC, { once:true });
 
-          if (reg) {
-            if (reg.waiting) {
-              reg.waiting.postMessage({ type:'SKIP_WAITING' });
-              willReloadViaSW = true;
-            } else if (reg.installing) {
-              await new Promise(resolve => {
+          const delayActivate = async (swTarget) => {
+            // Show readable toast, then trigger SKIP_WAITING after ~1.8s
+            toast('Update found — applying…', 4200);
+            await new Promise(r => setTimeout(r, 1800));
+            swTarget.postMessage({ type:'SKIP_WAITING' });
+            willReloadViaSW = true;
+          };
+
+          if (reg.waiting) {
+            await delayActivate(reg.waiting);
+          } else if (reg.installing) {
+            await new Promise(resolve => {
+              const sw = reg.installing;
+              sw.addEventListener('statechange', async function onSC(){
+                if (sw.state === 'installed') {
+                  sw.removeEventListener('statechange', onSC);
+                  if (reg.waiting) await delayActivate(reg.waiting);
+                  resolve();
+                } else if (sw.state === 'redundant') {
+                  sw.removeEventListener('statechange', onSC);
+                  resolve();
+                }
+              });
+            });
+          } else {
+            // Brief window to see if update shows up
+            await new Promise(resolve => {
+              const timer = setTimeout(resolve, 4500);
+              reg.addEventListener('updatefound', function onUF(){
                 const sw = reg.installing;
-                sw.addEventListener('statechange', function onSC(){
-                  if (sw.state === 'installed') {
-                    sw.removeEventListener('statechange', onSC);
-                    if (reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
-                    willReloadViaSW = true;
-                    resolve();
-                  } else if (sw.state === 'redundant') {
-                    sw.removeEventListener('statechange', onSC);
+                if (!sw) return;
+                sw.addEventListener('statechange', async function onSC(){
+                  if (sw.state === 'installed' && reg.waiting) {
+                    await delayActivate(reg.waiting);
+                    clearTimeout(timer);
                     resolve();
                   }
-                });
-              });
-            } else {
-              // Brief window to see if update shows up
-              await new Promise(resolve => {
-                const timer = setTimeout(resolve, 4500);
-                reg.addEventListener('updatefound', function onUF(){
-                  const sw = reg.installing;
-                  if (!sw) return;
-                  sw.addEventListener('statechange', function onSC(){
-                    if (sw.state === 'installed' && reg.waiting) {
-                      reg.waiting.postMessage({ type:'SKIP_WAITING' });
-                      willReloadViaSW = true;
-                      clearTimeout(timer);
-                      resolve();
-                    }
-                  }, { once:true });
                 }, { once:true });
-              });
-            }
+              }, { once:true });
+            });
           }
         }
+
         if (willReloadViaSW) {
-          toast('Update found — applying…', 3200);
-          return; // controllerchange will reload
+          // controllerchange will reload after the toast delay
+          return;
         }
 
         // Step 3: Compare network version.js to current as a backup signal
         const networkVer = await fetchNetworkVersion();
         const newer = networkVer && isNewer(networkVer, current);
         if (newer) {
-          toast('Update found — reloading…', 3200);
-          cacheBustedReload();
+          // Show readable toast, then do a cache-busted reload after ~1.8s
+          toast('Update found — reloading…', 4200);
+          setTimeout(cacheBustedReload, 1800);
           return;
         }
 
         // Step 4: No update
-        toast('No updates available', 3000);
+        toast('No updates available', 4200);
       }
 
       function cleanup(){
