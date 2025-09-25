@@ -1,6 +1,7 @@
 // /js/fb-roles.js
 // Account Roles — edit per-role permissions using DF_MENUS as source of truth.
 // Waits for Firebase auth restoration, quiet UX (toasts/status, no alerts/redirects).
+// Auto-backfills permKey on legacy role docs so blanket Firestore rules work without any console steps.
 
 import {
   collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp
@@ -20,7 +21,7 @@ const el = {
   menusBox:     $('#menusContainer'),
   permCard:     $('#permCard'),
 
-  // Quick View
+  // Quick View (if your page includes it)
   qvBackdrop:   $('#qvBackdrop'),
   qvList:       $('#qvList'),
   qvRole:       $('#qvRole'),
@@ -303,7 +304,7 @@ function buildPermissionsUI(container, startingPerms){
   };
 }
 
-/* ---------- Quick View ---------- */
+/* ---------- Quick View (if present on the page) ---------- */
 function openQuickView(roleLabel, permsObj){
   if (!el.qvBackdrop || !el.qvList || !el.qvRole) return;
   el.qvRole.textContent = roleLabel || '—';
@@ -321,6 +322,19 @@ function openQuickView(roleLabel, permsObj){
   el.qvBackdrop.style.display='flex';
   el.qvClose?.addEventListener('click', ()=> el.qvBackdrop.style.display='none', {once:true});
   el.qvBackdrop.addEventListener('click', (e)=>{ if(e.target===el.qvBackdrop) el.qvBackdrop.style.display='none'; }, {once:true});
+}
+
+/* ---------- Auto backfill permKey on old docs (phone-friendly) ---------- */
+async function backfillPermKeyIfNeeded(db){
+  try{
+    const snaps = await getDocs(collection(db,'roles'));
+    const missing = snaps.docs.filter(d => (d.data()||{}).permKey !== PERM_KEY);
+    if (!missing.length) return;
+    // Quietly patch them; idempotent
+    await Promise.all(missing.map(d =>
+      setDoc(doc(db,'roles', d.id), { permKey: PERM_KEY, updatedAt: serverTimestamp() }, { merge:true })
+    ));
+  }catch(_){}
 }
 
 /* ---------- Auth-aware boot ---------- */
@@ -374,6 +388,9 @@ async function start(){
   if (el.roleHint) el.roleHint.textContent = 'Loading roles…';
   const db = await readyFirebase();
 
+  // Make sure old role docs get the permKey automatically (no console needed)
+  await backfillPermKeyIfNeeded(db);
+
   // Seed roles if empty, then fill dropdown
   const roles = await seedRolesIfEmpty(db);
   if (!roles.length){
@@ -422,7 +439,7 @@ async function start(){
       toast('Changes discarded');
     };
 
-    // Quick View button (top-right)
+    // Quick View button (top-right) if present
     const qvBtn = $('#quickViewBtn');
     if (qvBtn){
       qvBtn.onclick = ()=>{
@@ -442,30 +459,3 @@ async function start(){
     await loadRole(roleId);
   });
 }
-
-/* =====================================================
-   One-time admin helper: backfill permKey on old role docs
-   -------------------------------------------------------
-   Use from the browser console while logged in as admin:
-
-     await DF_seedRolesPermKey()
-
-   or import and call:
-
-     await seedRolesPermKey()
-   ===================================================== */
-export async function seedRolesPermKey(){
-  const db = await readyFirebase();
-  const snaps = await getDocs(collection(db,'roles'));
-  let n = 0;
-  for (const s of snaps.docs) {
-    const d = s.data() || {};
-    if (d.permKey !== PERM_KEY) {
-      await setDoc(doc(db,'roles', s.id), { permKey: PERM_KEY, updatedAt: serverTimestamp() }, { merge:true });
-      n++;
-    }
-  }
-  console.log(`[Roles] permKey backfilled on ${n} doc(s).`);
-  return n;
-}
-try { window.DF_seedRolesPermKey = seedRolesPermKey; } catch(_) {}
