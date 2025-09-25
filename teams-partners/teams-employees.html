@@ -16,13 +16,21 @@
     })();
   </script>
 
-  <!-- ========== YOUR TREE (match the rest of the app) ========== -->
+  <!-- ========== GLOBAL THEME/CORE ASSETS ========== -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
+
+  <!-- IMPORTANT: seed a stub Quick View provider BEFORE core.js so it injects the button -->
+  <script>
+    window.DF_QUICKVIEW_PROVIDER = async function () {
+      return { title: 'Employees', html: '<div style="opacity:.65">Loading…</div>' };
+    };
+  </script>
   <script defer src="../js/core.js"></script>
 
   <!-- Firebase bootstrap (ES module init used across the app) -->
   <script type="module" src="../js/firebase-init.js"></script>
+
   <!-- Global menus (single source of truth) -->
   <script defer src="../assets/data/menus.js"></script>
 
@@ -220,8 +228,7 @@
     const ACTIONS = ['view','edit','add','archive','delete'];
 
     /* ===========================
-       DOM + toast
-       =========================== */
+       DOM + toast */
     const $ = (s)=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
     function showToast(msg){
@@ -234,8 +241,7 @@
     }
 
     /* ===========================
-       Roles dropdown (/roles)
-       =========================== */
+       Roles dropdown (/roles) */
     async function fetchRoles(){
       try {
         const snaps = await getDocs(query(collection(db,'roles'), orderBy('label')));
@@ -264,8 +270,7 @@
     }
 
     /* ===========================
-       Utilities
-       =========================== */
+       Utilities */
     function formatPhoneDigits(d){
       const x=d.replace(/\D/g,'').slice(0,10);
       const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
@@ -290,10 +295,7 @@
     }
 
     /* ===========================
-       Overrides UI (Option B)
-       - Show EFFECTIVE = override ?? baseline
-       - Save ONLY overrides
-       =========================== */
+       Overrides UI (Option B) — identical behavior */
     const ACTION_KEYS = ['view','edit','add','archive','delete'];
     function ensureShapeFromMenus(source){
       const perms = {};
@@ -458,7 +460,6 @@
       $('#ovCancel').onclick = ()=> B.style.display='none';
 
       $('#ovSave').onclick = ()=>{
-        // Clean overrides: drop entries identical to baseline, and drop all-false rows
         const clean = {};
         Object.keys(MENUS).forEach(menu=>{
           (MENUS[menu]||[]).forEach(sm=>{
@@ -486,8 +487,7 @@
     }
 
     /* ===========================
-       Saved list / manage / invite
-       =========================== */
+       Saved list / manage / invite */
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
@@ -554,8 +554,7 @@
     }
 
     /* ===========================
-       Wire form
-       =========================== */
+       Wire form */
     attachPhoneMask($('#empPhone'));
     await fillRoleSelect($('#empRole'));
 
@@ -640,7 +639,7 @@
     $('#searchInput').addEventListener('input', render);
     $('#toggleShowArchived').addEventListener('change', render);
 
-    // ===== Quick View provider for core.js global button =====
+    // ===== Quick View provider for core.js global button (overwrites stub) =====
     window.DF_QUICKVIEW_PROVIDER = async function(){
       const rows=(await listEmployees({ includeArchived:false }));
       const ul = document.createElement('ul');
@@ -658,7 +657,7 @@
       return { title: 'Employees', node: ul };
     };
 
-    // Make sure core.js injects the global Quick View button (right of <h1>)
+    // Make sure core.js injects (or updates) the global Quick View button now
     if (window.DF_UI && typeof window.DF_UI.refreshQuickView === 'function') {
       window.DF_UI.refreshQuickView();
     }
