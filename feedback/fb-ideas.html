@@ -6,114 +6,117 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Ideas — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- Prepaint theme (no flash) -->
   <script>
-  (function () {
-    var pref = localStorage.getItem('df_theme') || 'auto';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme =
-      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-  })();
+    (function () {
+      const pref = localStorage.getItem('df_theme') || 'auto';
+      const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
-  <link rel="stylesheet" href="theme.css" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <!-- App theme + version + core (golden tree paths) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
 
-  <link rel="manifest" href="manifest.webmanifest" />
+  <!-- Menus data (golden tree: assets/data/menus.js) -->
+  <script defer src="../assets/data/menus.js"></script>
+
+  <link rel="manifest" href="../manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
+  <link rel="icon" sizes="192x192" href="../assets/icons/icon-192.png" />
+  <link rel="icon" sizes="512x512" href="../assets/icons/icon-512.png" />
 
-  <!-- Larger search + prevent iOS zoom -->
   <style>
-    #searchInput{
-      font-size:16px; height:44px; padding:10px 14px; border-radius:12px; width:100%; max-width:640px;
-    }
-    /* Attachments grid */
+    /* Page-local tweaks only (keeps theme.css clean) */
     .shots-grid{
       display:grid; grid-template-columns:repeat(auto-fill, minmax(96px,1fr)); gap:10px; margin-top:8px;
     }
-    .shot{
-      position:relative; border:1px solid var(--tile-border); border-radius:10px; overflow:hidden;
-      background:var(--tile-bg, rgba(0,0,0,.03));
-    }
+    .shot{ position:relative; border:1px solid var(--tile-border); border-radius:10px; overflow:hidden; background:var(--tile-bg); }
     .shot img{ display:block; width:100%; height:100%; object-fit:cover; aspect-ratio:1/1; }
-    .shot button{
-      position:absolute; top:6px; right:6px; border:none; border-radius:8px; padding:4px 6px; font-size:.8rem;
-      background:rgba(0,0,0,.55); color:#fff; cursor:pointer;
+    .shot button{ position:absolute; top:6px; right:6px; border:none; border-radius:8px; padding:4px 6px; font-size:.8rem; background:rgba(0,0,0,.6); color:#fff; cursor:pointer; }
+    .drop-zone{ border:1px dashed var(--tile-border); border-radius:10px; padding:12px; text-align:center; background:transparent; }
+    .drop-zone.drag{ background:var(--tile-bg); }
+
+    /* One-line banner toast (3s) */
+    #dfToast {
+      display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+      background:var(--tile-bg); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;
+      max-width:90vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
-    .drop-zone{
-      border:1px dashed var(--tile-border); border-radius:10px; padding:10px; text-align:center;
-      background:transparent;
+    #btnGrid{
+      --w: 92px;
+      display:grid; gap:10px;
+      grid-template-columns: var(--w) var(--w);
+      justify-content:center;
     }
-    .drop-zone.drag{
-      background:var(--tile-bg, rgba(0,0,0,.04));
-    }
+    .inline-note{ font-size:.9rem; color:#666; }
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- Header (core.js handles logout, clock, etc.) -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><a href="feedback.html">Feedback</a></li>
-      <li class="sep">›</li>
-      <li><span>Ideas</span></li>
-    </ol>
-  </nav>
+  <!-- Breadcrumbs (core.js renders the UI) -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb"></nav>
 
   <!-- Content -->
   <main class="content" data-has-form>
-    <!-- Title + Quick View -->
     <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
       <h1 style="margin:0;">💡 Ideas</h1>
-      <button type="button" class="btn-secondary" id="quickViewBtn" aria-label="Quick View">Quick View</button>
     </div>
-    <p class="muted" style="margin-top:8px;">Capture and organize ideas. You can add new Menus/Submenus and optionally attach screenshots.</p>
+    <p class="muted" style="margin-top:8px;">Share an idea for improving the app. Attach an optional screenshot.</p>
 
-    <!-- FORM (stacked fields) -->
-    <form id="idea-form" novalidate>
+    <form id="ideaForm" novalidate>
+      <!-- Submitted by (employees) -->
       <div class="field">
         <label for="submittedBy">Submitted by</label>
         <select id="submittedBy" required></select>
-        <small id="whoHint" class="field-hint" style="color:#666;"></small>
+        <small id="whoHint" class="inline-note"></small>
       </div>
 
+      <!-- Date -->
       <div class="field">
-        <label for="submittedDate">Date submitted</label>
+        <label for="submittedDate">Date</label>
         <input id="submittedDate" type="date" required />
       </div>
 
+      <!-- Menu + Submenu (dynamic from menus.js) -->
       <div class="field">
         <label for="menuSel">Menu</label>
         <select id="menuSel" required></select>
+        <div id="menuOtherWrap" class="row" style="gap:8px; margin-top:6px; display:none;">
+          <input id="menuOther" type="text" placeholder="Type a new menu…" />
+        </div>
       </div>
 
       <div class="field">
         <label for="submenuSel">Submenu</label>
         <select id="submenuSel" required></select>
+        <div id="submenuOtherWrap" class="row" style="gap:8px; margin-top:6px; display:none;">
+          <input id="submenuOther" type="text" placeholder="Type a new submenu…" />
+        </div>
       </div>
 
+      <!-- Message -->
       <div class="field">
-        <label for="message">Message</label>
+        <label for="message">Idea</label>
         <textarea id="message" required placeholder="Describe your idea…"></textarea>
       </div>
 
-      <!-- Optional Screenshots -->
+      <!-- Screenshots -->
       <section class="card" style="padding:12px; margin-top:8px;">
         <div class="row" style="justify-content:space-between; align-items:center;">
           <h3 style="margin:0;">Screenshots (optional)</h3>
@@ -122,47 +125,21 @@
         </div>
         <div id="dropZone" class="drop-zone" style="margin-top:10px;">Drop images here or use “Add images”</div>
         <div id="shotsGrid" class="shots-grid"></div>
-        <small class="muted">We’ll compress large images to keep storage small. Max ~6 images per idea recommended.</small>
+        <small class="muted">Large images are compressed before upload. Up to ~6 per idea.</small>
       </section>
 
-      <!-- 2×2 action buttons -->
+      <!-- Actions -->
       <section class="card" style="padding:12px; margin-top:8px;">
-        <div id="btnGrid" style="
-          --w: 92px;
-          display:grid; gap:10px;
-          grid-template-columns: var(--w) var(--w);
-          justify-content:center;
-        ">
-          <button class="btn-primary" type="submit" id="saveBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Save</button>
-          <button class="btn-outline" type="reset" id="clearBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem;">Clear</button>
-          <button class="btn-outline" type="button" id="archiveBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Archive</button>
-          <button class="btn-outline" type="button" id="deleteBtn"
-                  style="width:var(--w); height:var(--w); font-size:1.02rem; display:none;">Delete</button>
+        <div id="btnGrid">
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:var(--w); height:var(--w); font-size:1.02rem;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn" style="width:var(--w); height:var(--w); font-size:1.02rem;">Clear</button>
+          <button class="btn-outline" type="button" id="cancelBtn" style="width:var(--w); height:var(--w); font-size:1.02rem;">Cancel</button>
         </div>
       </section>
-
-      <input type="hidden" id="editingId" />
     </form>
-
-    <!-- SAVED -->
-    <section class="card" id="savedCard" style="margin-top:16px;">
-      <h2 style="margin:0 0 8px 0;">Saved Ideas</h2>
-      <div class="row" style="align-items:center; gap:12px;">
-        <input id="searchInput" class="search" type="search" placeholder="Search ideas…" />
-        <div style="flex:1"></div>
-        <label class="muted" for="toggleShowArchived">
-          <input type="checkbox" id="toggleShowArchived" /> Show archived
-        </label>
-      </div>
-
-      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
-    </section>
   </main>
 
-  <!-- Footer -->
+  <!-- Footer (core.js injects version + date) -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -171,167 +148,163 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Quick View modal -->
-  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
-    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
-      <h2 id="qvTitle">Open Ideas</h2>
-      <ul class="qv-list" id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="qvClose">Close</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast -->
-  <div id="dfToast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-    padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-    background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;">
-    <span id="dfToastText">Saved</span>
-  </div>
+  <div id="dfToast"><span id="dfToastText">Saved</span></div>
 
   <script>
   (function IdeasPage(){
-    const IDEAS_KEY='df_ideas';
-    const MENUS_KEY='df_menus';
-    const PEOPLE_KEY='df_people';
-    const ADD_VALUE="__ADD__";
+    // ---------- Simple DOM helpers ----------
+    const $ = (s) => document.querySelector(s);
+    const $by = $('#submittedBy');
+    const $date = $('#submittedDate');
+    const $menu = $('#menuSel');
+    const $menuOther = $('#menuOther');
+    const $menuOtherWrap = $('#menuOtherWrap');
+    const $sub = $('#submenuSel');
+    const $submenuOther = $('#submenuOther');
+    const $submenuOtherWrap = $('#submenuOtherWrap');
+    const $msg = $('#message');
+    const $shotsInput = $('#shotsInput');
+    const $shotsGrid = $('#shotsGrid');
+    const $dropZone = $('#dropZone');
+    const $cancel = $('#cancelBtn');
+
+    const ADD_OTHER = '__OTHER__';
     const MAX_IMAGES = 6;
-    const MAX_LONG_EDGE = 1400;    // px
-    const JPEG_QUALITY = 0.8;      // 0..1
-    const $=s=>document.querySelector(s);
+    const MAX_LONG_EDGE = 1400;
+    const JPEG_QUALITY = 0.8;
 
-    // DOM refs
-    const $by=$('#submittedBy'), $date=$('#submittedDate'), $menu=$('#menuSel'), $sub=$('#submenuSel'), $msg=$('#message'), $id=$('#editingId');
-    const $whoHint=$('#whoHint');
-    const $saved=$('#savedList'), $savedCard=$('#savedCard');
-    const $archBtn=$('#archiveBtn'), $delBtn=$('#deleteBtn');
-    const $shotsInput=$('#shotsInput'), $shotsGrid=$('#shotsGrid'), $dropZone=$('#dropZone');
+    // ---------- Breadcrumbs ----------
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'../index.html'},
+      {label:'Feedback', href:'./index.html'},
+      {label:'Ideas'}
+    ]);
 
-    // Working attachments for the current edit (array of {name, dataUrl, w, h, bytes})
-    let attachments = [];
-
-    /* ---------- Seeds ---------- */
-    if (!localStorage.getItem(PEOPLE_KEY)) {
-      localStorage.setItem(PEOPLE_KEY, JSON.stringify([
-        {name:'John Doe'}, {name:'Jane Smith'}, {name:'Sam Operator'}, {name:'Vendor Co.'}
-      ]));
-    }
-    const DEFAULT_MENUS = {
-      "Home": ["—"],
-      "Crop Production": ["Planting","Spraying","Harvest"],
-      "Grain Tracking": ["Bins","Tickets","Contracts"],
-      "Equipment": ["Maintenance","Repairs","Assignments"],
-      "Calculators": ["Seed Rate","Fertilizer","ROI"],
-      "Reports": ["Crops","Equipment","Financial"],
-      "Team / Partners": ["Employees","Vendors"],
-      "Feedback": ["Ideas","Bugs / Issues"],
-      "Setup / Settings": ["Farms","Fields","Theme","Account Roles","Crop Types"]
-    };
-
-    /* ---------- Helpers ---------- */
-    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    // ---------- Date default (Central Time) ----------
     function todayCT(){
-      const now=new Date();
-      const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+      const now = new Date();
+      const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
       const y=parts.find(p=>p.type==='year').value, m=parts.find(p=>p.type==='month').value, d=parts.find(p=>p.type==='day').value;
       return `${y}-${m}-${d}`;
     }
-    function menus(){ return JSON.parse(localStorage.getItem(MENUS_KEY) || 'null') || DEFAULT_MENUS; }
-    function saveMenus(m){ localStorage.setItem(MENUS_KEY, JSON.stringify(m)); }
-    function toast(msg){ const box=$('#dfToast'),txt=$('#dfToastText'); txt.textContent=msg||'Saved'; box.style.display='block'; clearTimeout(window.__t); window.__t=setTimeout(()=>box.style.display='none',2000); }
-    function load(){ try{return JSON.parse(localStorage.getItem(IDEAS_KEY)||'[]')}catch(_){return[]} }
-    function save(list){ localStorage.setItem(IDEAS_KEY, JSON.stringify(list)) }
-    function get(id){ return load().find(x=>x.id===id) }
-    function upsert(item){ const list=load(); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(list) }
-    function remove(id){ save(load().filter(x=>x.id!==id)) }
-    function slug(s){ return (s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/\-+/g,'-') }
-
-    /* ---------- People ---------- */
-    (function fillPeople(){
-      const people = JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]');
-      const you = (window.getCurrentUser?window.getCurrentUser():localStorage.getItem('df_current_user')) || '';
-      $by.innerHTML = people.map(p=>`<option>${p.name}${you && p.name===you?' (You)':''}</option>`).join('');
-      if (you) {
-        const opt=[...$by.options].find(o=>o.value===you || o.textContent.startsWith(you+' '));
-        if (opt) $by.value = opt.value;
-      }
-      $whoHint.textContent = $by.value ? '' : 'Tip: set df_current_user in localStorage to auto-select you.';
-    })();
     $date.value = todayCT();
 
-    /* ---------- Menus/Submenus with ➕ Add ---------- */
-    function addAddOption(sel,label){
-      const opt=document.createElement('option');
-      opt.value=ADD_VALUE; opt.textContent=label; opt.dataset.add='1';
-      sel.appendChild(opt);
+    // ---------- Toast (3s banner) ----------
+    let toastTimer = null;
+    function toast(t='Saved'){
+      const box = document.getElementById('dfToast');
+      const txt = document.getElementById('dfToastText');
+      txt.textContent = t;
+      box.style.display = 'block';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=>{ box.style.display='none'; }, 3000);
     }
-    function renderMenus(selectFirst=true){
-      const M = menus();
-      $menu.innerHTML='';
-      Object.keys(M).forEach(name=>{
-        const opt=document.createElement('option'); opt.value=name; opt.textContent=name; $menu.appendChild(opt);
-      });
-      addAddOption($menu,'➕ Add New Menu…');
-      if (selectFirst && $menu.options.length) $menu.selectedIndex=0;
-      renderSubmenus($menu.value,true);
-    }
-    function renderSubmenus(menuName,selectFirst=false){
-      const M = menus();
-      $sub.innerHTML='';
-      (M[menuName]||[]).forEach(name=>{
-        const opt=document.createElement('option'); opt.value=name; opt.textContent=name; $sub.appendChild(opt);
-      });
-      addAddOption($sub,'➕ Add New Submenu…');
-      if (selectFirst && $sub.options.length) $sub.selectedIndex=0;
-    }
-    function handleMaybeAdd(selectEl, type){
-      if (selectEl.value !== ADD_VALUE) return;
-      const M = menus();
-      const currentMenu = $menu.value;
-      const label = (type==='menu') ? 'New menu name:' : `New submenu for "${currentMenu}":`;
-      const raw = prompt(label);
-      if (!raw) { renderMenus(false); renderSubmenus(currentMenu,false); return; }
-      const name = titleCase(raw.trim());
-      if (!name) return;
 
-      if (type==='menu'){
-        if (!M[name]) M[name]=['—'];
-        saveMenus(M);
-        renderMenus(false);
-        $menu.value=name;
-        renderSubmenus(name,true);
-      } else {
-        if (!M[currentMenu]) M[currentMenu]=[];
-        if (!M[currentMenu].includes(name)) M[currentMenu].push(name);
-        saveMenus(M);
-        renderSubmenus(currentMenu,false);
-        $sub.value=name;
+    // ---------- Employees (Firestore via window.DF if available; graceful fallback) ----------
+    async function loadEmployees(){
+      try{
+        // Expect window.DF.db + DF.firestore (modular) OR compat firebase
+        const DF = window.DF || {};
+        const db = DF.db || null;
+
+        let people = [];
+        if (db && DF.firestore){
+          const { collection, getDocs, query, orderBy } = DF.firestore;
+          const snap = await getDocs(query(collection(db, 'employees'), orderBy('name')));
+          snap.forEach(doc => {
+            const d = doc.data() || {};
+            if (d && d.name) people.push({name: d.name, id: doc.id});
+          });
+        } else if (window.firebase && window.firebase.firestore) {
+          const snap = await window.firebase.firestore().collection('employees').orderBy('name').get();
+          snap.forEach(doc => {
+            const d = doc.data() || {};
+            if (d && d.name) people.push({name: d.name, id: doc.id});
+          });
+        }
+
+        if (people.length === 0) throw new Error('Empty employees list');
+
+        $by.innerHTML = people.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        // Auto-select current user if available
+        const youName = (window.getCurrentUser && window.getCurrentUser()) || localStorage.getItem('df_current_user') || '';
+        if (youName){
+          const opt = [...$by.options].find(o => o.textContent === youName);
+          if (opt) $by.value = opt.value;
+        }
+        document.getElementById('whoHint').textContent = '';
+      } catch(e){
+        // Fallback to a basic list if Firestore unavailable (submit still works to local storage)
+        const fallback = ['John Doe','Jane Smith','Sam Operator','Vendor Co.'];
+        $by.innerHTML = fallback.map(n=>`<option>${n}</option>`).join('');
+        document.getElementById('whoHint').textContent = 'Tip: Connect Firestore employees to populate this list.';
       }
     }
-    renderMenus(true);
-    $menu.addEventListener('change', (e)=>{
-      if (e.target.value===ADD_VALUE){ handleMaybeAdd($menu,'menu'); return; }
-      renderSubmenus($menu.value,true);
-    });
-    $sub.addEventListener('change', ()=>{
-      if ($sub.value===ADD_VALUE){ handleMaybeAdd($sub,'submenu'); }
-    });
 
-    /* ---------- Attachment helpers ---------- */
-    function bytesFromDataUrl(dataUrl){
-      const b64 = dataUrl.split(',')[1] || '';
-      return Math.floor((b64.length * 3) / 4) - (b64.endsWith('==')?2:b64.endsWith('=')?1:0);
+    // ---------- Menus (from assets/data/menus.js) ----------
+    async function loadMenusData(){
+      // Accept either global DF_MENUS, DF.getMenus(), or fallback
+      let M = window.DF_MENUS;
+      if (!M && window.DF && window.DF.getMenus) M = window.DF.getMenus();
+      if (!M && window.__DF_MENUS_DEFAULT__) M = window.__DF_MENUS_DEFAULT__;
+      if (!M){
+        M = {
+          "Home": ["—"],
+          "Crop Production": ["Planting","Spraying","Harvest"],
+          "Grain Tracking": ["Bins","Tickets","Contracts"],
+          "Equipment": ["Maintenance","Repairs","Assignments"],
+          "Calculators": ["Seed Rate","Fertilizer","ROI"],
+          "Reports": ["Crops","Equipment","Financial"],
+          "Teams / Partners": ["Employees","Vendors","Sub-Contractors"],
+          "Feedback": ["Ideas","Bugs / Issues"],
+          "Settings / Setup": ["Farms","Fields","Theme","Account Roles","Crop Types"]
+        };
+      }
+      return M;
     }
-    function fileToImageBitmap(file){
+
+    function renderMenuOptions(M){
+      $menu.innerHTML = '';
+      Object.keys(M).forEach(name=>{
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        $menu.appendChild(opt);
+      });
+      const other = document.createElement('option');
+      other.value = ADD_OTHER; other.textContent = 'Other…';
+      $menu.appendChild(other);
+    }
+    function renderSubmenuOptions(M, menuName){
+      $sub.innerHTML = '';
+      const subs = M[menuName] || [];
+      subs.forEach(name=>{
+        const opt = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        $sub.appendChild(opt);
+      });
+      const other = document.createElement('option');
+      other.value = ADD_OTHER; other.textContent = 'Other…';
+      $sub.appendChild(other);
+    }
+
+    // ---------- Images: compress + UI ----------
+    function dataUrlBytes(dataUrl){
+      const b64 = (dataUrl.split(',')[1]||'');
+      return Math.floor((b64.length*3)/4) - (b64.endsWith('==')?2:b64.endsWith('=')?1:0);
+    }
+    function fileToImage(file){
       return new Promise((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=()=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=reader.result; };
-        reader.onerror=reject; reader.readAsDataURL(file);
+        const fr = new FileReader();
+        fr.onload = () => { const img = new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src = fr.result; };
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
       });
     }
     async function compressImage(file){
       try{
-        const img = await fileToImageBitmap(file);
+        const img = await fileToImage(file);
         const scale = Math.min(1, MAX_LONG_EDGE / Math.max(img.width, img.height));
         const w = Math.round(img.width * scale);
         const h = Math.round(img.height * scale);
@@ -340,226 +313,263 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
         const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
-        return { name: file.name || 'image.jpg', dataUrl, w, h, bytes: bytesFromDataUrl(dataUrl) };
-      }catch(e){ console.error(e); return null; }
+        return { name: file.name || 'image.jpg', dataUrl, w, h, bytes: dataUrlBytes(dataUrl) };
+      } catch(e){ console.error(e); return null; }
     }
+
+    let attachments = []; // {name, dataUrl, w, h, bytes}
     function renderShots(){
       $shotsGrid.innerHTML = attachments.map((a, idx)=>`
         <div class="shot">
-          <img src="${a.dataUrl}" alt="${a.name}"/>
+          <img src="${a.dataUrl}" alt="${a.name}" />
           <button type="button" data-idx="${idx}" aria-label="Remove">✕</button>
         </div>
       `).join('');
       $shotsGrid.querySelectorAll('button[data-idx]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
-          const i = Number(btn.dataset.idx);
-          attachments.splice(i,1);
+          attachments.splice(Number(btn.dataset.idx),1);
           renderShots();
         });
       });
     }
     async function addFiles(fileList){
-      const files = Array.from(fileList || []);
+      const files = Array.from(fileList||[]);
       if (!files.length) return;
       if (attachments.length + files.length > MAX_IMAGES){
         alert(`Please attach up to ${MAX_IMAGES} images per idea.`);
         return;
       }
       for (const f of files){
-        const comp = await compressImage(f);
-        if (comp){
-          attachments.push(comp);
-        }
+        const c = await compressImage(f);
+        if (c) attachments.push(c);
       }
       renderShots();
     }
-
-    // File select + drag/drop
     $shotsInput.addEventListener('change', (e)=> addFiles(e.target.files));
     ;['dragenter','dragover'].forEach(ev=> $dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); $dropZone.classList.add('drag'); }));
     ;['dragleave','drop'].forEach(ev=> $dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); $dropZone.classList.remove('drag'); }));
     $dropZone.addEventListener('drop', (e)=> addFiles(e.dataTransfer.files));
 
-    /* ---------- Saved Ideas list ---------- */
-    function renderSaved(){
-      const q=($('#searchInput').value||'').toLowerCase().trim();
-      const showA=$('#toggleShowArchived').checked;
-      const rows=load()
-        .filter(x=>showA?true:!x.archived)
-        .filter(x=>!q || x.message.toLowerCase().includes(q) || x.menu.toLowerCase().includes(q) || x.submenu.toLowerCase().includes(q) || x.submittedBy.toLowerCase().includes(q))
-        .sort((a,b)=>b.ts-a.ts);
-
-      $saved.innerHTML = rows.length ? rows.map(r=>{
-        const cam = (r.attachments && r.attachments.length) ? ` <span aria-label="attachments">📷 ×${r.attachments.length}</span>` : '';
-        return `
-        <li>
-          <button type="button" class="btn-secondary" data-id="${r.id}"
-                  style="width:100%; text-align:left; display:block; margin:8px 0;">
-            <strong>${r.menu} › ${r.submenu}</strong>${cam}<br>
-            ${r.message}<br>
-            <em>${r.submittedBy}</em> • ${r.date} ${r.archived?'<span style="opacity:.7">• Archived</span>':''}
-          </button>
-        </li>`;
-      }).join('') : '<li class="muted" style="margin-top:8px;">No ideas recorded.</li>';
-
-      $saved.querySelectorAll('button[data-id]').forEach(b=>{
-        b.addEventListener('click', ()=> openForEdit(b.getAttribute('data-id')));
-      });
+    // ---------- Save (Firestore if available; otherwise local-only fallback) ----------
+    function slug(s){
+      return (s||'').trim().toLowerCase()
+        .replace(/[\s_]+/g,'-')
+        .replace(/[^a-z0-9\-]/g,'')
+        .replace(/\-+/g,'-')
+        .replace(/^\-+|\-+$/g,'');
     }
 
-    function showEditButtons(show, archived=false){
-      $archBtn.style.display = show ? 'inline-block' : 'none';
-      $delBtn.style.display  = show ? 'inline-block' : 'none';
-      $archBtn.textContent = archived ? 'Unarchive' : 'Archive';
-    }
+    async function saveIdea(){
+      // Validate
+      const byValRaw = $by.value;
+      const byText = $by.options[$by.selectedIndex]?.textContent || '';
+      const dateVal = $date.value;
+      let menuVal = $menu.value;
+      let submenuVal = $sub.value;
+      if (menuVal === ADD_OTHER) menuVal = ($menuOther.value||'Other').trim();
+      if (submenuVal === ADD_OTHER) submenuVal = ($submenuOther.value||'Other').trim();
+      const msgVal = ($msg.value||'').trim();
 
-    function openForEdit(id){
-      const item=get(id); if(!item) return;
-      $id.value=item.id;
-      $by.value=item.submittedBy;
-      $date.value=item.date;
-
-      // menus/submenus
-      renderMenus(false);
-      $menu.value=item.menu;
-      renderSubmenus(item.menu,false);
-      $sub.value=item.submenu;
-
-      $msg.value=item.message;
-
-      attachments = Array.isArray(item.attachments) ? item.attachments.slice() : [];
-      renderShots();
-
-      showEditButtons(true, item.archived);
-      window.scrollTo({top:0, behavior:'smooth'}); $msg.focus();
-    }
-
-    /* ---------- Submit / Clear / Archive / Delete ---------- */
-    document.getElementById('idea-form').addEventListener('submit', (e)=>{
-      e.preventDefault();
-      if (!$by.value || !$date.value || !$menu.value || !$sub.value || !$msg.value.trim()){
+      if (!byValRaw || !dateVal || !menuVal || !submenuVal || !msgVal){
         alert('Please complete all required fields.');
         return;
       }
 
-      // lightweight storage guard (~5MB localStorage total typical)
-      const attBytes = attachments.reduce((sum,a)=> sum + (a.bytes||0), 0);
-      if (attBytes > 3_500_000){ // ~3.5MB
-        alert('Attachments are too large. Please attach fewer/smaller images.');
-        return;
-      }
+      const now = Date.now();
+      const permaKey = `${dateVal}-${slug(menuVal)}-${slug(submenuVal)}-${Math.random().toString(36).slice(2,8)}`;
 
-      const id = $id.value || slug(`${$date.value}-${$menu.value}-${$sub.value}-${Date.now()}`);
-      const prev = get(id);
+      // Try Firestore (window.DF modular or compat). If unavailable, store locally so user isn’t blocked.
+      let savedToCloud = false;
+      try{
+        const DF = window.DF || {};
+        const db = DF.db || (window.firebase && window.firebase.firestore && window.firebase.firestore());
+        const storage = DF.storage || (window.firebase && window.firebase.storage && window.firebase.storage());
 
-      upsert({
-        id,
-        submittedBy: titleCase($by.value.replace(/\s+\(You\)$/,'').trim()),
-        date: $date.value,
-        menu: $menu.value,
-        submenu: $sub.value,
-        message: $msg.value.trim(),
-        attachments: attachments.slice(), // persist
-        archived: prev ? !!prev.archived : false,
-        ts: prev?.ts || Date.now(),
-        updatedAt: Date.now()
-      });
+        // Build record
+        const docBody = {
+          permaKey,
+          submittedById: byValRaw,          // if employees loaded from Firestore this is the doc id; otherwise name
+          submittedByName: byText || byValRaw,
+          date: dateVal,
+          menu: menuVal,
+          submenu: submenuVal,
+          message: msgVal,
+          attachments: [],
+          createdAt: now,
+          updatedAt: now
+        };
 
-      // Reset view, scroll to list, toast
-      e.target.reset(); $id.value='';
-      attachments = []; renderShots();
-      showEditButtons(false,false);
-      renderSaved();
-      $savedCard.scrollIntoView({behavior:'smooth', block:'start'});
-      toast('Save successful');
+        // Create doc first (get docId)
+        let docId = null;
+        if (db){
+          if (DF.firestore){
+            const { addDoc, collection } = DF.firestore;
+            const ref = await addDoc(collection(db,'ideas'), docBody);
+            docId = ref.id;
+          } else {
+            const ref = await db.collection('ideas').add(docBody);
+            docId = ref.id;
+          }
 
-      // Refill defaults post-reset
-      (function refill(){
-        const you=(window.getCurrentUser?window.getCurrentUser():localStorage.getItem('df_current_user'))||'';
-        if (you) {
-          const opt=[...$by.options].find(o=>o.value===you || o.textContent.startsWith(you+' ')); if (opt) $by.value=opt.value;
+          // Upload attachments if storage is present
+          if (attachments.length && storage){
+            const uploadOneCompat = async (path, blob) => {
+              const ref = storage.ref(path);
+              await ref.put(blob, {contentType:'image/jpeg'});
+              return await ref.getDownloadURL();
+            };
+            const uploaded = [];
+            for (let i=0;i<attachments.length;i++){
+              const a = attachments[i];
+              const path = `ideas/${docId}/${i+1}-${slug(a.name||'image')}.jpg`;
+              // dataURL -> Blob
+              const b64 = a.dataUrl.split(',')[1]; const len = atob(b64).length;
+              const u8 = new Uint8Array(len); for (let j=0;j<len;j++) u8[j] = atob(b64).charCodeAt(j);
+              const blob = new Blob([u8], {type:'image/jpeg'});
+              let url = '';
+              if (DF.storage && DF.storageRef && DF.storageUploadBytes && DF.storageGetDownloadURL){
+                const { storageRef, storageUploadBytes, storageGetDownloadURL } = DF;
+                const ref = storageRef(storage, path);
+                await storageUploadBytes(ref, blob, {contentType:'image/jpeg'});
+                url = await storageGetDownloadURL(ref);
+              } else {
+                url = await uploadOneCompat(path, blob);
+              }
+              uploaded.push({url, path, w:a.w, h:a.h, bytes:a.bytes});
+            }
+            // Update doc with attachment metadata
+            if (DF.firestore){
+              const { doc, updateDoc } = DF.firestore;
+              await updateDoc(doc(db,'ideas',docId), { attachments: uploaded, updatedAt: Date.now() });
+            } else {
+              await db.collection('ideas').doc(docId).update({ attachments: uploaded, updatedAt: Date.now() });
+            }
+          }
+          savedToCloud = true;
         }
-        $date.value = todayCT();
-        renderMenus(true);
-      })();
-    });
-
-    document.getElementById('clearBtn').addEventListener('click', ()=>{
-      document.getElementById('idea-form').reset(); $id.value='';
-      attachments = []; renderShots();
-      showEditButtons(false,false); $by.focus();
-      $date.value = todayCT();
-      renderMenus(true);
-    });
-
-    $archBtn.addEventListener('click', ()=>{
-      const id=$id.value; if(!id) return;
-      const item=get(id); if(!item) return;
-      item.archived=!item.archived; item.updatedAt=Date.now(); upsert(item);
-      showEditButtons(true, item.archived);
-      renderSaved();
-      toast(item.archived ? 'Archived' : 'Unarchived');
-    });
-
-    $delBtn.addEventListener('click', ()=>{
-      const id=$id.value; if(!id) return;
-      if (confirm('Delete this idea permanently?')){
-        remove(id);
-        document.getElementById('idea-form').reset(); $id.value='';
-        attachments = []; renderShots();
-        showEditButtons(false,false);
-        renderSaved();
-        toast('Deleted');
+      } catch (e){
+        console.error('Cloud save failed:', e);
       }
-    });
 
-    /* ---------- Search / Show archived ---------- */
-    document.getElementById('searchInput').addEventListener('input', renderSaved);
-    document.getElementById('toggleShowArchived').addEventListener('change', renderSaved);
-
-    /* ---------- Quick View (top-right) ---------- */
-    document.getElementById('quickViewBtn').addEventListener('click', ()=>{
-      const list=load().filter(x=>!x.archived).sort((a,b)=>b.ts-a.ts);
-      const $qvL=document.getElementById('qvList'), $qvB=document.getElementById('qvBackdrop');
-      $qvL.innerHTML = list.length ? list.map(i=>{
-        const cam = (i.attachments && i.attachments.length) ? ` <span>📷 ×${i.attachments.length}</span>` : '';
-        return `
-        <li>
-          <button type="button" class="btn-secondary" data-id="${i.id}"
-                  style="width:100%; text-align:left; display:block; margin:8px 0;">
-            <strong>${i.menu} › ${i.submenu}</strong>${cam}<br>
-            ${i.message}<br>
-            <em>${i.submittedBy}</em> • ${i.date}
-          </button>
-        </li>`;
-      }).join('') : '<li>No open ideas.</li>';
-      $qvB.style.display='flex';
-      $qvL.querySelectorAll('button[data-id]').forEach(b=>{
-        b.addEventListener('click', ()=>{
-          $qvB.style.display='none';
-          openForEdit(b.getAttribute('data-id'));
+      if (!savedToCloud){
+        // Local fallback so submission isn’t lost
+        const k = 'df_ideas_local';
+        const list = JSON.parse(localStorage.getItem(k)||'[]');
+        list.push({
+          permaKey,
+          submittedById: $by.value,
+          submittedByName: $by.options[$by.selectedIndex]?.textContent || $by.value,
+          date: dateVal,
+          menu: menuVal,
+          submenu: submenuVal,
+          message: msgVal,
+          attachments: attachments.slice(), // dataURLs
+          createdAt: now,
+          updatedAt: now,
+          _localOnly: true
         });
-      });
-      document.getElementById('qvClose').addEventListener('click', ()=> $qvB.style.display='none', {once:true});
-      $qvB.addEventListener('click', (e)=>{ if(e.target===$qvB) $qvB.style.display='none'; }, {once:true});
+        localStorage.setItem(k, JSON.stringify(list));
+        toast('Saved locally (offline)');
+      } else {
+        toast('Idea saved');
+      }
+
+      // Reset form
+      document.getElementById('ideaForm').reset();
+      attachments = []; renderShots();
+      $date.value = todayCT();
+      // Reselect current user if known
+      const youName = (window.getCurrentUser && window.getCurrentUser()) || localStorage.getItem('df_current_user') || '';
+      if (youName){
+        const opt = [...$by.options].find(o => o.textContent === youName);
+        if (opt) $by.value = opt.value;
+      }
+    }
+
+    // ---------- Wire up Save / Clear / Cancel ----------
+    document.getElementById('ideaForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      saveIdea();
+    });
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      attachments = []; renderShots();
+      $date.value = todayCT();
+      $msg.value = '';
+      toast('Cleared');
+    });
+    $cancel.addEventListener('click', ()=>{
+      // Back to feedback submenu index
+      location.href = './index.html';
     });
 
-    /* ---------- Initial render ---------- */
-    renderSaved();
+    // ---------- Menu/Submenu "Other" UX ----------
+    function toggleOtherUI(){
+      const mIsOther = $menu.value === ADD_OTHER;
+      const sIsOther = $sub.value === ADD_OTHER;
+      $menuOtherWrap.style.display = mIsOther ? 'flex' : 'none';
+      $submenuOtherWrap.style.display = sIsOther ? 'flex' : 'none';
+    }
+    $menu.addEventListener('change', toggleOtherUI);
+    $sub.addEventListener('change', toggleOtherUI);
 
-    /* ---------- Breadcrumbs ---------- */
-    window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Feedback', href:'feedback.html'},
-      {label:'Ideas'}
-    ]);
+    // ---------- Bootstrap page ----------
+    (async function init(){
+      // Employees
+      await loadEmployees();
+
+      // Menus/Submenus
+      const M = await loadMenusData();
+      (function renderMenuOptions(){
+        $menu.innerHTML = '';
+        Object.keys(M).forEach(name=>{
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          $menu.appendChild(opt);
+        });
+        const other = document.createElement('option');
+        other.value = ADD_OTHER; other.textContent = 'Other…';
+        $menu.appendChild(other);
+      })();
+      (function renderSubmenuOptions(menuName){
+        $sub.innerHTML = '';
+        const subs = M[menuName] || [];
+        subs.forEach(name=>{
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name;
+          $sub.appendChild(opt);
+        });
+        const other = document.createElement('option');
+        other.value = ADD_OTHER; other.textContent = 'Other…';
+        $sub.appendChild(other);
+      })($menu.value || Object.keys(M)[0]);
+
+      // React to menu changes
+      $menu.addEventListener('change', ()=>{
+        const menuName = $menu.value;
+        $sub.innerHTML = '';
+        const subs = M[menuName] || [];
+        subs.forEach(name=>{
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name;
+          $sub.appendChild(opt);
+        });
+        const other = document.createElement('option');
+        other.value = ADD_OTHER; other.textContent = 'Other…';
+        $sub.appendChild(other);
+        toggleOtherUI();
+      });
+
+      toggleOtherUI();
+    })();
   })();
   </script>
 
+  <!-- Optional service worker registration; harmless if already handled elsewhere -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
   </script>
