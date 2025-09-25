@@ -1,16 +1,18 @@
 /* ===========================
-   /js/fb-crop-types.js  (FULL REPLACEMENT)
+   /js/fb-crop-types.js
    - Firestore CRUD for crop types
-   - PERM_KEY to comply with blanket Firestore rules
-   - Auto backfill permKey on legacy docs (no console needed)
-   - DFLoader integration + quiet, resilient UX
-   - Quick View provider (button always present)
+   - DFLoader integration for loading state
+   - Toasts on save/delete
+   - Graceful error handling (no blocking alerts)
+   - Quick View provider (works even when empty or on error)
    - Collection: "crop_types"
+   - Blanket-rule perm key support (read filter + write field)
+   - Auth redirect logic is owned by core.js (none here)
    =========================== */
 
 import {
   collection, doc, setDoc, addDoc, deleteDoc, getDocs, getDoc,
-  serverTimestamp
+  serverTimestamp, query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /* ----- constants (for Firestore rules) ----- */
@@ -49,34 +51,23 @@ function toOneDecString(n){
 function getHandles(){ const fb = window.DF_FB || {}; return { db: fb.db, auth: fb.auth }; }
 function CT(db){ return collection(db, 'crop_types'); }
 
-/* ---------- Backfill permKey on any legacy docs we can read ---------- */
-async function backfillMissingPermKey(db, rows){
-  try{
-    const missing = rows.filter(r => (r.permKey !== PERM_KEY));
-    if (!missing.length) return;
-    await Promise.all(missing.map(r =>
-      setDoc(doc(CT(db), r.id), { permKey: PERM_KEY, updatedAt: serverTimestamp() }, { merge:true })
-    ));
-  }catch(_){ /* quiet */ }
-}
+/* ----- CRUD (with blanket-rule compliance) ----- */
 
-/* ----- CRUD (with error surfaces) ----- */
+// List only docs that carry the required permKey (so the query satisfies your rules)
 async function listAll(db){
   try {
-    // Read with no orderBy (avoids composite index/permission tangles), sort in JS
-    const snaps = await getDocs(CT(db));
+    const snaps = await getDocs(
+      query(CT(db), where('permKey','==', PERM_KEY), orderBy('name'))
+    );
     const out=[]; snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
-    out.sort((a,b)=> String(a.name||'').localeCompare(String(b.name||''), undefined, {sensitivity:'base'}));
-
-    // Quietly patch missing permKey so blanket rules start working for old docs
-    backfillMissingPermKey(db, out).catch(()=>{});
     return { rows: out, error: null };
   } catch (err) {
     return { rows: [], error: err };
   }
 }
+
+// Always write permKey so new/updated docs comply with the blanket rule
 async function upsert(db, item){
-  // Always include permKey for blanket rules
   const base = {
     name: item.name,
     moisture: item.moisture,
@@ -94,7 +85,10 @@ async function upsert(db, item){
     return ref.id;
   }
 }
-async function removeOne(db, id){ await deleteDoc(doc(CT(db), id)); }
+
+async function removeOne(db, id){
+  await deleteDoc(doc(CT(db), id));
+}
 
 /* ----- table render ----- */
 async function render(){
@@ -310,12 +304,6 @@ window.DF_QUICKVIEW_PROVIDER = async () => {
   return { title: 'Crop Types', node: wrap };
 };
 
-/* ---------- Ensure Quick View button appears even if provider loads late ---------- */
-(function ensureQuickViewNow(){
-  // In case core.js ran before this module parsed:
-  try { window.DF_UI?.refreshQuickView?.(); } catch(_) {}
-})();
-
 /* ----- init ----- */
 document.addEventListener('DOMContentLoaded', async ()=>{
   DFLoader.attach(document.querySelector('main.content'));
@@ -328,6 +316,5 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     {label:'Crop Types'}
   ]);
 
-  // Backup: ask core.js again to inject the QV button (works if it wasn’t present at DOMContentLoaded)
   try { window.DF_UI?.refreshQuickView?.(); } catch(_) {}
 });
