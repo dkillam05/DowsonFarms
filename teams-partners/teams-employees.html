@@ -88,12 +88,12 @@
     </ol>
   </nav>
 
-<!-- ========== MAIN ========== -->
-<main class="content" data-has-form data-qv-label="Quick View">
-  <h1 style="margin:0;">👥 Employees</h1>
-  <div style="margin-top:12px;"></div>
-  
-  
+  <!-- ========== MAIN ========== -->
+  <main class="content" data-has-form data-qv-label="Quick View">
+    <!-- Leave only H1 — core.js injects its own row + Quick View on the right -->
+    <h1 style="margin:0;">👥 Employees</h1>
+    <div style="margin-top:12px;"></div>
+
     <!-- FORM -->
     <form id="emp-form" novalidate>
       <div class="field-row">
@@ -185,21 +185,19 @@
   <!-- ========== PAGE LOGIC (MODULE) ========== -->
   <script type="module">
     // Firebase handles (from ../js/firebase-init.js)
-    const { auth, db, app } = window.DF_FB;
+    const { db } = window.DF_FB;
 
-    // Import Firebase pieces
+    // Firebase pieces used locally (roles + menus only)
     import {
-      listEmployees, getEmployee, saveAndInvite,
-      inviteEmployee, archiveEmployee, saveEmployee
-    } from '../js/fb-employees.js';
-    import {
-      sendPasswordResetEmail, fetchSignInMethodsForEmail, getAuth, createUserWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import {
-      collection, doc, setDoc, deleteDoc, getDocs, getDoc,
+      collection, doc, setDoc, getDocs, getDoc,
       serverTimestamp, query, where, orderBy
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+
+    // Shared Employees helper (all CRUD + invites)
+    import {
+      listEmployees, getEmployee, saveAndInvite,
+      inviteEmployee
+    } from '../js/fb-employees.js';
 
     /* ===========================
        MENUS from DF_MENUS → shape map
@@ -280,11 +278,6 @@
     const isEmail = (s)=> /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
     const titleCase = (s)=> (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase());
 
-    /* ===========================
-       Firestore
-       =========================== */
-    const USERS = collection(db, "users");
-
     // Read a role’s baseline permissions object
     async function readRolePermissions(roleId){
       if (!roleId) return {};
@@ -294,7 +287,10 @@
     }
 
     /* ===========================
-       Overrides UI (Option B) — unchanged */
+       Overrides UI (Option B)
+       - Show EFFECTIVE = override ?? baseline
+       - Save ONLY overrides
+       =========================== */
     const ACTION_KEYS = ['view','edit','add','archive','delete'];
     function ensureShapeFromMenus(source){
       const perms = {};
@@ -317,7 +313,9 @@
           const b = (baseline?.[menu]?.[sm]) || {};
           const o = (overrides?.[menu]?.[sm]) || {};
           const obj = {};
-          ACTION_KEYS.forEach(k=>{ obj[k] = (k in o) ? !!o[k] : !!b[k]; });
+          ACTIONS.forEach(k=>{
+            obj[k] = (k in o) ? !!o[k] : !!b[k];
+          });
           eff[menu][sm] = obj;
         });
       });
@@ -485,40 +483,14 @@
     }
 
     /* ===========================
-       Invite helpers (password-based, secondary app)
-       =========================== */
-    function randomTempPassword(){ return crypto.getRandomValues(new Uint32Array(4)).join('-'); }
-    async function ensureAuthUserAndSendReset(email){
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (!methods || methods.length === 0) {
-        const cfg = getFirebaseConfigFromPrimaryApp();
-        const secondary = initializeApp(cfg, 'DF-Secondary');
-        const sAuth = getAuth(secondary);
-        await createUserWithEmailAndPassword(sAuth, email, randomTempPassword());
-        await sendPasswordResetEmail(sAuth, email);
-        try { await deleteApp(secondary); } catch {}
-      } else {
-        await sendPasswordResetEmail(auth, email);
-      }
-    }
-    function inviteThrottleSoon(lastTs){
-      const last = Number(lastTs||0);
-      if (!last) return false;
-      const TEN_MIN = 10*60*1000;
-      return (Date.now() - last) < TEN_MIN;
-    }
-
-    /* ===========================
        Saved list / manage / invite
        =========================== */
     async function render(){
       const q=($('#searchInput').value||'').toLowerCase().trim();
       const showA=$('#toggleShowArchived').checked;
-      const rows=(await listEmployees())
-        .filter(x=>showA?true:!x.archived)
-        .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)))
-        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
-                      (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
+
+      const rows=(await listEmployees({ includeArchived: showA }))
+        .filter(x=>!q || [x.first+' '+x.last, x.role, x.email, x.phone].some(v=>v?.toLowerCase().includes(q)));
 
       const L=$('#savedList');
       L.innerHTML = rows.length ? rows.map(r=>{
@@ -545,9 +517,8 @@
     }
 
     async function openManage(id){
-      const snap = await getDoc(doc(USERS, id));
-      if (!snap.exists()){ alert('Not found'); return; }
-      const e = { id: snap.id, ...(snap.data()||{}) };
+      const e = await getEmployee(id);
+      if (!e){ alert('Not found'); return; }
 
       $('#empFirst').value = e.first||'';
       $('#empLast').value  = e.last||'';
@@ -555,7 +526,6 @@
       $('#empEmail').value = e.email||'';
       await fillRoleSelect($('#empRole'), e.role||'');
 
-      // preload current overrides payload (store JSON on button)
       const payload = e.exceptions || {enabled:false,grants:{}};
       $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
 
@@ -563,21 +533,22 @@
       $('#empFirst').focus();
     }
 
-   const e = await getEmployee(id);
-    if (!e || !e.email) { alert('Employee email is required to send invite.'); return; }
-
-    try {
-  await inviteEmployee(e.email);
-  await render();
-  showToast('Invite sent');
-} catch (err) {
-  console.error(err);
-  if (err && err.code === 'throttled') {
-    showToast('Invite already sent recently');
-  } else {
-    alert('Could not send invite. Check Email/Password is enabled and domain is authorized.');
-  }
-}
+    async function inviteExisting(id){
+      const e = await getEmployee(id);
+      if (!e || !e.email){ alert('Employee email is required to send invite.'); return; }
+      try{
+        await inviteEmployee(e.email);
+        await render();
+        showToast('Invite sent');
+      }catch(err){
+        console.error(err);
+        if (err && err.code === 'throttled') {
+          showToast('Invite already sent recently');
+        } else {
+          alert('Could not send invite. Check Email/Password is enabled and domain is authorized.');
+        }
+      }
+    }
 
     /* ===========================
        Wire form
@@ -608,34 +579,28 @@
       if(!isEmail(email)){ alert('Valid email is required.'); return; }
       if(!role){ alert('Role is required.'); return; }
 
-      const ovPayload = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
-      const id = email;
-      const ref = doc(USERS, id);
+      const ovPayload = $('#exceptionsBtn').dataset.payload
+        ? JSON.parse($('#exceptionsBtn').dataset.payload)
+        : {enabled:false,grants:{}};
 
-      await setDoc(ref, {
-        first, last, phone, email, role,
-        archived:false,
-        exceptions: ovPayload,
-        type: 'employee',
-        updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp()
-      }, { merge:true });
+      try {
+        const res = await saveAndInvite({
+          first, last, phone, email, role,
+          exceptions: ovPayload,
+          archived:false
+        });
 
-      const after = await getDoc(ref);
-      const invitedAt = (after.exists() && after.data().invitedAt) || 0;
-
-      if (!inviteThrottleSoon(invitedAt)) {
-        try {
-          await ensureAuthUserAndSendReset(email);
-          await setDoc(ref, { invitedAt: Date.now() }, { merge:true });
+        if (res.invited) {
           showToast('Employee saved + invite sent');
-        } catch (err) {
-          console.error(err);
-          showToast('Employee saved (invite failed)');
-          alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
+        } else if (res.throttled) {
+          showToast('Employee saved (invite already sent recently)');
+        } else {
+          showToast('Employee saved');
         }
-      } else {
-        showToast('Employee saved (invite already sent recently)');
+      } catch (err) {
+        console.error(err);
+        showToast('Employee saved (invite failed)');
+        alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
       }
 
       e.target.reset();
@@ -654,23 +619,17 @@
       const email = ($('#empEmail').value||'').trim().toLowerCase();
       if(!isEmail(email)){ alert('Valid email is required before sending invite.'); return; }
 
-      const id = email;
-      const ref = doc(USERS, id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()){
-        await setDoc(ref, { email, type:'employee', archived:false, updatedAt: serverTimestamp(), createdAt: serverTimestamp() }, { merge:true });
-      }
-      const invitedAt = snap.exists() ? (snap.data().invitedAt || 0) : 0;
-      if (inviteThrottleSoon(invitedAt)) { showToast('Invite already sent recently'); return; }
-
       try{
-        await ensureAuthUserAndSendReset(email);
-        await setDoc(ref, { invitedAt: Date.now() }, { merge:true });
+        await inviteEmployee(email);
         await render();
         showToast('Invite sent');
       }catch(err){
         console.error(err);
-        alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
+        if (err && err.code === 'throttled') {
+          showToast('Invite already sent recently');
+        } else {
+          alert('Invite failed. Ensure Email/Password is enabled and domain is authorized.');
+        }
       }
     });
 
@@ -679,9 +638,7 @@
 
     // ===== Quick View provider for core.js global button =====
     window.DF_QUICKVIEW_PROVIDER = async function(){
-      const rows=(await listEmployees()).filter(x=>!x.archived)
-        .sort((a,b)=> (a.last||'').localeCompare(b.last||'',undefined,{sensitivity:'base'}) ||
-                      (a.first||'').localeCompare(b.first||'',undefined,{sensitivity:'base'}));
+      const rows=(await listEmployees({ includeArchived:false }));
       const ul = document.createElement('ul');
       ul.style.listStyle = 'none';
       ul.style.padding = '0';
@@ -697,7 +654,7 @@
       return { title: 'Employees', node: ul };
     };
 
-    // Force core.js to (re)inject the Quick View button now that provider exists
+    // Make sure core.js injects the global Quick View button (right of <h1>)
     if (window.DF_UI && typeof window.DF_UI.refreshQuickView === 'function') {
       window.DF_UI.refreshQuickView();
     }
