@@ -6,6 +6,7 @@
    - Graceful error handling (no blocking alerts)
    - Quick View provider (works even when empty or on error)
    - Collection: "crop_types"
+   - Adds permKey for blanket security rules
    - Auth redirect logic is owned by core.js (none here)
    =========================== */
 
@@ -13,6 +14,9 @@ import {
   collection, doc, setDoc, addDoc, deleteDoc, getDocs, getDoc,
   serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+/* ----- constants (for Firestore rules) ----- */
+const PERM_KEY = "Settings & Setup › Crop Types";
 
 /* ----- tiny helpers ----- */
 const $ = (s) => document.querySelector(s);
@@ -58,11 +62,13 @@ async function listAll(db){
   }
 }
 async function upsert(db, item){
+  // Always include permKey for blanket rules
   const base = {
     name: item.name,
     moisture: item.moisture,
     testWeight: item.testWeight,
     color: item.color || '#1B5E20',
+    permKey: PERM_KEY,
     updatedAt: serverTimestamp(),
     createdAt: item.createdAt || serverTimestamp()
   };
