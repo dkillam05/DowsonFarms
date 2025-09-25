@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dowson Farms – Admin Unlock</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:20px;line-height:1.45}
+    .card{max-width:680px;margin:0 auto;border:2px solid #2d6a31;border-radius:12px;padding:16px;background:#fff}
+    .ok{color:#1b5e20;font-weight:700}
+    .muted{opacity:.75}
+    code{background:#f6f6f6;padding:.1em .3em;border-radius:6px}
+    .btn{display:inline-block;margin-top:10px;padding:8px 14px;border-radius:10px;border:2px solid #1b5e20;background:#fff;font-weight:700}
+  </style>
+
+  <!-- Your existing Firebase init must be available.
+       Adjust the path if your firebase-init.js lives elsewhere. -->
+  <script src="../js/firebase-init.js"></script>
+
+  <script type="module">
+    import {
+      getDoc, setDoc, doc, collection, getDocs, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+    async function waitForFirebase(maxMs = 15000){
+      const start = Date.now();
+      while ((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && (Date.now()-start) < maxMs){
+        await new Promise(r=>setTimeout(r,80));
+      }
+      if (!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) throw new Error("Firebase not initialized on this page.");
+      return window.DF_FB;
+    }
+
+    function emailLower(user){
+      return (user?.email || "").toLowerCase().trim();
+    }
+
+    async function run(){
+      const out = document.getElementById('out');
+      try{
+        const { db, auth } = await waitForFirebase();
+        const user = auth.currentUser;
+        if (!user){ out.innerHTML = "You’re not logged in. Log in first, then reload this page."; return; }
+        const email = emailLower(user);
+        if (!email){ out.innerHTML = "No email on the current user. Use an email/password account."; return; }
+
+        // 1) Seed roles if empty
+        const rolesSnap = await getDocs(collection(db,'roles'));
+        const hasAnyRole = !rolesSnap.empty;
+
+        const PERM_ALL = { view:true, edit:true, add:true, archive:true, delete:true };
+        const ADMIN_DOC = doc(db,'roles','Administrator');
+        const adminSnap = await getDoc(ADMIN_DOC);
+
+        const payloadAdmin = {
+          label: 'Administrator',
+          // Wildcard allow-all for app bootstrap. You can tighten later in the Roles UI.
+          permissions: { "*": { "*": PERM_ALL } },
+          // permKey so your blanket rules are happy:
+          permKey: "Settings & Setup › Account Roles",
+          updatedAt: serverTimestamp()
+        };
+        if (!adminSnap.exists()){
+          payloadAdmin.createdAt = serverTimestamp();
+        }
+        await setDoc(ADMIN_DOC, payloadAdmin, { merge:true });
+
+        // Optionally create other labels if nothing existed, so your dropdown isn’t empty.
+        if (!hasAnyRole){
+          const base = { permissions:{}, permKey:"Settings & Setup › Account Roles", createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+          const names = ['Owner','Manager','Employee','ViewOnly'];
+          await Promise.all(names.map(n => setDoc(doc(db,'roles', n), { label:n, ...base }, { merge:true })));
+        }
+
+        // 2) Assign current user to Administrator role
+        const USER_DOC = doc(db,'users', email);
+        await setDoc(USER_DOC, {
+          id: email,
+          email,
+          type: 'employee',
+          roleId: 'Administrator',
+          permKey: "Teams & Partners › Employees",
+          archived: false,
+          updatedAt: serverTimestamp()
+        }, { merge:true });
+
+        out.innerHTML = `
+          <div class="ok">All set.</div>
+          <p>Your account <code>${email}</code> is now assigned to <strong>Administrator</strong> with wildcard permissions.</p>
+          <ul class="muted">
+            <li>Open Crop Types / Employees / Account Roles and try again.</li>
+            <li>Later, tighten permissions in the Account Roles screen.</li>
+            <li>When everything works, you can delete this <code>tools/unlock.html</code> file.</li>
+          </ul>
+          <button class="btn" onclick="location.reload()">Run again</button>
+        `;
+      }catch(e){
+        document.getElementById('out').innerHTML = "Error: " + (e && e.message ? e.message : e);
+        console.error(e);
+      }
+    }
+    window.addEventListener('DOMContentLoaded', run);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <h2>Admin Unlock</h2>
+    <p class="muted">This one-time page seeds the <strong>Administrator</strong> role with full access and assigns your current user to it.</p>
+    <div id="out">Working…</div>
+  </div>
+</body>
+</html>
