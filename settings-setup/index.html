@@ -102,7 +102,7 @@
         var base = (function(){
           var b = document.querySelector('base');
           if (b && b.href) { try { return new URL(b.href).pathname; } catch(_){} }
-        var seg = (location.pathname || '/').split('/').filter(Boolean);
+          var seg = (location.pathname || '/').split('/').filter(Boolean);
           return seg.length ? ('/' + seg[0] + '/') : '/';
         })();
         navigator.serviceWorker.register('../serviceworker.js', { scope: base }).catch(console.error);
@@ -208,7 +208,6 @@
           navigator.serviceWorker.addEventListener('controllerchange', onCC, { once:true });
 
           const delayActivate = async (swTarget) => {
-            // Show readable toast, then trigger SKIP_WAITING after ~1.8s
             toast('Update found — applying…', 4200);
             await new Promise(r => setTimeout(r, 1800));
             swTarget.postMessage({ type:'SKIP_WAITING' });
@@ -259,7 +258,6 @@
         const networkVer = await fetchNetworkVersion();
         const newer = networkVer && isNewer(networkVer, current);
         if (newer) {
-          // Show readable toast, then do a cache-busted reload after ~1.8s
           toast('Update found — reloading…', 4200);
           setTimeout(cacheBustedReload, 1800);
           return;
@@ -270,7 +268,6 @@
       }
 
       function cleanup(){
-        // Re-enable tile and clear flag
         const tilesHost = document.querySelector('.df-tiles[data-section]');
         if (tilesHost) tilesHost.classList.remove('df--updates-disabled');
         try { localStorage.removeItem('df_update_in_progress'); } catch(_){}
@@ -300,6 +297,20 @@
         }
       });
     });
+
+    /* ---------- NEW: refresh footer version on every load (network-truth) ---------- */
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const netVer = await fetchNetworkVersion(); // cache-busted, no-store
+        if (netVer) {
+          const vEl = document.getElementById('version');
+          if (vEl) vEl.textContent = netVer;
+          // keep global in sync for anything else that reads it
+          window.DF_VERSION = netVer;
+        }
+      } catch {}
+    });
+    /* ---------------------------------------------------------------------------- */
   })();
   </script>
 </body>
