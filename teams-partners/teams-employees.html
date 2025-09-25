@@ -41,6 +41,8 @@
     #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
       padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
       background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
+    #dfToast.show{display:block; animation:dfToastIn .2s ease-out}
+    @keyframes dfToastIn{from{transform:translateX(-50%) translateY(8px);opacity:.0} to{transform:translateX(-50%) translateY(0);opacity:1}}
 
     /* Pills + cards (shared look with Roles page) */
     .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
@@ -223,11 +225,12 @@
     const $ = (s)=>document.querySelector(s);
     const chip = (s)=> s?`<span class="chip">${s}</span>`:'';
     function showToast(msg){
-      const box=$('#dfToast'), txt=$('#dfToastText');
+      const box = $('#dfToast'), txt = $('#dfToastText');
+      if (!box || !txt) return;
       txt.textContent = msg || 'Saved';
-      box.style.display='block';
+      box.classList.add('show');
       clearTimeout(window.__toastT);
-      window.__toastT=setTimeout(()=> box.style.display='none', 2000);
+      window.__toastT = setTimeout(()=> box.classList.remove('show'), 2000);
     }
 
     /* ===========================
@@ -612,6 +615,7 @@
     $('#clearBtn').addEventListener('click', ()=>{
       $('#emp-form').reset();
       delete $('#exceptionsBtn').dataset.payload;
+      showToast('Cleared');
     });
 
     // Invite (from the form)
