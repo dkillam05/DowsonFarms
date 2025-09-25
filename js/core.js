@@ -240,21 +240,30 @@
     window.addEventListener('orientationchange', pushAboveFooter);
   }
 
-  /* ---------- Global loader helpers ---------- */
+  /* ---------- Global loader helpers (SCOPED TO MAIN) ---------- */
   function ensureLoaderCSS() {
     if (document.getElementById('df-loader-style')) return;
     var s = document.createElement('style');
     s.id = 'df-loader-style';
+    // NOTE: position:absolute + inset:0 keeps the overlay INSIDE the host (e.g., <main.content>)
+    // so it will NOT cover the header/breadcrumbs. We also ensure the host becomes positioning context.
     s.textContent =
-      '.df-loader{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:4000;background:rgba(0,0,0,.28)}' +
+      '.df-loader{position:absolute;inset:0;display:none;align-items:center;justify-content:center;' +
+      'z-index:2;background:rgba(0,0,0,.28)}' +
       '[data-loading="true"]>.df-loader,[data-loading="true"] .df-loader{display:flex}' +
-      '.df-loader__spinner{width:56px;height:56px;border-radius:50%;border:5px solid rgba(255,255,255,.5);border-top-color:#1B5E20;animation:dfspin 1s linear infinite;background:transparent}' +
+      '.df-loader__spinner{width:56px;height:56px;border-radius:50%;border:5px solid rgba(255,255,255,.5);' +
+      'border-top-color:#1B5E20;animation:dfspin 1s linear infinite;background:transparent}' +
       '@keyframes dfspin{to{transform:rotate(360deg)}}';
     document.head.appendChild(s);
   }
   function attachLoader(container) {
     ensureLoaderCSS();
     if (!container) return null;
+    // Make sure the host can contain an absolutely positioned child
+    try {
+      var cs = getComputedStyle(container);
+      if (cs.position === 'static') container.style.position = 'relative';
+    } catch (_) {}
     container.setAttribute('data-has-loader', '');
     var existing = container.querySelector(':scope > .df-loader');
     if (existing) return existing;
