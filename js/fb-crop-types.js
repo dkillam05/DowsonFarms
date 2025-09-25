@@ -1,19 +1,16 @@
 /* ===========================
-   /js/fb-crop-types.js
+   /js/fb-crop-types.js  (FULL REPLACEMENT)
    - Firestore CRUD for crop types
-   - DFLoader integration for loading state
-   - Toasts on save/delete
-   - Graceful error handling (no blocking alerts)
-   - Quick View provider (works even when empty or on error)
+   - PERM_KEY to comply with blanket Firestore rules
+   - Auto backfill permKey on legacy docs (no console needed)
+   - DFLoader integration + quiet, resilient UX
+   - Quick View provider (button always present)
    - Collection: "crop_types"
-   - Adds permKey for blanket security rules
-   - Seeds missing permKey automatically (one-time)
-   - Auth redirect logic is owned by core.js (none here)
    =========================== */
 
 import {
   collection, doc, setDoc, addDoc, deleteDoc, getDocs, getDoc,
-  serverTimestamp, query, orderBy
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /* ----- constants (for Firestore rules) ----- */
@@ -52,26 +49,27 @@ function toOneDecString(n){
 function getHandles(){ const fb = window.DF_FB || {}; return { db: fb.db, auth: fb.auth }; }
 function CT(db){ return collection(db, 'crop_types'); }
 
-/* ----- one-time seeding: add permKey to old docs (quietly) ----- */
-async function seedCropTypesPermKey(db){
+/* ---------- Backfill permKey on any legacy docs we can read ---------- */
+async function backfillMissingPermKey(db, rows){
   try{
-    const snaps = await getDocs(CT(db));
-    const ops = [];
-    snaps.forEach(d=>{
-      const data = d.data() || {};
-      if (!data.permKey) {
-        ops.push(setDoc(doc(CT(db), d.id), { permKey: PERM_KEY }, { merge:true }));
-      }
-    });
-    if (ops.length) await Promise.all(ops);
-  }catch(_){}
+    const missing = rows.filter(r => (r.permKey !== PERM_KEY));
+    if (!missing.length) return;
+    await Promise.all(missing.map(r =>
+      setDoc(doc(CT(db), r.id), { permKey: PERM_KEY, updatedAt: serverTimestamp() }, { merge:true })
+    ));
+  }catch(_){ /* quiet */ }
 }
 
 /* ----- CRUD (with error surfaces) ----- */
 async function listAll(db){
   try {
-    const snaps = await getDocs(query(CT(db), orderBy('name')));
+    // Read with no orderBy (avoids composite index/permission tangles), sort in JS
+    const snaps = await getDocs(CT(db));
     const out=[]; snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
+    out.sort((a,b)=> String(a.name||'').localeCompare(String(b.name||''), undefined, {sensitivity:'base'}));
+
+    // Quietly patch missing permKey so blanket rules start working for old docs
+    backfillMissingPermKey(db, out).catch(()=>{});
     return { rows: out, error: null };
   } catch (err) {
     return { rows: [], error: err };
@@ -192,6 +190,7 @@ function installForm(){
   const form = $('#ct-form'); if (!form) return;
   const resetBtn = $('#resetBtn');
 
+  // keep iOS caret stable
   function guardOneDot(evt){
     const el = evt.target;
     if (evt.key === '.') {
@@ -223,7 +222,7 @@ function installForm(){
     const id = ($('#ctId').value || '').trim() || null;
     const name = titleCase(($('#ctName').value || '').trim());
     const moisture = Number(($('#ctMoisture').value || '').trim());
-    const testWeight = Number(($('#ctTestWeight').value || '').trim()));
+    const testWeight = Number(($('#ctTestWeight').value || '').trim());
     const color = ($('#ctColor').value || '').trim() || '#1B5E20';
 
     if (!name){ showToast('Crop Type is required'); $('#ctName').focus(); return; }
@@ -271,6 +270,7 @@ window.DF_QUICKVIEW_PROVIDER = async () => {
     return { title: 'Crop Types', html: '<div style="opacity:.7">No crop types yet.</div>' };
   }
 
+  // Build compact table
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
@@ -310,13 +310,15 @@ window.DF_QUICKVIEW_PROVIDER = async () => {
   return { title: 'Crop Types', node: wrap };
 };
 
+/* ---------- Ensure Quick View button appears even if provider loads late ---------- */
+(function ensureQuickViewNow(){
+  // In case core.js ran before this module parsed:
+  try { window.DF_UI?.refreshQuickView?.(); } catch(_) {}
+})();
+
 /* ----- init ----- */
 document.addEventListener('DOMContentLoaded', async ()=>{
   DFLoader.attach(document.querySelector('main.content'));
-
-  const { db } = getHandles();
-  if (db) { try { await seedCropTypesPermKey(db); } catch(_){} }   // <-- one-time seeding
-
   installForm();
   await render();
 
@@ -326,5 +328,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     {label:'Crop Types'}
   ]);
 
+  // Backup: ask core.js again to inject the QV button (works if it wasn’t present at DOMContentLoaded)
   try { window.DF_UI?.refreshQuickView?.(); } catch(_) {}
 });
