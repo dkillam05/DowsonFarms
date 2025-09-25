@@ -90,8 +90,8 @@
     const $ = s => document.querySelector(s);
 
     // Minimal toast helper (keeps toasts ≥3s)
-    function toast(msg, ms = 3000){
-      ms = Math.max(ms, 3000);
+    function toast(msg, ms = 4000){
+      ms = Math.max(ms, 4000);
       const el = $('#dfToast');
       if (!el) return; // silent if you remove the toast div
       el.textContent = msg;
@@ -196,7 +196,7 @@
             } else {
               // Brief window to see if update shows up
               await new Promise(resolve => {
-                const timer = setTimeout(resolve, 2500);
+                const timer = setTimeout(resolve, 4500);
                 reg.addEventListener('updatefound', function onUF(){
                   const sw = reg.installing;
                   if (!sw) return;
