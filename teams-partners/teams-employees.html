@@ -44,6 +44,9 @@
     .muted-small{opacity:.8;font-size:.9rem}
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
     #empPhone{font-size:16px}
+    .muted{opacity:.8}
+    .req-star{color:#b00020}
+    .search{flex:1;min-width:200px}
 
     /* Toast */
     #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
@@ -66,11 +69,8 @@
     .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
     .subbody{padding:8px 4px 2px;display:none}
     .muted-sm{opacity:.85;font-size:.92rem}
-    .muted{opacity:.8}
-    .req-star{color:#b00020}
-    .search{flex:1;min-width:200px}
 
-    /* Modal (Overrides) — bumped z-index well above everything */
+    /* Modal (Overrides) */
     .modal-backdrop{display:none;position:fixed;inset:0;z-index:60000;background:rgba(0,0,0,.45);
       align-items:center;justify-content:center;padding:20px}
     .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
@@ -231,8 +231,7 @@
     } from '../js/fb-employees.js';
 
     /* ===========================
-       MENUS from DF_MENUS → shape map
-       =========================== */
+       MENUS from DF_MENUS → shape map */
     function buildMenusFromDF(df){
       const out = {};
       if (!df || !Array.isArray(df.tiles)) return out;
@@ -333,6 +332,19 @@
         });
       });
       return eff;
+    }
+    function flattenPerms(effective){
+      const out = {};
+      Object.keys(effective||{}).forEach(menu=>{
+        Object.keys(effective[menu]||{}).forEach(sub=>{
+          const p = effective[menu][sub] || {};
+          ACTIONS.forEach(k=>{
+            const key = `${menu}${sub ? ' › ' + sub : ''}.${k}`;
+            if (p[k] === true) out[key] = true;
+          });
+        });
+      });
+      return out;
     }
     function pill(label, pressed){
       const b=document.createElement('button');
@@ -553,7 +565,16 @@
       try{
         const e = await getEmployee(id);
         if (!e || !e.email){ showToast('Email required to invite'); return; }
-        await inviteEmployee(e.email);
+
+        // If we know their role + overrides, compute effective and pass it along
+        let effectivePerms = null;
+        if (e.role) {
+          const base = await readRolePermissions(e.role);
+          const eff = mergeEffective(base, (e.exceptions && e.exceptions.enabled) ? e.exceptions.grants : {});
+          effectivePerms = flattenPerms(eff);
+        }
+
+        await inviteEmployee(e.email, { effectivePerms });
         await render();
         showToast('Invite sent');
       }catch(err){
@@ -599,10 +620,17 @@
           ? JSON.parse($('#exceptionsBtn').dataset.payload)
           : {enabled:false,grants:{}};
 
+        // Compute effective perms now so /perm/{uid} can be written for brand-new users
+        const base = await readRolePermissions(role);
+        const eff = mergeEffective(base, ovPayload.enabled ? ovPayload.grants : {});
+        const effectivePerms = flattenPerms(eff);
+
         const res = await saveAndInvite({
           first, last, phone, email, role,
           exceptions: ovPayload,
-          archived:false
+          archived:false,
+          // NOTE: this is only used when a brand-new Auth user is created (we have uid then)
+          effectivePerms
         });
 
         if (res.invited) {
@@ -633,8 +661,21 @@
     $('#inviteBtn').addEventListener('click', async ()=>{
       try{
         const email = ($('#empEmail').value||'').trim().toLowerCase();
+        const role  = $('#empRole').value;
         if(!isEmail(email)){ showToast('Valid email required'); return; }
-        await inviteEmployee(email);
+
+        // If role chosen, compute effective perms to attach during invite (new users only)
+        let effectivePerms = null;
+        if (role) {
+          const base = await readRolePermissions(role);
+          const ovPayload = $('#exceptionsBtn').dataset.payload
+            ? JSON.parse($('#exceptionsBtn').dataset.payload)
+            : {enabled:false,grants:{}};
+          const eff = mergeEffective(base, ovPayload.enabled ? ovPayload.grants : {});
+          effectivePerms = flattenPerms(eff);
+        }
+
+        await inviteEmployee(email, { effectivePerms });
         await render();
         showToast('Invite sent');
       }catch(err){
