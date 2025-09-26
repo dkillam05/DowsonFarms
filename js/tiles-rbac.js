@@ -1,171 +1,159 @@
 // /js/tiles-rbac.js  (FULL REPLACEMENT)
-// Hides Home tiles the signed-in user cannot VIEW.
-// Precedence: employee.permissions > user.permissions > role.permissions
+// Purpose: On the Home screen, hide top-level tiles the signed-in user
+// does NOT have "view" permission for. Precedence:
+// employee.permissions > user.permissions > role.permissions
 
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
-const norm  = (s)=>String(s||'').replace(/\s+/g,' ').trim();
+const norm  = (s)=>String(s||"").replace(/\s+/g," ").trim();
 
-// --- gate CSS so nothing flashes before we filter
-(function gateCSS(){
-  if (document.getElementById('rbac-tiles-style')) return;
-  const s=document.createElement('style'); s.id='rbac-tiles-style';
-  s.textContent = `.df-tiles[data-source].rbac-pending *{visibility:hidden}
-                   .df-tiles[data-source].rbac-done *{visibility:visible}`;
-  document.head.appendChild(s);
+/* ---------------- Gate CSS (prevents initial flash) ---------------- */
+(function installGateCSS(){
+  if (document.getElementById("df-rbac-gate")) return;
+  const css = document.createElement("style");
+  css.id = "df-rbac-gate";
+  css.textContent = `
+    /* Hide the Home tiles until RBAC finishes */
+    .df-tiles[data-source].rbac-hide { visibility: hidden !important; }
+    .df-tiles[data-source].rbac-show { visibility: visible !important; }
+  `;
+  document.head.appendChild(css);
+
+  // Apply the gate ASAP
+  const host = document.querySelector(".df-tiles[data-source]");
+  if (host) host.classList.add("rbac-hide");
 })();
-function setPending(on){
-  const host=document.querySelector('.df-tiles[data-source]');
-  if(!host) return;
-  host.classList.toggle('rbac-pending', !!on);
-  host.classList.toggle('rbac-done', !on);
-}
 
-// --- wait helpers
+/* ---------------- Small wait helpers ---------------- */
 async function waitForFirebase(maxMs=18000){
-  const t0=Date.now();
+  const t0 = Date.now();
   while((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && (Date.now()-t0)<maxMs){
-    await sleep(60);
+    await sleep(50);
   }
-  if(!window.DF_FB || !window.DF_FB.db) throw new Error('Firebase not ready');
+  if (!window.DF_FB || !window.DF_FB.db) throw new Error("Firebase not ready");
   return window.DF_FB;
 }
 async function waitForTiles(maxMs=12000){
-  const t0=Date.now();
-  const hostSel='.df-tiles[data-source]';
-  while((Date.now()-t0)<maxMs){
-    const host=document.querySelector(hostSel);
-    if(host && host.querySelector('*')) return;
-    await sleep(60);
+  const t0 = Date.now();
+  while ((Date.now()-t0) < maxMs) {
+    const host = document.querySelector(".df-tiles[data-source]");
+    if (host && host.querySelector("*")) return;
+    await sleep(50);
   }
 }
 
-// --- Firestore reads (match rules resolution)
+/* ---------------- Load employee/user/role docs ---------------- */
 async function loadAuthDocs(db, user){
-  const email=(user?.email||'').toLowerCase();
-  const uid   = user?.uid || '';
+  const email = (user?.email || "").toLowerCase();
+  const uid   = user?.uid || "";
 
-  const userSnap = email ? await getDoc(doc(db,'users',email)) : null;
+  const userSnap = email ? await getDoc(doc(db, "users", email)) : null;
   const userDoc  = userSnap?.exists() ? userSnap.data() : null;
 
-  const empSnap  = uid ? await getDoc(doc(db,'employees',uid)) : null;
+  const empSnap  = uid ? await getDoc(doc(db, "employees", uid)) : null;
   const empDoc   = empSnap?.exists() ? empSnap.data() : null;
 
   const roleId   = (empDoc?.roleId) || (userDoc?.roleId) || null;
-  const roleSnap = roleId ? await getDoc(doc(db,'roles',roleId)) : null;
+  const roleSnap = roleId ? await getDoc(doc(db, "roles", roleId)) : null;
   const roleDoc  = roleSnap?.exists() ? roleSnap.data() : null;
 
   return { empDoc, userDoc, roleDoc };
 }
 
-// --- permission checks
-const hasView = (perms, menu, sub) => {
-  if(!perms) return false;
-  const pMenu = perms[menu]; if(!pMenu) return false;
-  const pSub  = pMenu[sub] || pMenu['*'];
-  return !!(pSub && pSub.view===true);
+/* ---------------- Permission helpers (view only) ---------------- */
+const hasView = (perms, menu) => {
+  if (!perms) return false;
+  const entry = perms[menu] || perms["*"];
+  if (!entry) return false;
+  if (entry["*"] && entry["*"].view === true) return true; // wildcard sub
+  // Any submenu with view:true counts for showing the menu tile
+  return Object.values(entry).some(v => v && v.view === true);
 };
-const canView = (docs, menu, sub) =>
-  hasView(docs.empDoc?.permissions, menu, sub) ||
-  hasView(docs.userDoc?.permissions, menu, sub) ||
-  hasView(docs.roleDoc?.permissions, menu, sub);
+const canViewMenu = (docs, menu) =>
+  hasView(docs.empDoc?.permissions,  menu) ||
+  hasView(docs.userDoc?.permissions, menu) ||
+  hasView(docs.roleDoc?.permissions, menu);
 
-// --- DOM helpers (robust to different markups)
-const hostEl = () => document.querySelector('.df-tiles[data-source]');
-function allSections(){
-  const host = hostEl(); if(!host) return [];
-  // Prefer explicit data-section; otherwise, treat each direct child as a section
-  const withAttr = Array.from(host.querySelectorAll('[data-section]'));
-  if(withAttr.length) return withAttr;
-  return Array.from(host.children).filter(n => n.querySelector('h2,h3,strong,span'));
-}
-function sectionName(sec){
-  const ds = sec.getAttribute?.('data-section');
-  if(ds) return norm(ds);
-  const h = sec.querySelector('h2,h3,strong'); if(h) return norm(h.textContent||'');
-  // fallback: first non-empty text
-  return norm(sec.textContent||'');
-}
-function tilesIn(sec){
-  // explicit
-  const explicit = Array.from(sec.querySelectorAll('[data-submenu]'));
-  if(explicit.length) return explicit;
-  // common patterns
-  const cards = Array.from(sec.querySelectorAll('a,button,.tile,.card')).filter(el=>{
+/* ---------------- DOM helpers (Home tiles only) ---------------- */
+// A "tile" is the clickable card for a top-level menu.
+function homeTiles(){
+  const host = document.querySelector(".df-tiles[data-source]");
+  if (!host) return [];
+  // Grab obvious tappable cards
+  const candidates = Array.from(host.querySelectorAll("[data-menu], a, .tile, .card, button"));
+  // Filter out headers and empty nodes
+  return candidates.filter(el=>{
     const t = el.tagName.toLowerCase();
-    if(t==='h2'||t==='h3'||el.closest('nav')) return false;
-    return norm(el.textContent).length>0;
+    if (t === "h1" || t === "h2" || t === "h3" || el.closest("nav")) return false;
+    return norm(el.textContent).length > 0;
   });
-  return cards;
 }
-function tileName(tile){
-  const ds = tile.getAttribute?.('data-submenu');
-  if(ds) return norm(ds);
-  const strong = tile.querySelector('strong'); if(strong) return norm(strong.textContent||'');
-  const span   = tile.querySelector('span,div'); if(span) return norm(span.textContent||'');
-  return norm(tile.textContent||'');
+function tileMenuLabel(tile){
+  // Prefer explicit attributes if you add them later
+  const fromAttr = tile.getAttribute?.("data-menu") || tile.getAttribute?.("data-section");
+  if (fromAttr) return norm(fromAttr);
+  // Then try common elements
+  const strong = tile.querySelector("strong"); if (strong) return norm(strong.textContent||"");
+  const span   = tile.querySelector("span");   if (span)   return norm(span.textContent||"");
+  const div    = tile.querySelector("div");    if (div)    return norm(div.textContent||"");
+  return norm(tile.textContent || "");
 }
 
-// --- main filter
-async function run(){
+/* ---------------- Main: filter the Home grid ---------------- */
+async function applyRBAC(){
+  const host = document.querySelector(".df-tiles[data-source]");
+  if (!host) return; // not on Home
+
   try{
-    setPending(true);
     const { db, auth } = await waitForFirebase();
     await waitForTiles();
 
     const user = auth.currentUser;
-    if(!user){ setPending(false); return; }
+    // If not signed in, just show what the page has (no filtering)
+    if (!user) { host.classList.remove("rbac-hide"); host.classList.add("rbac-show"); return; }
 
     const docs = await loadAuthDocs(db, user);
 
-    // Build quick lookup of menus with any visible sub
-    const allowedMenus = new Set();
-    const permsList = [docs.empDoc?.permissions, docs.userDoc?.permissions, docs.roleDoc?.permissions].filter(Boolean);
-    permsList.forEach(perms=>{
-      Object.keys(perms||{}).forEach(menu=>{
-        const subs = perms[menu]||{};
-        const anyView = Object.keys(subs).some(s => subs[s]?.view===true);
-        if(anyView) allowedMenus.add(norm(menu));
-      });
-    });
-
-    let keptTotal = 0;
-    allSections().forEach(sec=>{
-      const menu = sectionName(sec);
-      let keptHere = 0;
-
-      // If menu itself has no view anywhere, hide whole section quickly.
-      if(!allowedMenus.has(menu)){
-        sec.style.display='none';
-        return;
+    // Hide tiles whose MENU doesn't have any view:true perms
+    let kept = 0;
+    homeTiles().forEach(tile=>{
+      const label = tileMenuLabel(tile);
+      // Normalize known menu labels to match your roles keys exactly
+      const menu = label
+        .replace(/&/g, "&")            // keep ampersand
+        .replace(/\s+/g, " ")
+        .trim();
+      const ok = canViewMenu(docs, menu);
+      if (!ok) {
+        tile.style.display = "none";
+      } else {
+        kept++;
       }
-
-      tilesIn(sec).forEach(tile=>{
-        const sub = tileName(tile);
-        const ok  = canView(docs, menu, sub);
-        if(ok){ keptHere++; keptTotal++; }
-        else { tile.style.display='none'; }
-      });
-
-      if(!keptHere) sec.style.display='none';
     });
 
-    // Optionally, if nothing remains, you could show a message here.
+    // If nothing left, you could inject a friendly message here.
+  } catch (e) {
+    console.warn("[tiles-rbac] skipped:", e?.message || e);
   } finally {
-    setPending(false);
+    const host2 = document.querySelector(".df-tiles[data-source]");
+    if (host2) { host2.classList.remove("rbac-hide"); host2.classList.add("rbac-show"); }
   }
 }
 
-// --- triggers
+/* ---------------- Triggers ---------------- */
 function install(){
-  try{ window.DF_FB_API?.onAuth?.(()=>run()); }catch(_){}
-  const host = hostEl();
-  if(host && 'MutationObserver' in window){
-    const mo = new MutationObserver(m=>{ if(m.some(x=>x.type==='childList')) run(); });
+  // Re-run when auth restores after page load
+  try { window.DF_FB_API?.onAuth?.(()=> applyRBAC()); } catch(_){}
+  // Re-run if the tiles are re-rendered
+  const host = document.querySelector(".df-tiles[data-source]");
+  if (host && "MutationObserver" in window) {
+    const mo = new MutationObserver(m=>{
+      if (m.some(x=>x.type==="childList")) applyRBAC();
+    });
     mo.observe(host, { childList:true, subtree:true });
   }
-  run();
+  applyRBAC();
 }
 
-document.addEventListener('DOMContentLoaded', install);
+document.addEventListener("DOMContentLoaded", install);
