@@ -1,5 +1,5 @@
-// /js/tiles-rbac.js  (ES module)
-// Hides Home tiles the signed-in user cannot VIEW.
+// /js/tiles-rbac.js  (ES module, drop-in, last script on Home)
+// Purpose: Hide Home tiles the signed-in user cannot VIEW.
 // Precedence: employee.permissions > user.permissions > role.permissions
 
 import {
@@ -7,19 +7,44 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
-const norm  = (s)=> String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
+const norm  = (s)=> String(s||'').trim().replace(/\s+/g,' ');
 
-// ---------- wait for DF_FB + auth restoration ----------
-async function waitForFirebase(maxMs=12000){
+// ---- 1) Install a tiny CSS gate so tiles are hidden until we finish
+(function installGateCSS(){
+  if (document.getElementById('rbac-tiles-style')) return;
+  const s = document.createElement('style');
+  s.id = 'rbac-tiles-style';
+  s.textContent = `
+    .df-tiles.rbac-pending [data-section] { display:none !important; }
+  `;
+  document.head.appendChild(s);
+})();
+
+function markPending(on){
+  const host = document.querySelector('.df-tiles[data-source]');
+  if (!host) return;
+  if (on) host.classList.add('rbac-pending');
+  else    host.classList.remove('rbac-pending');
+}
+
+// ---- 2) Wait for Firebase + auth + tiles to exist
+async function waitForFirebase(maxMs=15000){
   const t0 = Date.now();
   while ((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && (Date.now()-t0)<maxMs){
-    await sleep(80);
+    await sleep(60);
   }
-  if (!window.DF_FB || !window.DF_FB.db) throw new Error('firebase not ready');
+  if (!window.DF_FB || !window.DF_FB.db) throw new Error('Firebase not ready');
   return window.DF_FB;
 }
 
-// ---------- pull docs similar to rules ----------
+async function waitForTiles(maxMs=8000){
+  const t0 = Date.now();
+  while (!document.querySelector('.df-tiles[data-source] [data-section]') && (Date.now()-t0)<maxMs){
+    await sleep(60);
+  }
+}
+
+// ---- 3) Load docs similar to Firestore rules resolution
 async function readDocs(db, user){
   const emailLower = (user?.email||'').toLowerCase();
   const uid        = user?.uid || '';
@@ -30,7 +55,6 @@ async function readDocs(db, user){
   const empSnap  = uid ? await getDoc(doc(db,'employees', uid)) : null;
   const empDoc   = (empSnap && empSnap.exists()) ? empSnap.data() : null;
 
-  // prefer employee.roleId, then user.roleId
   const roleId = (empDoc && empDoc.roleId) || (userDoc && userDoc.roleId) || null;
   const roleSnap = roleId ? await getDoc(doc(db,'roles', roleId)) : null;
   const roleDoc  = (roleSnap && roleSnap.exists()) ? roleSnap.data() : null;
@@ -38,118 +62,97 @@ async function readDocs(db, user){
   return { empDoc, userDoc, roleDoc };
 }
 
-// ---------- permission lookup (view only) ----------
+// ---- 4) Permission helpers (view only)
 function hasView(perms, menuLabel, subLabel){
   if (!perms) return false;
-  const m = perms[menuLabel]; if (!m) return false;
-  const s = m[subLabel] || m['*'];
-  return !!(s && s.view === true);
+  const mm = perms[menuLabel]; if (!mm) return false;
+  const sub = mm[subLabel] || mm['*'];
+  return !!(sub && sub.view === true);
 }
-
-function canView({empDoc,userDoc,roleDoc}, menuLabel, subLabel){
+function canView(all, menuLabel, subLabel){
   return (
-    hasView(empDoc?.permissions, menuLabel, subLabel) ||
-    hasView(userDoc?.permissions, menuLabel, subLabel) ||
-    hasView(roleDoc?.permissions, menuLabel, subLabel)
+    hasView(all.empDoc?.permissions,  menuLabel, subLabel) ||
+    hasView(all.userDoc?.permissions, menuLabel, subLabel) ||
+    hasView(all.roleDoc?.permissions, menuLabel, subLabel)
   );
 }
 
-// ---------- tile filtering ----------
-function getRenderedSections(){
-  // ui-nav renders sections like: .df-tiles [data-section="<Menu Label>"]
-  const host = document.querySelector('.df-tiles[data-source]');
-  if (!host) return [];
-  return Array.from(host.querySelectorAll('[data-section]'));
+// ---- 5) DOM helpers (generic to your ui-nav markup)
+function sections(){ return Array.from(document.querySelectorAll('.df-tiles[data-source] [data-section]')); }
+function sectionLabel(sec){
+  return sec.getAttribute('data-section') || sec.querySelector('h2,h3,strong')?.textContent || '';
 }
-
-// robust helpers to read labels off DOM even if attributes change
-function readMenuLabel(sectionEl){
-  return sectionEl.getAttribute('data-section') || sectionEl.querySelector('h2,h3,strong')?.textContent || '';
-}
-function findTiles(sectionEl){
-  // typical cards: .tile or a elements within the section
-  const explicit = sectionEl.querySelectorAll('[data-submenu]');
-  if (explicit.length) return Array.from(explicit);
-  const guessed  = sectionEl.querySelectorAll('.tile, a, button');
-  return Array.from(guessed).filter(el=>{
-    // skip headers and separators
+function tilesOf(sec){
+  // Prefer explicit attribute if present; else fall back to common card/link nodes
+  const explicit = Array.from(sec.querySelectorAll('[data-submenu]'));
+  if (explicit.length) return explicit;
+  const guess = Array.from(sec.querySelectorAll('a, .tile, button'));
+  return guess.filter(el => {
     const tag = el.tagName.toLowerCase();
     if (tag==='h2'||tag==='h3'||el.closest('nav')) return false;
-    // has some clickable content
     const txt = el.textContent?.trim();
     return !!txt;
   });
 }
-function readSubmenuLabel(tileEl){
-  return tileEl.getAttribute('data-submenu')
-      || tileEl.querySelector('strong,span,div')?.textContent
-      || tileEl.textContent
+function tileLabel(tile){
+  return tile.getAttribute('data-submenu')
+      || tile.querySelector('strong,span,div')?.textContent
+      || tile.textContent
       || '';
 }
 
-function hideEmpty(sectionEl){
-  const visible = sectionEl.querySelectorAll(':scope *').length &&
-                  sectionEl.querySelectorAll(':scope *').length > 0 &&
-                  Array.from(findTiles(sectionEl)).some(el => el.style.display !== 'none');
-  if (!visible) {
-    sectionEl.style.display = 'none';
-  }
-}
-
-// ---------- main filter routine ----------
-async function filterTilesForUser(){
+// ---- 6) Main filter
+async function applyRBAC(){
   try{
-    // Wait for auth + tiles to exist
+    markPending(true);
+
     const { db, auth } = await waitForFirebase();
-    // wait until ui-nav finished rendering (sections exist)
-    let tries = 0;
-    while (getRenderedSections().length === 0 && tries++ < 100){ await sleep(60); }
+    // wait until ui-nav created the grid (or time out)
+    await waitForTiles();
 
     const user = auth.currentUser;
-    if (!user) return; // no user -> don't change UI (passive)
+    if (!user) { markPending(false); return; } // stay visible for unauth (home splash)
 
     const docs = await readDocs(db, user);
 
-    const sections = getRenderedSections();
-    sections.forEach(section=>{
-      const menuLabel  = readMenuLabel(section);
-      const menuN      = norm(menuLabel);
-      const tiles      = findTiles(section);
-
-      let anyVisible = false;
-
-      tiles.forEach(tile=>{
-        const subLabel = readSubmenuLabel(tile);
-        const ok = canView(docs, menuLabel, subLabel);
+    let totalKept = 0;
+    sections().forEach(sec=>{
+      const menu = sectionLabel(sec);
+      let keptHere = 0;
+      tilesOf(sec).forEach(tile=>{
+        const sub  = tileLabel(tile);
+        const ok   = canView(docs, menu, sub);
         if (!ok) {
           tile.style.display = 'none';
         } else {
-          anyVisible = true;
+          keptHere++;
+          totalKept++;
         }
       });
-
-      if (!anyVisible) {
-        section.style.display = 'none';
-      }
+      if (!keptHere) sec.style.display = 'none';
     });
-  }catch(e){
-    // fail quietly (never block UI)
-    console.warn('[tiles-rbac] filter skipped:', e?.message || e);
+
+    // If nothing left, optionally show a friendly note (no-op by default)
+    if (totalKept === 0) {
+      // You could inject a message here if you want.
+    }
+  } catch (e) {
+    console.warn('[tiles-rbac] skipped:', e?.message || e);
+  } finally {
+    markPending(false); // always reveal whatever remains
   }
 }
 
-// ---------- re-run when auth restores OR menu data swaps ----------
+// ---- 7) Triggers: run now, when auth restores, and when tiles mutate
 function installTriggers(){
-  try{
-    // when auth changes
-    window.DF_FB_API?.onAuth?.(()=> filterTilesForUser());
-  }catch(_){}
-  // when menus render late
+  // re-run on auth restoration
+  try { window.DF_FB_API?.onAuth?.(()=> applyRBAC()); } catch(_){}
+
+  // re-run if ui-nav updates the DOM later
   const host = document.querySelector('.df-tiles[data-source]');
   if (host && 'MutationObserver' in window){
-    const mo = new MutationObserver((muts)=>{
-      // if child list changed, attempt filter again
-      if (muts.some(m=>m.type==='childList')) filterTilesForUser();
+    const mo = new MutationObserver(muts=>{
+      if (muts.some(m=>m.type==='childList')) applyRBAC();
     });
     mo.observe(host, { childList:true, subtree:true });
   }
@@ -157,5 +160,5 @@ function installTriggers(){
 
 document.addEventListener('DOMContentLoaded', ()=>{
   installTriggers();
-  filterTilesForUser(); // initial attempt
+  applyRBAC(); // initial
 });
