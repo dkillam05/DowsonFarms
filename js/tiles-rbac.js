@@ -2,208 +2,170 @@
 // Hides Home tiles the signed-in user cannot VIEW.
 // Precedence: employee.permissions > user.permissions > role.permissions
 
-import { getFirestore, doc, getDoc }
-  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-/* ---------------- tiny utils ---------------- */
-const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+const norm  = (s)=>String(s||'').replace(/\s+/g,' ').trim();
 
-/** collapse whitespace/newlines, normalize " / " spacing, trim */
-function tidy(s){
-  s = String(s || '');
-  // strip leading emoji/symbols commonly used in tile headers
-  s = s.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\s]+/gu, '');
-  s = s.replace(/\s+/g, ' ').trim();
-  // normalize slash spacing to: space-slash-space
-  s = s.replace(/\s*\/\s*/g, ' / ');
-  return s;
-}
-function lc(s){ return tidy(s).toLowerCase(); }
-
-/* ---------------- CSS gate (no flash) ---------------- */
-(function installGateCSS(){
+// --- gate CSS so nothing flashes before we filter
+(function gateCSS(){
   if (document.getElementById('rbac-tiles-style')) return;
-  const s = document.createElement('style');
-  s.id = 'rbac-tiles-style';
-  s.textContent = `
-    .df-tiles.rbac-pending [data-section] { display:none !important; }
-  `;
+  const s=document.createElement('style'); s.id='rbac-tiles-style';
+  s.textContent = `.df-tiles[data-source].rbac-pending *{visibility:hidden}
+                   .df-tiles[data-source].rbac-done *{visibility:visible}`;
   document.head.appendChild(s);
 })();
-function markPending(on){
-  const host = document.querySelector('.df-tiles[data-source]');
-  if (!host) return;
+function setPending(on){
+  const host=document.querySelector('.df-tiles[data-source]');
+  if(!host) return;
   host.classList.toggle('rbac-pending', !!on);
+  host.classList.toggle('rbac-done', !on);
 }
 
-/* ---------------- waiters ---------------- */
-async function waitForFirebase(maxMs=15000){
-  const t0 = Date.now();
-  while ((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && (Date.now()-t0)<maxMs){
+// --- wait helpers
+async function waitForFirebase(maxMs=18000){
+  const t0=Date.now();
+  while((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && (Date.now()-t0)<maxMs){
     await sleep(60);
   }
-  if (!window.DF_FB || !window.DF_FB.db) throw new Error('Firebase not ready');
+  if(!window.DF_FB || !window.DF_FB.db) throw new Error('Firebase not ready');
   return window.DF_FB;
 }
 async function waitForTiles(maxMs=12000){
-  const t0 = Date.now();
-  while (!document.querySelector('.df-tiles[data-source] [data-section]') && (Date.now()-t0)<maxMs){
+  const t0=Date.now();
+  const hostSel='.df-tiles[data-source]';
+  while((Date.now()-t0)<maxMs){
+    const host=document.querySelector(hostSel);
+    if(host && host.querySelector('*')) return;
     await sleep(60);
   }
 }
 
-/* ---------------- load profile docs (mirrors rules precedence) ---------------- */
-async function readDocs(db, user){
-  const emailLower = (user?.email||'').toLowerCase();
-  const uid        = user?.uid || '';
+// --- Firestore reads (match rules resolution)
+async function loadAuthDocs(db, user){
+  const email=(user?.email||'').toLowerCase();
+  const uid   = user?.uid || '';
 
-  const userSnap = emailLower ? await getDoc(doc(db,'users', emailLower)) : null;
-  const userDoc  = (userSnap && userSnap.exists()) ? userSnap.data() : null;
+  const userSnap = email ? await getDoc(doc(db,'users',email)) : null;
+  const userDoc  = userSnap?.exists() ? userSnap.data() : null;
 
-  const empSnap  = uid ? await getDoc(doc(db,'employees', uid)) : null;
-  const empDoc   = (empSnap && empSnap.exists()) ? empSnap.data() : null;
+  const empSnap  = uid ? await getDoc(doc(db,'employees',uid)) : null;
+  const empDoc   = empSnap?.exists() ? empSnap.data() : null;
 
-  const roleId   = (empDoc && empDoc.roleId) || (userDoc && userDoc.roleId) || null;
-  const roleSnap = roleId ? await getDoc(doc(db,'roles', roleId)) : null;
-  const roleDoc  = (roleSnap && roleSnap.exists()) ? roleSnap.data() : null;
+  const roleId   = (empDoc?.roleId) || (userDoc?.roleId) || null;
+  const roleSnap = roleId ? await getDoc(doc(db,'roles',roleId)) : null;
+  const roleDoc  = roleSnap?.exists() ? roleSnap.data() : null;
 
   return { empDoc, userDoc, roleDoc };
 }
 
-/* ---------------- permission lookups (VIEW only) ---------------- */
-function hasViewRaw(perms, menu, sub){
-  if (!perms) return false;
-  const mm = perms[menu]; if (!mm) return false;
-  const subMap = mm[sub] || mm['*'];
-  return !!(subMap && subMap.view === true);
+// --- permission checks
+const hasView = (perms, menu, sub) => {
+  if(!perms) return false;
+  const pMenu = perms[menu]; if(!pMenu) return false;
+  const pSub  = pMenu[sub] || pMenu['*'];
+  return !!(pSub && pSub.view===true);
+};
+const canView = (docs, menu, sub) =>
+  hasView(docs.empDoc?.permissions, menu, sub) ||
+  hasView(docs.userDoc?.permissions, menu, sub) ||
+  hasView(docs.roleDoc?.permissions, menu, sub);
+
+// --- DOM helpers (robust to different markups)
+const hostEl = () => document.querySelector('.df-tiles[data-source]');
+function allSections(){
+  const host = hostEl(); if(!host) return [];
+  // Prefer explicit data-section; otherwise, treat each direct child as a section
+  const withAttr = Array.from(host.querySelectorAll('[data-section]'));
+  if(withAttr.length) return withAttr;
+  return Array.from(host.children).filter(n => n.querySelector('h2,h3,strong,span'));
 }
-function hasViewLoose(perms, menuLabel, subLabel){
-  if (!perms) return false;
-
-  // try exact tidy
-  const M  = tidy(menuLabel);
-  const S  = tidy(subLabel);
-  if (hasViewRaw(perms, M, S)) return true;
-
-  // try normalized slash spacing (already done by tidy) — but attempt lowercase keys
-  const mlc = lc(M), slc = lc(S);
-
-  // Build a lowercase mirror of perms on first use (cache on object)
-  if (!perms.__lc__) {
-    const m2 = {};
-    Object.keys(perms || {}).forEach(m=>{
-      const mKey = lc(m);
-      const subObj = perms[m] || {};
-      const s2 = {};
-      Object.keys(subObj).forEach(s=>{
-        const sKey = lc(s);
-        if (sKey === '__lc__') return;
-        s2[sKey] = subObj[s];
-      });
-      m2[mKey] = s2;
-    });
-    Object.defineProperty(perms, '__lc__', { value:m2, enumerable:false });
-  }
-  const mm = perms.__lc__[mlc];
-  if (!mm) return false;
-  const sub = mm[slc] || mm['*'];
-  return !!(sub && sub.view === true);
+function sectionName(sec){
+  const ds = sec.getAttribute?.('data-section');
+  if(ds) return norm(ds);
+  const h = sec.querySelector('h2,h3,strong'); if(h) return norm(h.textContent||'');
+  // fallback: first non-empty text
+  return norm(sec.textContent||'');
 }
-
-function canView(all, menuLabel, subLabel){
-  return (
-    hasViewLoose(all.empDoc?.permissions,  menuLabel, subLabel) ||
-    hasViewLoose(all.userDoc?.permissions, menuLabel, subLabel) ||
-    hasViewLoose(all.roleDoc?.permissions, menuLabel, subLabel)
-  );
-}
-
-/* ---------------- DOM helpers ---------------- */
-function sections(){ return Array.from(document.querySelectorAll('.df-tiles[data-source] [data-section]')); }
-function sectionLabel(sec){
-  // prefer explicit data-section, else visible heading text
-  return tidy(sec.getAttribute('data-section') || sec.querySelector('h2,h3,strong')?.textContent || '');
-}
-function tilesOf(sec){
-  // Prefer explicit attribute if present (some renderers add data-submenu)
+function tilesIn(sec){
+  // explicit
   const explicit = Array.from(sec.querySelectorAll('[data-submenu]'));
-  if (explicit.length) return explicit;
-
-  // Fallback to common card/link nodes that contain user-facing titles
-  const guess = Array.from(sec.querySelectorAll('a.tile, a, .tile, button'));
-  return guess.filter(el => {
-    const tag = el.tagName.toLowerCase();
-    if (tag==='h2'||tag==='h3'||el.closest('nav')) return false;
-    const txt = tidy(el.querySelector('.tile__title, strong, span, div')?.textContent || el.textContent);
-    return !!txt;
+  if(explicit.length) return explicit;
+  // common patterns
+  const cards = Array.from(sec.querySelectorAll('a,button,.tile,.card')).filter(el=>{
+    const t = el.tagName.toLowerCase();
+    if(t==='h2'||t==='h3'||el.closest('nav')) return false;
+    return norm(el.textContent).length>0;
   });
+  return cards;
 }
-function tileLabel(tile){
-  const s = tile.getAttribute('data-submenu')
-        || tile.querySelector('.tile__title, strong, span, div')?.textContent
-        || tile.textContent
-        || '';
-  return tidy(s);
+function tileName(tile){
+  const ds = tile.getAttribute?.('data-submenu');
+  if(ds) return norm(ds);
+  const strong = tile.querySelector('strong'); if(strong) return norm(strong.textContent||'');
+  const span   = tile.querySelector('span,div'); if(span) return norm(span.textContent||'');
+  return norm(tile.textContent||'');
 }
 
-/* ---------------- main filter ---------------- */
-async function applyRBAC(){
+// --- main filter
+async function run(){
   try{
-    markPending(true);
-
+    setPending(true);
     const { db, auth } = await waitForFirebase();
     await waitForTiles();
 
     const user = auth.currentUser;
-    if (!user) { markPending(false); return; } // not signed in: leave tiles alone
+    if(!user){ setPending(false); return; }
 
-    const docs = await readDocs(db, user);
+    const docs = await loadAuthDocs(db, user);
 
-    let totalKept = 0;
-    sections().forEach(sec=>{
-      const menu = sectionLabel(sec);
+    // Build quick lookup of menus with any visible sub
+    const allowedMenus = new Set();
+    const permsList = [docs.empDoc?.permissions, docs.userDoc?.permissions, docs.roleDoc?.permissions].filter(Boolean);
+    permsList.forEach(perms=>{
+      Object.keys(perms||{}).forEach(menu=>{
+        const subs = perms[menu]||{};
+        const anyView = Object.keys(subs).some(s => subs[s]?.view===true);
+        if(anyView) allowedMenus.add(norm(menu));
+      });
+    });
+
+    let keptTotal = 0;
+    allSections().forEach(sec=>{
+      const menu = sectionName(sec);
       let keptHere = 0;
 
-      tilesOf(sec).forEach(tile=>{
-        const sub = tileLabel(tile);
+      // If menu itself has no view anywhere, hide whole section quickly.
+      if(!allowedMenus.has(menu)){
+        sec.style.display='none';
+        return;
+      }
+
+      tilesIn(sec).forEach(tile=>{
+        const sub = tileName(tile);
         const ok  = canView(docs, menu, sub);
-        if (!ok) {
-          tile.style.display = 'none';
-        } else {
-          keptHere++; totalKept++;
-        }
+        if(ok){ keptHere++; keptTotal++; }
+        else { tile.style.display='none'; }
       });
 
-      if (!keptHere) sec.style.display = 'none';
+      if(!keptHere) sec.style.display='none';
     });
 
-    // If nothing kept, you could inject a friendly message here.
-    if (totalKept === 0) {
-      // no-op
-    }
-  } catch (e) {
-    console.warn('[tiles-rbac] skipped:', e?.message || e);
+    // Optionally, if nothing remains, you could show a message here.
   } finally {
-    markPending(false);
+    setPending(false);
   }
 }
 
-/* ---------------- triggers ---------------- */
-function installTriggers(){
-  // re-run on auth restoration
-  try { window.DF_FB_API?.onAuth?.(()=> applyRBAC()); } catch(_){}
-
-  // re-run if ui-nav updates the DOM later
-  const host = document.querySelector('.df-tiles[data-source]');
-  if (host && 'MutationObserver' in window){
-    const mo = new MutationObserver(muts=>{
-      if (muts.some(m=>m.type==='childList')) applyRBAC();
-    });
+// --- triggers
+function install(){
+  try{ window.DF_FB_API?.onAuth?.(()=>run()); }catch(_){}
+  const host = hostEl();
+  if(host && 'MutationObserver' in window){
+    const mo = new MutationObserver(m=>{ if(m.some(x=>x.type==='childList')) run(); });
     mo.observe(host, { childList:true, subtree:true });
   }
+  run();
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  installTriggers();
-  applyRBAC();
-});
+document.addEventListener('DOMContentLoaded', install);
