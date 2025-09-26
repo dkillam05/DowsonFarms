@@ -6,18 +6,18 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
 
-  <!-- IMPORTANT: resolve every href/src from your repo root on GitHub Pages -->
+  <!-- Resolve all paths from your repo root -->
   <base href="/DowsonFarms/">
 
   <!-- Prepaint theme (no flash) -->
   <script>
-  (function () {
-    var pref = localStorage.getItem('df_theme') || 'auto';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-    document.documentElement.setAttribute('data-theme', mode);
-    document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
-  })();
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
   <!-- Fonts -->
@@ -28,14 +28,10 @@
   <!-- Theme -->
   <link rel="stylesheet" href="assets/css/theme.css" />
 
-  <!-- PWA manifest (Android/desktop) -->
-  <link rel="manifest" href="manifest.webmanifest?v=904" />
-
-  <!-- iOS homescreen icon -->
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=904" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=904" />
-
-  <!-- App-mode on iOS (optional) -->
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest?v=906" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=906" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=906" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 </head>
@@ -54,14 +50,12 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol><li><span>Home</span></li></ol>
-    <!-- Logout button gets injected by core.js -->
+    <!-- Logout button injected by core.js -->
   </nav>
 
   <!-- Main -->
   <main class="content">
     <h1>Home</h1>
-
-    <!-- Home tiles from global menu data -->
     <div class="df-tiles" data-source="global"></div>
   </main>
 
@@ -83,23 +77,16 @@
     }
   </script>
 
-  <!-- App scripts (order matters) -->
-  <script type="module" src="js/firebase-init.js"></script>
-  <script defer src="js/version.js"></script>
-  <script defer src="js/core.js"></script>
+  <!-- Scripts (order matters) -->
+  <script type="module" src="js/firebase-init.js?v=906"></script>
+  <script defer src="js/version.js?v=906"></script>
+  <script defer src="js/core.js?v=906"></script>
 
   <!-- Menu data + renderer -->
-  <script defer src="assets/data/menus.js?v=904"></script>
-  <script defer src="js/ui-nav.js?v=904"></script>
+  <script defer src="assets/data/menus.js?v=906"></script>
+  <script defer src="js/ui-nav.js?v=906"></script>
 
-  <!-- RBAC filter: hides tiles the user cannot view (must come last) -->
-  <script type="module" src="js/tiles-rbac.js?v=904"></script>
-  
-  <!-- keep your existing scripts ... -->
-<script defer src="assets/data/menus.js?v=904"></script>
-<script defer src="js/ui-nav.js?v=904"></script>
-<!-- NEW: must be last -->
-<script type="module" src="js/tiles-rbac.js?v=905"></script>
-  
+  <!-- RBAC filter: MUST be last -->
+  <script type="module" src="js/tiles-rbac.js?v=906"></script>
 </body>
 </html>
