@@ -182,7 +182,7 @@
     }
   }
 
-  // NEW: network-truth refresh for DF_VERSION (global, every page)
+  // GLOBAL network-truth refresh for DF_VERSION
   async function refreshVersionFromNetwork() {
     try {
       const url = resolveAppURL('./js/version.js');
@@ -192,10 +192,8 @@
       const ver = m ? m[1] : null;
       if (ver) {
         window.DF_VERSION = ver;
-        // Update footer immediately
         var verEl = document.getElementById('version') || document.getElementById('df-version');
         if (verEl) verEl.textContent = ver;
-        // Optional: broadcast so widgets could react
         try { window.dispatchEvent(new CustomEvent('df:version', { detail: { version: ver } })); } catch(_) {}
       }
     } catch (_) { /* silent */ }
@@ -265,21 +263,16 @@
     if (document.getElementById('df-loader-style')) return;
     var s = document.createElement('style');
     s.id = 'df-loader-style';
-    // NOTE: position:absolute + inset:0 keeps the overlay INSIDE the host (e.g., <main.content>)
-    // so it will NOT cover the header/breadcrumbs. We also ensure the host becomes positioning context.
     s.textContent =
-      '.df-loader{position:absolute;inset:0;display:none;align-items:center;justify-content:center;' +
-      'z-index:2;background:rgba(0,0,0,.28)}' +
+      '.df-loader{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:2;background:rgba(0,0,0,.28)}' +
       '[data-loading="true"]>.df-loader,[data-loading="true"] .df-loader{display:flex}' +
-      '.df-loader__spinner{width:56px;height:56px;border-radius:50%;border:5px solid rgba(255,255,255,.5);' +
-      'border-top-color:#1B5E20;animation:dfspin 1s linear infinite;background:transparent}' +
+      '.df-loader__spinner{width:56px;height:56px;border-radius:50%;border:5px solid rgba(255,255,255,.5);border-top-color:#1B5E20;animation:dfspin 1s linear infinite;background:transparent}' +
       '@keyframes dfspin{to{transform:rotate(360deg)}}';
     document.head.appendChild(s);
   }
   function attachLoader(container) {
     ensureLoaderCSS();
     if (!container) return null;
-    // Make sure the host can contain an absolutely positioned child
     try {
       var cs = getComputedStyle(container);
       if (cs.position === 'static') container.style.position = 'relative';
@@ -316,36 +309,62 @@
   }
   window.DFLoader = { attach: attachLoader, show: showLoader, hide: hideLoader, withLoader: withLoader };
 
-  /* ---------- setBreadcrumbs helper (optional) ---------- */
-  window.setBreadcrumbs = function setBreadcrumbs(items) {
-    try {
+  /* ---------- setBreadcrumbs (stable) + watchdog ---------- */
+  (function(){
+    var lastItemsJSON = '[]';
+
+    function render(items) {
       var nav = document.querySelector('nav.breadcrumbs');
       if (!nav) return;
-      var ol = nav.querySelector('ol') || (function(){
-        var o = document.createElement('ol'); nav.appendChild(o); return o;
-      })();
+      var ol = nav.querySelector('ol');
+      if (!ol) { ol = document.createElement('ol'); nav.appendChild(ol); }
+      ol.setAttribute('data-bc-init','1');
       ol.innerHTML = '';
-      items = Array.isArray(items) ? items : [];
-      items.forEach(function (it, i) {
+
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i] || {};
         var li = document.createElement('li');
-        if (it && typeof it.href === 'string') {
+        if (it.href) {
           var a = document.createElement('a'); a.href = it.href; a.textContent = it.label || '';
           li.appendChild(a);
         } else {
-          var sp = document.createElement('span'); sp.textContent = (it && it.label) || '';
+          var sp = document.createElement('span'); sp.textContent = it.label || '';
           li.appendChild(sp);
         }
         ol.appendChild(li);
         if (i < items.length - 1) {
-          var sep = document.createElement('li'); sep.className = 'sep'; text = '›'; sep.textContent = text;
+          var sep = document.createElement('li');
+          sep.className = 'sep';
+          sep.textContent = '›';
           ol.appendChild(sep);
         }
+      }
+    }
+
+    window.setBreadcrumbs = function setBreadcrumbs(items) {
+      try {
+        items = Array.isArray(items) ? items : [];
+        if (!items.length && lastItemsJSON !== '[]') return; // ignore accidental wipes
+        lastItemsJSON = JSON.stringify(items);
+        render(items);
+      } catch(_) {}
+    };
+
+    function startWatchdog() {
+      var nav = document.querySelector('nav.breadcrumbs');
+      if (!nav) return;
+      var obs = new MutationObserver(function(){
+        var ol = nav.querySelector('ol');
+        if (!ol || !ol.children || ol.children.length === 0) {
+          try { render(JSON.parse(lastItemsJSON || '[]')); } catch(_) {}
+        }
       });
-    } catch (_) {}
-  };
+      obs.observe(nav, { childList:true, subtree:true });
+    }
+    document.addEventListener('DOMContentLoaded', startWatchdog);
+  })();
 
   /* ---------- Quick View (global) ---------- */
-
   function ensureQVModal() {
     if (document.getElementById('df-qv-backdrop')) return;
 
