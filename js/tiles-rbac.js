@@ -1,162 +1,140 @@
-// /js/tiles-rbac.js  (FULL REPLACEMENT; must be the LAST script on Home)
-// Purpose: Hide Home tiles the signed-in user can't see.
-// Logic: employee.permissions > user.permissions > role.permissions
-// Works with your DF_MENUS (assets/data/menus.js) and your firebase-init globals.
+// /js/tiles-rbac.js
+// Strict RBAC for Home tiles: hide ALL tiles by default, then show only
+// those with explicit view:true in Firestore permissions.
+// Precedence: employee.permissions > user.permissions > role.permissions
 
-import {
-  getFirestore, doc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
-const clean = (s)=>String(s||'')
-  .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')   // strip emoji
-  .replace(/[^A-Za-z0-9&/+\- ]+/g, ' ')     // keep readable chars
-  .replace(/\s+/g,' ')
-  .trim();
+const norm  = (s)=>String(s||'').replace(/\s+/g,' ').trim();
 
-function host(){ return document.querySelector('.df-tiles[data-source]') || null; }
-function allTiles(){
-  const h = host(); if (!h) return [];
-  // Try explicit hooks if present
-  let tiles = Array.from(h.querySelectorAll('[data-menu], .tile, a'));
-  if (!tiles.length) tiles = Array.from(h.querySelectorAll('*')).filter(n=>{
-    // heuristic: looks like a tile/card with text and clickable (your Home tiles fit this)
-    const tag = n.tagName.toLowerCase();
-    if (tag==='h1'||tag==='h2'||tag==='h3'||tag==='nav'||tag==='ol'||tag==='li'||tag==='footer') return false;
-    if (!n.getBoundingClientRect) return false;
-    const r = n.getBoundingClientRect(); if (r.width<120 || r.height<60) return false;
-    const txt = clean(n.textContent); return !!txt && /[A-Za-z]/.test(txt);
-  });
-  // keep only first-level cards (avoid nested children in the same tile)
-  return tiles.filter(t=>!t.closest('nav') && !t.querySelector('a,button,.tile'));
-}
-
-/* ---------- Gate CSS (prevent flash) ---------- */
-(function gate(){
-  if (document.getElementById('rbac-tiles-gate')) return;
+// --- Gate CSS: keep tiles invisible until we decide what to show
+(function installGateCSS(){
+  if (document.getElementById('rbac-tiles-style')) return;
   const s = document.createElement('style');
-  s.id = 'rbac-tiles-gate';
+  s.id = 'rbac-tiles-style';
   s.textContent = `
-    .df-tiles[data-source].rbac-hide { visibility:hidden; }
+    .df-tiles[data-source].rbac-pending [data-section] { display:none !important; }
   `;
   document.head.appendChild(s);
-  const h = host(); if (h) h.classList.add('rbac-hide');
 })();
 
-/* ---------- Waiters ---------- */
+function host(){ return document.querySelector('.df-tiles[data-source]'); }
+function markPending(on){ const h=host(); if (!h) return; h.classList.toggle('rbac-pending', !!on); }
+
+// --- Wait for Firebase + auth + tiles
 async function waitForFirebase(maxMs=15000){
-  const t0=Date.now();
-  while((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && Date.now()-t0<maxMs){
+  const t0 = Date.now();
+  while ((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && (Date.now()-t0)<maxMs){
     await sleep(60);
   }
   if (!window.DF_FB || !window.DF_FB.db) throw new Error('Firebase not ready');
   return window.DF_FB;
 }
-async function waitForMenus(maxMs=8000){
-  const t0=Date.now();
-  while((!window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles)) && Date.now()-t0<maxMs){
-    await sleep(60);
-  }
-  if (!window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles)) throw new Error('DF_MENUS missing');
-}
-async function waitForTiles(maxMs=8000){
-  const t0=Date.now();
-  while(!host() || allTiles().length===0){
-    if (Date.now()-t0>maxMs) break;
+async function waitForTiles(maxMs=12000){
+  const t0 = Date.now();
+  while (!document.querySelector('.df-tiles[data-source] [data-section]') && (Date.now()-t0)<maxMs){
     await sleep(60);
   }
 }
 
-/* ---------- Load docs (same precedence as rules) ---------- */
+// --- Pull effective permissions like the rules do
 async function readDocs(db, user){
-  const email = (user?.email||'').toLowerCase();
-  const uid   = user?.uid || '';
+  const emailLower = (user?.email||'').toLowerCase();
+  const uid        = user?.uid || '';
 
-  const uSnap = email ? await getDoc(doc(db,'users', email)) : null;
-  const userDoc = (uSnap && uSnap.exists()) ? uSnap.data() : null;
+  const get = (p)=>getDoc(doc(db, ...p.split('/'))).then(s=>s.exists()?s.data():null);
 
-  const eSnap = uid ? await getDoc(doc(db,'employees', uid)) : null;
-  const empDoc = (eSnap && eSnap.exists()) ? eSnap.data() : null;
+  const userDoc = emailLower ? await get(`users/${emailLower}`) : null;
+  const empDoc  = uid ? await get(`employees/${uid}`) : null;
 
-  const roleId = (empDoc && empDoc.roleId) || (userDoc && userDoc.roleId) || null;
-  const rSnap = roleId ? await getDoc(doc(db,'roles', roleId)) : null;
-  const roleDoc = (rSnap && rSnap.exists()) ? rSnap.data() : null;
+  const roleId  = (empDoc?.roleId) || (userDoc?.roleId) || null;
+  const roleDoc = roleId ? await get(`roles/${roleId}`) : null;
 
-  return { empDoc, userDoc, roleDoc };
+  return { emp: empDoc, usr: userDoc, role: roleDoc };
 }
 
-/* ---------- Perm helpers ---------- */
+// --- Read-only checks
 function hasView(perms, menu, sub){
   if (!perms) return false;
-  const mm = perms[menu]; if (!mm) return false;
-  const p  = mm[sub] || mm['*'];
-  return !!(p && p.view===true);
+  const M = perms[menu];
+  if (!M) return false;
+  const exact = M[sub];
+  const starSub = M['*'];
+  return !!((exact && exact.view===true) || (starSub && starSub.view===true));
 }
-function canViewSubmenu(all, menu, sub){
-  return hasView(all.empDoc?.permissions, menu, sub)
-      || hasView(all.userDoc?.permissions, menu, sub)
-      || hasView(all.roleDoc?.permissions, menu, sub);
-}
-function canViewMenu(all, menu){
-  // A menu is viewable if ANY of its submenus is viewable
-  const df = window.DF_MENUS || { tiles:[] };
-  const tile = (df.tiles||[]).find(t => clean(t.label) === clean(menu));
-  const subs = Array.isArray(tile?.children) ? tile.children : [];
-  if (!subs.length) return false;
-  for (const s of subs){
-    const sub = clean(s.label);
-    if (canViewSubmenu(all, menu, sub)) return true;
-  }
-  return false;
+function canView(all, menu, sub){
+  return (
+    hasView(all.emp?.permissions,  menu, sub) ||
+    hasView(all.usr?.permissions,  menu, sub) ||
+    hasView(all.role?.permissions, menu, sub)
+  );
 }
 
-/* ---------- Main ---------- */
-async function run(){
+// --- DOM helpers (work with current ui-nav)
+function sections(){ return Array.from(document.querySelectorAll('.df-tiles[data-source] [data-section]')); }
+function sectionLabel(sec){ return norm(sec.getAttribute('data-section') || sec.querySelector('h2,h3,strong')?.textContent || ''); }
+function tilesOf(sec){
+  const exp = Array.from(sec.querySelectorAll('[data-submenu]'));
+  if (exp.length) return exp;
+  // graceful fallback: clickable cards/links with text
+  return Array.from(sec.querySelectorAll('a,button,.tile')).filter(el=>{
+    const tag = el.tagName.toLowerCase();
+    if (tag==='h2'||tag==='h3'||el.closest('nav')) return false;
+    return norm(el.textContent).length>0;
+  });
+}
+function tileLabel(tile){
+  return norm(tile.getAttribute('data-submenu') || tile.querySelector('strong,span,div')?.textContent || tile.textContent || '');
+}
+
+// --- Main filter (STRICT)
+async function applyRBAC(){
   try{
-    await waitForMenus();
-    await waitForTiles();
-    const { db, auth } = await waitForFirebase();
-    const h = host();
-    if (!h){ document.getElementById('rbac-tiles-gate')?.remove(); return; }
+    markPending(true);
 
-    // if not logged in, just reveal tiles (home splash)
+    const { db, auth } = await waitForFirebase();
+    await waitForTiles();
+
     const user = auth.currentUser;
-    if (!user){ h.classList.remove('rbac-hide'); return; }
+    if (!user){ markPending(false); return; } // no user: show nothing special
 
     const docs = await readDocs(db, user);
 
-    // Build fast lookup for menu labels
-    const menuLabels = (window.DF_MENUS.tiles||[]).map(t=>clean(t.label));
+    let totalShown = 0;
+    sections().forEach(sec=>{
+      const menu = sectionLabel(sec);
+      let shownHere = 0;
 
-    // Hide each top-level menu tile if the user cannot view ANY submenu under it
-    allTiles().forEach(tile=>{
-      const text = clean(tile.getAttribute('data-menu') || tile.textContent || '');
-      // find the closest DF_MENUS label by strict or contains match
-      let menu = menuLabels.find(m => m === text)
-              || menuLabels.find(m => text.includes(m))
-              || menuLabels.find(m => m.includes(text))
-              || null;
-      if (!menu) return; // unknown tile - leave it alone
-      const ok = canViewMenu(docs, menu);
-      if (!ok) {
-        tile.style.display='none';
-      }
+      tilesOf(sec).forEach(tile=>{
+        const sub = tileLabel(tile);
+        const allow = canView(docs, menu, sub);
+        // STRICT: default is hidden unless allow === true
+        tile.style.display = allow ? '' : 'none';
+        if (allow) shownHere++;
+      });
+
+      // hide entire section if nothing remains
+      sec.style.display = shownHere ? '' : 'none';
+      totalShown += shownHere;
     });
-  } catch(err){
-    console.warn('[tiles-rbac] skipped:', err?.message||err);
+
+    // Optional: if nothing at all is visible, you could inject a friendly message here.
+  } catch (e) {
+    console.warn('[tiles-rbac] skipped:', e?.message || e);
   } finally {
-    // reveal whatever remains (no flash of “everything”)
-    const h = host(); if (h) h.classList.remove('rbac-hide');
+    markPending(false);
   }
 }
 
-/* ---------- Triggers ---------- */
-document.addEventListener('DOMContentLoaded', run);
-// Re-run when auth restores
-try { window.DF_FB_API?.onAuth?.(()=> run()); } catch(_){}
-// Re-run if ui-nav mutates the tiles later
-(function watch(){
-  const h = host(); if (!h || !('MutationObserver' in window)) return;
-  const mo = new MutationObserver(m=>{ if (m.some(x=>x.type==='childList')) run(); });
-  mo.observe(h, { childList:true, subtree:true });
-})();
+// --- Triggers
+function installTriggers(){
+  try { window.DF_FB_API?.onAuth?.(()=>applyRBAC()); } catch(_){}
+  const h = host();
+  if (h && 'MutationObserver' in window){
+    const mo = new MutationObserver(m => { if (m.some(x=>x.type==='childList')) applyRBAC(); });
+    mo.observe(h, { childList:true, subtree:true });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => { installTriggers(); applyRBAC(); });
