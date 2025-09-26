@@ -1,18 +1,18 @@
 /* ===========================
-   /js/fb-crop-types.js
+   /js/fb-crop-types.js  (FULL REPLACEMENT)
    - Firestore CRUD for crop types
+   - No server-side orderBy (avoids index requirement); sort in JS
    - DFLoader integration for loading state
    - Toasts on save/delete
-   - Graceful error handling (no blocking alerts)
-   - Quick View provider (works even when empty or on error)
+   - Graceful error handling (shows message)
+   - Quick View provider
    - Collection: "crop_types"
-   - Blanket-rule perm key support (read filter + write field)
-   - Auth redirect logic is owned by core.js (none here)
+   - Includes permKey for blanket rules
    =========================== */
 
 import {
   collection, doc, setDoc, addDoc, deleteDoc, getDocs, getDoc,
-  serverTimestamp, query, orderBy, where
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /* ----- constants (for Firestore rules) ----- */
@@ -27,7 +27,7 @@ function showToast(msg){
   txt.textContent = msg || 'Saved';
   box.style.display = 'block';
   clearTimeout(window.__ctToastT);
-  window.__ctToastT = setTimeout(() => { box.style.display = 'none'; }, 2000);
+  window.__ctToastT = setTimeout(() => { box.style.display = 'none'; }, 2200);
 }
 
 const DFLoader = {
@@ -51,22 +51,18 @@ function toOneDecString(n){
 function getHandles(){ const fb = window.DF_FB || {}; return { db: fb.db, auth: fb.auth }; }
 function CT(db){ return collection(db, 'crop_types'); }
 
-/* ----- CRUD (with blanket-rule compliance) ----- */
-
-// List only docs that carry the required permKey (so the query satisfies your rules)
+/* ----- CRUD (with error surfaces) ----- */
 async function listAll(db){
   try {
-    const snaps = await getDocs(
-      query(CT(db), where('permKey','==', PERM_KEY), orderBy('name'))
-    );
+    // No orderBy — fetch all then sort by name to avoid composite/single-field index surprises
+    const snaps = await getDocs(CT(db));
     const out=[]; snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
+    out.sort((a,b)=> (a.name||'').localeCompare(b.name||'', undefined, { sensitivity:'base' }));
     return { rows: out, error: null };
   } catch (err) {
     return { rows: [], error: err };
   }
 }
-
-// Always write permKey so new/updated docs comply with the blanket rule
 async function upsert(db, item){
   const base = {
     name: item.name,
@@ -85,10 +81,7 @@ async function upsert(db, item){
     return ref.id;
   }
 }
-
-async function removeOne(db, id){
-  await deleteDoc(doc(CT(db), id));
-}
+async function removeOne(db, id){ await deleteDoc(doc(CT(db), id)); }
 
 /* ----- table render ----- */
 async function render(){
@@ -110,7 +103,7 @@ async function render(){
     if (!tbody) return;
 
     if (error) {
-      const msg = (error && error.code) ? error.code : 'error';
+      const msg = (error && (error.message || error.code)) ? (error.message || error.code) : 'error';
       tbody.innerHTML = `<tr><td colspan="6" class="muted-sm">Error loading crop types: ${msg}</td></tr>`;
       return;
     }
@@ -152,7 +145,7 @@ async function render(){
         await render();
         showToast('Deleted');
       } catch (e) {
-        showToast(`Delete failed: ${(e && e.code) || 'error'}`);
+        showToast(`Delete failed: ${(e && (e.message || e.code)) || 'error'}`);
       }
     });
   });
@@ -175,7 +168,7 @@ async function openForEdit(id){
     $('#ctName').focus({preventScroll:false});
     window.scrollTo({top:0, behavior:'smooth'});
   } catch (e) {
-    showToast(`Load failed: ${(e && e.code) || 'error'}`);
+    showToast(`Load failed: ${(e && (e.message || e.code)) || 'error'}`);
   }
 }
 
@@ -239,7 +232,7 @@ function installForm(){
       await render();
       showToast(id ? 'Crop type updated' : 'Crop type added');
     } catch (e) {
-      showToast(`Save failed: ${(e && e.code) || 'error'}`);
+      showToast(`Save failed: ${(e && (e.message || e.code)) || 'error'}`);
     }
   });
 
@@ -257,7 +250,7 @@ window.DF_QUICKVIEW_PROVIDER = async () => {
   const { rows, error } = await listAll(db);
 
   if (error) {
-    const msg = (error && error.code) ? error.code : 'error';
+    const msg = (error && (error.message || error.code)) ? (error.message || error.code) : 'error';
     return { title: 'Crop Types', html: `<div style="opacity:.7">Error: ${msg}</div>` };
   }
   if (!rows.length) {
