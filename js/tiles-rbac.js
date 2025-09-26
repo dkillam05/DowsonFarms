@@ -1,164 +1,161 @@
-<script type="module">
-// Dowson Farms — Home tiles RBAC (FULL FILE)
-// Hides any .df-tiles[data-section] tile when the user lacks View on *all*
-// of its child submenus. Works with your Employee→User→Role precedence.
+// /js/tiles-rbac.js  (ES module)
+// Hides Home tiles the signed-in user cannot VIEW.
+// Precedence: employee.permissions > user.permissions > role.permissions
 
 import {
-  doc, getDoc
+  getFirestore, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// ---- Tiny helpers
-const $ = (s, r=document) => r.querySelector(s);
-const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
-const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+const norm  = (s)=> String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
 
-// Match the exact menu labels you use in DF_MENUS and on Home tiles
-function getAllMenusFromDF() {
-  const df = window.DF_MENUS || {};
-  const out = {};
-  (df.tiles||[]).forEach(t=>{
-    const top = String(t.label||'').trim();
-    if (!top) return;
-    out[top] = (t.children||[]).map(c => String(c.label||'').trim()).filter(Boolean);
-  });
-  return out;
+// ---------- wait for DF_FB + auth restoration ----------
+async function waitForFirebase(maxMs=12000){
+  const t0 = Date.now();
+  while ((!window.DF_FB || !window.DF_FB.db || !window.DF_FB.auth) && (Date.now()-t0)<maxMs){
+    await sleep(80);
+  }
+  if (!window.DF_FB || !window.DF_FB.db) throw new Error('firebase not ready');
+  return window.DF_FB;
 }
 
-// Safe read for Employee→User→Role precedence
-async function readAuthContext() {
-  // wait for firebase-init
-  let tries = 0;
-  while ((!window.DF_FB || !DF_FB.db || !DF_FB.auth) && tries < 250) {
-    await sleep(60); tries++;
-  }
-  if (!window.DF_FB || !DF_FB.db) return null;
+// ---------- pull docs similar to rules ----------
+async function readDocs(db, user){
+  const emailLower = (user?.email||'').toLowerCase();
+  const uid        = user?.uid || '';
 
-  const { db, auth } = DF_FB;
-  const user = auth.currentUser || null;
-  if (!user) return { db, user:null, emailLower:null, employee:null, userDoc:null, roleDoc:null };
+  const userSnap = emailLower ? await getDoc(doc(db,'users', emailLower)) : null;
+  const userDoc  = (userSnap && userSnap.exists()) ? userSnap.data() : null;
 
-  const emailLower = (user.email||'').toLowerCase();
-
-  const empSnap  = await getDoc(doc(db, 'employees', user.uid)).catch(()=>null);
-  const usrSnap  = await getDoc(doc(db, 'users', emailLower)).catch(()=>null);
+  const empSnap  = uid ? await getDoc(doc(db,'employees', uid)) : null;
+  const empDoc   = (empSnap && empSnap.exists()) ? empSnap.data() : null;
 
   // prefer employee.roleId, then user.roleId
-  let roleId = empSnap?.exists() && empSnap.data().roleId
-             ? empSnap.data().roleId
-             : (usrSnap?.exists() && usrSnap.data().roleId ? usrSnap.data().roleId : null);
-  const roleSnap = roleId ? await getDoc(doc(db,'roles', roleId)).catch(()=>null) : null;
+  const roleId = (empDoc && empDoc.roleId) || (userDoc && userDoc.roleId) || null;
+  const roleSnap = roleId ? await getDoc(doc(db,'roles', roleId)) : null;
+  const roleDoc  = (roleSnap && roleSnap.exists()) ? roleSnap.data() : null;
 
-  return {
-    db,
-    user,
-    emailLower,
-    employee: empSnap?.exists() ? empSnap.data() : null,
-    userDoc: usrSnap?.exists() ? usrSnap.data() : null,
-    roleDoc: roleSnap?.exists() ? roleSnap.data() : null
-  };
+  return { empDoc, userDoc, roleDoc };
 }
 
-// Pull merged permission map (Employee overrides > User overrides > Role defaults)
-function mergedPerms(ctx){
-  const pEmp  = ctx.employee?.permissions || null;
-  const pUser = ctx.userDoc?.permissions || null;
-  const pRole = ctx.roleDoc?.permissions || null;
-  // We only need boolean presence; precedence means: if any layer says true, keep true.
-  function merge(a,b){
-    if (!a) return b||{};
-    if (!b) return a||{};
-    const out = {};
-    const menus = new Set([...Object.keys(a||{}), ...Object.keys(b||{})]);
-    menus.forEach(menu=>{
-      out[menu] = out[menu] || {};
-      const subs = new Set([
-        ...Object.keys(a[menu]||{}),
-        ...Object.keys(b[menu]||{})
-      ]);
-      subs.forEach(sub=>{
-        out[menu][sub] = out[menu][sub] || {};
-        const acts = new Set([
-          ...Object.keys(a[menu]?.[sub]||{}),
-          ...Object.keys(b[menu]?.[sub]||{})
-        ]);
-        acts.forEach(act=>{
-          out[menu][sub][act] =
-            !!(a[menu]?.[sub]?.[act] || b[menu]?.[sub]?.[act]);
-        });
-      });
-    });
-    return out;
+// ---------- permission lookup (view only) ----------
+function hasView(perms, menuLabel, subLabel){
+  if (!perms) return false;
+  const m = perms[menuLabel]; if (!m) return false;
+  const s = m[subLabel] || m['*'];
+  return !!(s && s.view === true);
+}
+
+function canView({empDoc,userDoc,roleDoc}, menuLabel, subLabel){
+  return (
+    hasView(empDoc?.permissions, menuLabel, subLabel) ||
+    hasView(userDoc?.permissions, menuLabel, subLabel) ||
+    hasView(roleDoc?.permissions, menuLabel, subLabel)
+  );
+}
+
+// ---------- tile filtering ----------
+function getRenderedSections(){
+  // ui-nav renders sections like: .df-tiles [data-section="<Menu Label>"]
+  const host = document.querySelector('.df-tiles[data-source]');
+  if (!host) return [];
+  return Array.from(host.querySelectorAll('[data-section]'));
+}
+
+// robust helpers to read labels off DOM even if attributes change
+function readMenuLabel(sectionEl){
+  return sectionEl.getAttribute('data-section') || sectionEl.querySelector('h2,h3,strong')?.textContent || '';
+}
+function findTiles(sectionEl){
+  // typical cards: .tile or a elements within the section
+  const explicit = sectionEl.querySelectorAll('[data-submenu]');
+  if (explicit.length) return Array.from(explicit);
+  const guessed  = sectionEl.querySelectorAll('.tile, a, button');
+  return Array.from(guessed).filter(el=>{
+    // skip headers and separators
+    const tag = el.tagName.toLowerCase();
+    if (tag==='h2'||tag==='h3'||el.closest('nav')) return false;
+    // has some clickable content
+    const txt = el.textContent?.trim();
+    return !!txt;
+  });
+}
+function readSubmenuLabel(tileEl){
+  return tileEl.getAttribute('data-submenu')
+      || tileEl.querySelector('strong,span,div')?.textContent
+      || tileEl.textContent
+      || '';
+}
+
+function hideEmpty(sectionEl){
+  const visible = sectionEl.querySelectorAll(':scope *').length &&
+                  sectionEl.querySelectorAll(':scope *').length > 0 &&
+                  Array.from(findTiles(sectionEl)).some(el => el.style.display !== 'none');
+  if (!visible) {
+    sectionEl.style.display = 'none';
   }
-  return merge(merge(pRole, pUser), pEmp);
 }
 
-// Check View permission for a specific (menu, submenu)
-function canView(perms, menu, submenu){
-  const p = perms?.[menu]?.[submenu];
-  return !!(p && p.view === true);
-}
+// ---------- main filter routine ----------
+async function filterTilesForUser(){
+  try{
+    // Wait for auth + tiles to exist
+    const { db, auth } = await waitForFirebase();
+    // wait until ui-nav finished rendering (sections exist)
+    let tries = 0;
+    while (getRenderedSections().length === 0 && tries++ < 100){ await sleep(60); }
 
-// Hide tiles that have no visible submenus
-function applyToTiles(perms){
-  const MENUS = getAllMenusFromDF();
+    const user = auth.currentUser;
+    if (!user) return; // no user -> don't change UI (passive)
 
-  // A tile group on Home looks like: <section class="df-tiles" data-section="Calculators">…</section>
-  // Inside, each link/button should have data-submenu="Area" etc. If it doesn’t,
-  // we’ll fall back to its textContent.
-  const sections = $$('.df-tiles[data-section]');
-  sections.forEach(sec=>{
-    const menu = String(sec.getAttribute('data-section')||'').trim();
-    if (!menu) return;
+    const docs = await readDocs(db, user);
 
-    const links = $$('a,[data-submenu],button[data-submenu]', sec);
-    // If the markup doesn’t have data-submenu on items, try to build list from DF_MENUS
-    let pairs = links.map(el=>{
-      const sub = (el.getAttribute('data-submenu') || el.textContent || '').trim();
-      return { el, submenu: sub };
-    }).filter(x=>x.submenu);
+    const sections = getRenderedSections();
+    sections.forEach(section=>{
+      const menuLabel  = readMenuLabel(section);
+      const menuN      = norm(menuLabel);
+      const tiles      = findTiles(section);
 
-    if (!pairs.length) {
-      // fallback to DF_MENUS definition
-      const subs = MENUS[menu] || [];
-      pairs = subs.map(s => ({ el:null, submenu:s }));
-    }
+      let anyVisible = false;
 
-    // If *any* child submenu has View, keep the tile; else hide it.
-    const anyVisible = pairs.some(p => canView(perms, menu, p.submenu));
-    if (!anyVisible) {
-      sec.style.display = 'none';
-      return;
-    }
+      tiles.forEach(tile=>{
+        const subLabel = readSubmenuLabel(tile);
+        const ok = canView(docs, menuLabel, subLabel);
+        if (!ok) {
+          tile.style.display = 'none';
+        } else {
+          anyVisible = true;
+        }
+      });
 
-    // Optional: also hide individual child links the user can’t view
-    pairs.forEach(p=>{
-      if (!p.el) return;
-      if (!canView(perms, menu, p.submenu)) {
-        p.el.style.display = 'none';
+      if (!anyVisible) {
+        section.style.display = 'none';
       }
     });
-  });
-
-  // If a row becomes empty, collapse its gap (nice polish)
-  const rows = $$('.tiles-row');
-  rows.forEach(r=>{
-    const any = !!r.querySelector('.df-tiles[data-section]:not([style*="display: none"])');
-    if (!any) r.style.display = 'none';
-  });
+  }catch(e){
+    // fail quietly (never block UI)
+    console.warn('[tiles-rbac] filter skipped:', e?.message || e);
+  }
 }
 
-(async function boot(){
+// ---------- re-run when auth restores OR menu data swaps ----------
+function installTriggers(){
   try{
-    const ctx = await readAuthContext();
-    if (!ctx || !ctx.user) return;                 // not signed in: leave tiles as-is
-    // If this user’s role label is Administrator, show everything (fast-path)
-    const roleName = (ctx.roleDoc?.label || ctx.roleDoc?.id || '').toString();
-    if ((roleName || '').toLowerCase() === 'administrator') return;
-
-    const perms = mergedPerms(ctx);
-    applyToTiles(perms);
-  }catch(e){
-    console.warn('[tiles-rbac] skipped:', e?.message||e);
+    // when auth changes
+    window.DF_FB_API?.onAuth?.(()=> filterTilesForUser());
+  }catch(_){}
+  // when menus render late
+  const host = document.querySelector('.df-tiles[data-source]');
+  if (host && 'MutationObserver' in window){
+    const mo = new MutationObserver((muts)=>{
+      // if child list changed, attempt filter again
+      if (muts.some(m=>m.type==='childList')) filterTilesForUser();
+    });
+    mo.observe(host, { childList:true, subtree:true });
   }
-})();
-</script>
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  installTriggers();
+  filterTilesForUser(); // initial attempt
+});
