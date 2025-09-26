@@ -31,15 +31,11 @@
   <!-- PWA manifest (Android/desktop) -->
   <link rel="manifest" href="manifest.webmanifest?v=904" />
 
-  <!-- iOS: this is what Safari actually uses for the Homescreen icon -->
-  <!-- Use the icon that exists: assets/icons/apple-touch-icon.png -->
+  <!-- iOS homescreen icon -->
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=904" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=904" />
-  <!-- (Optional) additional sizes if you add them later:
-  <link rel="apple-touch-icon" sizes="152x152" href="assets/icons/apple-touch-icon-152.png?v=904" />
-  -->
 
-  <!-- Make it behave like an app when launched from the icon (optional) -->
+  <!-- App-mode on iOS (optional) -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 </head>
@@ -58,7 +54,7 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol><li><span>Home</span></li></ol>
-    <!-- Logout button will be injected by core.js -->
+    <!-- Logout button gets injected by core.js -->
   </nav>
 
   <!-- Main -->
@@ -87,12 +83,16 @@
     }
   </script>
 
-  <!-- App scripts (order matters: firebase-init first, then core) -->
+  <!-- App scripts (order matters) -->
   <script type="module" src="js/firebase-init.js"></script>
   <script defer src="js/version.js"></script>
   <script defer src="js/core.js"></script>
-  <!-- Bump ?v any time menus.js changes to defeat caches -->
+
+  <!-- Menu data + renderer -->
   <script defer src="assets/data/menus.js?v=904"></script>
   <script defer src="js/ui-nav.js?v=904"></script>
+
+  <!-- RBAC filter: hides tiles the user cannot view (must come last) -->
+  <script type="module" src="js/tiles-rbac.js?v=904"></script>
 </body>
 </html>
