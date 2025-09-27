@@ -7,13 +7,13 @@
    - Logout button in Breadcrumb bar (right-aligned, consistent)
    - Honors <base href="/DowsonFarms/">
 
-   Auth guard is now PASSIVE:
+   Auth guard is PASSIVE:
      • No spinner on timers
      • No auto-redirect to login
      • If Firebase isn't ready or user is null, page stays put
 
-   NEW:
-     • Tiles Guard (RBAC): hides tiles the user cannot view, grid reflows
+   Includes Tiles Guard (RBAC) — hides home tiles the user cannot access,
+   but is a no-op on pages without a .df-tiles grid.
    =========================== */
 
 (function () {
@@ -526,49 +526,71 @@
     })();
   }
 
-  /* ---------- NEW: Tiles Guard (RBAC) ---------- */
+  /* ---------- Tiles Guard (RBAC) ---------- */
   function installTilesGuard() {
-    // Only pages that use the tile grid need this; bail if none present.
-    var grids = document.querySelectorAll('.df-tiles, [data-section].df-tiles, .df-tiles[data-section]');
-    if (!grids.length) return;
+    var grid = document.querySelector('.df-tiles[data-source]');
+    if (!grid) return;
 
-    // Inject a tiny ES module so we can import Firestore without changing your script tags.
+    // Gate CSS to avoid flashing all tiles on first paint
+    if (!document.getElementById('rbac-tiles-style-core')) {
+      var s = document.createElement('style');
+      s.id = 'rbac-tiles-style-core';
+      s.textContent = '.df-tiles[data-source]{visibility:hidden} .df-tiles[data-source].rbac-ready{visibility:visible}';
+      document.head.appendChild(s);
+    }
+
+    // Inject a small module to read user/role + filter tiles
     var code = `
       import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+      const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+
+      async function readyFB(maxMs=12000){
+        const t0=Date.now();
+        while (Date.now()-t0<maxMs){
+          if (window.DF_FB && window.DF_FB.db && window.DF_FB.auth) return window.DF_FB;
+          await sleep(60);
+        }
+        throw new Error('Firebase not ready');
+      }
+
       (async () => {
         try {
-          const FB = window.DF_FB || {};
-          const db = FB.db, auth = FB.auth;
-          if (!db || !auth || !auth.currentUser) return; // silent until signed in
-
-          const email = (auth.currentUser.email || '').toLowerCase().trim();
+          const { db, auth } = await readyFB();
+          const user = auth.currentUser;
+          if (!user) { document.querySelector('.df-tiles[data-source]')?.classList.add('rbac-ready'); return; }
 
           // Load user doc
-          let roleId = null, overrides = null;
-          try {
-            const userSnap = await getDoc(doc(db, 'users', email));
-            if (userSnap.exists()) {
-              const u = userSnap.data() || {};
+          const email = (user.email||'').toLowerCase();
+          let roleId=null, overrides=null;
+          try{
+            const uSnap = await getDoc(doc(db,'users', email));
+            if (uSnap.exists()){
+              const u = uSnap.data() || {};
               roleId = u.roleId || u.role || null;
               overrides = (u.exceptions && u.exceptions.enabled) ? (u.exceptions.grants || {}) : {};
             }
-          } catch (_) {}
+          }catch(_){}
 
           // Load role doc
           let rolePerms = {};
-          if (roleId) {
-            try {
-              const rSnap = await getDoc(doc(db, 'roles', String(roleId)));
-              if (rSnap.exists()) {
+          if (roleId){
+            try{
+              const rSnap = await getDoc(doc(db,'roles', String(roleId)));
+              if (rSnap.exists()){
                 const r = rSnap.data() || {};
-                rolePerms = (r.permissions && typeof r.permissions === 'object') ? r.permissions : {};
+                rolePerms = (r.permissions && typeof r.permissions==='object') ? r.permissions : {};
               }
-            } catch (_) {}
+            }catch(_){}
           }
 
           // Build menu map from DF_MENUS
           const MENUS = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles))
-            ? window.DF_MENUS.tiles.reduce((acc,t)=>{ const top=String(t.label||'').trim(); const subs=(Array.isArray(t.children)?t.children:[]).map(c=>String(c.label||'').trim()); if(top) acc[top]=subs; return acc; }, {})
+            ? window.DF_MENUS.tiles.reduce((acc,t)=>{
+                const top=String(t.label||'').trim();
+                const subs=(Array.isArray(t.children)?t.children:[]).map(c=>String(c.label||'').trim());
+                if(top) acc[top]=subs;
+                return acc;
+              }, {})
             : {};
           const ACTIONS = ['view','edit','add','archive','delete'];
 
@@ -595,43 +617,46 @@
             return out;
           }
           const effective = merge(rolePerms, overrides);
-
           function canView(menu, sub){
             const p = (effective?.[menu]?.[sub]) || {};
             return !!p.view || !!p.edit || !!p.add || !!p.archive || !!p.delete;
           }
 
-          // Hide tiles the user cannot access
-          const grids = document.querySelectorAll('.df-tiles, [data-section].df-tiles, .df-tiles[data-section]');
-          grids.forEach(grid=>{
-            const menu = grid.getAttribute('data-section') || (grid.closest('[data-section]')?.getAttribute('data-section')) || null;
+          // Filter tiles
+          const host = document.querySelector('.df-tiles[data-source]');
+          if (!host) return;
 
-            // candidate tiles (links/buttons/cards)
-            const tiles = grid.querySelectorAll('[data-submenu],[data-menu],[data-label],a,button,li,div');
+          // Each section container should have data-section="<Menu Label>"
+          document.querySelectorAll('.df-tiles [data-section]').forEach(sec=>{
+            const menu = sec.getAttribute('data-section') || '';
+            let kept = 0;
+
+            // Tiles: look for explicit data-submenu first; fallback to text content
+            const tiles = sec.querySelectorAll('[data-submenu], a, .tile, button, li, div');
             tiles.forEach(node=>{
-              const subAttr = node.getAttribute && (node.getAttribute('data-submenu') || node.getAttribute('data-label'));
-              const menuAttr= node.getAttribute && node.getAttribute('data-menu');
-              const labelText= (node.textContent || '').trim();
+              const sub = (node.getAttribute && node.getAttribute('data-submenu')) ||
+                          (node.textContent || '').trim();
+              if (!sub) return;
+              // Ignore nodes that are clearly not leaf tiles
+              if (node.matches('h1,h2,h3,nav,ol,ul')) return;
 
-              const m = (menuAttr || menu || '').trim();
-              const s = (subAttr || labelText || '').trim();
-
-              if (!m || !s) return;
-              if (MENUS[m] && MENUS[m].length && MENUS[m].indexOf(s) === -1) return; // not a DF submenu
-
-              if (!canView(m, s)) node.style.display = 'none';
+              if (!canView(menu, sub)) {
+                node.style.display = 'none';
+              } else {
+                kept++;
+              }
             });
 
-            // If grid becomes empty, hide its wrapper section too
-            const anyVisible = Array.prototype.some.call(grid.children, ch => ch.offsetParent !== null);
-            if (!anyVisible) {
-              const section = grid.closest('section, .section, .card, .tile-section') || grid;
-              section.style.display = 'none';
-            }
+            if (!kept) sec.style.display = 'none';
           });
 
+          host.classList.add('rbac-ready');
           window.dispatchEvent(new CustomEvent('df:tiles-guarded'));
-        } catch (e) {}
+        } catch (e) {
+          // Fail-open: show tiles rather than break the home page
+          document.querySelector('.df-tiles[data-source]')?.classList.add('rbac-ready');
+          console.warn('[core tiles guard] skipped:', e && (e.message||e));
+        }
       })();
     `;
     var mod = document.createElement('script');
@@ -655,9 +680,9 @@
 
     installBackButtonFlow();
     injectQuickView();          // adds Quick View (provider or URL)
-    installAuthGuard();         // now passive — no kicks
+    installAuthGuard();         // passive — no kicks
 
-    // NEW: run RBAC tiles guard on any pages with tile grids
+    // RBAC tiles guard (only does work if a .df-tiles grid exists)
     installTilesGuard();
   });
 
