@@ -1,95 +1,155 @@
-// Render sub-tiles for a section (e.g., Equipment, Reports) from DF_MENUS
-(function () {
-  function ready(fn){
-    if (document.readyState !== 'loading') fn();
-    else document.addEventListener('DOMContentLoaded', fn);
-  }
+<script>
+// Renders a section’s sub-tiles (e.g., Equipment, Reports) from DF_MENUS
+// RBAC: only render submenus the user can VIEW.
 
-  function esc(s){
-    const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'};
-    return String(s || '').replace(/[&<>"]/g, c => map[c]);
+(function(){
+  const $ = s=>document.querySelector(s);
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+  const esc = (s)=>String(s||'').replace(/[&<>"]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c]||c));
+  function ready(fn){ (document.readyState!=='loading') ? fn() : document.addEventListener('DOMContentLoaded', fn); }
+
+  async function waitForFirebase(maxMs=12000){
+    const t0 = performance.now();
+    while (performance.now()-t0 < maxMs){
+      if (window.DF_FB && window.DF_FB.db && window.DF_FB.auth) return window.DF_FB;
+      await sleep(60);
+    }
+    throw new Error('firebase not ready');
   }
 
   function lastSegment(path){
-    const trimmed = path.replace(/\/+$/,'');
-    const segs = trimmed.split('/');
-    return segs[segs.length - 1] || '';
+    const trimmed = path.replace(/\/+$/,''); const segs = trimmed.split('/'); return segs[segs.length-1] || '';
   }
-
-  // Compute the current folder name, e.g.
-  // /settings-setup/index.html  -> "settings-setup"
-  // /teams-partners/anything    -> "teams-partners"
   function currentFolder(){
-    const folder = lastSegment(location.pathname.replace(/\/index\.html?$/i, '').replace(/\/+$/,''));
+    const folder = lastSegment(location.pathname.replace(/\/index\.html?$/i,'').replace(/\/+$/,''));
     return folder || '';
   }
-
-  // Normalize a menu href so it works from inside a section page.
-  // Rules:
-  // - keep external URLs and hashes unchanged
-  // - if href starts with the current folder + '/', strip that prefix to avoid doubling
-  //   e.g. we're in settings-setup/, and href is "settings-setup/ss-farms.html" => "ss-farms.html"
-  // - otherwise return as-is (relative/absolute will work with your existing pages/base)
   function normalizeHref(href, curFolder){
-    const h = String(href || '');
-    if (!h) return '#';
-    if (h.startsWith('#')) return h;                       // in-page action/anchor
-    if (/^[a-z]+:\/\//i.test(h)) return h;                 // http(s)://
-    if (h.startsWith('/')) return h;                       // site-absolute (works if you use <base>)
-
+    const h = String(href||''); if (!h) return '#';
+    if (h.startsWith('#')) return h;
+    if (/^[a-z]+:\/\//i.test(h)) return h;
+    if (h.startsWith('/')) return h;
     const prefix = curFolder ? (curFolder + '/') : '';
-    if (prefix && h.toLowerCase().startsWith(prefix.toLowerCase())) {
-      return h.slice(prefix.length);                       // strip redundant folder
-    }
-    return h;                                              // leave as-is
+    if (prefix && h.toLowerCase().startsWith(prefix.toLowerCase())) return h.slice(prefix.length);
+    return h;
   }
 
-  ready(function () {
-    const host = document.querySelector('.df-tiles[data-section]');
+  function buildMenusArray(){
+    return (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
+  }
+  function findSectionByNameOrHref(tiles, nameGuess){
+    const g = (nameGuess||'').toLowerCase();
+    for (const t of tiles){
+      const labelMatch = (t.label||'').toLowerCase() === g;
+      const hrefMatch  = (t.href||'').toLowerCase().includes(g.replace(/\s+/g,'-'));
+      if (labelMatch || hrefMatch) return t;
+    }
+    return null;
+  }
+  function buildMenusMap(){
+    const tiles = buildMenusArray();
+    const map = {};
+    tiles.forEach(t=>{
+      const top = String(t.label||'').trim(); if (!top) return;
+      map[top] = (Array.isArray(t.children)?t.children:[]).map(c=>String(c.label||'').trim()).filter(Boolean);
+    });
+    return map;
+  }
+  function mergePerms(menusMap, rolePerms, overrides){
+    const ACTIONS = ['view','edit','add','archive','delete'];
+    const eff = {};
+    Object.keys(menusMap).forEach(menu=>{
+      eff[menu] = {};
+      (menusMap[menu]||[]).forEach(sub=>{
+        const b = (rolePerms?.[menu]?.[sub]) || {};
+        const o = (overrides?.[menu]?.[sub]) || {};
+        const p = {};
+        ACTIONS.forEach(k => p[k] = (k in o) ? !!o[k] : !!b[k]);
+        eff[menu][sub] = p;
+      });
+    });
+    return eff;
+  }
+  function canView(eff, menu, sub){
+    const p = (eff?.[menu]?.[sub]) || {};
+    return !!(p.view || p.edit || p.add || p.archive || p.delete);
+  }
+
+  ready(async function(){
+    const host = $('.df-tiles[data-section]');
     if (!host) return;
 
-    // Resolve section name:
-    // 1) explicit data-section
-    // 2) <h1> text (strip leading emoji/symbol)
-    // 3) folder name from URL (equipment/, reports/, etc.)
+    // Resolve section name (explicit attr → H1 → folder guess)
     let sectionName = host.getAttribute('data-section') || '';
-    if (!sectionName) {
-      const h1 = document.querySelector('.content h1')?.textContent || '';
+    if (!sectionName){
+      const h1 = $('.content h1')?.textContent || '';
       sectionName = h1.replace(/^[^\w]+/,'').trim();
     }
-    if (!sectionName) {
-      const folder = lastSegment(location.pathname.replace(/\/index\.html?$/i, ''));
-      sectionName = (folder || '').replace(/[-_]+/g, ' ').replace(/\b\w/g, c=>c.toUpperCase());
+    if (!sectionName){
+      const folder = lastSegment(location.pathname.replace(/\/index\.html?$/i,''));
+      sectionName = (folder||'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
     }
 
-    const MENUS = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
-    if (!MENUS.length) {
-      console.warn('ui-subnav: DF_MENUS missing.');
-      return;
-    }
+    const TILES = buildMenusArray();
+    if (!TILES.length){ console.warn('ui-subnav: DF_MENUS missing'); return; }
 
-    function findSectionByNameOrHref(tiles, nameGuess){
-      const guessLower = (nameGuess || '').toLowerCase();
-      for (const t of tiles) {
-        const labelMatch = (t.label || '').toLowerCase() === guessLower;
-        const hrefMatch  = (t.href || '').toLowerCase().includes(guessLower.replace(/\s+/g,'-'));
-        if (labelMatch || hrefMatch) return t;
-      }
-      return null;
-    }
-
-    const section = findSectionByNameOrHref(MENUS, sectionName);
-    if (!section || !Array.isArray(section.children) || !section.children.length) {
+    const section = findSectionByNameOrHref(TILES, sectionName);
+    if (!section || !Array.isArray(section.children) || !section.children.length){
       console.warn('ui-subnav: section not found or no children for', sectionName);
       return;
     }
 
-    const curFolder = currentFolder();
+    // Hide host until RBAC done (no flash)
+    host.style.visibility = 'hidden';
 
-    host.innerHTML = section.children.map(c => {
-      const ico = c.iconEmoji ? (esc(c.iconEmoji) + ' ') : '';
-      const href = normalizeHref(c.href, curFolder);
-      return `<a href="${esc(href)}" class="df-tile">${ico}<span>${esc(c.label)}</span></a>`;
-    }).join('');
+    // Compute RBAC
+    let eff = null;
+    try{
+      const { db, auth } = await waitForFirebase();
+      const user = auth.currentUser;
+      if (user) {
+        const email = (user.email||'').toLowerCase();
+        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+
+        let roleId = null, overrides = {};
+        try {
+          const uSnap = await getDoc(doc(db,'users', email));
+          if (uSnap.exists()){
+            const u = uSnap.data()||{};
+            roleId = u.roleId || u.role || null;
+            overrides = (u.exceptions && u.exceptions.enabled) ? (u.exceptions.grants||{}) : {};
+          }
+        } catch(_){}
+
+        let rolePerms = {};
+        if (roleId){
+          try{
+            const rSnap = await getDoc(doc(db,'roles', String(roleId)));
+            if (rSnap.exists()){
+              const r = rSnap.data()||{};
+              rolePerms = (r.permissions && typeof r.permissions==='object') ? r.permissions : {};
+            }
+          } catch(_){}
+        }
+
+        const MENUS_MAP = buildMenusMap();
+        eff = mergePerms(MENUS_MAP, rolePerms, overrides);
+      }
+    } catch(_) {}
+
+    // Render only allowed submenus
+    const curFolder = currentFolder();
+    const subs = section.children || [];
+    const html = subs.map(c=>{
+      const subLabel = String(c.label||'').trim();
+      if (!eff || !canView(eff, String(section.label||'').trim(), subLabel)) return '';
+      const href = normalizeHref(String(c.href||'#'), curFolder);
+      const ico  = c.iconEmoji ? (esc(c.iconEmoji)+' ') : '';
+      return `<a href="${esc(href)}" class="df-tile" data-menu="${esc(section.label||'')}" data-submenu="${esc(subLabel)}">${ico}<span>${esc(subLabel)}</span></a>`;
+    }).filter(Boolean).join('');
+
+    host.innerHTML = html || '<div class="muted" style="padding:14px;">No pages in this section for your account.</div>';
+    host.style.visibility = '';
   });
 })();
+</script>
