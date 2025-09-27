@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Account Roles — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- Theme prepaint -->
   <script>
     (function(){
       var pref=localStorage.getItem('df_theme')||'auto';
@@ -17,17 +17,17 @@
   </script>
 
   <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js"></script>
+  <script defer src="../js/version.js?v=roles1"></script>
 
-  <!-- ORDER MATTERS: init → core → menus (data) → roles (page) -->
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script defer src="../js/core.js"></script>
-  <script defer src="../assets/data/menus.js"></script>
-  <script type="module" src="../js/fb-roles.js"></script>
+  <!-- ORDER MATTERS: firebase-init → core → menus (data) → fb-roles (page) -->
+  <script type="module" src="../js/firebase-init.js?v=roles1"></script>
+  <script defer src="../js/core.js?v=roles1"></script>
+  <script defer src="../assets/data/menus.js?v=roles1"></script>
+  <script type="module" src="../js/fb-roles.js?v=roles1"></script>
 
   <style>
     .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
+    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1}
     .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
     .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
     .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
@@ -53,7 +53,7 @@
     <ol>
       <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="index.html">Setup / Settings</a></li>
+      <li><a href="./index.html">Setup / Settings</a></li>
       <li class="sep">›</li>
       <li><span>Account Roles</span></li>
     </ol>
@@ -97,6 +97,7 @@
     <span id="version">v0.0.0</span>
   </footer>
 
+  <!-- Quick View modal (used by fb-roles.js if present) -->
   <div id="qvBackdrop" class="auth-modal__backdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
     <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
       <h2 id="qvTitle">Role Permissions — <span id="qvRole">—</span></h2>
