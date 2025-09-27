@@ -1,13 +1,11 @@
 /* ===========================
    /js/fb-crop-types.js  (FULL REPLACEMENT)
-   - Firestore CRUD for crop types
-   - No server-side orderBy (avoids index requirement); sort in JS
-   - DFLoader integration for loading state
+   - Firestore CRUD for crop types (collection: "crop_types")
+   - Writes a stable permKey for blanket Firestore rules
+   - Sorts in JS (no Firestore index needed)
+   - DFLoader integration for loading state (from core.js)
    - Toasts on save/delete
-   - Graceful error handling (shows message)
-   - Quick View provider
-   - Collection: "crop_types"
-   - Includes permKey for blanket rules
+   - Quick View provider for core.js
    =========================== */
 
 import {
@@ -54,7 +52,7 @@ function CT(db){ return collection(db, 'crop_types'); }
 /* ----- CRUD (with error surfaces) ----- */
 async function listAll(db){
   try {
-    // No orderBy — fetch all then sort by name to avoid composite/single-field index surprises
+    // No orderBy — fetch all then sort by name to avoid index surprises
     const snaps = await getDocs(CT(db));
     const out=[]; snaps.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
     out.sort((a,b)=> (a.name||'').localeCompare(b.name||'', undefined, { sensitivity:'base' }));
