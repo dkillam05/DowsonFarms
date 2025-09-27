@@ -1,7 +1,24 @@
-// /js/fb-roles.js
-// Account Roles — edit per-role permissions using DF_MENUS as source of truth.
-// Waits for Firebase auth restoration, quiet UX (toasts/status, no alerts/redirects).
-// Auto-backfills permKey on legacy role docs so blanket Firestore rules work without any console steps.
+/* ===========================
+   /js/fb-roles.js  (FULL REPLACEMENT)
+   Account Roles — edit per-role permissions using DF_MENUS as source of truth.
+
+   Writes clean role docs shaped like:
+     roles/{roleId} = {
+       label: "Administrator",
+       permKey: "Settings & Setup › Account Roles",
+       permissions: {
+         "Settings & Setup": { "Account Roles": { view:true, edit:true, add:true, archive:true, delete:true }, ... },
+         "Teams & Partners": { "Employees": { ... }, ... },
+         ...
+       },
+       createdAt, updatedAt
+     }
+
+   Notes:
+   - Seeds default roles if collection is empty.
+   - Uses DF_MENUS (from assets/data/menus.js) to build the UI shape.
+   - Calm UX: status/toasts, no redirects or blocking alerts.
+   =========================== */
 
 import {
   collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp
@@ -21,7 +38,7 @@ const el = {
   menusBox:     $('#menusContainer'),
   permCard:     $('#permCard'),
 
-  // Quick View (if your page includes it)
+  // Quick View (optional in page)
   qvBackdrop:   $('#qvBackdrop'),
   qvList:       $('#qvList'),
   qvRole:       $('#qvRole'),
@@ -35,7 +52,7 @@ const el = {
 const ACTIONS = ['view','edit','add','archive','delete'];
 const DEFAULT_ROLES = ["Administrator","Owner","Manager","Employee","ViewOnly"];
 
-/* ---------- Small UI helpers (muted / non-blocking) ---------- */
+/* ---------- UI helpers ---------- */
 function toast(msg='Saved'){
   if (!el.toastBox || !el.toastText) return;
   el.toastText.textContent = msg;
@@ -83,7 +100,6 @@ async function readyFirebase(){
     tries++;
   }
   if (!window.DF_FB || !window.DF_FB.db) throw new Error('Firebase not initialized');
-  // Sticky sessions on phones
   try { await window.DF_FB_API?.setPersistence?.(true); } catch {}
   return window.DF_FB.db;
 }
@@ -107,7 +123,7 @@ async function seedRolesIfEmpty(db){
     setDoc(doc(db,'roles', name), {
       label: name,
       permissions: {},
-      permKey: PERM_KEY,                 // ensure seeded docs comply with blanket rules
+      permKey: PERM_KEY,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }, { merge:true })
@@ -123,7 +139,6 @@ async function readRoleDoc(db, roleId){
   return { id: snap.id, ...(snap.data()||{}) };
 }
 async function saveRoleDoc(db, roleId, payload){
-  // Always write permKey so blanket rules apply consistently
   await setDoc(
     doc(db,'roles', roleId),
     { ...payload, permKey: PERM_KEY, updatedAt: serverTimestamp() },
@@ -184,10 +199,6 @@ function summarizeChildren(perms, menu){
   return `${on} of ${keys.length} submenus`;
 }
 
-/**
- * Build the full interactive UI.
- * Returns a controller with getPerms() to read current state.
- */
 function buildPermissionsUI(container, startingPerms){
   container.innerHTML = '';
   const perms = mergePerms(emptyPermShape(), startingPerms||{});
@@ -304,7 +315,7 @@ function buildPermissionsUI(container, startingPerms){
   };
 }
 
-/* ---------- Quick View (if present on the page) ---------- */
+/* ---------- Quick View (optional) ---------- */
 function openQuickView(roleLabel, permsObj){
   if (!el.qvBackdrop || !el.qvList || !el.qvRole) return;
   el.qvRole.textContent = roleLabel || '—';
@@ -324,19 +335,6 @@ function openQuickView(roleLabel, permsObj){
   el.qvBackdrop.addEventListener('click', (e)=>{ if(e.target===el.qvBackdrop) el.qvBackdrop.style.display='none'; }, {once:true});
 }
 
-/* ---------- Auto backfill permKey on old docs (phone-friendly) ---------- */
-async function backfillPermKeyIfNeeded(db){
-  try{
-    const snaps = await getDocs(collection(db,'roles'));
-    const missing = snaps.docs.filter(d => (d.data()||{}).permKey !== PERM_KEY);
-    if (!missing.length) return;
-    // Quietly patch them; idempotent
-    await Promise.all(missing.map(d =>
-      setDoc(doc(db,'roles', d.id), { permKey: PERM_KEY, updatedAt: serverTimestamp() }, { merge:true })
-    ));
-  }catch(_){}
-}
-
 /* ---------- Auth-aware boot ---------- */
 (function bootWithAuth(){
   let initialized = false;
@@ -354,44 +352,35 @@ async function backfillPermKeyIfNeeded(db){
     start().catch(err => {
       console.error('[fb-roles] init error:', err);
       if (el.roleHint) el.roleHint.textContent = '';
-      setStatusMuted(''); // keep UI calm
+      setStatusMuted('');
     });
   }
 
-  // Prefer the API’s onAuth so we start exactly when Firebase restores the session
   const api = window.DF_FB_API;
   if (api && typeof api.onAuth === 'function') {
     api.onAuth(user => { if (user) initOnce(); });
-    // If Firebase already restored the user before our listener
     try { if (window.DF_FB?.auth?.currentUser) initOnce(); } catch (_) {}
     return;
   }
 
-  // Fallback: poll for DF_FB + currentUser briefly
   let tries = 0;
   (function waitForAuth(){
     if (window.DF_FB?.auth?.currentUser) { initOnce(); return; }
-    if (tries++ > 200) return; // give up quietly
+    if (tries++ > 200) return;
     setTimeout(waitForAuth, 60);
   })();
 })();
 
-/* ---------- Main flow (runs after auth is ready) ---------- */
+/* ---------- Main flow (after auth) ---------- */
 async function start(){
-  // Menus must exist
   if (!Object.keys(MENUS).length){
     setStatusMuted('Menus not loaded yet.');
     return;
   }
 
-  // Firebase ready
   if (el.roleHint) el.roleHint.textContent = 'Loading roles…';
   const db = await readyFirebase();
 
-  // Make sure old role docs get the permKey automatically (no console needed)
-  await backfillPermKeyIfNeeded(db);
-
-  // Seed roles if empty, then fill dropdown
   const roles = await seedRolesIfEmpty(db);
   if (!roles.length){
     setStatusMuted('No roles found.');
@@ -399,19 +388,16 @@ async function start(){
     return;
   }
 
-  // Build dropdown
   el.roleSelect.innerHTML = roles.map(r=>{
     const label = (r.label||r.id||'').toString();
     const value = (r.id || r.label).toString();
     return `<option value="${value}">${label}</option>`;
   }).join('');
 
-  // Restore last selected
   const last = localStorage.getItem('df_role_selected');
   if (last && roles.some(r => (r.id===last || r.label===last))){
     el.roleSelect.value = last;
   }
-
   if (el.roleHint) el.roleHint.textContent = '';
 
   let currentRoleId   = el.roleSelect.value || roles[0].id || roles[0].label;
@@ -426,7 +412,6 @@ async function start(){
     const perms    = currentRoleDoc?.permissions || {};
     ui = buildPermissionsUI(el.menusBox, perms);
 
-    // Wire form save/discard
     el.saveBtn.onclick = async (ev)=>{
       ev.preventDefault();
       const nextPerms = ui.getPerms();
@@ -439,7 +424,6 @@ async function start(){
       toast('Changes discarded');
     };
 
-    // Quick View button (top-right) if present
     const qvBtn = $('#quickViewBtn');
     if (qvBtn){
       qvBtn.onclick = ()=>{
@@ -449,10 +433,8 @@ async function start(){
     }
   }
 
-  // Initial load
   await loadRole(currentRoleId);
 
-  // Change role
   el.roleSelect.addEventListener('change', async ()=>{
     const roleId = el.roleSelect.value;
     localStorage.setItem('df_role_selected', roleId);
