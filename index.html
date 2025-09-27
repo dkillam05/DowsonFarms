@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
 
-  <!-- Resolve all paths from your repo root -->
+  <!-- Resolve all paths from your repo root on GitHub Pages -->
   <base href="/DowsonFarms/">
 
   <!-- Prepaint theme (no flash) -->
@@ -29,9 +29,9 @@
   <link rel="stylesheet" href="assets/css/theme.css" />
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest?v=912" />
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=912" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=912" />
+  <link rel="manifest" href="manifest.webmanifest?v=home1" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=home1" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png?v=home1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 </head>
@@ -47,15 +47,16 @@
     </div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- Breadcrumbs (Logout button is injected by core.js) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol><li><span>Home</span></li></ol>
-    <!-- Logout button injected by core.js -->
   </nav>
 
   <!-- Main -->
   <main class="content">
     <h1>Home</h1>
+
+    <!-- Global home tiles (rendered by ui-nav.js using assets/data/menus.js) -->
     <div class="df-tiles" data-source="global"></div>
   </main>
 
@@ -78,15 +79,12 @@
   </script>
 
   <!-- Scripts (order matters) -->
-  <script type="module" src="js/firebase-init.js?v=912"></script>
-  <script defer src="js/version.js?v=912"></script>
-  <script defer src="js/core.js?v=912"></script>
+  <script type="module" src="js/firebase-init.js?v=home1"></script>
+  <script defer src="js/version.js?v=home1"></script>
+  <script defer src="js/core.js?v=home1"></script>
 
-  <!-- RBAC filter (must run before menus/ui-nav) -->
-  <script type="module" src="js/tiles-rbac.js?v=912"></script>
-
-  <!-- Menu data + renderer -->
-  <script defer src="assets/data/menus.js?v=912"></script>
-  <script defer src="js/ui-nav.js?v=912"></script>
+  <!-- Menus data + renderer (core.js includes the Tiles RBAC guard) -->
+  <script defer src="assets/data/menus.js?v=home1"></script>
+  <script defer src="js/ui-nav.js?v=home1"></script>
 </body>
 </html>
