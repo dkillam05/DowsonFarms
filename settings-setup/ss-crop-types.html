@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Types — Dowson Farms</title>
 
-  <!-- Prepaint theme (no flash) -->
+  <!-- Prepaint theme -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -17,15 +17,14 @@
     })();
   </script>
 
-  <!-- Theme / app -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js"></script>
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script defer src="../js/core.js"></script>
-  <script defer src="../assets/data/menus.js"></script>
+  <script defer src="../js/version.js?v=ct1"></script>
+  <script type="module" src="../js/firebase-init.js?v=ct1"></script>
+  <script defer src="../js/core.js?v=ct1"></script>
+  <script defer src="../assets/data/menus.js?v=ct1"></script>
 
-  <!-- IMPORTANT: add cache-buster so SW can’t serve an old copy -->
-  <script type="module" src="../js/fb-crop-types.js?v=ct-diagnostics-1"></script>
+  <!-- Page logic -->
+  <script type="module" src="../js/fb-crop-types.js?v=ct1"></script>
 
   <style>
     .muted-sm{opacity:.85;font-size:.92rem}
@@ -35,52 +34,20 @@
     .table th{text-align:left;font-weight:700}
     .badge{display:inline-block;padding:2px 8px;border-radius:12px;border:1px solid var(--tile-border);font-size:.85rem}
 
-    /* ---------- Form layout (grid, mobile-first) ---------- */
-    #ct-form .req{color:#b00020;margin-left:.25rem;font-weight:700}
-
-    /* Add small gutters so inner inputs never kiss the card edge (fixes “too wide”) */
-    .form-grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:12px;
-      margin: 0 -6px;
-    }
-    .form-grid .field{ padding: 0 6px; }
-
-    @media (min-width: 560px){
-      .form-grid{
-        grid-template-columns: 1fr 1fr;
-        align-items:end;
-      }
-      .span-2{ grid-column: 1 / -1; }
-    }
-
-    /* ---------- UNIFORM FIELD HEIGHTS ---------- */
-    #ct-form input[type="text"],
-    #ct-form input[type="number"]{
-      font-size:16px;   /* stops iOS zoom */
-      height:44px;
-      width:100%;
-      box-sizing:border-box;
-    }
-
-    /* Square color picker with centered helper text */
-    .color-row{ display:flex; align-items:center; gap:12px; height:44px; }
-    #ctColor{
-      -webkit-appearance:none; appearance:none;
-      width:44px; height:44px; padding:0;
-      border:2px solid var(--tile-border); border-radius:10px; background:transparent; cursor:pointer;
-      flex:0 0 auto;
-    }
-    #ctColor::-webkit-color-swatch-wrapper{ padding:0; }
-    #ctColor::-webkit-color-swatch{ border:none; border-radius:8px; }
-    #ctColor::-moz-color-swatch{ border:none; border-radius:8px; }
-
-    .hint{ display:block; margin-top:6px; font-size:.92rem; color:#9aa0a6; }
+    .form-grid{display:grid;grid-template-columns:1fr;gap:12px;margin:0 -6px}
+    .form-grid .field{padding:0 6px}
+    @media (min-width:560px){ .form-grid{grid-template-columns:1fr 1fr;align-items:end} .span-2{grid-column:1/-1} }
+    #ct-form input[type="text"], #ct-form input[type="number"]{font-size:16px;height:44px;width:100%;box-sizing:border-box}
+    .color-row{display:flex;align-items:center;gap:12px;height:44px}
+    #ctColor{-webkit-appearance:none;appearance:none;width:44px;height:44px;padding:0;border:2px solid var(--tile-border);border-radius:10px;background:transparent;cursor:pointer;flex:0 0 auto}
+    #ctColor::-webkit-color-swatch-wrapper{padding:0}
+    #ctColor::-webkit-color-swatch{border:none;border-radius:8px}
+    #ctColor::-moz-color-swatch{border:none;border-radius:8px}
+    .hint{display:block;margin-top:6px;font-size:.92rem;color:#9aa0a6}
+    .req{color:#b00020;margin-left:.25rem;font-weight:700}
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -89,46 +56,40 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs (Logout is injected by core.js) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="index.html">Setup / Settings</a></li>
+      <li><a href="./index.html">Setup / Settings</a></li>
       <li class="sep">›</li>
       <li><span>Crop Types</span></li>
     </ol>
   </nav>
 
-  <!-- core.js injects the Quick View button because the provider is in fb-crop-types.js -->
   <main class="content" data-has-form>
     <h1 style="margin:0 0 8px;">🌾 Crop Types</h1>
 
     <!-- Add / Edit form -->
     <form id="ct-form" class="card" novalidate>
       <div class="form-grid">
-        <!-- Crop Type -->
         <div class="field span-2">
           <label for="ctName">Crop Type <span class="req">*</span></label>
           <input id="ctName" type="text" placeholder="e.g. - Corn" required />
           <small class="hint">Friendly name (e.g. - Corn, Soybeans, Wheat)</small>
         </div>
 
-        <!-- Desired Moisture -->
         <div class="field">
           <label for="ctMoisture">Desired Moisture (%) <span class="req">*</span></label>
           <input id="ctMoisture" type="number" inputmode="decimal" step="0.1" min="0" max="100" placeholder="e.g. - 15.5" required />
           <small class="hint">Target harvest/storage moisture</small>
         </div>
 
-        <!-- Test Weight -->
         <div class="field">
           <label for="ctTestWeight">Test Weight (lb/bu) <span class="req">*</span></label>
           <input id="ctTestWeight" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. - 56.0" required />
           <small class="hint">Standard test weight</small>
         </div>
 
-        <!-- Color -->
         <div class="field span-2">
           <label for="ctColor">Color for charting <span class="req">*</span></label>
           <div class="color-row">
@@ -164,15 +125,12 @@
               <th style="min-width:160px;">Actions</th>
             </tr>
           </thead>
-          <tbody id="ctTbody">
-            <!-- rows injected by fb-crop-types.js -->
-          </tbody>
+          <tbody id="ctTbody"><!-- rows injected --></tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <span>Dowson Farms</span>
     <span class="dot">•</span>
@@ -181,10 +139,9 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Toast -->
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
 
-  <!-- Decimal behavior -->
+  <!-- Numeric input helpers for iOS (prevent double dots) -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       function guardOneDot(evt){
@@ -215,7 +172,6 @@
     });
   </script>
 
-  <!-- Service worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
