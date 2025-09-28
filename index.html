@@ -86,5 +86,37 @@
   <!-- Menus data + renderer (core.js includes the Tiles RBAC guard) -->
   <script defer src="assets/data/menus.js?v=home1"></script>
   <script defer src="js/ui-nav.js?v=home1"></script>
+  <!-- TEMP DIAGNOSTICS: remove after we fix paths -->
+<script type="module">
+  const base = document.querySelector('base')?.href;
+  const ver  = window.DF_VERSION;
+  const menus = window.DF_MENUS?.tiles || [];
+  const host = document.querySelector('.df-tiles[data-source="global"]');
+
+  function banner(msg) {
+    const el = document.createElement('div');
+    el.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;padding:10px;border-radius:10px;border:2px dashed #b00020;background:#fff;z-index:99999;font:600 14px system-ui";
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 6000);
+  }
+
+  console.log('[diag] base:', base);
+  console.log('[diag] DF_VERSION (from version.js):', ver);
+  console.log('[diag] DF_MENUS loaded:', Array.isArray(menus), 'tiles:', menus.length);
+  console.log('[diag] ui-nav host present:', !!host);
+  console.log('[diag] scripts:',
+    [...document.scripts].map(s => s.src || '[inline]').filter(Boolean));
+
+  const FB = window.DF_FB || {};
+  console.log('[diag] Firebase ready (db, auth):', !!FB.db, !!FB.auth);
+  window.DF_FB_API?.onAuth?.(u=>{
+    console.log('[diag] Auth user:', u?.email || null);
+  });
+
+  if (!menus.length) banner('DF_MENUS not loaded ➜ check assets/data/menus.js path & cache buster');
+  else if (!host)    banner('No .df-tiles[data-source="global"] host on page');
+  else               banner(`OK: ${menus.length} menu(s) loaded`);
+</script>
 </body>
 </html>
