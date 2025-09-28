@@ -1,128 +1,77 @@
-<script>
-// Renders the Home page tiles from window.DF_MENUS.tiles
-// RBAC: only render tiles the signed-in user can VIEW (view/edit/add/archive/delete)
-// Data sources: roles/{roleId}.permissions + users/{email}.exceptions.{enabled,grants}
+/* ===========================
+   Dowson Farms — ui-nav.js
+   Renders the Home page tiles from window.DF_MENUS.tiles
+   =========================== */
 
 (function () {
-  /* --------------- small utils --------------- */
-  const $ = (s)=>document.querySelector(s);
-  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
-  const esc = (s)=>String(s||'').replace(/[&<>"]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c]||c));
-  function ready(fn){ (document.readyState!=='loading') ? fn() : document.addEventListener('DOMContentLoaded', fn); }
+  "use strict";
 
-  async function waitForFirebase(maxMs=12000){
-    const t0 = performance.now();
-    while (performance.now()-t0 < maxMs){
-      if (window.DF_FB && window.DF_FB.db && window.DF_FB.auth) return window.DF_FB;
-      await sleep(60);
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn, { once: true });
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+  }
+
+  function renderGlobalTiles() {
+    const host = document.querySelector('.df-tiles[data-source="global"]');
+    if (!host) return; // nothing to do on non-home pages
+
+    // DF_MENUS should be defined by assets/data/menus.js
+    const MENUS = (typeof window !== "undefined" && window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles))
+      ? window.DF_MENUS.tiles
+      : [];
+
+    // Debug banner (bottom-left) so we know what happened on phones
+    function debugBanner(text, ok = true) {
+      try {
+        const box = document.createElement("div");
+        box.style.position = "fixed";
+        box.style.left = "12px";
+        box.style.bottom = "12px";
+        box.style.padding = "10px 12px";
+        box.style.borderRadius = "12px";
+        box.style.background = "white";
+        box.style.border = `2px dashed ${ok ? "#2e7d32" : "#b00020"}`;
+        box.style.zIndex = "9999";
+        box.style.fontSize = "16px";
+        box.style.boxShadow = "0 2px 12px rgba(0,0,0,.08)";
+        box.textContent = text;
+        document.body.appendChild(box);
+        setTimeout(() => box.remove(), 3500);
+      } catch (_) {}
     }
-    throw new Error('firebase not ready');
-  }
 
-  function buildMenusMap(){
-    const DF = window.DF_MENUS;
-    const map = {};
-    if (!DF || !Array.isArray(DF.tiles)) return map;
-    DF.tiles.forEach(t=>{
-      const top = String(t.label||'').trim(); if (!top) return;
-      map[top] = (Array.isArray(t.children) ? t.children : []).map(c=>String(c.label||'').trim()).filter(Boolean);
-    });
-    return map;
-  }
-
-  // Merge role permissions + user overrides into "effective"
-  function mergePerms(menusMap, rolePerms, overrides){
-    const ACTIONS = ['view','edit','add','archive','delete'];
-    const eff = {};
-    Object.keys(menusMap).forEach(menu=>{
-      eff[menu] = {};
-      (menusMap[menu]||[]).forEach(sub=>{
-        const b = (rolePerms?.[menu]?.[sub]) || {};
-        const o = (overrides?.[menu]?.[sub]) || {};
-        const p = {};
-        ACTIONS.forEach(k => p[k] = (k in o) ? !!o[k] : !!b[k]);
-        eff[menu][sub] = p;
-      });
-    });
-    return eff;
-  }
-  function canView(effective, menu, sub){
-    const p = (effective?.[menu]?.[sub]) || {};
-    return !!(p.view || p.edit || p.add || p.archive || p.delete);
-  }
-
-  /* --------------- core --------------- */
-  ready(async function () {
-    const host = $('.df-tiles[data-source="global"]');
-    if (!host) return;
-
-    // Hide host until we finish (no flash)
-    host.style.visibility = 'hidden';
-
-    // Basic menu data required to know labels
-    const tiles = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
-    if (!tiles.length) {
-      host.innerHTML =
-        '<div class="card" style="border:2px solid #2e7d32;border-radius:14px;padding:24px;display:flex;align-items:center;justify-content:center;min-height:160px;"><div style="color:#999;">Menu not loaded (assets/data/menus.js)</div></div>';
-      host.style.visibility = '';
+    if (!MENUS.length) {
+      host.innerHTML = `
+        <div class="card" style="border:2px solid #2e7d32;border-radius:14px;padding:24px;display:flex;align-items:center;justify-content:center;min-height:140px;">
+          <div style="opacity:.8">
+            ⚠️ <strong>Menu not loaded</strong><br>
+            Expected global menu at <code>assets/data/menus.js</code>.
+          </div>
+        </div>`;
+      debugBanner("ERR: 0 menu(s) loaded", false);
+      console.warn("[ui-nav] DF_MENUS.tiles missing/empty.");
       return;
     }
 
-    // Compute RBAC
-    let eff = null;
-    try {
-      const { db, auth } = await waitForFirebase();
-      const user = auth.currentUser;
-      if (user) {
-        const email = (user.email||'').toLowerCase();
+    // Build tiles
+    host.innerHTML = MENUS.map(t => {
+      const emoji = t.iconEmoji ? `${esc(t.iconEmoji)} ` : "";
+      const label = esc(t.label || "");
+      const href  = esc(t.href || "#");
+      return `<a href="${href}" class="df-tile">${emoji}<span>${label}</span></a>`;
+    }).join("");
 
-        // dynamic import so file stays plain <script> (no type=module change)
-        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
-
-        // users/{email}
-        let roleId = null, overrides = {};
-        try {
-          const uSnap = await getDoc(doc(db,'users', email));
-          if (uSnap.exists()) {
-            const u = uSnap.data()||{};
-            roleId = u.roleId || u.role || null;
-            overrides = (u.exceptions && u.exceptions.enabled) ? (u.exceptions.grants||{}) : {};
-          }
-        } catch(_) {}
-
-        // roles/{roleId}
-        let rolePerms = {};
-        if (roleId) {
-          try {
-            const rSnap = await getDoc(doc(db,'roles', String(roleId)));
-            if (rSnap.exists()) {
-              const r = rSnap.data()||{};
-              rolePerms = (r.permissions && typeof r.permissions==='object') ? r.permissions : {};
-            }
-          } catch(_) {}
-        }
-
-        const MENUS_MAP = buildMenusMap();
-        eff = mergePerms(MENUS_MAP, rolePerms, overrides);
-      }
-    } catch(_) {
-      // if Firebase isn’t ready, eff stays null and we’ll render nothing (safer-by-default)
+    // If nothing actually rendered (CSS or selector mismatch), do a minimal fallback
+    if (!host.innerHTML.trim()) {
+      host.innerHTML = MENUS.map(t => `<a href="${esc(t.href||"#")}">${esc(t.label||"")}</a>`).join(" • ");
     }
 
-    // Render only tiles the user can view; if no user/effective perms, render nothing
-    const html = tiles.map(t=>{
-      const label = String(t.label||'').trim();
-      const href  = String(t.href||'#');
-      const emoji = t.iconEmoji ? (esc(t.iconEmoji)+' ') : '';
-      // Check if any child is viewable; Home tiles represent top-level sections
-      const children = Array.isArray(t.children) ? t.children : [];
-      const anyChildOK = !eff ? false : children.some(c => canView(eff, label, String(c.label||'').trim()));
-      if (!anyChildOK) return ''; // hide this tile entirely
-      return `<a href="${esc(href)}" class="df-tile" data-menu="${esc(label)}">${emoji}<span>${esc(label)}</span></a>`;
-    }).filter(Boolean).join('');
+    debugBanner(`OK: ${MENUS.length} menu(s) loaded`, true);
+  }
 
-    host.innerHTML = html || '<div class="muted" style="padding:14px;">No sections available for your account.</div>';
-    host.style.visibility = '';
-  });
+  ready(renderGlobalTiles);
 })();
-</script>
