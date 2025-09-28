@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ========= META & THEME ========= -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
@@ -15,69 +14,14 @@
       document.documentElement.style.colorScheme = mode;
     })();
   </script>
-
-  <!-- ========= GLOBAL ASSETS ========= -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js?v=emp1"></script>
-  <script defer src="../js/core.js?v=emp1"></script>
-  <script type="module" src="../js/firebase-init.js?v=emp1"></script>
-  <script defer src="../assets/data/menus.js?v=emp1"></script>
-
-  <!-- Page logic -->
-  <script type="module" src="../js/fb-employees.js?v=emp1"></script>
-
-  <!-- Seed a stub QV so the button shows instantly -->
-  <script>
-    window.DF_QUICKVIEW_PROVIDER = async () => ({ title: 'Employees', html: '<div style="opacity:.65">Loading…</div>' });
-  </script>
-
-  <!-- ========= PAGE STYLES ========= -->
-  <style>
-    .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
-    .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
-    .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
-    .muted-small{opacity:.8;font-size:.9rem}
-    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
-    #empPhone{font-size:16px}
-    .muted{opacity:.8}
-    .req-star{color:#b00020}
-    .search{flex:1;min-width:200px}
-
-    /* Toast */
-    #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-      background:var(--tile-bg,#fff); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:50000;}
-    #dfToast.show{display:block; animation:dfToastIn .18s ease-out}
-    @keyframes dfToastIn{from{transform:translateX(-50%) translateY(8px);opacity:.0} to{transform:translateX(-50%) translateY(0);opacity:1}}
-
-    /* Overrides UI bits (match Roles page look) */
-    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
-    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;
-      border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);
-      color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
-    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);
-      box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
-    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
-    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
-    .menu-body{padding:16px;border-top:1px dashed var(--tile-border);display:none}
-    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
-    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
-    .subbody{padding:8px 4px 2px;display:none}
-
-    /* Modal (Overrides) */
-    .modal-backdrop{display:none;position:fixed;inset:0;z-index:60000;background:rgba(0,0,0,.45);
-      align-items:center;justify-content:center;padding:20px}
-    .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
-      width:min(860px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
-    .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
-    .modal .body{padding:12px 16px;overflow:auto}
-    .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
-  </style>
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
+  <script type="module" src="../js/fb-employees.js"></script>
 </head>
 <body>
-  <!-- ========= HEADER ========= -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
@@ -86,130 +30,20 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- ========= BREADCRUMBS ========= -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="../index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><a href="./index.html">Teams &amp; Partners</a></li>
-      <li class="sep">›</li>
+      <li><a href="../index.html">Home</a></li><li class="sep">›</li>
+      <li><a href="./index.html">Teams &amp; Partners</a></li><li class="sep">›</li>
       <li><span>Employees</span></li>
     </ol>
   </nav>
 
-  <!-- ========= MAIN ========= -->
-  <main class="content" data-has-form data-qv-label="Quick View">
-    <h1 style="margin:0;">👥 Employees</h1>
-    <div style="margin-top:12px;"></div>
-
-    <!-- FORM -->
-    <form id="emp-form" novalidate>
-      <div class="field-row">
-        <div class="field">
-          <label for="empFirst">First Name <span class="req-star">*</span></label>
-          <input id="empFirst" type="text" required placeholder="First name" />
-        </div>
-        <div class="field">
-          <label for="empLast">Last Name <span class="req-star">*</span></label>
-          <input id="empLast" type="text" required placeholder="Last name" />
-        </div>
-      </div>
-
-      <div class="field-row">
-        <div class="field">
-          <label for="empPhone">Phone Number <span class="req-star">*</span></label>
-          <input id="empPhone" type="tel" inputmode="numeric" required placeholder="(555) 123-4567" maxlength="14" />
-        </div>
-        <div class="field">
-          <label for="empEmail">Email <span class="req-star">*</span></label>
-          <input id="empEmail" type="email" inputmode="email" required placeholder="name@example.com" />
-        </div>
-      </div>
-
-      <div class="field-row">
-        <div class="field">
-          <label for="empRole">Role (Permissions) <span class="req-star">*</span></label>
-          <select id="empRole" required></select>
-          <small class="muted" id="roleHint" style="display:block;margin-top:4px;"></small>
-        </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <button type="button" class="btn-outline" id="exceptionsBtn">Permission Overrides</button>
-        </div>
-      </div>
-
-      <section class="card" style="padding:12px; margin-top:8px;">
-        <div class="grid3">
-          <button class="btn-primary"   type="submit" id="saveBtn"   style="width:92px;height:92px;">Save</button>
-          <button class="btn-outline"   type="reset"  id="clearBtn"  style="width:92px;height:92px;">Clear</button>
-          <button class="btn-secondary" type="button" id="inviteBtn" style="width:92px;height:92px;">Invite</button>
-        </div>
-      </section>
-    </form>
-
-    <!-- LIST -->
-    <section class="card" id="savedCard" style="margin-top:16px;">
-      <h2 style="margin:0 0 8px 0;">Saved Employees</h2>
-      <div class="line">
-        <input id="searchInput" class="search" type="search" placeholder="Search employees…" />
-        <label class="muted" for="toggleShowArchived">
-          <input type="checkbox" id="toggleShowArchived" /> Show archived
-        </label>
-      </div>
-      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
-    </section>
+  <main class="content" data-has-form>
+    <h1>👥 Employees</h1>
+    <!-- Your existing employees UI will hook into fb-employees.js -->
+    <p class="muted">Use the Employees module to add/invite and assign roles.</p>
   </main>
 
-  <!-- ========= FOOTER ========= -->
-  <footer class="app-footer">
-    <span>Dowson Farms</span>
-    <span class="dot">•</span>
-    <span id="report-date">—</span>
-    <span class="dot">•</span>
-    <span id="version">v0.0.0</span>
-  </footer>
-
-  <!-- ========= OVERRIDES MODAL ========= -->
-  <div id="ovB" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
-    <div class="modal" role="document">
-      <header>
-        <h2 id="ovTitle" style="margin:0;">Permission Overrides</h2>
-        <label class="muted-small" style="display:flex;align-items:center;gap:8px;">
-          <input type="checkbox" id="ovEnabled" />
-          Enable overrides for this employee
-        </label>
-      </header>
-      <div id="ovBody" class="body"><!-- built at runtime --></div>
-      <div class="actions">
-        <button class="btn-outline" id="ovCancel" type="button">Cancel</button>
-        <button class="btn-primary" id="ovSave" type="button">Save Overrides</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========= TOAST ========= -->
-  <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
-  <script>
-    window.showToast = function(msg){
-      try{
-        const box = document.getElementById('dfToast');
-        const txt = document.getElementById('dfToastText');
-        if (!box || !txt) { alert(msg || 'Done'); return; }
-        txt.textContent = msg || 'Saved';
-        box.classList.add('show');
-        clearTimeout(window.__toastT);
-        window.__toastT = setTimeout(()=> box.classList.remove('show'), 2000);
-      }catch(_){}
-    };
-  </script>
-
-  <!-- Service worker -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
-      });
-    }
-  </script>
+  <footer class="app-footer"><span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span></footer>
 </body>
 </html>
