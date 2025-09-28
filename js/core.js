@@ -2,7 +2,7 @@
    /js/core.js  (FULL REPLACEMENT)
    - Logout (preserves df_theme; unregisters SW; redirects)
    - Clock (America/Chicago)
-   - Version/Build Date injection + GLOBAL network-truth refresh
+   - Version/Build Date injection + network-truth refresh
    - Back button (in-flow above footer) — hidden on home and on /auth/*
    - Logout button in Breadcrumb bar (right-aligned, consistent)
    - Honors <base href="/DowsonFarms/">
@@ -12,8 +12,8 @@
      • No auto-redirect to login
      • If Firebase isn't ready or user is null, page stays put
 
-   Includes Tiles Guard (RBAC) — hides home tiles the user cannot access,
-   but is a no-op on pages without a .df-tiles grid.
+   Includes Tiles Guard (RBAC) — hides home tiles the user cannot access.
+   Set window.DF_DISABLE_TILES_GUARD = true BEFORE this script to bypass (dev only).
    =========================== */
 
 (function () {
@@ -528,6 +528,7 @@
 
   /* ---------- Tiles Guard (RBAC) ---------- */
   function installTilesGuard() {
+    if (window.DF_DISABLE_TILES_GUARD) return; // DEV bypass
     var grid = document.querySelector('.df-tiles[data-source]');
     if (!grid) return;
 
