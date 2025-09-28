@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Types — Dowson Farms</title>
-
-  <!-- Prepaint theme -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -16,36 +14,12 @@
       document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
-
   <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js?v=ct1"></script>
-  <script type="module" src="../js/firebase-init.js?v=ct1"></script>
-  <script defer src="../js/core.js?v=ct1"></script>
-  <script defer src="../assets/data/menus.js?v=ct1"></script>
-
-  <!-- Page logic -->
+  <script defer src="../js/version.js"></script>
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
   <script type="module" src="../js/fb-crop-types.js?v=ct1"></script>
-
-  <style>
-    .muted-sm{opacity:.85;font-size:.92rem}
-    .toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 14px;border-radius:10px;border:1px solid var(--tile-border);background:var(--tile-bg);box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:9999}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{padding:10px;border-bottom:1px solid var(--tile-border)}
-    .table th{text-align:left;font-weight:700}
-    .badge{display:inline-block;padding:2px 8px;border-radius:12px;border:1px solid var(--tile-border);font-size:.85rem}
-
-    .form-grid{display:grid;grid-template-columns:1fr;gap:12px;margin:0 -6px}
-    .form-grid .field{padding:0 6px}
-    @media (min-width:560px){ .form-grid{grid-template-columns:1fr 1fr;align-items:end} .span-2{grid-column:1/-1} }
-    #ct-form input[type="text"], #ct-form input[type="number"]{font-size:16px;height:44px;width:100%;box-sizing:border-box}
-    .color-row{display:flex;align-items:center;gap:12px;height:44px}
-    #ctColor{-webkit-appearance:none;appearance:none;width:44px;height:44px;padding:0;border:2px solid var(--tile-border);border-radius:10px;background:transparent;cursor:pointer;flex:0 0 auto}
-    #ctColor::-webkit-color-swatch-wrapper{padding:0}
-    #ctColor::-webkit-color-swatch{border:none;border-radius:8px}
-    #ctColor::-moz-color-swatch{border:none;border-radius:8px}
-    .hint{display:block;margin-top:6px;font-size:.92rem;color:#9aa0a6}
-    .req{color:#b00020;margin-left:.25rem;font-weight:700}
-  </style>
 </head>
 <body>
   <header class="app-header">
@@ -58,56 +32,28 @@
 
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="../index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><a href="./index.html">Setup / Settings</a></li>
-      <li class="sep">›</li>
+      <li><a href="../index.html">Home</a></li><li class="sep">›</li>
+      <li><a href="index.html">Setup / Settings</a></li><li class="sep">›</li>
       <li><span>Crop Types</span></li>
     </ol>
   </nav>
 
   <main class="content" data-has-form>
-    <h1 style="margin:0 0 8px;">🌾 Crop Types</h1>
-
-    <!-- Add / Edit form -->
+    <h1>🌾 Crop Types</h1>
     <form id="ct-form" class="card" novalidate>
       <div class="form-grid">
-        <div class="field span-2">
-          <label for="ctName">Crop Type <span class="req">*</span></label>
-          <input id="ctName" type="text" placeholder="e.g. - Corn" required />
-          <small class="hint">Friendly name (e.g. - Corn, Soybeans, Wheat)</small>
-        </div>
-
-        <div class="field">
-          <label for="ctMoisture">Desired Moisture (%) <span class="req">*</span></label>
-          <input id="ctMoisture" type="number" inputmode="decimal" step="0.1" min="0" max="100" placeholder="e.g. - 15.5" required />
-          <small class="hint">Target harvest/storage moisture</small>
-        </div>
-
-        <div class="field">
-          <label for="ctTestWeight">Test Weight (lb/bu) <span class="req">*</span></label>
-          <input id="ctTestWeight" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. - 56.0" required />
-          <small class="hint">Standard test weight</small>
-        </div>
-
-        <div class="field span-2">
-          <label for="ctColor">Color for charting <span class="req">*</span></label>
-          <div class="color-row">
-            <input id="ctColor" type="color" value="#1B5E20" required />
-            <small class="hint" style="margin:0;">Used on charts/maps</small>
-          </div>
-        </div>
+        <div class="field span-2"><label for="ctName">Crop Type *</label><input id="ctName" type="text" placeholder="Corn" required /></div>
+        <div class="field"><label for="ctMoisture">Desired Moisture (%) *</label><input id="ctMoisture" type="number" step="0.1" min="0" max="100" required /></div>
+        <div class="field"><label for="ctTestWeight">Test Weight (lb/bu) *</label><input id="ctTestWeight" type="number" step="0.1" min="0" required /></div>
+        <div class="field span-2"><label for="ctColor">Color *</label><input id="ctColor" type="color" value="#1B5E20" required /></div>
       </div>
-
       <div class="row" style="gap:10px;margin-top:10px;">
         <button class="btn-primary" type="submit" id="saveBtn">Save</button>
         <button class="btn-outline" type="button" id="resetBtn">Reset</button>
       </div>
-
       <input type="hidden" id="ctId" />
     </form>
 
-    <!-- List -->
     <section class="card">
       <div class="row" style="align-items:center;justify-content:space-between;">
         <h2 style="margin:0;">Existing Crop Types</h2>
@@ -115,69 +61,14 @@
       </div>
       <div style="overflow:auto;">
         <table class="table" id="ctTable" aria-label="Crop Types">
-          <thead>
-            <tr>
-              <th style="min-width:170px;">Name</th>
-              <th style="min-width:140px;">Desired Moisture</th>
-              <th style="min-width:140px;">Test Weight</th>
-              <th style="min-width:140px;">Color</th>
-              <th style="min-width:170px;">Updated</th>
-              <th style="min-width:160px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="ctTbody"><!-- rows injected --></tbody>
+          <thead><tr><th>Name</th><th>Desired Moisture</th><th>Test Weight</th><th>Color</th><th>Updated</th><th>Actions</th></tr></thead>
+          <tbody id="ctTbody"></tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <footer class="app-footer">
-    <span>Dowson Farms</span>
-    <span class="dot">•</span>
-    <span id="report-date">—</span>
-    <span class="dot">•</span>
-    <span id="version">v0.0.0</span>
-  </footer>
-
+  <footer class="app-footer"><span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span></footer>
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
-
-  <!-- Numeric input helpers for iOS (prevent double dots) -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function(){
-      function guardOneDot(evt){
-        const el = evt.target;
-        if (evt.key === '.') {
-          if (el.value.includes('.')) { evt.preventDefault(); return; }
-          return;
-        }
-        const ok = /[0-9]/.test(evt.key) ||
-                   ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End','Enter'].includes(evt.key);
-        if (!ok) evt.preventDefault();
-      }
-      function format1(el, opts){
-        var v = String(el.value || '').trim();
-        if (!v) return;
-        var n = Number(v);
-        if (!Number.isFinite(n)) return;
-        if (opts && typeof opts.min === 'number' && n < opts.min) n = opts.min;
-        if (opts && typeof opts.max === 'number' && n > opts.max) n = opts.max;
-        el.value = n.toFixed(1);
-      }
-      var m = document.getElementById('ctMoisture');
-      var t = document.getElementById('ctTestWeight');
-      m && m.addEventListener('keydown', guardOneDot);
-      t && t.addEventListener('keydown', guardOneDot);
-      m && m.addEventListener('blur', function(){ format1(m,{min:0,max:100}); });
-      t && t.addEventListener('blur', function(){ format1(t,{min:0}); });
-    });
-  </script>
-
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
-      });
-    }
-  </script>
 </body>
 </html>
