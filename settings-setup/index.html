@@ -4,11 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Settings / Setup — Dowson Farms</title>
-
-  <!-- Prepaint theme (no flash) -->
+  <title>Settings — Dowson Farms</title>
   <script>
-    (function(){
+    (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
@@ -16,34 +14,21 @@
       document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
-
-  <!-- Global styles + version -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js?v=ss1"></script>
-
-  <!-- Firebase, then core (order matters) -->
-  <script type="module" src="../js/firebase-init.js?v=ss1"></script>
-  <script defer src="../js/core.js?v=ss1"></script>
-
-  <!-- PWA bits (optional on subpages, keeps icons working if saved to home screen) -->
+  <script defer src="../js/version.js"></script>
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script defer src="../js/core.js"></script>
   <link rel="manifest" href="../manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
 </head>
 <body>
-  <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
       <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
       <div class="app-header__title">Dowson Farms</div>
     </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
-    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs (logout button injected by core.js) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../index.html">Home</a></li>
@@ -52,41 +37,16 @@
     </ol>
   </nav>
 
-  <!-- Main -->
   <main class="content">
     <h1>⚙️ Setup / Settings</h1>
-
-    <!-- Submenu tiles for this section (RBAC-aware via ui-subnav.js) -->
     <div class="df-tiles" data-section="Setup / Settings"></div>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
-    <span>Dowson Farms</span>
-    <span class="dot">•</span>
-    <span id="report-date">—</span>
-    <span class="dot">•</span>
-    <span id="version">v0.0.0</span>
+    <span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker (scoped to repo root) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        // Scope to the repo root so updates apply everywhere
-        const base = (function(){
-          const b = document.querySelector('base');
-          if (b && b.href) { try { return new URL(b.href).pathname; } catch(_){} }
-          const seg = (location.pathname || '/').split('/').filter(Boolean);
-          return seg.length ? ('/' + seg[0] + '/') : '/';
-        })();
-        navigator.serviceWorker.register('../serviceworker.js', { scope: base }).catch(console.error);
-      });
-    }
-  </script>
-
-  <!-- Menus data + subnav renderer -->
-  <script defer src="../assets/data/menus.js?v=ss1"></script>
-  <script defer src="../js/ui-subnav.js?v=ss1"></script>
+  <script defer src="../assets/data/menus.js"></script>
+  <script defer src="../js/ui-subnav.js"></script>
 </body>
 </html>
