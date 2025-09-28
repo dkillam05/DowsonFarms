@@ -3,7 +3,7 @@
 // Exposes to both page (window) and service worker (self). No update-side effects.
 
 (function () {
-  var VERSION = 'v9.2.0';  // ← bump this on each release
+  var VERSION = 'v10.0.0';  // ← bump this on each release
 
   // Build date in Central Time (for footer display only)
   var BUILD_DATE = (function(){
