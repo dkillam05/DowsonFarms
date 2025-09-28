@@ -1,3 +1,5 @@
+<!-- assets/data/menus.js -->
+<script>
 /* Dowson Farms — Global Navigation (one source of truth) */
 const DF_MENUS = {
   tiles: [
@@ -16,14 +18,7 @@ const DF_MENUS = {
         { label: "Trials",            href: "crop-production/crop-trials.html",       iconEmoji: "🧬" }
       ]
     },
-
-    { // Optional shortcut to single page
-      label: "Field Maintenance",
-      href: "crop-production/crop-maintenance.html",
-      iconEmoji: "🛠️",
-      children: []
-    },
-
+    { label: "Field Maintenance", href: "crop-production/crop-maintenance.html", iconEmoji: "🛠️", children: [] },
     {
       label: "Grain Tracking",
       href: "grain-tracking/index.html",
@@ -35,7 +30,6 @@ const DF_MENUS = {
         { label: "Grain Ticket (OCR)", href: "grain-tracking/grain-ticket-ocr.html",  iconEmoji: "🎫" }
       ]
     },
-
     {
       label: "Equipment",
       href: "equipment/index.html",
@@ -51,7 +45,6 @@ const DF_MENUS = {
         { label: "Trailers",              href: "equipment/equipment-trailers.html",     iconEmoji: "🚚" }
       ]
     },
-
     {
       label: "Calculators",
       href: "calculators/index.html",
@@ -65,7 +58,6 @@ const DF_MENUS = {
         { label: "Grain Shrink",  href: "calculators/calc-grain-shrink.html",  iconEmoji: "📉" }
       ]
     },
-
     {
       label: "Teams & Partners",
       href: "teams-partners/index.html",
@@ -77,7 +69,6 @@ const DF_MENUS = {
         { label: "Dictionary",      href: "teams-partners/teams-dictionary.html",      iconEmoji: "🗂️" }
       ]
     },
-
     {
       label: "Reports",
       href: "reports/index.html",
@@ -88,7 +79,6 @@ const DF_MENUS = {
         { label: "AI Report History",   href: "reports/reports-ai-history.html",  iconEmoji: "🕘" }
       ]
     },
-
     {
       label: "Setup / Settings",
       href: "settings-setup/index.html",
@@ -101,9 +91,7 @@ const DF_MENUS = {
         { label: "Account Roles", href: "settings-setup/ss-roles.html",        iconEmoji: "🛡️" },
         { label: "Check for Updates", href: "settings-setup/index.html#check-updates", iconEmoji: "🔄" },
         {
-          label: "Products",
-          href: "settings-setup/products/index.html",
-          iconEmoji: "📦",
+          label: "Products", href: "settings-setup/products/index.html", iconEmoji: "📦",
           children: [
             { label: "Seed",        href: "settings-setup/products/products-seed.html",        iconEmoji: "🌽" },
             { label: "Fertilizer",  href: "settings-setup/products/products-fertilizer.html",  iconEmoji: "🧂" },
@@ -113,7 +101,6 @@ const DF_MENUS = {
         }
       ]
     },
-
     {
       label: "Feedback",
       href: "feedback/index.html",
@@ -126,11 +113,5 @@ const DF_MENUS = {
   ]
 };
 
-/* Attach for <script> usage */
-if (typeof window !== "undefined") {
-  window.DF_MENUS = DF_MENUS;
-  // Optional: share via DF.ready registry if you use it
-  if (window.DF && window.DF.ready?.then) {
-    window.DF.ready.then(reg => reg?.set?.('menus', DF_MENUS));
-  }
-}
+window.DF_MENUS = DF_MENUS;
+</script>
