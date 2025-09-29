@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Sign In — Dowson Farms</title>
+
+  <!-- Prepaint theme (no flash) -->
+  <script>
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
+
+  <!-- Brand theme if you have it -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+
+  <style>
+    /* Minimal base styles so page looks fine even without theme.css */
+    :root {
+      --brand-green:#1B5E20;
+      --paper:#f6f3e4;
+      --ink:#222;
+      --auth-edge-bg:#E6DCB8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; min-height:100dvh; display:grid; place-items:center;
+      background:var(--paper); color:var(--ink);
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    }
+    .card {
+      width:min(520px, 92vw);
+      background:#fff; border:1px solid rgba(0,0,0,.08);
+      border-radius:18px; box-shadow:0 8px 24px rgba(0,0,0,.08);
+      overflow:hidden;
+    }
+    .card__head { background:var(--auth-edge-bg); padding:18px 22px; border-bottom:1px solid rgba(0,0,0,.08); }
+    .card__title { margin:0; font-size:20px; font-weight:700; color:var(--brand-green); }
+    .card__body { padding:20px 22px 24px; }
+    .field { margin-bottom:14px; }
+    label { display:block; font-size:14px; margin-bottom:6px; color:#444; }
+    input {
+      width:100%; font-size:16px; padding:12px;
+      border:1px solid rgba(0,0,0,.2); border-radius:12px; outline:none;
+    }
+    .pw-row { display:flex; gap:8px; align-items:center; }
+    .pw-row input { flex:1; }
+    .toggle {
+      white-space:nowrap; font-size:13px; padding:10px 12px; border-radius:12px;
+      border:1px dashed rgba(0,0,0,.25); background:#fafafa; cursor:pointer;
+    }
+    .btn {
+      width:100%; padding:12px 14px; border:0; border-radius:12px; cursor:pointer;
+      background:var(--brand-green); color:#fff; font-weight:700; font-size:16px;
+    }
+    .msg {
+      margin:10px 0 0; font-size:14px; line-height:1.3;
+      padding:10px 12px; border-radius:10px; border:1px solid transparent;
+    }
+    .msg[data-type="info"]  { background:#f4f6ff; border-color:#c9d2ff; }
+    .msg[data-type="error"] { background:#fff4f4; border-color:#ffd0d0; color:#8b0000; }
+    .meta { text-align:center; font-size:12px; color:#666; margin-top:14px; }
+    .brand { display:flex; justify-content:center; align-items:center; gap:10px; margin-top:8px; font-weight:700; }
+    .brand img { width:28px; height:28px; }
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <div class="card__head">
+      <h1 class="card__title">Sign in to Dowson Farms</h1>
+    </div>
+    <div class="card__body">
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="username" placeholder="name@company.com" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="pw-row">
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            <button id="togglePassword" class="toggle" aria-pressed="false">Show</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn" id="signInBtn">Sign In</button>
+
+        <div id="msg" class="msg" hidden></div>
+
+        <p class="meta">Need an account? Ask an admin to invite you.</p>
+        <div class="brand">
+          <img src="../assets/icons/logo.png" alt="DF logo" />
+          <span>Dowson Farms</span>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Firebase init first, then auth handler -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+</body>
+</html>
