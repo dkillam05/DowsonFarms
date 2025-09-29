@@ -19,28 +19,24 @@
     main { padding:18px; max-width:1100px; margin:0 auto; }
     h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
     footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
-    .df-tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top:18px; }
-    .df-tile { display:flex; flex-direction:column; align-items:center; justify-content:center;
-      background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
-      box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#333;
-      padding:24px 18px; transition:transform .15s; }
-    .df-tile:hover { transform: translateY(-3px); }
-    .df-tile span { margin-top:8px; font-weight:600; }
   </style>
 </head>
 <body>
   <header>
-    <button onclick="history.back()" class="btn">← Back</button>
+    <button onclick="history.back()" class="btn" aria-label="Back">← Back</button>
     <div class="title">Settings & Setup</div>
     <div class="spacer"></div>
     <button id="logoutBtn" class="btn">Logout</button>
   </header>
 
   <main>
+    <nav data-df-breadcrumbs></nav>
+
     <h1>Settings & Setup</h1>
     <p>Manage farms, fields, roles, products, and app appearance.</p>
 
-    <div id="subnav"></div>
+    <!-- Proper subnav hook (points at this section) -->
+    <div data-df-subnav data-section="settings-setup/index.html"></div>
 
     <section id="check-updates" style="margin-top:28px;">
       <h2 style="color:var(--brand-green); font-size:18px;">App Updates</h2>
@@ -56,34 +52,14 @@
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- Menus -->
+  <!-- Menus + role-aware nav -->
   <script src="assets/data/menus.js"></script>
+  <script type="module" src="js/ui-nav.js"></script>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // Fallback renderer: draw settings submenus straight from DF_MENUS
-    function renderSettings() {
-      const node = window.DF_MENUS?.tiles?.find(t => t.href === "settings-setup/index.html");
-      const container = document.getElementById("subnav");
-      if (!node) {
-        container.innerHTML = "<p style='color:red'>menus.js not loaded or missing Settings entry</p>";
-        return;
-      }
-      const grid = document.createElement("div");
-      grid.className = "df-tiles";
-      (node.children || []).forEach(ch => {
-        const a = document.createElement("a");
-        a.href = ch.href;
-        a.className = "df-tile";
-        a.innerHTML = `${ch.iconEmoji || "•"} <span>${ch.label}</span>`;
-        grid.appendChild(a);
-      });
-      container.appendChild(grid);
-    }
-    document.addEventListener("DOMContentLoaded", renderSettings);
-
-    // Logout hookup
+    // Logout
     import("js/firebase-init.js").then(({ auth }) => {
       import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
         document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -91,6 +67,24 @@
         });
       });
     });
+
+    // Updates
+    (function () {
+      const btn = document.getElementById("btnCheckUpdates");
+      const msg = document.getElementById("updMsg");
+      if (!btn) return;
+      btn.addEventListener("click", async () => {
+        msg.textContent = "Checking…";
+        try {
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.getRegistration('/DowsonFarms/serviceworker.js') ||
+                        await navigator.serviceWorker.getRegistration();
+            if (reg && reg.update) await reg.update();
+          }
+          msg.textContent = "Update check complete.";
+        } catch (e) { msg.textContent = "Could not check for updates."; }
+      });
+    })();
   </script>
 </body>
 </html>
