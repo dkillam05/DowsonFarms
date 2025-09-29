@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finish Sign-In</title>
+  <base href="/DowsonFarms/">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px}
+  </style>
+</head>
+<body>
+  <h1>Finishing sign-in…</h1>
+  <div id="out">Please wait…</div>
+
+  <script type="module">
+    import { auth, db } from "/DowsonFarms/js/firebase-init.js";
+    import { isSignInWithEmailLink, signInWithEmailLink } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+    const out = document.getElementById('out');
+
+    async function run(){
+      try{
+        if (!isSignInWithEmailLink(auth, window.location.href)) {
+          out.textContent = 'Invalid sign-in link.';
+          return;
+        }
+        const url = new URL(window.location.href);
+        const invite = url.searchParams.get('invite') || '';
+        let email = window.localStorage.getItem('df_invite_email') || '';
+        if (!email) {
+          email = prompt('Confirm your email to complete sign-in:') || '';
+        }
+        const cred = await signInWithEmailLink(auth, email, window.location.href);
+        const uid = cred.user.uid;
+
+        // Apply invite roles to /users doc (by userDocId, or by email)
+        if (invite) {
+          const invRef = doc(db,'invites', invite);
+          const invSnap = await getDoc(invRef);
+          if (invSnap.exists()){
+            const inv = invSnap.data();
+            const targetId = inv.userDocId;
+            const roles = inv.roles || [];
+            if (targetId) {
+              await updateDoc(doc(db,'users', targetId), { email, authUid: uid, roles, updatedAt: new Date().toISOString() });
+              await updateDoc(invRef, { used: true, usedBy: uid, usedAt: new Date().toISOString() });
+              out.textContent = 'Signed in. Roles applied.';
+            } else {
+              // Fallback: create/merge a user doc by uid
+              await setDoc(doc(db,'users', uid), { email, authUid: uid, roles, updatedAt: new Date().toISOString() }, { merge: true });
+              await updateDoc(invRef, { used: true, usedBy: uid, usedAt: new Date().toISOString() });
+              out.textContent = 'Signed in. Roles applied.';
+            }
+          } else {
+            out.textContent = 'Signed in (no invite found).';
+          }
+        } else {
+          out.textContent = 'Signed in.';
+        }
+
+        // Go to app home
+        setTimeout(()=>location.href='/DowsonFarms/', 1000);
+      }catch(e){
+        out.textContent = 'Error: ' + (e?.message || e);
+      }
+    }
+    run();
+  </script>
+</body>
+</html>
