@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DF Menu Test</title>
+  <base href="/DowsonFarms/">
+</head>
+<body>
+  <h1>Menu Test</h1>
+  <pre id="out"></pre>
+
+  <script src="../assets/data/menus.js"></script>
+  <script>
+    document.getElementById('out').textContent =
+      JSON.stringify(window.DF_MENUS, null, 2);
+  </script>
+</body>
+</html>
