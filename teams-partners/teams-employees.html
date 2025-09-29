@@ -9,7 +9,7 @@
   <style>
     body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
     header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
-    header .title{font-weight:700;color:#333} header .spacer{flex:1}
+    header .title{font-weight:700;color:#333}.spacer{flex:1}
     main{padding:18px;max-width:1100px;margin:0 auto}
     h1{margin:0 0 10px;color:#1B5E20}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
@@ -22,10 +22,12 @@
     .err{background:#ffe9e9;border:1px solid #f3b9b9;color:#a00}
     .muted{color:#666;font-size:12px}
     .two{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:900px){ .two{grid-template-columns:1fr 1fr} }
+    @media(min-width:1000px){ .two{grid-template-columns:1fr 1fr} }
+    .list{max-height:280px;overflow:auto;border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff}
+    .list-item{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid #eee}
+    .list-item:last-child{border-bottom:none}
     .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
     .perm-grid .head{font-weight:700}
-    textarea{width:100%;min-height:80px}
   </style>
 </head>
 <body>
@@ -38,19 +40,22 @@
 
   <main>
     <h1>Employees</h1>
-    <p class="muted">Paste a user’s UID after they sign in once, or invite by email. Assign roles, then optionally override permissions for this one person.</p>
+    <p class="muted">Add employees (auto-ID), assign roles, invite by email, then optionally override permissions per person.</p>
 
     <div id="status"></div>
 
     <div class="two">
-      <!-- Details & Roles -->
+      <!-- Left: employee list + details -->
       <div class="card">
-        <h3 style="margin:0 0 8px">Details & Roles</h3>
+        <h3 style="margin:0 0 8px">Employees</h3>
         <div class="row">
-          <label style="width:90px">UID</label>
-          <input id="uid" type="text" placeholder="Firebase UID (required to save user)" style="min-width:320px" />
-          <button id="btnLoad">Load</button>
+          <button id="btnAdd">+ Add Employee</button>
+          <button id="btnRefresh">Refresh List</button>
+          <span class="muted">Auto-ID on create. Select an employee to edit.</span>
         </div>
+        <div id="empList" class="list" aria-label="Employees list"></div>
+
+        <h3 style="margin:12px 0 6px">Details</h3>
         <div class="row">
           <label style="width:90px">First</label>
           <input id="firstName" type="text" placeholder="First name" />
@@ -67,16 +72,18 @@
           <span class="muted">Hold Ctrl/⌘ to multi-select</span>
         </div>
         <div class="row">
-          <button id="btnSaveUser">Save User</button>
+          <button id="btnSave">Save Changes</button>
+          <button id="btnDelete" class="btn-danger">Delete Employee</button>
+          <span class="muted" id="selHint">(no employee selected)</span>
         </div>
       </div>
 
-      <!-- Invite -->
+      <!-- Right: invite -->
       <div class="card">
-        <h3 style="margin:0 0 8px">Invite</h3>
-        <p class="muted">Create an invite for someone not in Firebase yet. They’ll get roles on first sign-in.</p>
+        <h3 style="margin:0 0 8px">Invite by Email</h3>
+        <p class="muted">Sends a Firebase **Email Link** sign-in and stores an invite record with chosen roles.</p>
         <div class="row">
-          <label style="width:90px">Email</label>
+          <label style="width:90px">To</label>
           <input id="inviteEmail" type="email" placeholder="email@example.com" style="min-width:320px" />
         </div>
         <div class="row">
@@ -84,19 +91,16 @@
           <select id="inviteRoles" multiple size="6" style="min-width:260px"></select>
         </div>
         <div class="row">
-          <button id="btnInvite">Create Invite</button>
+          <button id="btnInvite">Send Invite</button>
         </div>
-        <div class="row">
-          <textarea id="inviteOut" readonly placeholder="Invite link will appear here…"></textarea>
-        </div>
+        <p class="muted">Requires: Auth → Sign-in method → enable Email link, and add github.io domain.</p>
       </div>
     </div>
 
     <!-- Overrides -->
     <div class="card">
       <h3 style="margin:0 0 8px">Per-Employee Permission Overrides</h3>
-      <p class="muted">These apply on top of role permissions. If checked here, it overrides the role’s setting for this user only.</p>
-
+      <p class="muted">These **grant extra** permissions on top of the role(s). (True = allow.)</p>
       <div class="perm-grid" id="permHeader">
         <div class="head">Menu Path</div>
         <div class="head">View</div>
@@ -106,13 +110,11 @@
         <div class="head">Archive</div>
       </div>
       <div id="permRows"></div>
-
       <div class="row">
         <button id="btnSaveOverrides">Save Overrides</button>
         <button id="btnClearOverrides" class="btn-danger">Clear All Overrides</button>
       </div>
     </div>
-
   </main>
 
   <script src="/DowsonFarms/assets/data/menus.js"></script>
