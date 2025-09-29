@@ -1,5 +1,5 @@
 // Firebase v10 modular init for GitHub Pages
-// Exports: app, auth, db  (and analytics when supported)
+// Exports: app, auth, db
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -20,7 +20,6 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-// Analytics optional
 (async () => {
   try { if (await isSupported()) getAnalytics(app); } catch (_) {}
 })();
