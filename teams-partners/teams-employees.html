@@ -3,58 +3,116 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Employees (Assign Roles)</title>
+  <title>Employees (Roles, Invite, Overrides)</title>
   <base href="/DowsonFarms/">
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
     body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
     header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
     header .title{font-weight:700;color:#333} header .spacer{flex:1}
-    main{padding:18px;max-width:900px;margin:0 auto}
+    main{padding:18px;max-width:1100px;margin:0 auto}
     h1{margin:0 0 10px;color:#1B5E20}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
-    input,select,button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
+    input,select,button,textarea{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
     button{cursor:pointer;font-weight:600}
+    .btn-danger{color:#a00}
+    .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
     #status{margin:10px 0;padding:8px 10px;border-radius:10px;display:none}
     .ok{background:#eef5ee;border:1px solid #cfe3cf;color:#125212}
     .err{background:#ffe9e9;border:1px solid #f3b9b9;color:#a00}
-    .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
     .muted{color:#666;font-size:12px}
+    .two{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:900px){ .two{grid-template-columns:1fr 1fr} }
+    .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
+    .perm-grid .head{font-weight:700}
+    textarea{width:100%;min-height:80px}
   </style>
 </head>
 <body>
   <header>
     <a href="teams-partners/" style="text-decoration:none">← Back</a>
-    <div class="title">Employees — Assign Roles</div>
+    <div class="title">Employees — Roles & Overrides</div>
     <div class="spacer"></div>
     <a href="index.html">Home</a>
   </header>
 
   <main>
     <h1>Employees</h1>
-    <p class="muted">For testing: paste the employee’s Firebase <b>UID</b>, choose roles, and save. (UID exists after they sign in once.)</p>
+    <p class="muted">Paste a user’s UID after they sign in once, or invite by email. Assign roles, then optionally override permissions for this one person.</p>
 
     <div id="status"></div>
 
-    <div class="card">
-      <div class="row">
-        <label>UID</label>
-        <input id="uid" type="text" placeholder="Firebase UID (required)" style="min-width:320px" />
+    <div class="two">
+      <!-- Details & Roles -->
+      <div class="card">
+        <h3 style="margin:0 0 8px">Details & Roles</h3>
+        <div class="row">
+          <label style="width:90px">UID</label>
+          <input id="uid" type="text" placeholder="Firebase UID (required to save user)" style="min-width:320px" />
+          <button id="btnLoad">Load</button>
+        </div>
+        <div class="row">
+          <label style="width:90px">First</label>
+          <input id="firstName" type="text" placeholder="First name" />
+          <label style="width:90px">Last</label>
+          <input id="lastName" type="text" placeholder="Last name" />
+        </div>
+        <div class="row">
+          <label style="width:90px">Email</label>
+          <input id="email" type="email" placeholder="email@example.com" style="min-width:320px" />
+        </div>
+        <div class="row">
+          <label style="width:90px">Roles</label>
+          <select id="roles" multiple size="6" style="min-width:260px"></select>
+          <span class="muted">Hold Ctrl/⌘ to multi-select</span>
+        </div>
+        <div class="row">
+          <button id="btnSaveUser">Save User</button>
+        </div>
       </div>
-      <div class="row">
-        <label>Email</label>
-        <input id="email" type="email" placeholder="optional – for reference" style="min-width:320px" />
-      </div>
-      <div class="row">
-        <label>Roles</label>
-        <select id="roles" multiple size="6" style="min-width:260px"></select>
-        <span class="muted">Hold Ctrl/⌘ to multi-select</span>
-      </div>
-      <div class="row">
-        <button id="btnLoad">Load</button>
-        <button id="btnSave">Save</button>
+
+      <!-- Invite -->
+      <div class="card">
+        <h3 style="margin:0 0 8px">Invite</h3>
+        <p class="muted">Create an invite for someone not in Firebase yet. They’ll get roles on first sign-in.</p>
+        <div class="row">
+          <label style="width:90px">Email</label>
+          <input id="inviteEmail" type="email" placeholder="email@example.com" style="min-width:320px" />
+        </div>
+        <div class="row">
+          <label style="width:90px">Roles</label>
+          <select id="inviteRoles" multiple size="6" style="min-width:260px"></select>
+        </div>
+        <div class="row">
+          <button id="btnInvite">Create Invite</button>
+        </div>
+        <div class="row">
+          <textarea id="inviteOut" readonly placeholder="Invite link will appear here…"></textarea>
+        </div>
       </div>
     </div>
+
+    <!-- Overrides -->
+    <div class="card">
+      <h3 style="margin:0 0 8px">Per-Employee Permission Overrides</h3>
+      <p class="muted">These apply on top of role permissions. If checked here, it overrides the role’s setting for this user only.</p>
+
+      <div class="perm-grid" id="permHeader">
+        <div class="head">Menu Path</div>
+        <div class="head">View</div>
+        <div class="head">Create</div>
+        <div class="head">Edit</div>
+        <div class="head">Delete</div>
+        <div class="head">Archive</div>
+      </div>
+      <div id="permRows"></div>
+
+      <div class="row">
+        <button id="btnSaveOverrides">Save Overrides</button>
+        <button id="btnClearOverrides" class="btn-danger">Clear All Overrides</button>
+      </div>
+    </div>
+
   </main>
 
   <script src="/DowsonFarms/assets/data/menus.js"></script>
