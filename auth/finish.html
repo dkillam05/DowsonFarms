@@ -20,37 +20,54 @@
 
     async function run(){
       try{
-        if(!isSignInWithEmailLink(auth, location.href)){
-          out.textContent = 'Invalid or expired link.'; return;
+        if (!isSignInWithEmailLink(auth, location.href)) {
+          out.textContent = 'Invalid or expired sign-in link.'; return;
         }
         const url = new URL(location.href);
-        const invite = url.searchParams.get('invite') || '';
-        let email = localStorage.getItem('df_invite_email') || '';
-        if(!email) email = prompt('Confirm your email to complete sign-in:') || '';
+        const inviteToken = url.searchParams.get('invite') || '';
 
+        // Use stored email or prompt
+        let email = localStorage.getItem('df_invite_email') || '';
+        if (!email) email = prompt('Confirm your email to complete sign-in:') || '';
+
+        // Sign in with email link
         const cred = await signInWithEmailLink(auth, email, location.href);
         const uid = cred.user.uid;
 
-        if(invite){
-          const invRef = doc(db,'invites', invite);
-          const invSnap = await getDoc(invRef);
-          if(invSnap.exists()){
-            const inv = invSnap.data();
-            const targetId = inv.userDocId;
-            const roles = inv.roles || [];
-            if(targetId){
-              await updateDoc(doc(db,'users', targetId), { email, authUid: uid, roles, updatedAt: new Date().toISOString() });
-            }else{
-              await setDoc(doc(db,'users', uid), { email, authUid: uid, roles, updatedAt: new Date().toISOString() }, { merge:true });
-            }
-            await updateDoc(invRef, { used:true, usedBy: uid, usedAt: new Date().toISOString() });
+        // Load invite (optional) to pick up intended roles
+        let roles = [];
+        if (inviteToken) {
+          const invSnap = await getDoc(doc(db, 'invites', inviteToken));
+          if (invSnap.exists()) roles = invSnap.data().roles || [];
+        }
+
+        // ✅ Write to /users/{auth.uid} (allowed by rules)
+        await setDoc(
+          doc(db, 'users', uid),
+          {
+            email,
+            authUid: uid,
+            roles,
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        );
+
+        // Mark invite used (don’t crash if this fails)
+        if (inviteToken) {
+          try {
+            await updateDoc(doc(db,'invites', inviteToken), {
+              used: true, usedBy: uid, usedAt: new Date().toISOString()
+            });
+          } catch (e) {
+            console.warn('Invite update skipped:', e?.code || e);
           }
         }
 
         out.textContent = 'All set. Redirecting…';
         setTimeout(()=>location.href='/DowsonFarms/', 800);
-      }catch(e){
-        out.textContent = 'Error: ' + (e?.message||e);
+      } catch (e) {
+        out.textContent = 'Error: ' + (e?.message || e);
       }
     }
     run();
