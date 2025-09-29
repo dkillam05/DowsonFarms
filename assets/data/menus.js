@@ -5,7 +5,7 @@ window.DF_MENUS = {
   tiles: [
     {
       label: "Crop Production",
-      href: "crop-production/index.html",
+      href: "crop-production/",            // folder-style
       iconEmoji: "🌽",
       children: [
         { label: "Planting",          href: "crop-production/crop-planting.html",     iconEmoji: "🌱" },
@@ -22,7 +22,7 @@ window.DF_MENUS = {
 
     {
       label: "Grain Tracking",
-      href: "grain-tracking/index.html",
+      href: "grain-tracking/",            // folder-style
       iconEmoji: "🌾",
       children: [
         { label: "Grain Bags",         href: "grain-tracking/grain-bags.html",        iconEmoji: "👝" },
@@ -34,7 +34,7 @@ window.DF_MENUS = {
 
     {
       label: "Equipment",
-      href: "equipment/index.html",
+      href: "equipment/",                 // folder-style
       iconEmoji: "🚜",
       children: [
         { label: "StarFire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
@@ -50,7 +50,7 @@ window.DF_MENUS = {
 
     {
       label: "Calculators",
-      href: "calculators/index.html",
+      href: "calculators/",               // folder-style
       iconEmoji: "🔢",
       children: [
         { label: "Combine Yield", href: "calculators/calc-combine-yield.html", iconEmoji: "🌽" },
@@ -64,7 +64,7 @@ window.DF_MENUS = {
 
     {
       label: "Teams & Partners",
-      href: "teams-partners/index.html",
+      href: "teams-partners/",            // folder-style
       iconEmoji: "🫱🏼‍🫲🏽",
       children: [
         { label: "Employees",       href: "teams-partners/teams-employees.html",       iconEmoji: "👥" },
@@ -76,7 +76,7 @@ window.DF_MENUS = {
 
     {
       label: "Reports",
-      href: "reports/index.html",
+      href: "reports/",                   // folder-style
       iconEmoji: "📖",
       children: [
         { label: "Pre-Defined Reports", href: "reports/reports-predefined.html",  iconEmoji: "📁" },
@@ -87,7 +87,7 @@ window.DF_MENUS = {
 
     {
       label: "Setup / Settings",
-      href: "settings-setup/index.html",
+      href: "settings-setup/",           // ✔️ CHANGED: folder-style, not index.html
       iconEmoji: "⚙️",
       children: [
         { label: "Farms",         href: "settings-setup/ss-farms.html",        iconEmoji: "🏡" },
@@ -110,7 +110,7 @@ window.DF_MENUS = {
 
     {
       label: "Feedback",
-      href: "feedback/index.html",
+      href: "feedback/",                 // folder-style
       iconEmoji: "💬",
       children: [
         { label: "Ideas",         href: "feedback/fb-ideas.html", iconEmoji: "💡" },
