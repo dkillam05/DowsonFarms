@@ -8,23 +8,21 @@
 
   <base href="/DowsonFarms/">
 
-  <!-- Theme prepaint -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
-      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
       var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
       document.documentElement.setAttribute('data-theme', mode);
       document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
-  <link rel="stylesheet" href="../assets/css/theme.css" />
-
+  <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
     :root { --brand-green:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
+    header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
     header .btn { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
@@ -34,7 +32,6 @@
   </style>
 </head>
 <body>
-
   <header>
     <button onclick="history.back()" class="btn" aria-label="Back">← Back</button>
     <div class="title">Settings & Setup</div>
@@ -43,16 +40,14 @@
   </header>
 
   <main>
-    <!-- Breadcrumbs -->
     <nav data-df-breadcrumbs></nav>
 
     <h1>Settings & Setup</h1>
     <p>Manage farms, fields, roles, products, and app appearance.</p>
 
-    <!-- Submenu (auto-populated from menus.js, including Roles) -->
+    <!-- Submenu (auto from menus.js) -->
     <div data-df-subnav data-section="settings-setup/index.html"></div>
 
-    <!-- Optional: Updates section -->
     <section id="check-updates" style="margin-top:28px;">
       <h2 style="color:var(--brand-green); font-size:18px; margin:0 0 10px;">App Updates</h2>
       <p>You can check for a new build and refresh cached files.</p>
@@ -63,31 +58,25 @@
     </section>
   </main>
 
-  <footer>
-    Dowson Farms App © <span id="year"></span>
-  </footer>
+  <footer>Dowson Farms App © <span id="year"></span></footer>
 
   <!-- Firebase + Guard -->
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script type="module" src="../js/auth-guard.js"></script>
+  <script type="module" src="js/firebase-init.js?v=1"></script>
+  <script type="module" src="js/auth-guard.js?v=1"></script>
 
-  <!-- Menus + nav renderer -->
-  <script src="../assets/data/menus.js"></script>
-  <script type="module" src="../js/ui-nav.js"></script>
+  <!-- Menus + role-aware nav (NOTE: no ../ here) -->
+  <script src="assets/data/menus.js?v=1"></script>
+  <script type="module" src="js/ui-nav.js?v=1"></script>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
-
-    // Logout hookup
-    import("../js/firebase-init.js").then(({ auth }) => {
+    import("js/firebase-init.js").then(({ auth }) => {
       import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
         document.getElementById("logoutBtn").addEventListener("click", () => {
-          signOut(auth).then(() => location.href = "../auth/");
+          signOut(auth).then(() => location.href = "auth/");
         });
       });
     });
-
-    // Check for updates
     (function () {
       const btn = document.getElementById("btnCheckUpdates");
       const msg = document.getElementById("updMsg");
@@ -100,11 +89,8 @@
                         await navigator.serviceWorker.getRegistration();
             if (reg && reg.update) await reg.update();
           }
-          msg.textContent = "Update check complete. Reload to apply if needed.";
-        } catch (e) {
-          msg.textContent = "Could not check for updates.";
-          console.warn(e);
-        }
+          msg.textContent = "Update check complete. Reload if prompted.";
+        } catch (e) { msg.textContent = "Could not check for updates."; }
       });
     })();
   </script>
