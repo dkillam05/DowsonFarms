@@ -1,4 +1,4 @@
-// /js/auth-guard.js — with on-screen error details for access load
+// Guard + debug footer (UID, roles, and import errors)
 import { auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
@@ -51,14 +51,12 @@ onAuthStateChanged(auth, async (user) => {
   hideOverlay();
 
   try {
-    // cache-bust the import in case an old 404/error is stuck
     const { loadAccess } = await import(`./access.js?v=${Date.now()}`);
     const acc = await loadAccess();
     showDebug(user.uid, acc.roleKeys);
   } catch (e) {
     console.warn("access.js import failed", e);
-    const msg = e?.message || String(e);
-    showDebug(user.uid, [], msg);
+    showDebug(user.uid, [], e?.message || String(e));
   }
 }, () => {
   clearTimeout(watchdog);
