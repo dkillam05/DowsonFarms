@@ -35,7 +35,7 @@
     <h1>Settings & Setup</h1>
     <p>Manage farms, fields, roles, products, and app appearance.</p>
 
-    <!-- Proper subnav hook (points at this section) -->
+    <!-- Subnav for this section -->
     <div data-df-subnav data-section="settings-setup/index.html"></div>
 
     <section id="check-updates" style="margin-top:28px;">
@@ -49,17 +49,17 @@
   <footer>Dowson Farms App © <span id="year"></span></footer>
 
   <!-- Firebase + Guard -->
-  <script type="module" src="js/firebase-init.js"></script>
-  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="js/firebase-init.js?v=10"></script>
+  <script type="module" src="js/auth-guard.js?v=10"></script>
 
   <!-- Menus + role-aware nav -->
-  <script src="assets/data/menus.js"></script>
-  <script type="module" src="js/ui-nav.js"></script>
+  <script src="assets/data/menus.js?v=10"></script>
+  <!-- Force-load access once to break any cached failure -->
+  <script type="module">import './js/access.js?v=10';</script>
+  <script type="module" src="js/ui-nav.js?v=10"></script>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
-
-    // Logout
     import("js/firebase-init.js").then(({ auth }) => {
       import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
         document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -68,7 +68,6 @@
       });
     });
 
-    // Updates
     (function () {
       const btn = document.getElementById("btnCheckUpdates");
       const msg = document.getElementById("updMsg");
