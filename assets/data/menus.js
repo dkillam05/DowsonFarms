@@ -1,7 +1,7 @@
-<!-- assets/data/menus.js -->
-<script>
-/* Dowson Farms — Global Navigation (one source of truth) */
-const DF_MENUS = {
+/* Dowson Farms — Global Navigation (one source of truth)
+   NOTE: plain JS (no <script> wrapper). Loads as a normal script and sets window.DF_MENUS.
+*/
+window.DF_MENUS = {
   tiles: [
     {
       label: "Crop Production",
@@ -18,7 +18,8 @@ const DF_MENUS = {
         { label: "Trials",            href: "crop-production/crop-trials.html",       iconEmoji: "🧬" }
       ]
     },
-    { label: "Field Maintenance", href: "crop-production/crop-maintenance.html", iconEmoji: "🛠️", children: [] },
+    { label: "Field Maintenance", href: "field-maintenance/field-maintenance.html", iconEmoji: "🛠️", children: [] },
+
     {
       label: "Grain Tracking",
       href: "grain-tracking/index.html",
@@ -30,12 +31,13 @@ const DF_MENUS = {
         { label: "Grain Ticket (OCR)", href: "grain-tracking/grain-ticket-ocr.html",  iconEmoji: "🎫" }
       ]
     },
+
     {
       label: "Equipment",
       href: "equipment/index.html",
       iconEmoji: "🚜",
       children: [
-        { label: "Starfire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
+        { label: "StarFire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
         { label: "Tractors",              href: "equipment/equipment-tractors.html",     iconEmoji: "🚜" },
         { label: "Combines",              href: "equipment/equipment-combines.html",     iconEmoji: "🌽" },
         { label: "Sprayers / Spreaders",  href: "equipment/equipment-sprayers.html",     iconEmoji: "💦" },
@@ -45,6 +47,7 @@ const DF_MENUS = {
         { label: "Trailers",              href: "equipment/equipment-trailers.html",     iconEmoji: "🚚" }
       ]
     },
+
     {
       label: "Calculators",
       href: "calculators/index.html",
@@ -58,6 +61,7 @@ const DF_MENUS = {
         { label: "Grain Shrink",  href: "calculators/calc-grain-shrink.html",  iconEmoji: "📉" }
       ]
     },
+
     {
       label: "Teams & Partners",
       href: "teams-partners/index.html",
@@ -69,6 +73,7 @@ const DF_MENUS = {
         { label: "Dictionary",      href: "teams-partners/teams-dictionary.html",      iconEmoji: "🗂️" }
       ]
     },
+
     {
       label: "Reports",
       href: "reports/index.html",
@@ -79,6 +84,7 @@ const DF_MENUS = {
         { label: "AI Report History",   href: "reports/reports-ai-history.html",  iconEmoji: "🕘" }
       ]
     },
+
     {
       label: "Setup / Settings",
       href: "settings-setup/index.html",
@@ -101,6 +107,7 @@ const DF_MENUS = {
         }
       ]
     },
+
     {
       label: "Feedback",
       href: "feedback/index.html",
@@ -112,6 +119,3 @@ const DF_MENUS = {
     }
   ]
 };
-
-window.DF_MENUS = DF_MENUS;
-</script>
