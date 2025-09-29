@@ -2,48 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1B5E20" />
-  <title>Employees — Dowson Farms</title>
-  <script>
-    (function () {
-      const pref = localStorage.getItem('df_theme') || 'auto';
-      const dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
-      const mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-      document.documentElement.setAttribute('data-theme', mode);
-      document.documentElement.style.colorScheme = mode;
-    })();
-  </script>
-  <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js"></script>
-  <script defer src="../js/core.js"></script>
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script defer src="../assets/data/menus.js"></script>
-  <script type="module" src="../js/fb-employees.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Employees (Assign Roles)</title>
+  <base href="/DowsonFarms/">
+  <link rel="stylesheet" href="assets/css/theme.css" />
+  <style>
+    body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
+    header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
+    header .title{font-weight:700;color:#333} header .spacer{flex:1}
+    main{padding:18px;max-width:900px;margin:0 auto}
+    h1{margin:0 0 10px;color:#1B5E20}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+    input,select,button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
+    button{cursor:pointer;font-weight:600}
+    #status{margin:10px 0;padding:8px 10px;border-radius:10px;display:none}
+    .ok{background:#eef5ee;border:1px solid #cfe3cf;color:#125212}
+    .err{background:#ffe9e9;border:1px solid #f3b9b9;color:#a00}
+    .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
+    .muted{color:#666;font-size:12px}
+  </style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="app-header__left">
-      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
-    </div>
-    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  <header>
+    <a href="teams-partners/" style="text-decoration:none">← Back</a>
+    <div class="title">Employees — Assign Roles</div>
+    <div class="spacer"></div>
+    <a href="index.html">Home</a>
   </header>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="../index.html">Home</a></li><li class="sep">›</li>
-      <li><a href="./index.html">Teams &amp; Partners</a></li><li class="sep">›</li>
-      <li><span>Employees</span></li>
-    </ol>
-  </nav>
+  <main>
+    <h1>Employees</h1>
+    <p class="muted">For testing: paste the employee’s Firebase <b>UID</b>, choose roles, and save. (UID exists after they sign in once.)</p>
 
-  <main class="content" data-has-form>
-    <h1>👥 Employees</h1>
-    <!-- Your existing employees UI will hook into fb-employees.js -->
-    <p class="muted">Use the Employees module to add/invite and assign roles.</p>
+    <div id="status"></div>
+
+    <div class="card">
+      <div class="row">
+        <label>UID</label>
+        <input id="uid" type="text" placeholder="Firebase UID (required)" style="min-width:320px" />
+      </div>
+      <div class="row">
+        <label>Email</label>
+        <input id="email" type="email" placeholder="optional – for reference" style="min-width:320px" />
+      </div>
+      <div class="row">
+        <label>Roles</label>
+        <select id="roles" multiple size="6" style="min-width:260px"></select>
+        <span class="muted">Hold Ctrl/⌘ to multi-select</span>
+      </div>
+      <div class="row">
+        <button id="btnLoad">Load</button>
+        <button id="btnSave">Save</button>
+      </div>
+    </div>
   </main>
 
-  <footer class="app-footer"><span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span></footer>
+  <script src="/DowsonFarms/assets/data/menus.js"></script>
+  <script type="module" src="/DowsonFarms/js/employees-admin.js"></script>
 </body>
 </html>
