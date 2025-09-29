@@ -17,7 +17,7 @@
     header .spacer { flex:1; }
     header .btn { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
     main { padding:18px; max-width:1100px; margin:0 auto; }
-    h1 { font-size:22px; color:#1B5E20; margin-top:0; }
+    h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
     footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
   </style>
 </head>
@@ -36,10 +36,10 @@
     <p>Manage farms, fields, roles, products, and app appearance.</p>
 
     <!-- Subnav for this section -->
-    <div data-df-subnav data-section="settings-setup/"></div>  <!-- ✔️ CHANGED -->
+    <div data-df-subnav data-section="settings-setup/index.html"></div>
 
     <section id="check-updates" style="margin-top:28px;">
-      <h2 style="color:#1B5E20; font-size:18px;">App Updates</h2>
+      <h2 style="color:var(--brand-green); font-size:18px;">App Updates</h2>
       <p>You can check for a new build and refresh cached files.</p>
       <button id="btnCheckUpdates" class="btn">Check for Updates</button>
       <span id="updMsg" style="margin-left:10px; font-size:13px; color:#555;"></span>
@@ -52,14 +52,14 @@
   <script type="module" src="js/firebase-init.js?v=11"></script>
   <script type="module" src="js/auth-guard.js?v=11"></script>
 
-  <!-- Menus + role-aware nav -->
-  <script src="assets/data/menus.js?v=11"></script>
-  <script type="module">import './js/access.js?v=11';</script>
-  <script type="module" src="js/ui-nav.js?v=11"></script>
+  <!-- Menus + role-aware nav (absolute path fix for GitHub Pages) -->
+  <script src="/DowsonFarms/assets/data/menus.js?v=11"></script>
+  <script type="module">import '/DowsonFarms/js/access.js?v=11';</script>
+  <script type="module" src="/DowsonFarms/js/ui-nav.js?v=11"></script>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
-    import("js/firebase-init.js").then(({ auth }) => {
+    import("/DowsonFarms/js/firebase-init.js").then(({ auth }) => {
       import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
         document.getElementById("logoutBtn").addEventListener("click", () => {
           signOut(auth).then(() => location.href = "auth/");
