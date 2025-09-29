@@ -7,8 +7,6 @@
   <title>Dowson Farms — Account Roles & Access</title>
 
   <base href="/DowsonFarms/">
-
-  <!-- Theme prepaint -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -24,11 +22,10 @@
   <style>
     :root { --brand-green:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height: var(--crumb-h, 40px); background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
     header .btn { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
-
     main { padding:18px; max-width:1200px; margin:0 auto; }
     h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
 
@@ -49,7 +46,6 @@
     .btn.secondary { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#333; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer; }
     .btn.danger { background:#b00020; color:#fff; border:0; }
 
-    /* Access Matrix */
     table.matrix { width:100%; border-collapse: collapse; }
     .matrix th, .matrix td { padding:10px 8px; border-bottom:1px solid rgba(0,0,0,.06); font-size:14px; text-align:left; }
     .matrix th { color:#333; }
@@ -57,6 +53,7 @@
     .indent-1 { padding-left:18px; }
     .indent-2 { padding-left:36px; }
     .muted { color:#666; font-size:12px; }
+    .warn { color:#a00; font-size:12px; }
 
     .toast {
       position: fixed; left:50%; transform: translateX(-50%);
@@ -79,7 +76,7 @@
     <nav data-df-breadcrumbs></nav>
 
     <h1>Account Roles & Access</h1>
-    <p class="muted">Pick a role, then choose what it can <strong>see</strong> and <strong>do</strong> in each menu/submenu. “View” controls visibility. Other actions are optional and can inform page-level behavior later.</p>
+    <p class="muted">Pick a role, then choose what it can <strong>View</strong> (visibility), <strong>Create</strong>, <strong>Edit</strong>, <strong>Delete</strong>, and <strong>Archive</strong> in each menu/submenu.</p>
 
     <div class="grid">
       <!-- Role picker & details -->
@@ -115,13 +112,17 @@
               <div style="flex:1"></div>
               <button type="submit" class="btn primary" id="saveRoleBtn">Save Role</button>
             </div>
+            <p class="warn" style="margin-top:8px;">Deleting a role removes it from the list; users with that role won’t auto-update. (We’ll add migration later.)</p>
+            <div class="row">
+              <button type="button" id="deleteRoleBtn" class="btn danger">Delete Role</button>
+            </div>
           </form>
         </div>
       </section>
 
       <!-- Access Matrix -->
       <section class="card">
-        <h2>Menu Access (View/Create/Edit/Delete)</h2>
+        <h2>Menu Access (View / Create / Edit / Delete / Archive)</h2>
         <div class="body">
           <table class="matrix" id="accessTable" aria-label="Access Matrix">
             <thead>
@@ -131,15 +132,14 @@
                 <th>Create</th>
                 <th>Edit</th>
                 <th>Delete</th>
+                <th>Archive</th>
                 <th>All</th>
               </tr>
             </thead>
-            <tbody id="accessBody">
-              <!-- filled by JS from menus.js -->
-            </tbody>
+            <tbody id="accessBody"></tbody>
           </table>
           <div class="row" style="margin-top:12px;">
-            <div class="muted">Changes apply when you press “Save Access”.</div>
+            <div class="muted">Press “Save Access” to apply.</div>
             <div style="flex:1"></div>
             <button class="btn primary" id="saveAccessBtn">Save Access</button>
           </div>
@@ -154,9 +154,9 @@
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth-guard.js"></script>
 
-  <!-- Global menus + role-aware renderer (for breadcrumbs only here) -->
+  <!-- Global menus + role-aware renderer (breadcrumbs only here) -->
   <script src="../assets/data/menus.js"></script>
-  <script src="../js/ui-nav.js"></script>
+  <script type="module" src="../js/ui-nav.js"></script>
 
   <!-- Roles page logic -->
   <script type="module" src="../js/roles.js"></script>
