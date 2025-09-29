@@ -7,20 +7,20 @@
 (function () {
   'use strict';
 
-  const BASE = (function getBase() {
+  const BASE = (() => {
     const baseEl = document.querySelector('base');
     if (!baseEl || !baseEl.href) return '/DowsonFarms/';
     try { const u = new URL(baseEl.href); return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/'); }
     catch { return '/DowsonFarms/'; }
   })();
 
-  function norm(href) {
+  const stripIndex = (p) => p.replace(/index\.html$/i, '');
+  const abs = (href) => {
     if (!href) return '';
     if (/^https?:/i.test(href) || href.startsWith('/')) return href;
     return BASE + href;
-  }
-
-  function currentPath() { return location.pathname; }
+  };
+  const here = () => location.pathname;
 
   function el(tag, attrs = {}, html = '') {
     const e = document.createElement(tag);
@@ -58,7 +58,50 @@
     container.appendChild(grid);
   }
 
-  function renderBreadcrumbs(container, menus, dfAccess) {
+  function matchSection(menus, sectionHref) {
+    const want = stripIndex(abs(sectionHref || ''));
+    const path = stripIndex(here());
+
+    // exact first
+    for (const top of menus.tiles) {
+      const h = stripIndex(abs(top.href));
+      if (want ? h === want : path.startsWith(h)) return top;
+    }
+    // endsWith as last resort (supports trailing slashes quirks)
+    for (const top of menus.tiles) {
+      const h = stripIndex(abs(top.href));
+      if (path.endsWith(h)) return top;
+    }
+    return null;
+  }
+
+  function findNodeByPath(menus) {
+    const path = stripIndex(here());
+    for (const top of menus.tiles) {
+      const t = stripIndex(abs(top.href));
+      if (path === t) return { node: top };
+      if (Array.isArray(top.children)) {
+        for (const ch of top.children) {
+          const c = stripIndex(abs(ch.href));
+          if (path === c) return { parent: top, node: ch };
+          if (Array.isArray(ch.children)) {
+            for (const g of ch.children) {
+              const gg = stripIndex(abs(g.href));
+              if (path === gg) return { grandparent: top, parent: ch, node: g };
+            }
+          }
+        }
+      }
+    }
+    // fallback: nearest parent by startsWith
+    for (const top of menus.tiles) {
+      const t = stripIndex(abs(top.href));
+      if (path.startsWith(t)) return { node: top };
+    }
+    return null;
+  }
+
+  function renderBreadcrumbs(container, menus, canView) {
     container.innerHTML = '';
     styleOnce('df-bc-style', `
       .df-bc { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; color:#444; }
@@ -67,58 +110,11 @@
     `);
     const nav = el('div', { class: 'df-bc' });
 
-    // Build a small map for quick lookup by href
-    function findNodeByHref(href) {
-      const abs = norm(href);
-      for (const top of menus.tiles) {
-        const topAbs = norm(top.href);
-        if (abs === topAbs) return { parent: null, node: top };
-        if (Array.isArray(top.children)) {
-          for (const child of top.children) {
-            const childAbs = norm(child.href);
-            if (abs === childAbs) return { parent: top, node: child };
-            if (Array.isArray(child.children)) {
-              for (const g of child.children) {
-                if (abs === norm(g.href)) return { parent: child, grandparent: top, node: g };
-              }
-            }
-          }
-        }
-      }
-      return null;
-    }
-
-    function inferNodeFromLocation() {
-      const path = currentPath();
-      for (const top of menus.tiles) {
-        if (norm(top.href) === path) return { parent: null, node: top };
-        if (Array.isArray(top.children)) {
-          for (const child of top.children) {
-            if (norm(child.href) === path) return { parent: top, node: child };
-            if (Array.isArray(child.children)) {
-              for (const g of child.children) {
-                if (norm(g.href) === path) return { parent: child, grandparent: top, node: g };
-              }
-            }
-          }
-        }
-      }
-      for (const top of menus.tiles) {
-        if (path.startsWith(norm(top.href).replace(/index\.html$/, ''))) {
-          return { parent: null, node: top };
-        }
-      }
-      return null;
-    }
-
-    const info = inferNodeFromLocation();
+    const info = findNodeByPath(menus);
     const items = [{ label: 'Home', href: 'index.html' }];
-    if (info?.grandparent && dfAccess.canView(info.grandparent.href))
-      items.push({ label: info.grandparent.label, href: info.grandparent.href });
-    if (info?.parent && dfAccess.canView(info.parent.href))
-      items.push({ label: info.parent.label, href: info.parent.href });
-    if (info?.node && dfAccess.canView(info.node.href))
-      items.push({ label: info.node.label, href: info.node.href });
+    if (info?.grandparent && canView(info.grandparent.href)) items.push({ label: info.grandparent.label, href: info.grandparent.href });
+    if (info?.parent && canView(info.parent.href)) items.push({ label: info.parent.label, href: info.parent.href });
+    if (info?.node && canView(info.node.href)) items.push({ label: info.node.label, href: info.node.href });
 
     items.forEach((it, i) => {
       if (i) nav.appendChild(el('span', { class: 'sep' }, '›'));
@@ -131,52 +127,34 @@
 
   async function boot() {
     const MENUS = window.DF_MENUS || { tiles: [] };
-    // wait for role-based access
-    const { loadAccess } = await import('./access.js');
-    const DF_ACCESS = await loadAccess();
+    if (!MENUS.tiles || !MENUS.tiles.length) return; // nothing to render
 
-    // HOME tiles: show section if it or any descendant is viewable
+    // role-based access
+    const { loadAccess } = await import('./access.js');
+    const ACC = await loadAccess();
+
+    // HOME tiles
     document.querySelectorAll('[data-df-tiles]').forEach(c => {
-      const filtered = DF_ACCESS.filterMenusForHome(MENUS.tiles);
+      const filtered = ACC.filterMenusForHome(MENUS.tiles);
       renderTiles(c, filtered);
     });
 
-    // Breadcrumbs (hide crumbs you can't view)
+    // Breadcrumbs
     document.querySelectorAll('[data-df-breadcrumbs]').forEach(c => {
-      const filteredForHome = DF_ACCESS.filterMenusForHome(MENUS.tiles);
-      renderBreadcrumbs(c, { tiles: filteredForHome }, DF_ACCESS);
+      const filtered = { tiles: ACC.filterMenusForHome(MENUS.tiles) };
+      renderBreadcrumbs(c, filtered, ACC.canView);
     });
 
-    // SUBNAV: only items with view=true (children/grandchildren)
+    // Subnav (section page)
     document.querySelectorAll('[data-df-subnav]').forEach(c => {
-      const sectionHref = c.getAttribute('data-section') || '';
-      const filteredHome = DF_ACCESS.filterMenusForHome(MENUS.tiles);
+      const sectionAttr = c.getAttribute('data-section') || '';
+      const filteredHome = ACC.filterMenusForHome(MENUS.tiles);
+      const sectionNode = sectionAttr
+        ? matchSection({ tiles: filteredHome }, sectionAttr)
+        : matchSection({ tiles: filteredHome }, '');
 
-      // Find that section in the filtered tree
-      function findInFiltered(href) {
-        const abs = href ? norm(href) : null;
-        for (const top of filteredHome) {
-          const topAbs = norm(top.href);
-          if (!href || abs === topAbs) return { node: top };
-          if (Array.isArray(top.children)) {
-            for (const ch of top.children) {
-              const chAbs = norm(ch.href);
-              if (abs === chAbs) return { node: ch };
-            }
-          }
-        }
-        return null;
-      }
-
-      const section = sectionHref ? findInFiltered(sectionHref)?.node : null;
-      // If no explicit section, infer from URL by picking the top whose path matches
-      const fallback = filteredHome.find(t => currentPath().startsWith(norm(t.href).replace(/index\.html$/, '')));
-      const node = section || fallback;
-      if (!node) { c.innerHTML = ''; return; }
-
-      // Choose children to render (only those viewable survive in filtered tree)
-      const children = Array.isArray(node.children) ? node.children : [];
-      renderTiles(c, children);
+      const list = Array.isArray(sectionNode?.children) ? sectionNode.children : [];
+      renderTiles(c, list);
     });
   }
 
