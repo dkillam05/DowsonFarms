@@ -4,12 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Account Roles — Dowson Farms</title>
+  <title>Dowson Farms — Account Roles & Access</title>
 
-  <!-- Ensure all relative links/scripts resolve on GitHub Pages -->
   <base href="/DowsonFarms/">
 
-  <!-- Prepaint theme (no flash) -->
+  <!-- Theme prepaint -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -20,71 +19,43 @@
     })();
   </script>
 
-  <!-- Brand theme (existing) -->
   <link rel="stylesheet" href="../assets/css/theme.css" />
 
   <style>
-    /* Page-specific helpers (kept light; main look comes from theme.css) */
-    :root {
-      --brand-green:#1B5E20;
-      --paper:#f6f3e4;
-      --ink:#222;
-      --band:#E6DCB8;
-    }
-    body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-    header {
-      height: var(--crumb-h, 40px);
-      background: var(--band);
-      display: flex; align-items: center; gap: 8px;
-      padding: 0 10px; border-bottom: 1px solid rgba(0,0,0,.08);
-    }
+    :root { --brand-green:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height: var(--crumb-h, 40px); background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
-    header .logout {
-      appearance: none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700;
-      padding: 6px 10px; border-radius: 10px; cursor: pointer;
-    }
-    main { padding: 16px; max-width: 1100px; margin: 0 auto; }
+    header .btn { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
 
-    .grid {
-      display: grid; gap: 16px;
-      grid-template-columns: minmax(280px, 1fr) minmax(340px, 2fr);
-    }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    main { padding:18px; max-width:1200px; margin:0 auto; }
+    h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
 
-    .card {
-      background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.06);
-    }
+    .card { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
     .card h2 { margin:0; padding:14px 16px; border-bottom:1px solid rgba(0,0,0,.06); color:var(--brand-green); font-size:18px; }
-    .card .body { padding: 14px 16px 16px; }
+    .card .body { padding:14px 16px 16px; }
 
-    .field { margin-bottom: 12px; }
-    .field label { display:block; font-size: 13px; margin-bottom: 6px; color:#444; }
-    .field input[type="text"], .field textarea, .field select {
-      width:100%; padding:10px 12px; border:1px solid rgba(0,0,0,.2); border-radius:12px; font-size:14px; outline: none;
-      background:#fff;
+    .grid { display:grid; gap:16px; grid-template-columns: minmax(320px, 1fr) minmax(520px, 2fr); }
+    @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+
+    .field { margin-bottom:12px; }
+    .field label { display:block; font-size:13px; margin-bottom:6px; color:#444; }
+    .field input, .field textarea, .field select {
+      width:100%; padding:10px 12px; border:1px solid rgba(0,0,0,.2); border-radius:12px; font-size:14px; outline:none; background:#fff;
     }
     .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
-    .row .col { flex:1; min-width: 160px; }
-    .checks { display:grid; gap:8px; grid-template-columns: repeat(2, minmax(160px,1fr)); }
-    .checks label { display:flex; align-items:center; gap:8px; }
+    .btn.primary { appearance:none; border:0; background:var(--brand-green); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer; }
+    .btn.secondary { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#333; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer; }
+    .btn.danger { background:#b00020; color:#fff; border:0; }
 
-    .btn {
-      appearance:none; border:0; background:var(--brand-green); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer;
-    }
-    .btn.secondary { background:#fff; border:1px solid rgba(0,0,0,.2); color:#333; }
-
-    table { width:100%; border-collapse: collapse; }
-    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid rgba(0,0,0,.06); font-size:14px; }
-    th { color:#333; }
-    tr:hover { background:#fafafa; }
-    .pill {
-      display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid rgba(0,0,0,.15); background:#fff;
-      margin:2px 4px 2px 0;
-    }
-
-    .toolbar { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:8px; }
-    .danger { background:#b00020; }
+    /* Access Matrix */
+    table.matrix { width:100%; border-collapse: collapse; }
+    .matrix th, .matrix td { padding:10px 8px; border-bottom:1px solid rgba(0,0,0,.06); font-size:14px; text-align:left; }
+    .matrix th { color:#333; }
+    .matrix tr:hover { background:#fafafa; }
+    .indent-1 { padding-left:18px; }
+    .indent-2 { padding-left:36px; }
     .muted { color:#666; font-size:12px; }
 
     .toast {
@@ -98,81 +69,80 @@
 <body>
 
   <header>
-    <button onclick="history.back()" class="logout" aria-label="Back">← Back</button>
-    <div class="title">Settings → Account Roles</div>
+    <button onclick="history.back()" class="btn" aria-label="Back">← Back</button>
+    <div class="title">Settings → Account Roles & Access</div>
     <div class="spacer"></div>
-    <button id="logoutBtn" class="logout">Logout</button>
+    <button id="logoutBtn" class="btn">Logout</button>
   </header>
 
   <main>
-    <div class="grid">
-      <!-- Create / Edit Role -->
-      <section class="card">
-        <h2 id="formTitle">Create Role</h2>
-        <div class="body">
-          <form id="roleForm" novalidate>
-            <div class="row">
-              <div class="col field">
-                <label for="roleName">Role name</label>
-                <input id="roleName" type="text" placeholder="e.g., Manager, Operator, Admin" required />
-              </div>
-              <div class="col field">
-                <label for="roleKey">Key (unique, no spaces)</label>
-                <input id="roleKey" type="text" placeholder="e.g., manager, operator, admin" required />
-              </div>
-            </div>
+    <nav data-df-breadcrumbs></nav>
 
+    <h1>Account Roles & Access</h1>
+    <p class="muted">Pick a role, then choose what it can <strong>see</strong> and <strong>do</strong> in each menu/submenu. “View” controls visibility. Other actions are optional and can inform page-level behavior later.</p>
+
+    <div class="grid">
+      <!-- Role picker & details -->
+      <section class="card">
+        <h2>Role</h2>
+        <div class="body">
+          <div class="field">
+            <label for="roleSelect">Select role</label>
+            <select id="roleSelect"></select>
+            <div class="muted" style="margin-top:6px;">Choose an existing role to edit, or select “➕ New role”.</div>
+          </div>
+
+          <form id="roleForm" novalidate>
+            <input type="hidden" id="roleDocId" value="">
+            <div class="field">
+              <label for="roleName">Role name</label>
+              <input id="roleName" type="text" placeholder="e.g., Manager, Operator, Admin" required />
+            </div>
+            <div class="field">
+              <label for="roleKey">Key (unique, no spaces)</label>
+              <input id="roleKey" type="text" placeholder="e.g., manager, operator, admin" required />
+            </div>
             <div class="field">
               <label for="roleDesc">Description</label>
               <textarea id="roleDesc" rows="2" placeholder="What can this role do?"></textarea>
             </div>
-
-            <div class="field">
-              <label>Permissions</label>
-              <div class="checks">
-                <label><input type="checkbox" id="p_viewReports"> View Reports</label>
-                <label><input type="checkbox" id="p_editEmployees"> Edit Employees</label>
-                <label><input type="checkbox" id="p_manageFarms"> Manage Farms/Fields</label>
-                <label><input type="checkbox" id="p_manageInventory"> Manage Inventory</label>
-                <label><input type="checkbox" id="p_isAdmin"> Admin (all privileges)</label>
-              </div>
-              <div class="muted" style="margin-top:6px;">Tip: “Admin” implies full access; you can fine-tune later.</div>
-            </div>
-
             <div class="row">
-              <div class="col">
-                <label><input type="checkbox" id="roleDefault"> Make this the default role for new users</label>
-              </div>
+              <label><input type="checkbox" id="roleDefault" /> Default for new users</label>
             </div>
 
-            <div class="toolbar">
+            <div class="row" style="margin-top:10px;">
               <button type="button" class="btn secondary" id="resetBtn">Reset</button>
-              <button type="submit" class="btn" id="saveBtn">Save Role</button>
+              <div style="flex:1"></div>
+              <button type="submit" class="btn primary" id="saveRoleBtn">Save Role</button>
             </div>
-
-            <input type="hidden" id="roleId" value="">
           </form>
         </div>
       </section>
 
-      <!-- Roles List -->
+      <!-- Access Matrix -->
       <section class="card">
-        <h2>Existing Roles</h2>
+        <h2>Menu Access (View/Create/Edit/Delete)</h2>
         <div class="body">
-          <table id="rolesTable" aria-label="Roles">
+          <table class="matrix" id="accessTable" aria-label="Access Matrix">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Key</th>
-                <th>Flags</th>
-                <th>Updated</th>
-                <th style="width:160px;">Actions</th>
+                <th>Menu / Submenu</th>
+                <th>View</th>
+                <th>Create</th>
+                <th>Edit</th>
+                <th>Delete</th>
+                <th>All</th>
               </tr>
             </thead>
-            <tbody id="rolesTbody">
-              <!-- filled by JS -->
+            <tbody id="accessBody">
+              <!-- filled by JS from menus.js -->
             </tbody>
           </table>
+          <div class="row" style="margin-top:12px;">
+            <div class="muted">Changes apply when you press “Save Access”.</div>
+            <div style="flex:1"></div>
+            <button class="btn primary" id="saveAccessBtn">Save Access</button>
+          </div>
         </div>
       </section>
     </div>
@@ -180,9 +150,26 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Firebase + Guard + Page Logic -->
+  <!-- Firebase + Guard -->
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth-guard.js"></script>
+
+  <!-- Global menus + role-aware renderer (for breadcrumbs only here) -->
+  <script src="../assets/data/menus.js"></script>
+  <script src="../js/ui-nav.js"></script>
+
+  <!-- Roles page logic -->
   <script type="module" src="../js/roles.js"></script>
+
+  <script>
+    // Logout
+    import("../js/firebase-init.js").then(({ auth }) => {
+      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          signOut(auth).then(() => location.href = "../auth/");
+        });
+      });
+    });
+  </script>
 </body>
 </html>
