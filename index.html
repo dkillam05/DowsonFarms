@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms</title>
-
-  <!-- IMPORTANT: set base to your GitHub Pages repo path -->
   <base href="/DowsonFarms/">
-
   <style>
     body { margin:0; font:16px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
            display:grid; place-items:center; min-height:100dvh; background:#f6f3e4; color:#222; }
@@ -24,16 +21,16 @@
     <p><a class="btn" href="auth/">Go to Sign In</a></p>
   </div>
 
-  <!-- Redirect logic: if not signed in, go to /auth/ -->
   <script type="module">
+    // <<< set your signed-in landing page here >>>
+    const APP_HOME = "reports/index.html";  // change to e.g. "calculators/index.html" if you prefer
+
     import { auth } from "./js/firebase-init.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // TODO: Replace with your real app home when ready
-        // For now, stay here or navigate to a page like "reports/index.html"
-        console.log("Signed in:", user.email);
+        window.location.replace(APP_HOME);
       } else {
         window.location.replace("./auth/");
       }
@@ -41,9 +38,7 @@
 
     // Hard fallback in case Firebase fails to load
     setTimeout(() => {
-      if (!window.__df_loaded) {
-        location.href = "./auth/";
-      }
+      if (!window.firebase) location.href = "./auth/";
     }, 2000);
   </script>
 </body>
