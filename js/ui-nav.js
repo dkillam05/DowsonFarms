@@ -3,17 +3,13 @@
      - assets/data/menus.js  (window.DF_MENUS)
      - js/access.js          (loadAccess -> DF_ACCESS)
 */
-
 (function () {
   'use strict';
 
   const BASE = (() => {
     const baseEl = document.querySelector('base');
     if (!baseEl || !baseEl.href) return '/DowsonFarms/';
-    try { 
-      const u = new URL(baseEl.href); 
-      return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/'); 
-    }
+    try { const u = new URL(baseEl.href); return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/'); }
     catch { return '/DowsonFarms/'; }
   })();
 
@@ -39,10 +35,7 @@
 
   function styleOnce(id, css) {
     if (document.getElementById(id)) return;
-    const s = document.createElement('style'); 
-    s.id = id; 
-    s.textContent = css; 
-    document.head.appendChild(s);
+    const s = document.createElement('style'); s.id = id; s.textContent = css; document.head.appendChild(s);
   }
 
   function renderTiles(container, items) {
@@ -67,13 +60,10 @@
   function matchSection(menus, sectionHref) {
     const want = stripIndex(abs(sectionHref || ''));
     const path = stripIndex(here());
-
-    // exact match
     for (const top of menus.tiles) {
       const h = stripIndex(abs(top.href));
       if (want ? h === want : path.startsWith(h)) return top;
     }
-    // endsWith fallback
     for (const top of menus.tiles) {
       const h = stripIndex(abs(top.href));
       if (path.endsWith(h)) return top;
@@ -99,7 +89,6 @@
         }
       }
     }
-    // fallback: nearest parent by startsWith
     for (const top of menus.tiles) {
       const t = stripIndex(abs(top.href));
       if (path.startsWith(t)) return { node: top };
@@ -133,9 +122,9 @@
 
   async function boot() {
     const MENUS = window.DF_MENUS || { tiles: [] };
-    if (!MENUS.tiles || !MENUS.tiles.length) return; // nothing to render
+    if (!MENUS.tiles || !MENUS.tiles.length) return;
 
-    // role-based access, cache-busted
+    // Role-based access (cache-bust)
     let ACC;
     try {
       const { loadAccess } = await import(`./access.js?v=${Date.now()}`);
@@ -164,7 +153,6 @@
       const sectionNode = sectionAttr
         ? matchSection({ tiles: filteredHome }, sectionAttr)
         : matchSection({ tiles: filteredHome }, '');
-
       const list = Array.isArray(sectionNode?.children) ? sectionNode.children : [];
       renderTiles(c, list);
     });
