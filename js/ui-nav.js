@@ -1,7 +1,7 @@
 /* Role-aware navigation renderer
    Inputs:
      - window.DF_MENUS (from assets/data/menus.js)
-     - loadAccess() from ./access.js  (provides canView + filtered menus)
+     - loadAccess() from ./access.js  (provides canView + filter helpers)
 */
 (function () {
   'use strict';
@@ -18,8 +18,7 @@
   const abs = (href) => {
     if (!href) return '';
     if (/^https?:/i.test(href) || href.startsWith('/')) return href;
-    // resolve relative to <base>
-    return BASE + href;
+    return BASE + href; // resolve relative to <base>
   };
   const canonicalPath = () => stripIndex(location.pathname);
 
@@ -74,20 +73,16 @@
     const path = canonicalPath();
     const items = [{ label: 'Home', href: 'index.html' }];
 
-    // find exact chain for breadcrumbs
     const matchAbs = (href) => stripIndex(abs(href)) === path;
     let gp, p, n;
-    const tilesAbs = tiles.map(t => ({ ...t, _abs: stripIndex(abs(t.href)) }));
-    for (const T of tilesAbs) {
+    for (const T of tiles) {
       if (matchAbs(T.href)) { n = T; break; }
       if (Array.isArray(T.children)) {
         for (const C of T.children) {
-          const Ca = stripIndex(abs(C.href));
-          if (Ca === path) { gp = T; n = C; break; }
+          if (matchAbs(C.href)) { gp = T; n = C; break; }
           if (Array.isArray(C.children)) {
             for (const G of C.children) {
-              const Ga = stripIndex(abs(G.href));
-              if (Ga === path) { gp = T; p = C; n = G; break; }
+              if (matchAbs(G.href)) { gp = T; p = C; n = G; break; }
             }
           }
         }
@@ -106,16 +101,16 @@
     container.appendChild(nav);
   }
 
-  // --- section matching (deterministic) -------------------------------------
-  function findSectionNode(tiles, sectionHref) {
+  // --- section matching (deterministic; uses DF_MENUS as source of truth) ---
+  function findSectionNodeFromSource(allTiles, sectionHref) {
     const want = stripIndex(abs(sectionHref || ''));
-    // 1) exact absolute match (canonical)
-    for (const t of tiles) if (stripIndex(abs(t.href)) === want) return t;
-    // 2) fallback for trailing-slash/base quirks: endsWith
-    for (const t of tiles) if (want && stripIndex(abs(t.href)).endsWith(want)) return t;
-    // 3) last resort: current location’s parent (supports deep pages)
+    // 1) exact absolute match
+    for (const t of allTiles) if (stripIndex(abs(t.href)) === want) return t;
+    // 2) endsWith fallback (handles base/trailing slash)
+    for (const t of allTiles) if (want && stripIndex(abs(t.href)).endsWith(want)) return t;
+    // 3) last resort: current location’s parent
     const path = canonicalPath();
-    for (const t of tiles) if (path.startsWith(stripIndex(abs(t.href)))) return t;
+    for (const t of allTiles) if (path.startsWith(stripIndex(abs(t.href)))) return t;
     return null;
   }
 
@@ -124,7 +119,7 @@
     const MENUS = window.DF_MENUS || { tiles: [] };
     if (!MENUS.tiles || !MENUS.tiles.length) return;
 
-    // Role access (cache-busted import prevents stale module errors)
+    // Access (cache-busted import prevents stale module errors)
     const { loadAccess } = await import(`./access.js?v=${Date.now()}`);
     const ACC = await loadAccess();
 
@@ -133,17 +128,19 @@
       renderTiles(c, ACC.filterMenusForHome(MENUS.tiles));
     });
 
-    // Breadcrumbs
+    // Breadcrumbs (role-filtered)
     document.querySelectorAll('[data-df-breadcrumbs]').forEach(c => {
       renderBreadcrumbs(c, ACC.filterMenusForHome(MENUS.tiles), ACC.canView);
     });
 
-    // Section subnav (e.g., Settings)
+    // Subnav for section pages
     document.querySelectorAll('[data-df-subnav]').forEach(c => {
       const sectionHref = c.getAttribute('data-section') || '';
-      const topFiltered = ACC.filterMenusForHome(MENUS.tiles);
-      const sectionNode = findSectionNode(topFiltered, sectionHref);
-      const children = Array.isArray(sectionNode?.children) ? sectionNode.children : [];
+      // IMPORTANT: find the section on the SOURCE MENU (not the filtered copy),
+      // so it cannot be dropped by any filtering quirk. Then filter its children.
+      const sectionNode = findSectionNodeFromSource(MENUS.tiles, sectionHref);
+      const childrenRaw = Array.isArray(sectionNode?.children) ? sectionNode.children : [];
+      const children = (ACC.filterChildren ? ACC.filterChildren(childrenRaw) : childrenRaw);
       renderTiles(c, children);
     });
   }
