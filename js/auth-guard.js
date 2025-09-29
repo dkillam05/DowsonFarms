@@ -1,6 +1,5 @@
-// /js/auth-guard.js
-// Guard pages so only signed-in users see them
-// + temporary debug footer showing UID + roles
+// /js/auth-guard.js  — TEST VERSION (with debug footer)
+// Base-aware redirects for GitHub Pages (uses <base href="/DowsonFarms/">)
 
 import { auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -11,10 +10,7 @@ function showOverlay(msg) {
     overlay = document.createElement("div");
     overlay.id = "authOverlay";
     overlay.style.position = "fixed";
-    overlay.style.top = 0;
-    overlay.style.left = 0;
-    overlay.style.right = 0;
-    overlay.style.bottom = 0;
+    overlay.style.inset = "0";
     overlay.style.background = "rgba(255,255,255,0.7)";
     overlay.style.display = "flex";
     overlay.style.alignItems = "center";
@@ -31,7 +27,6 @@ function showOverlay(msg) {
     overlay.querySelector("div").firstChild.nodeValue = msg;
   }
 }
-
 function hideOverlay() {
   const overlay = document.getElementById("authOverlay");
   if (overlay) overlay.remove();
@@ -43,30 +38,42 @@ function showDebug(uid, roles) {
   if (!dbg) {
     dbg = document.createElement("div");
     dbg.id = "authDebug";
-    dbg.style.position = "fixed";
-    dbg.style.bottom = "0";
-    dbg.style.left = "0";
-    dbg.style.right = "0";
-    dbg.style.background = "#eee";
-    dbg.style.color = "#111";
-    dbg.style.fontSize = "12px";
-    dbg.style.padding = "6px 10px";
-    dbg.style.borderTop = "1px solid #ccc";
-    dbg.style.zIndex = 9999;
+    Object.assign(dbg.style, {
+      position: "fixed", bottom: "0", left: "0", right: "0",
+      background: "#eee", color: "#111", fontSize: "12px",
+      padding: "6px 10px", borderTop: "1px solid #ccc", zIndex: 9999
+    });
     document.body.appendChild(dbg);
   }
-  dbg.textContent = `UID: ${uid || "none"} | Roles: ${roles?.join(", ") || "none"} ${uid === "wcTEMrHbY1QIknuKMKrTXV5wpu73" ? "(BUILDER ✅)" : ""}`;
+  const isBuilder = uid === "wcTEMrHbY1QIknuKMKrTXV5wpu73";
+  dbg.textContent = `UID: ${uid || "none"} | Roles: ${roles?.join(", ") || "none"} ${isBuilder ? "(BUILDER ✅)" : ""}`;
 }
 
+// Base-aware redirect (thanks to <base href="/DowsonFarms/"> this works from any page)
+const goLogin = () => window.location.replace("auth/");
+
+// Start with overlay visible
+showOverlay("Checking sign-in…");
+
+// Safety watchdog: if auth never answers, go to login
+const watchdog = setTimeout(goLogin, 8000);
+
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    location.href = "../auth/";
-    return;
-  }
+  clearTimeout(watchdog);
+  if (!user) return goLogin();
+
   hideOverlay();
 
-  // Load access roles for debug
-  const { loadAccess } = await import("./access.js");
-  const acc = await loadAccess();
-  showDebug(user.uid, acc.roleKeys);
+  // Load access (for the debug footer)
+  try {
+    const { loadAccess } = await import("./access.js");
+    const acc = await loadAccess();
+    showDebug(user.uid, acc.roleKeys);
+  } catch (e) {
+    console.warn("Access debug load failed:", e);
+    showDebug(user.uid, []);
+  }
+}, () => {
+  clearTimeout(watchdog);
+  goLogin();
 });
