@@ -1,4 +1,4 @@
-// /js/access.js — role engine used by ui-nav.js and the debug bar
+// Role engine used by ui-nav.js and the debug bar
 import { auth, db } from "./firebase-init.js";
 import { collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -57,8 +57,11 @@ export async function loadAccess(){
 
   function can(href, action="view"){
     const p = permsByPath[href]; if(p && p[action]) return true;
-    // optional prefix rules like "equipment/"
-    let best=null; for(const key in permsByPath){ if(key.endsWith("/") && href.startsWith(key) && (!best || key.length>best.length)) best=key; }
+    // Optional prefix rules like "equipment/"
+    let best=null; 
+    for(const key in permsByPath){
+      if(key.endsWith("/") && href.startsWith(key) && (!best || key.length>best.length)) best=key;
+    }
     return best ? !!permsByPath[best][action] : false;
   }
   function canView(href){ return can(href,"view"); }
