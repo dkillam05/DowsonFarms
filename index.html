@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Dowson Farms</title>
+
+  <!-- IMPORTANT: set base to your GitHub Pages repo path -->
+  <base href="/DowsonFarms/">
+
+  <style>
+    body { margin:0; font:16px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+           display:grid; place-items:center; min-height:100dvh; background:#f6f3e4; color:#222; }
+    .box { text-align:center; max-width:520px; padding:24px; background:#fff; border:1px solid rgba(0,0,0,.08);
+           border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+    a.btn { display:inline-block; margin-top:12px; padding:10px 14px; background:#1B5E20; color:#fff; border-radius:10px; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Dowson Farms</h1>
+    <p>Redirecting… If nothing happens, tap the button below.</p>
+    <p><a class="btn" href="auth/">Go to Sign In</a></p>
+  </div>
+
+  <!-- Redirect logic: if not signed in, go to /auth/ -->
+  <script type="module">
+    import { auth } from "./js/firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // TODO: Replace with your real app home when ready
+        // For now, stay here or navigate to a page like "reports/index.html"
+        console.log("Signed in:", user.email);
+      } else {
+        window.location.replace("./auth/");
+      }
+    });
+
+    // Hard fallback in case Firebase fails to load
+    setTimeout(() => {
+      if (!window.__df_loaded) {
+        location.href = "./auth/";
+      }
+    }, 2000);
+  </script>
+</body>
+</html>
