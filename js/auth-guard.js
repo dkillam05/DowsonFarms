@@ -1,88 +1,72 @@
 // /js/auth-guard.js
-// Global auth guard + loading overlay (spinner + blurred backdrop)
-// • Redirects unauthenticated users to /auth/
-// • Shows an overlay while checking auth state
+// Guard pages so only signed-in users see them
+// + temporary debug footer showing UID + roles
 
 import { auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-/* ---------- overlay UI (injected) ---------- */
-(function injectOverlay() {
-  const style = document.createElement("style");
-  style.textContent = `
-    .df-guard-overlay {
-      position: fixed; inset: 0; z-index: 99999;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(250, 250, 245, 0.55);
-      -webkit-backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
-      transition: opacity .18s ease;
-    }
-    .df-guard-overlay[hidden] { opacity: 0; pointer-events: none; }
-    .df-guard-card {
-      min-width: 220px; padding: 18px 20px; border-radius: 14px;
-      background: white; border: 1px solid rgba(0,0,0,.08);
-      box-shadow: 0 10px 28px rgba(0,0,0,.12);
-      display: grid; gap: 10px; justify-items: center;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      color: #222;
-    }
-    .df-guard-spinner {
-      width: 36px; height: 36px; border-radius: 50%;
-      border: 3px solid rgba(0,0,0,.12);
-      border-top-color: #1B5E20;
-      animation: dfspin 0.9s linear infinite;
-    }
-    @keyframes dfspin { to { transform: rotate(360deg); } }
-    .df-guard-text { font-size: 14px; color:#444; }
-  `;
-  document.head.appendChild(style);
-
-  const overlay = document.createElement("div");
-  overlay.className = "df-guard-overlay";
-  overlay.innerHTML = `
-    <div class="df-guard-card" role="alert" aria-live="polite">
-      <div class="df-guard-spinner" aria-hidden="true"></div>
-      <div class="df-guard-text">Checking sign-in…</div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-})();
-
-/* ---------- behavior ---------- */
-const OVERLAY = () => document.querySelector(".df-guard-overlay");
-
-function showOverlay(show) {
-  const o = OVERLAY();
-  if (!o) return;
-  if (show) o.removeAttribute("hidden");
-  else o.setAttribute("hidden", "");
+function showOverlay(msg) {
+  let overlay = document.getElementById("authOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "authOverlay";
+    overlay.style.position = "fixed";
+    overlay.style.top = 0;
+    overlay.style.left = 0;
+    overlay.style.right = 0;
+    overlay.style.bottom = 0;
+    overlay.style.background = "rgba(255,255,255,0.7)";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.zIndex = 9999;
+    overlay.innerHTML = `<div style="padding:20px;font-size:18px;font-weight:600;color:#333;">
+      ${msg}<br/><br/>
+      <div class="spinner" style="border:4px solid #ccc;border-top:4px solid #1B5E20;
+        border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:auto"></div>
+      <style>@keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
+    </div>`;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.querySelector("div").firstChild.nodeValue = msg;
+  }
 }
 
-// Show immediately while we check
-showOverlay(true);
+function hideOverlay() {
+  const overlay = document.getElementById("authOverlay");
+  if (overlay) overlay.remove();
+}
 
-// Safety timeout: if Firebase never answers (e.g., blocked), send to /auth/
-const watchdog = setTimeout(() => {
-  showOverlay(false);
-  // Use base-aware relative path (works with <base href="/DowsonFarms/">)
-  window.location.replace("auth/");
-}, 6000);
-
-// Normal auth path
-onAuthStateChanged(auth, (user) => {
-  clearTimeout(watchdog);
-  if (user) {
-    // Expose the user quickly if pages want it
-    window.DF = Object.assign(window.DF || {}, { user });
-    showOverlay(false);
-  } else {
-    // Not signed in → bounce to login
-    window.location.replace("auth/");
+// Temporary debug footer
+function showDebug(uid, roles) {
+  let dbg = document.getElementById("authDebug");
+  if (!dbg) {
+    dbg = document.createElement("div");
+    dbg.id = "authDebug";
+    dbg.style.position = "fixed";
+    dbg.style.bottom = "0";
+    dbg.style.left = "0";
+    dbg.style.right = "0";
+    dbg.style.background = "#eee";
+    dbg.style.color = "#111";
+    dbg.style.fontSize = "12px";
+    dbg.style.padding = "6px 10px";
+    dbg.style.borderTop = "1px solid #ccc";
+    dbg.style.zIndex = 9999;
+    document.body.appendChild(dbg);
   }
-}, (err) => {
-  // If listener fails, treat as unauthenticated
-  console.warn("Auth guard error:", err);
-  clearTimeout(watchdog);
-  window.location.replace("auth/");
+  dbg.textContent = `UID: ${uid || "none"} | Roles: ${roles?.join(", ") || "none"} ${uid === "wcTEMrHbY1QIknuKMKrTXV5wpu73" ? "(BUILDER ✅)" : ""}`;
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    location.href = "../auth/";
+    return;
+  }
+  hideOverlay();
+
+  // Load access roles for debug
+  const { loadAccess } = await import("./access.js");
+  const acc = await loadAccess();
+  showDebug(user.uid, acc.roleKeys);
 });
