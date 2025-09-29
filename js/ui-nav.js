@@ -1,11 +1,12 @@
-/* Role-aware Nav renderer (tiles, breadcrumbs, subnav)
-   Depends on:
-     - assets/data/menus.js  (window.DF_MENUS)
-     - js/access.js          (loadAccess -> DF_ACCESS)
+/* Role-aware navigation renderer
+   Inputs:
+     - window.DF_MENUS (from assets/data/menus.js)
+     - loadAccess() from ./access.js  (provides canView + filtered menus)
 */
 (function () {
   'use strict';
 
+  // --- URL helpers (base-aware, canonical) -----------------------------------
   const BASE = (() => {
     const baseEl = document.querySelector('base');
     if (!baseEl || !baseEl.href) return '/DowsonFarms/';
@@ -13,15 +14,17 @@
     catch { return '/DowsonFarms/'; }
   })();
 
-  const stripIndex = (p) => p.replace(/index\.html$/i, '');
+  const stripIndex = (p) => String(p || '').replace(/index\.html$/i, '');
   const abs = (href) => {
     if (!href) return '';
     if (/^https?:/i.test(href) || href.startsWith('/')) return href;
+    // resolve relative to <base>
     return BASE + href;
   };
-  const here = () => location.pathname;
+  const canonicalPath = () => stripIndex(location.pathname);
 
-  function el(tag, attrs = {}, html = '') {
+  // --- tiny DOM helpers ------------------------------------------------------
+  const el = (tag, attrs = {}, html = '') => {
     const e = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
       if (v == null) continue;
@@ -31,20 +34,22 @@
     }
     if (html) e.innerHTML = html;
     return e;
-  }
+  };
 
-  function styleOnce(id, css) {
+  const styleOnce = (id, css) => {
     if (document.getElementById(id)) return;
     const s = document.createElement('style'); s.id = id; s.textContent = css; document.head.appendChild(s);
-  }
+  };
 
+  // --- UI pieces -------------------------------------------------------------
   function renderTiles(container, items) {
     container.innerHTML = '';
     styleOnce('df-tiles-style', `
       .df-tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-      .df-tile { display:flex; flex-direction:column; align-items:center; justify-content:center;
-        background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.06);
-        text-decoration:none; color:#333; padding:24px 18px; transition:transform .15s; }
+      .df-tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
+                  background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
+                  box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#333;
+                  padding:24px 18px; transition:transform .15s; }
       .df-tile:hover { transform: translateY(-3px); }
       .df-tile span { margin-top:8px; font-weight:600; }
     `);
@@ -57,46 +62,7 @@
     container.appendChild(grid);
   }
 
-  function matchSection(menus, sectionHref) {
-    const want = stripIndex(abs(sectionHref || ''));
-    const path = stripIndex(here());
-    for (const top of menus.tiles) {
-      const h = stripIndex(abs(top.href));
-      if (want ? h === want : path.startsWith(h)) return top;
-    }
-    for (const top of menus.tiles) {
-      const h = stripIndex(abs(top.href));
-      if (path.endsWith(h)) return top;
-    }
-    return null;
-  }
-
-  function findNodeByPath(menus) {
-    const path = stripIndex(here());
-    for (const top of menus.tiles) {
-      const t = stripIndex(abs(top.href));
-      if (path === t) return { node: top };
-      if (Array.isArray(top.children)) {
-        for (const ch of top.children) {
-          const c = stripIndex(abs(ch.href));
-          if (path === c) return { parent: top, node: ch };
-          if (Array.isArray(ch.children)) {
-            for (const g of ch.children) {
-              const gg = stripIndex(abs(g.href));
-              if (path === gg) return { grandparent: top, parent: ch, node: g };
-            }
-          }
-        }
-      }
-    }
-    for (const top of menus.tiles) {
-      const t = stripIndex(abs(top.href));
-      if (path.startsWith(t)) return { node: top };
-    }
-    return null;
-  }
-
-  function renderBreadcrumbs(container, menus, canView) {
+  function renderBreadcrumbs(container, tiles, canView) {
     container.innerHTML = '';
     styleOnce('df-bc-style', `
       .df-bc { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; color:#444; }
@@ -105,11 +71,31 @@
     `);
     const nav = el('div', { class: 'df-bc' });
 
-    const info = findNodeByPath(menus);
+    const path = canonicalPath();
     const items = [{ label: 'Home', href: 'index.html' }];
-    if (info?.grandparent && canView(info.grandparent.href)) items.push({ label: info.grandparent.label, href: info.grandparent.href });
-    if (info?.parent && canView(info.parent.href)) items.push({ label: info.parent.label, href: info.parent.href });
-    if (info?.node && canView(info.node.href)) items.push({ label: info.node.label, href: info.node.href });
+
+    // find exact chain for breadcrumbs
+    const matchAbs = (href) => stripIndex(abs(href)) === path;
+    let gp, p, n;
+    const tilesAbs = tiles.map(t => ({ ...t, _abs: stripIndex(abs(t.href)) }));
+    for (const T of tilesAbs) {
+      if (matchAbs(T.href)) { n = T; break; }
+      if (Array.isArray(T.children)) {
+        for (const C of T.children) {
+          const Ca = stripIndex(abs(C.href));
+          if (Ca === path) { gp = T; n = C; break; }
+          if (Array.isArray(C.children)) {
+            for (const G of C.children) {
+              const Ga = stripIndex(abs(G.href));
+              if (Ga === path) { gp = T; p = C; n = G; break; }
+            }
+          }
+        }
+      }
+      if (n) break;
+    }
+    const pushIf = (node) => { if (node && (!canView || canView(node.href))) items.push({ label: node.label, href: node.href }); };
+    pushIf(gp); pushIf(p); pushIf(n);
 
     items.forEach((it, i) => {
       if (i) nav.appendChild(el('span', { class: 'sep' }, '›'));
@@ -120,41 +106,45 @@
     container.appendChild(nav);
   }
 
+  // --- section matching (deterministic) -------------------------------------
+  function findSectionNode(tiles, sectionHref) {
+    const want = stripIndex(abs(sectionHref || ''));
+    // 1) exact absolute match (canonical)
+    for (const t of tiles) if (stripIndex(abs(t.href)) === want) return t;
+    // 2) fallback for trailing-slash/base quirks: endsWith
+    for (const t of tiles) if (want && stripIndex(abs(t.href)).endsWith(want)) return t;
+    // 3) last resort: current location’s parent (supports deep pages)
+    const path = canonicalPath();
+    for (const t of tiles) if (path.startsWith(stripIndex(abs(t.href)))) return t;
+    return null;
+  }
+
+  // --- boot ------------------------------------------------------------------
   async function boot() {
     const MENUS = window.DF_MENUS || { tiles: [] };
     if (!MENUS.tiles || !MENUS.tiles.length) return;
 
-    // Role-based access (cache-bust)
-    let ACC;
-    try {
-      const { loadAccess } = await import(`./access.js?v=${Date.now()}`);
-      ACC = await loadAccess();
-    } catch (e) {
-      console.error("ui-nav: failed to import access.js", e);
-      return;
-    }
+    // Role access (cache-busted import prevents stale module errors)
+    const { loadAccess } = await import(`./access.js?v=${Date.now()}`);
+    const ACC = await loadAccess();
 
-    // HOME tiles
+    // HOME tiles (role-filtered)
     document.querySelectorAll('[data-df-tiles]').forEach(c => {
-      const filtered = ACC.filterMenusForHome(MENUS.tiles);
-      renderTiles(c, filtered);
+      renderTiles(c, ACC.filterMenusForHome(MENUS.tiles));
     });
 
     // Breadcrumbs
     document.querySelectorAll('[data-df-breadcrumbs]').forEach(c => {
-      const filtered = { tiles: ACC.filterMenusForHome(MENUS.tiles) };
-      renderBreadcrumbs(c, filtered, ACC.canView);
+      renderBreadcrumbs(c, ACC.filterMenusForHome(MENUS.tiles), ACC.canView);
     });
 
-    // Subnav
+    // Section subnav (e.g., Settings)
     document.querySelectorAll('[data-df-subnav]').forEach(c => {
-      const sectionAttr = c.getAttribute('data-section') || '';
-      const filteredHome = ACC.filterMenusForHome(MENUS.tiles);
-      const sectionNode = sectionAttr
-        ? matchSection({ tiles: filteredHome }, sectionAttr)
-        : matchSection({ tiles: filteredHome }, '');
-      const list = Array.isArray(sectionNode?.children) ? sectionNode.children : [];
-      renderTiles(c, list);
+      const sectionHref = c.getAttribute('data-section') || '';
+      const topFiltered = ACC.filterMenusForHome(MENUS.tiles);
+      const sectionNode = findSectionNode(topFiltered, sectionHref);
+      const children = Array.isArray(sectionNode?.children) ? sectionNode.children : [];
+      renderTiles(c, children);
     });
   }
 
