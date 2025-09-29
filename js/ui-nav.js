@@ -10,7 +10,10 @@
   const BASE = (() => {
     const baseEl = document.querySelector('base');
     if (!baseEl || !baseEl.href) return '/DowsonFarms/';
-    try { const u = new URL(baseEl.href); return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/'); }
+    try { 
+      const u = new URL(baseEl.href); 
+      return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/'); 
+    }
     catch { return '/DowsonFarms/'; }
   })();
 
@@ -36,7 +39,10 @@
 
   function styleOnce(id, css) {
     if (document.getElementById(id)) return;
-    const s = document.createElement('style'); s.id = id; s.textContent = css; document.head.appendChild(s);
+    const s = document.createElement('style'); 
+    s.id = id; 
+    s.textContent = css; 
+    document.head.appendChild(s);
   }
 
   function renderTiles(container, items) {
@@ -62,12 +68,12 @@
     const want = stripIndex(abs(sectionHref || ''));
     const path = stripIndex(here());
 
-    // exact first
+    // exact match
     for (const top of menus.tiles) {
       const h = stripIndex(abs(top.href));
       if (want ? h === want : path.startsWith(h)) return top;
     }
-    // endsWith as last resort (supports trailing slashes quirks)
+    // endsWith fallback
     for (const top of menus.tiles) {
       const h = stripIndex(abs(top.href));
       if (path.endsWith(h)) return top;
@@ -129,9 +135,15 @@
     const MENUS = window.DF_MENUS || { tiles: [] };
     if (!MENUS.tiles || !MENUS.tiles.length) return; // nothing to render
 
-    // role-based access
-    const { loadAccess } = await import('./access.js');
-    const ACC = await loadAccess();
+    // role-based access, cache-busted
+    let ACC;
+    try {
+      const { loadAccess } = await import(`./access.js?v=${Date.now()}`);
+      ACC = await loadAccess();
+    } catch (e) {
+      console.error("ui-nav: failed to import access.js", e);
+      return;
+    }
 
     // HOME tiles
     document.querySelectorAll('[data-df-tiles]').forEach(c => {
@@ -145,7 +157,7 @@
       renderBreadcrumbs(c, filtered, ACC.canView);
     });
 
-    // Subnav (section page)
+    // Subnav
     document.querySelectorAll('[data-df-subnav]').forEach(c => {
       const sectionAttr = c.getAttribute('data-section') || '';
       const filteredHome = ACC.filterMenusForHome(MENUS.tiles);
