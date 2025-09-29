@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms — Settings & Setup</title>
 
-  <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
 
   <!-- Theme prepaint -->
@@ -23,60 +22,42 @@
   <link rel="stylesheet" href="../assets/css/theme.css" />
 
   <style>
-    :root {
-      --brand-green:#1B5E20;
-      --paper:#f6f3e4;
-      --ink:#222;
-      --band:#E6DCB8;
-    }
-    body {
-      margin:0; background:var(--paper); color:var(--ink);
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    }
-    header {
-      height: var(--crumb-h, 40px);
-      background: var(--band);
-      display:flex; align-items:center; gap:8px;
-      padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08);
-    }
+    :root { --brand-green:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
-    header .logout {
-      appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700;
-      padding:6px 10px; border-radius:10px; cursor:pointer;
-    }
+    header .btn { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
     main { padding:18px; max-width:1100px; margin:0 auto; }
     h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
     footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
-    /* Subnav grid styling comes from ui-nav.js injection, but keep a tiny fallback: */
-    .df-tiles a.df-tile { text-decoration:none; }
   </style>
 </head>
 <body>
 
   <header>
-    <button onclick="history.back()" class="logout" aria-label="Back">← Back</button>
+    <button onclick="history.back()" class="btn" aria-label="Back">← Back</button>
     <div class="title">Settings & Setup</div>
     <div class="spacer"></div>
-    <button id="logoutBtn" class="logout">Logout</button>
+    <button id="logoutBtn" class="btn">Logout</button>
   </header>
 
   <main>
-    <!-- Breadcrumbs auto from menus.js -->
+    <!-- Breadcrumbs -->
     <nav data-df-breadcrumbs></nav>
 
     <h1>Settings & Setup</h1>
     <p>Manage farms, fields, roles, products, and app appearance.</p>
 
-    <!-- Submenu auto-filled from menus.js (points at this section’s index) -->
+    <!-- Submenu (auto-populated from menus.js, including Roles) -->
     <div data-df-subnav data-section="settings-setup/index.html"></div>
 
-    <!-- Optional: anchor target for “Check for Updates” menu item -->
+    <!-- Optional: Updates section -->
     <section id="check-updates" style="margin-top:28px;">
       <h2 style="color:var(--brand-green); font-size:18px; margin:0 0 10px;">App Updates</h2>
       <p>You can check for a new build and refresh cached files.</p>
       <div>
-        <button id="btnCheckUpdates" class="logout" style="background:#fff;">Check for Updates</button>
+        <button id="btnCheckUpdates" class="btn">Check for Updates</button>
         <span id="updMsg" style="margin-left:10px; font-size:13px; color:#555;"></span>
       </div>
     </section>
@@ -86,18 +67,18 @@
     Dowson Farms App © <span id="year"></span>
   </footer>
 
-  <!-- Firebase + Guard (protect page + spinner/blur) -->
+  <!-- Firebase + Guard -->
   <script type="module" src="../js/firebase-init.js"></script>
   <script type="module" src="../js/auth-guard.js"></script>
 
-  <!-- Global menus + nav renderer -->
+  <!-- Menus + nav renderer -->
   <script src="../assets/data/menus.js"></script>
-  <script src="../js/ui-nav.js"></script>
+  <script type="module" src="../js/ui-nav.js"></script>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // Logout wired globally
+    // Logout hookup
     import("../js/firebase-init.js").then(({ auth }) => {
       import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
         document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -106,27 +87,20 @@
       });
     });
 
-    // Optional: simple "check for updates" hook if you’re using a service worker
+    // Check for updates
     (function () {
       const btn = document.getElementById("btnCheckUpdates");
       const msg = document.getElementById("updMsg");
       if (!btn) return;
-
       btn.addEventListener("click", async () => {
         msg.textContent = "Checking…";
         try {
-          // If you have a service worker at /serviceworker.js:
           if ('serviceWorker' in navigator) {
             const reg = await navigator.serviceWorker.getRegistration('/DowsonFarms/serviceworker.js') ||
                         await navigator.serviceWorker.getRegistration();
             if (reg && reg.update) await reg.update();
           }
-          // Cache-bust this page’s assets (lightweight)
-          const u = new URL(location.href);
-          u.searchParams.set('v', Date.now());
-          msg.textContent = "Update check complete. If there was a new build, it will apply on next load.";
-          // You can auto-reload after a brief delay if you prefer:
-          // setTimeout(() => location.replace(u.toString()), 600);
+          msg.textContent = "Update check complete. Reload to apply if needed.";
         } catch (e) {
           msg.textContent = "Could not check for updates.";
           console.warn(e);
