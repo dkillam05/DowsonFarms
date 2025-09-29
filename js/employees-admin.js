@@ -6,38 +6,31 @@ import {
   sendSignInLinkToEmail
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-// --- UI refs
+// UI refs
 const $ = (id)=>document.getElementById(id);
 const statusBox = $('status');
-
 const empList = $('empList');
 const firstInp = $('firstName');
 const lastInp  = $('lastName');
 const emailInp = $('email');
 const rolesSel = $('roles');
 const saveBtn  = $('btnSave');
+const saveInviteBtn = $('btnSaveInvite');
 const addBtn   = $('btnAdd');
 const delBtn   = $('btnDelete');
 const refreshBtn = $('btnRefresh');
 const selHint = $('selHint');
-
-const inviteEmail = $('inviteEmail');
-const inviteRoles = $('inviteRoles');
-const inviteBtn   = $('btnInvite');
-
 const rowsBox = $('permRows');
 const saveOvBtn = $('btnSaveOverrides');
 const clearOvBtn= $('btnClearOverrides');
 
-// selection state
-let currentId = null; // Firestore auto-ID for selected employee
+let currentId = null; // Firestore auto-ID (selected employee)
 
-// --- helpers
 function msg(t, ok=true){ statusBox.className = ok?'ok':'err'; statusBox.textContent=t; statusBox.style.display='block'; }
 function clearMsg(){ statusBox.style.display='none'; }
 function nowISO(){ return new Date().toISOString(); }
-function getSelectedRoles(selectEl){ return Array.from(selectEl.selectedOptions || []).map(o=>o.value); }
-function keyFromName(n){ return String(n||'').trim(); }
+function getSelectedRoles(){ return Array.from(rolesSel.selectedOptions || []).map(o=>o.value); }
+function clean(s){ return String(s||'').trim(); }
 
 // Build flat menu list from DF_MENUS
 function gatherPaths(){
@@ -55,7 +48,6 @@ function gatherPaths(){
   return out;
 }
 
-// Overrides UI
 function renderPermRows(overridesByPath = {}){
   rowsBox.innerHTML = '';
   const paths = gatherPaths();
@@ -83,7 +75,6 @@ function collectOverrides(){
     if (!map[path]) map[path] = {view:undefined,create:undefined,edit:undefined,delete:undefined,archive:undefined};
     if (i.checked) map[path][k] = true; // only persist true (grant)
   });
-  // prune empties
   for(const k in map){
     const p = map[k];
     if(!(p.view||p.create||p.edit||p.delete||p.archive)) delete map[k];
@@ -91,20 +82,18 @@ function collectOverrides(){
   return map;
 }
 
-// Load role options for both selects
+// Roles select options
 async function loadRoleOptions(){
   rolesSel.innerHTML = '';
-  inviteRoles.innerHTML = '';
   const snap = await getDocs(query(collection(db,'roles'), orderBy('name')));
   snap.forEach(d=>{
     const name = d.data().name || d.id;
-    const o1 = document.createElement('option'); o1.value = d.id; o1.textContent = name;
-    const o2 = document.createElement('option'); o2.value = d.id; o2.textContent = name;
-    rolesSel.appendChild(o1); inviteRoles.appendChild(o2);
+    const o = document.createElement('option'); o.value = d.id; o.textContent = name;
+    rolesSel.appendChild(o);
   });
 }
 
-// List employees
+// Employees list
 async function loadEmployees(){
   empList.innerHTML = '';
   const snap = await getDocs(query(collection(db,'users'), orderBy('lastName')));
@@ -123,7 +112,6 @@ async function loadEmployees(){
   });
 }
 
-// Select / load one employee
 async function selectEmployee(id){
   clearMsg();
   currentId = id;
@@ -131,44 +119,36 @@ async function selectEmployee(id){
   const s = await getDoc(doc(db,'users', id));
   if (!s.exists()){ msg('Employee doc missing.', false); return; }
   const u = s.data();
-  firstInp.value = u.firstName || ''; lastInp.value = u.lastName || ''; emailInp.value = u.email || '';
-  // roles
+  firstInp.value = u.firstName || '';
+  lastInp.value  = u.lastName || '';
+  emailInp.value = u.email || '';
   const rset = new Set((u.roles||[]).map(String));
   Array.from(rolesSel.options).forEach(o => o.selected = rset.has(o.value));
-  // overrides
   renderPermRows(u.overridesByPath || {});
   msg('Loaded employee.');
 }
 
-// Add new employee (Firestore auto-ID)
+// Add new employee (auto-ID), minimal defaults
 async function addEmployee(){
   clearMsg();
-  const first = keyFromName(firstInp.value); const last = keyFromName(lastInp.value);
-  const email = emailInp.value.trim();
-  const roles = getSelectedRoles(rolesSel);
   const ref = await addDoc(collection(db,'users'), {
-    firstName: first || null,
-    lastName : last || null,
-    email    : email || null,
-    roles,
-    overridesByPath: {},
-    createdAt: nowISO(),
-    updatedAt: nowISO()
+    firstName: null, lastName: null, email: null, roles: [],
+    overridesByPath: {}, createdAt: nowISO(), updatedAt: nowISO()
   });
   await loadEmployees();
   await selectEmployee(ref.id);
-  msg('Employee created (auto-ID).');
+  msg('Employee created. Fill details and Save.');
 }
 
-// Save changes to current employee
+// Save details/roles
 async function saveEmployee(){
   clearMsg();
   if (!currentId) return msg('Select an employee first.', false);
   const data = {
-    firstName: keyFromName(firstInp.value) || null,
-    lastName : keyFromName(lastInp.value)  || null,
-    email    : emailInp.value.trim() || null,
-    roles    : getSelectedRoles(rolesSel),
+    firstName: clean(firstInp.value) || null,
+    lastName : clean(lastInp.value)  || null,
+    email    : clean(emailInp.value) || null,
+    roles    : getSelectedRoles(),
     updatedAt: nowISO()
   };
   await updateDoc(doc(db,'users', currentId), data);
@@ -176,7 +156,7 @@ async function saveEmployee(){
   msg('Saved.');
 }
 
-// Delete employee
+// Delete
 async function deleteEmployee(){
   clearMsg();
   if (!currentId) return msg('Select an employee first.', false);
@@ -206,27 +186,31 @@ async function clearOverrides(){
   msg('Overrides cleared.');
 }
 
-// Send real invite email (Firebase Auth Email Link)
-async function sendInvite(){
+// Save & Invite (uses the Email field of the selected employee)
+async function saveAndInvite(){
   clearMsg();
-  const email = inviteEmail.value.trim();
-  if (!email) return msg('Invite email required.', false);
-  const roles = getSelectedRoles(inviteRoles);
+  if (!currentId) return msg('Select an employee first.', false);
+  const email = clean(emailInp.value);
+  if (!email) return msg('Enter an email, then Save & Send Invite.', false);
 
-  // Create an invite record (optional but useful)
+  // Save latest details first
+  await saveEmployee();
+
+  // Create invite record (so we can attach roles)
   const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  const roles = getSelectedRoles();
   await setDoc(doc(db,'invites', token), {
-    email, roles, createdAt: nowISO(), used:false
+    email, roles, userDocId: currentId, createdAt: nowISO(), used:false
   });
 
+  // Send email link
   const actionCodeSettings = {
     url: `${location.origin}/DowsonFarms/auth/finish.html?invite=${token}`,
     handleCodeInApp: true
-    // If you use Firebase Dynamic Links, add dynamicLinkDomain here.
   };
-
   await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-  msg('Invite email sent.');
+
+  msg('Invite sent to '+email);
 }
 
 // init
@@ -242,14 +226,12 @@ async function sendInvite(){
     addBtn.addEventListener('click', addEmployee);
     refreshBtn.addEventListener('click', loadEmployees);
     saveBtn.addEventListener('click', saveEmployee);
+    saveInviteBtn.addEventListener('click', saveAndInvite);
     delBtn.addEventListener('click', deleteEmployee);
-
     saveOvBtn.addEventListener('click', saveOverrides);
     clearOvBtn.addEventListener('click', clearOverrides);
 
-    inviteBtn.addEventListener('click', sendInvite);
-
-    msg('Ready. Add or select an employee, assign roles, invite if needed.');
+    msg('Ready. Add → fill details → Save or Save & Send Invite.');
   }catch(e){
     msg('Init error: ' + (e?.message || e), false);
   }
