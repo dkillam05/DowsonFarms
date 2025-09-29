@@ -13,60 +13,63 @@
 
   <script type="module">
     import { auth, db } from "/DowsonFarms/js/firebase-init.js";
-    import { isSignInWithEmailLink, signInWithEmailLink } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import {
+      isSignInWithEmailLink, signInWithEmailLink, sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
     const out = document.getElementById('out');
 
     async function run(){
       try{
-        if (!isSignInWithEmailLink(auth, location.href)) {
+        if(!isSignInWithEmailLink(auth, location.href)){
           out.textContent = 'Invalid or expired sign-in link.'; return;
         }
         const url = new URL(location.href);
         const inviteToken = url.searchParams.get('invite') || '';
 
-        // Use stored email or prompt
         let email = localStorage.getItem('df_invite_email') || '';
-        if (!email) email = prompt('Confirm your email to complete sign-in:') || '';
+        if(!email) email = prompt('Confirm your email to complete sign-in:') || '';
 
-        // Sign in with email link
+        // Sign in with the magic link
         const cred = await signInWithEmailLink(auth, email, location.href);
-        const uid = cred.user.uid;
+        const uid  = cred.user.uid;
 
-        // Load invite (optional) to pick up intended roles
+        // Load invite → get intended roles
         let roles = [];
-        if (inviteToken) {
-          const invSnap = await getDoc(doc(db, 'invites', inviteToken));
-          if (invSnap.exists()) roles = invSnap.data().roles || [];
-        }
-
-        // ✅ Write to /users/{auth.uid} (allowed by rules)
-        await setDoc(
-          doc(db, 'users', uid),
-          {
-            email,
-            authUid: uid,
-            roles,
-            updatedAt: new Date().toISOString()
-          },
-          { merge: true }
-        );
-
-        // Mark invite used (don’t crash if this fails)
-        if (inviteToken) {
-          try {
-            await updateDoc(doc(db,'invites', inviteToken), {
-              used: true, usedBy: uid, usedAt: new Date().toISOString()
-            });
-          } catch (e) {
-            console.warn('Invite update skipped:', e?.code || e);
+        if(inviteToken){
+          const invSnap = await getDoc(doc(db,'invites', inviteToken));
+          if(invSnap.exists()){
+            roles = invSnap.data().roles || [];
           }
         }
 
-        out.textContent = 'All set. Redirecting…';
-        setTimeout(()=>location.href='/DowsonFarms/', 800);
-      } catch (e) {
+        // Write roles to /users/{auth.uid}
+        await setDoc(
+          doc(db,'users', uid),
+          { email, authUid: uid, roles, updatedAt: new Date().toISOString() },
+          { merge:true }
+        );
+
+        // Mark invite used (best-effort)
+        if(inviteToken){
+          try{
+            await updateDoc(doc(db,'invites', inviteToken), {
+              used: true, usedBy: uid, usedAt: new Date().toISOString()
+            });
+          }catch(e){ console.warn('Invite update skipped:', e?.code||e); }
+        }
+
+        // Kick off a password-setup email so the user can set a password
+        try{
+          await sendPasswordResetEmail(auth, email);
+          out.textContent = 'Signed in. A password setup email has been sent. Redirecting…';
+        }catch(e){
+          out.textContent = 'Signed in. (Password email not sent: ' + (e?.code||e) + '). Redirecting…';
+        }
+
+        setTimeout(()=>location.href='/DowsonFarms/', 900);
+      }catch(e){
         out.textContent = 'Error: ' + (e?.message || e);
       }
     }
