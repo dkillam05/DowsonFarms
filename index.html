@@ -1,45 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Dowson Farms</title>
+  <title>Dowson Farms — Home</title>
+
+  <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
+
+  <!-- Theme prepaint -->
+  <script>
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/css/theme.css" />
+
   <style>
-    body { margin:0; font:16px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-           display:grid; place-items:center; min-height:100dvh; background:#f6f3e4; color:#222; }
-    .box { text-align:center; max-width:520px; padding:24px; background:#fff; border:1px solid rgba(0,0,0,.08);
-           border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
-    a.btn { display:inline-block; margin-top:12px; padding:10px 14px; background:#1B5E20; color:#fff; border-radius:10px; text-decoration:none; }
+    :root {
+      --brand-green:#1B5E20;
+      --paper:#f6f3e4;
+      --ink:#222;
+      --band:#E6DCB8;
+    }
+    body {
+      margin:0; background:var(--paper); color:var(--ink);
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    }
+    header {
+      height: var(--crumb-h, 40px);
+      background: var(--band);
+      display:flex; align-items:center; gap:8px;
+      padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08);
+    }
+    header .title { font-weight:700; color:#333; }
+    header .spacer { flex:1; }
+    header .logout {
+      appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700;
+      padding:6px 10px; border-radius:10px; cursor:pointer;
+    }
+    main { padding:18px; max-width:1100px; margin:0 auto; }
+    h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
+    footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Dowson Farms</h1>
-    <p>Redirecting… If nothing happens, tap the button below.</p>
-    <p><a class="btn" href="auth/">Go to Sign In</a></p>
-  </div>
 
-  <script type="module">
-    // <<< set your signed-in landing page here >>>
-    const APP_HOME = "reports/index.html";  // change to e.g. "calculators/index.html" if you prefer
+  <header>
+    <div class="title">Dowson Farms — Home</div>
+    <div class="spacer"></div>
+    <button id="logoutBtn" class="logout">Logout</button>
+  </header>
 
-    import { auth } from "./js/firebase-init.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  <main>
+    <h1>Welcome to Dowson Farms</h1>
+    <p>Select an area to begin:</p>
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.location.replace(APP_HOME);
-      } else {
-        window.location.replace("./auth/");
-      }
+    <!-- Auto-filled tiles from global menu -->
+    <div data-df-tiles></div>
+  </main>
+
+  <footer>
+    Dowson Farms App © <span id="year"></span>
+  </footer>
+
+  <!-- Firebase + Guard -->
+  <script type="module" src="js/firebase-init.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <!-- Global menus + nav renderer -->
+  <script src="assets/data/menus.js"></script>
+  <script src="js/ui-nav.js"></script>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Logout
+    import("./js/firebase-init.js").then(({ auth }) => {
+      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          signOut(auth).then(() => location.href = "auth/");
+        });
+      });
     });
-
-    // Hard fallback in case Firebase fails to load
-    setTimeout(() => {
-      if (!window.firebase) location.href = "./auth/";
-    }, 2000);
   </script>
 </body>
 </html>
