@@ -6,7 +6,6 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
 
-// ---- Your Firebase config (keep as-is) ----
 const firebaseConfig = {
   apiKey: "AIzaSyCMwaDiG3cqS4IhAsfTlxNiHDryQ94Kfvc",
   authDomain: "dowson-farms-illinois.firebaseapp.com",
@@ -17,17 +16,13 @@ const firebaseConfig = {
   measurementId: "G-4XH5S9LNC5"
 };
 
-// ---- Initialize Firebase ----
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-// Analytics is optional on web; don’t crash if unsupported
+// Analytics optional
 (async () => {
-  try {
-    if (await isSupported()) getAnalytics(app);
-  } catch (_) { /* no-op */ }
+  try { if (await isSupported()) getAnalytics(app); } catch (_) {}
 })();
 
-// ---- Exports for the rest of the app ----
 export { app, auth, db };
