@@ -5,8 +5,22 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Dowson Farms</title>
   <base href="./"/>
-  <link rel="icon" sizes="192x192" href="assets/icons/icon-192.png">
+
+  <!-- PWA manifest + meta -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1B5E20">
+
+  <!-- iOS app mode -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dowson Farms">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+
+  <!-- Icons -->
+  <link rel="icon" sizes="192x192" href="assets/icons/icon-192.png">
+  <link rel="icon" sizes="512x512" href="assets/icons/icon-512.png">
+
+  <!-- Styles -->
   <link rel="stylesheet" href="assets/css/theme.css"/>
 </head>
 <body>
@@ -14,7 +28,6 @@
   <!-- Header -->
   <header class="app-header">
     <div class="logo">
-      <!-- Use any logo from your assets/icons/ folder -->
       <img src="assets/icons/logo.png" alt="Dowson Farms">
     </div>
     <div class="title">Dowson Farms</div>
@@ -78,7 +91,7 @@
     backdrop.addEventListener('click', close);
     window.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
 
-    /* Build drawer from DF_MENUS (real data) */
+    /* Build drawer from DF_MENUS */
     const nav = document.getElementById('nav');
     const menus = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
     nav.innerHTML='';
@@ -118,7 +131,7 @@
     renderNow(); const n=new Date(); const ms=(60-n.getSeconds())*1000-n.getMilliseconds();
     setTimeout(()=>{ renderNow(); setInterval(renderNow, 60000); }, Math.max(0, ms));
 
-    /* Logout button — use core if available, else fallback */
+    /* Logout */
     const lg=document.getElementById('logout');
     if (lg) lg.addEventListener('click', e=>{
       e.preventDefault();
@@ -127,7 +140,7 @@
       location.href = (document.querySelector('base')?.href || './') + 'auth/';
     });
 
-    /* Recent activity placeholders */
+    /* Recent activity */
     const recent=document.getElementById('recent');
     [
       {label:'Added equipment “S780”', href:'equipment/equipment-combines.html'},
@@ -136,6 +149,13 @@
     ].forEach(i=>{
       const a=document.createElement('a'); a.href=i.href; a.className='btn'; a.textContent=i.label; recent.appendChild(a);
     });
+
+    /* Register service worker */
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("serviceworker.js").catch(err=>{
+        console.warn("SW failed:", err);
+      });
+    }
   })();
   </script>
 </body>
