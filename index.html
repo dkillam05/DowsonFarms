@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="auto">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Dowson Farms</title>
-  <base href="/DowsonFarms/">
+  <title>Dowson Farms — Home</title>
+
+  <!-- If Live is served from a subpath (e.g., GitHub Pages): set base accordingly -->
+  <!-- Example for GitHub Pages user/Repo: -->
+  <!-- <base href="/DowsonFarms/"> -->
+  <!-- If Live is at repo root or a custom domain, you can omit the base. -->
+
+  <!-- Prepaint theme (no flash) -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -15,42 +21,341 @@
       document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
+
+  <!-- Brand / UI styles -->
   <link rel="stylesheet" href="assets/css/theme.css" />
-  <script defer src="js/version.js?v=home1"></script>
-  <script type="module" src="js/firebase-init.js?v=home1"></script>
-  <script defer src="js/core.js?v=home1"></script>
-  <link rel="manifest" href="manifest.webmanifest?v=home1" />
+
+  <!-- App version & build date -->
+  <script defer src="js/version.js"></script>
+
+  <!-- Your Firebase init can be added later; keeping UI independent for now -->
+  <!-- <script type="module" src="js/firebase-init.js"></script> -->
+
+  <!-- Core helpers (clock, version stamp, logout hook, etc.) -->
+  <script defer src="js/core.js"></script>
+
+  <!-- Global menus + renderer -->
+  <script defer src="assets/data/menus.js"></script>
+  <script defer src="js/ui-nav.js"></script>
+
+  <style>
+    /* Minimal layout polish that relies on your existing CSS vars in theme.css */
+
+    :root {
+      /* You said: white background + JD green/yellow + dark blues */
+      /* Keep existing vars from theme.css; these are safe fallbacks if missing. */
+      --brand-green: #1B5E20;
+      --brand-gold:  #DAA520;
+      --brand-blue:  #0B3D91; /* dark blue accent */
+      --paper: #ffffff;
+      --ink:   #222;
+      --tile-bg: #fff;
+      --tile-border: var(--brand-green);
+      --header-h: 56px;
+      --crumb-h:  44px;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Sticky main header */
+    header.app-head {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: linear-gradient(0deg, #114a24, var(--brand-green));
+      color: #fff;
+    }
+    header .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    header .brand img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: block;
+    }
+    header .brand .title {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.05;
+    }
+    header .brand .title small {
+      opacity: 0.8;
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    /* Breadcrumb / actions bar */
+    nav.crumbs {
+      position: sticky;
+      top: var(--header-h);
+      z-index: 9;
+      height: var(--crumb-h);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      background: #E6DCB8; /* subtle tan you liked for bands */
+      color: #333;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .crumbs .left,
+    .crumbs .right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .crumbs .left { justify-content: flex-start; }
+    .crumbs .right { justify-content: flex-end; }
+
+    .btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: #fff;
+      color: var(--brand-green);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: var(--brand-blue);
+      color: #fff;
+      border-color: rgba(0,0,0,0.08);
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--brand-green);
+      color: var(--brand-green);
+    }
+
+    .search-wrap {
+      flex: 1.2;
+      max-width: 520px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .search-wrap input {
+      appearance: none;
+      border: none;
+      outline: none;
+      width: 100%;
+      background: transparent;
+      font-size: 15px;
+    }
+
+    main {
+      padding: 14px 12px 72px;
+    }
+
+    /* View toggles */
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .view-toggle .seg {
+      display: inline-flex;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .view-toggle .seg button {
+      border: 0;
+      padding: 8px 12px;
+      background: #fff;
+      color: #333;
+      font-weight: 600;
+    }
+    .view-toggle .seg button[aria-pressed="true"] {
+      background: var(--brand-gold);
+      color: #1b1b1b;
+    }
+
+    /* Container where ui-nav.js will render from menus.js */
+    #app-sections[data-view="tiles"] .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (min-width: 480px) {
+      #app-sections[data-view="tiles"] .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    #app-sections .tile, #app-sections .row {
+      background: var(--tile-bg);
+      border: 1px solid var(--tile-border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    #app-sections .tile .label {
+      display: block;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+    #app-sections .tile .hint {
+      display: block;
+      opacity: 0.65;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* List view */
+    #app-sections[data-view="list"] .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #app-sections .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #app-sections .row .meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    #app-sections a.item {
+      display: contents; /* allow tile/row to be the card itself */
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* Footer: version & clock (injected by core.js) */
+    footer.app-foot {
+      position: fixed;
+      inset: auto 0 0 0;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 12px;
+      background: #F7F4E6;
+      color: #333;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      font-size: 13px;
+    }
+    .muted { opacity: 0.75; }
+  </style>
 </head>
-<body class="home-page">
-  <header class="app-header">
-    <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
+<body>
+
+  <!-- Header -->
+  <header class="app-head">
+    <div class="brand">
+      <img src="assets/icons/logo.png" alt="DF" />
+      <div class="title">
+        <span>Dowson Farms</span>
+        <small>Operations</small>
+      </div>
     </div>
-    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+    <div class="head-actions">
+      <!-- space for future quick actions -->
+    </div>
   </header>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><span>Home</span></li></ol></nav>
+  <!-- Breadcrumb / actions -->
+  <nav class="crumbs" aria-label="Breadcrumb and actions">
+    <div class="left">
+      <button class="btn btn-outline" id="btn-back" type="button" aria-label="Back">◀︎ Back</button>
+    </div>
+    <div class="search-wrap" role="search">
+      <input id="search" type="search" placeholder="Search menus…" autocomplete="off" />
+    </div>
+    <div class="right">
+      <button class="btn btn-primary" id="btn-logout" type="button">Logout</button>
+    </div>
+  </nav>
 
-  <main class="content">
-    <h1>Home</h1>
-    <!-- Sections get rendered here from DF_MENUS -->
-    <div class="df-tiles" data-source="global"></div>
+  <main>
+    <div class="view-toggle">
+      <strong class="muted">View:</strong>
+      <div class="seg" role="tablist" aria-label="View mode">
+        <button id="viewTiles" role="tab" aria-selected="true" aria-pressed="true">Tiles</button>
+        <button id="viewList" role="tab" aria-selected="false" aria-pressed="false">List</button>
+      </div>
+    </div>
+
+    <!-- This container is where ui-nav.js should render sections/items using assets/data/menus.js -->
+    <section id="app-sections" data-view="tiles" aria-live="polite">
+      <!-- ui-nav.js should populate either:
+         <div class="grid"> … <a class="item" href="…"><article class="tile">…</article></a> … </div>
+         OR
+         <div class="list"> … <a class="item" href="…"><article class="row">…</article></a> … </div>
+      -->
+    </section>
   </main>
 
-  <footer class="app-footer">
-    <span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span>
+  <footer class="app-foot">
+    <span id="df-clock">--:--</span>
+    <span class="muted">Build <span id="df-version">0.0.0</span></span>
   </footer>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('serviceworker.js').catch(console.error);
+    // View mode toggle (no dependency on Firebase)
+    (function () {
+      var sec = document.getElementById('app-sections');
+      var tiles = document.getElementById('viewTiles');
+      var list  = document.getElementById('viewList');
+      function setView(v) {
+        sec.setAttribute('data-view', v);
+        tiles.setAttribute('aria-pressed', String(v === 'tiles'));
+        tiles.setAttribute('aria-selected', String(v === 'tiles'));
+        list.setAttribute('aria-pressed',  String(v === 'list'));
+        list.setAttribute('aria-selected', String(v === 'list'));
+        // Dispatch for ui-nav.js to optionally re-render differently by mode
+        window.dispatchEvent(new CustomEvent('df:view-change', { detail: { view: v }}));
+      }
+      tiles.addEventListener('click', function(){ setView('tiles'); });
+      list .addEventListener('click', function(){ setView('list');  });
+
+      // Back button (soft back; core.js can enhance)
+      document.getElementById('btn-back').addEventListener('click', function () {
+        if (document.referrer && document.referrer !== location.href) history.back();
       });
-    }
+
+      // Logout: defer to core.js if present; otherwise no-op
+      document.getElementById('btn-logout').addEventListener('click', function () {
+        if (window.DF && typeof DF.logout === 'function') {
+          DF.logout();
+        } else {
+          alert('Logout will be wired once Auth is enabled.');
+        }
+      });
+
+      // Search broadcast; ui-nav.js can filter its rendered items
+      var search = document.getElementById('search');
+      search.addEventListener('input', function () {
+        window.dispatchEvent(new CustomEvent('df:search', { detail: { q: search.value.trim() }}));
+      });
+    })();
   </script>
 
-  <script defer src="assets/data/menus.js?v=home1"></script>
-  <script defer src="js/ui-nav.js?v=home1"></script>
 </body>
 </html>
