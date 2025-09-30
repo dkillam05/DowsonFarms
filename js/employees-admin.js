@@ -1,5 +1,5 @@
 // js/employees-admin.js
-// Employees admin (Save & Send Invite via Cloud Function)
+// Employees admin — creates invite via cloud function and writes /users/{uid}
 
 import { app, auth, db } from "./firebase-init.js";
 import {
@@ -10,10 +10,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
+const DIAG = window.DF_DIAG || { setError:()=>{}, note:()=>{} };
+
 // ---------- DOM ----------
 const statusEl  = document.getElementById("status");
 const listEl    = document.getElementById("empList");
 const btnAdd    = document.getElementById("btnAdd");
+const btnRefresh= document.getElementById("btnRefresh");
 const btnSave   = document.getElementById("btnSave");
 const btnInvite = document.getElementById("btnSaveInvite");
 const btnDelete = document.getElementById("btnDelete");
@@ -32,9 +35,8 @@ const err = (m)=>show("err",m);
 const hide= ()=>{ statusEl.style.display="none"; };
 
 const roleKeysSelected = () => Array.from(rolesSel.selectedOptions).map(o=>o.value);
-
 function lockButtons(locked){
-  [btnAdd, btnSave, btnInvite, btnDelete].forEach(b=> b && (b.disabled = locked));
+  [btnAdd, btnRefresh, btnSave, btnInvite, btnDelete].forEach(b=> b && (b.disabled = locked));
 }
 
 // ---------- Data loaders ----------
@@ -94,9 +96,19 @@ function onSave(){
   ok("Use “Save & Send Invite” (creates Auth user and writes /users/{uid}).");
 }
 
+async function onRefresh(){
+  await loadEmployees();
+  ok("List refreshed.");
+}
+
 // Create + invite via Cloud Function
 async function onInvite(){
-  if(!authedUser){ err("Must be signed in."); return; }
+  hide();
+  if(!authedUser){
+    err("Must be signed in.");
+    DIAG.setError({code:"auth/no-user", message:"No Firebase user on this page"});
+    return;
+  }
 
   const first = firstInp.value.trim();
   const last  = lastInp.value.trim();
@@ -124,10 +136,12 @@ async function onInvite(){
     }
 
     ok("Invite sent. They’ll set a password before first login.");
+    DIAG.note("inviteEmployee OK");
     await loadEmployees();
   }catch(e){
-    console.error(e);
+    console.error("Invite failed", e);
     err(e?.message || "Invite failed.");
+    DIAG.setError(e);
   }
 }
 
@@ -142,8 +156,12 @@ onAuthStateChanged(auth, async (u)=>{
   if(u){
     lockButtons(false);
     ok(`Signed in as ${u.email || u.uid}`);
-    await loadRoles();
-    await loadEmployees();
+    try{
+      await loadRoles();
+      await loadEmployees();
+    }catch(e){
+      DIAG.setError(e);
+    }
   }else{
     lockButtons(true);
     err("Must be signed in.");
@@ -152,6 +170,7 @@ onAuthStateChanged(auth, async (u)=>{
 
 // Bind
 btnAdd?.addEventListener("click", onAdd);
+btnRefresh?.addEventListener("click", onRefresh);
 btnSave?.addEventListener("click", onSave);
 btnInvite?.addEventListener("click", onInvite);
 btnDelete?.addEventListener("click", onDelete);
