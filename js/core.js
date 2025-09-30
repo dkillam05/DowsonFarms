@@ -1,22 +1,35 @@
 /* js/core.js
-   Drawer tree (top-level click expands, not navigate)
-   + Breadcrumbs
-   + Clock & footer date
-   + Simple logout
+   - Sidebar: Section -> (View & Analyze ⌄ | Add Records ⌄) -> concrete links
+   - Accordion: one section open at a time; inside, one L2 group open at a time
+   - Hamburger in breadcrumbs toggles drawer; backdrop + Esc + re-tap close
+   - Header clock + footer date
+   - Breadcrumb helper
+   - Dynamic home panels from window.DF_MENUS (so ALL sections show)
+   - Simple logout redirect
 */
 (function(){
   'use strict';
 
   const tz = 'America/Chicago';
   const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-  function repoRoot(){
-    const base = document.querySelector('base')?.href;
-    if (base) { try { return new URL(base).pathname; } catch(_){} }
-    const seg = location.pathname.split('/').filter(Boolean);
-    return seg.length ? `/${seg[0]}/` : '/';
+  function ensureFolderHref(href){
+    if (!href) return '#';
+    try {
+      if (href.endsWith('/')) return href;
+      if (href.endsWith('index.html')) return href.slice(0, -'index.html'.length);
+      return href.replace(/(\.html)?$/, '/');
+    } catch(_) { return href; }
   }
-  function ensureFolderHref(href){ return href && (href.endsWith('/') || href.endsWith('.html')) ? href : (href + '/'); }
+
+  function slugify(label){
+    return String(label||'')
+      .toLowerCase()
+      .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'-')
+      .replace(/^-+|-+$/g,'') || 'item';
+  }
 
   /* ---------- clocks ---------- */
   function startClocks(){
@@ -32,12 +45,12 @@
     setTimeout(()=>{ render(); setInterval(render, 60000); }, Math.max(0,ms));
   }
 
-  /* ---------- breadcrumbs (optional: set on section pages) ---------- */
+  /* ---------- breadcrumbs helper ---------- */
   function setCrumbs(list){
     const ol = $('#crumbs');
     if (!ol) return;
     ol.innerHTML = '';
-    list.forEach((it, i) => {
+    (list||[]).forEach((it, i) => {
       const li = document.createElement('li');
       if (it.href) {
         const a = document.createElement('a'); a.href = it.href; a.textContent = it.label; li.appendChild(a);
@@ -48,7 +61,6 @@
       if (i < list.length-1){ const sep = document.createElement('li'); sep.className='sep'; sep.textContent='›'; ol.appendChild(sep); }
     });
   }
-  // expose for section pages if needed
   window.setCrumbs = setCrumbs;
 
   /* ---------- drawer / tree ---------- */
@@ -59,9 +71,21 @@
     const nav      = $('#nav');
     if (!drawer || !backdrop || !ham || !nav) return;
 
-    function open(){ drawer.classList.add('open'); backdrop.classList.add('show'); document.body.style.overflow='hidden'; }
-    function close(){ drawer.classList.remove('open'); backdrop.classList.remove('show'); document.body.style.overflow=''; }
-    function toggle(){ drawer.classList.contains('open') ? close() : open(); }
+    function open(){
+      drawer.classList.add('open');
+      backdrop.hidden = false;
+      document.body.classList.add('drawer-open');
+      ham.setAttribute('aria-expanded','true');
+    }
+    function close(){
+      drawer.classList.remove('open');
+      backdrop.hidden = true;
+      document.body.classList.remove('drawer-open');
+      ham.setAttribute('aria-expanded','false');
+    }
+    function toggle(){
+      if (drawer.classList.contains('open')) close(); else open();
+    }
 
     ham.addEventListener('click', toggle);
     backdrop.addEventListener('click', close);
@@ -70,102 +94,5 @@
     const tiles = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
     nav.innerHTML = '';
 
-    // Make one-at-a-time accordion
-    function closeOthers(except){
-      nav.querySelectorAll('.section-btn[aria-expanded="true"]').forEach(b=>{
-        if (b !== except){
-          b.setAttribute('aria-expanded','false');
-          b.querySelector('.chev')?.style.setProperty('transform','rotate(0deg)');
-          const sub = b.parentElement.querySelector('.sub');
-          if (sub) sub.style.display = 'none';
-        }
-      });
-    }
-
-    tiles.forEach(sec=>{
-      const li = document.createElement('li');
-
-      const btn = document.createElement('button');
-      btn.className = 'section-btn';
-      btn.type = 'button';
-      btn.setAttribute('aria-expanded','false');
-      btn.innerHTML = `
-        <span class="section-ico">${sec.iconEmoji || '📁'}</span>
-        <span class="section-title">${sec.label || ''}</span>
-        <span class="chev" aria-hidden="true" style="transition:transform .15s ease;">›</span>
-      `;
-
-      const sub = document.createElement('div');
-      sub.className = 'sub';
-      sub.style.display = 'none';
-
-      const secPath = ensureFolderHref(sec.href || '#');
-
-      // Inject "View & Analyze" and "Add Records" first
-      const view = document.createElement('a');
-      view.href = secPath; view.textContent = '📊 View & Analyze';
-      sub.appendChild(view);
-
-      const add = document.createElement('a');
-      add.href = secPath.replace(/\/?$/, '/') + 'add.html';
-      add.textContent = '➕ Add Records';
-      sub.appendChild(add);
-
-      // Then your children
-      (sec.children || []).forEach(ch=>{
-        const a = document.createElement('a');
-        a.href = ch.href || '#';
-        a.textContent = `${ch.iconEmoji || ''} ${ch.label || ''}`.trim();
-        sub.appendChild(a);
-      });
-
-      // Clicking the section HEADER toggles the submenu (NO NAV)
-      btn.addEventListener('click', ()=>{
-        const expanded = btn.getAttribute('aria-expanded') === 'true';
-        if (expanded){
-          btn.setAttribute('aria-expanded','false');
-          btn.querySelector('.chev').style.transform = 'rotate(0deg)';
-          sub.style.display = 'none';
-        } else {
-          closeOthers(btn);
-          btn.setAttribute('aria-expanded','true');
-          btn.querySelector('.chev').style.transform = 'rotate(90deg)';
-          sub.style.display = 'block';
-          // optional: scroll into view when opened on small screens
-          setTimeout(()=> btn.scrollIntoView({block:'nearest'}), 0);
-        }
-      });
-
-      li.appendChild(btn);
-      li.appendChild(sub);
-      nav.appendChild(li);
-    });
-
-    // Close drawer when a submenu link is clicked (navigation)
-    nav.addEventListener('click', (e)=>{
-      if (e.target.tagName === 'A') close();
-    });
-  }
-
-  /* ---------- logout ---------- */
-  function wireLogout(){
-    const btn = document.getElementById('logout');
-    if (!btn) return;
-    btn.addEventListener('click', (e)=>{
-      e.preventDefault();
-      const auth = repoRoot() + 'auth/';
-      try { window.DF_FB_API?.signOut?.().finally(()=> location.href = auth); }
-      catch(_) { location.href = auth; }
-    });
-  }
-
-  /* ---------- boot ---------- */
-  document.addEventListener('DOMContentLoaded', ()=>{
-    // Default crumbs on pages that don't set them
-    if ($('#crumbs') && !$('#crumbs').children.length) setCrumbs([{label:'Home'}]);
-
-    startClocks();
-    buildDrawer();
-    wireLogout();
-  });
-})();
+    // Close any other open section except the one passed
+    function closeOtherSections(exceptBtn){
