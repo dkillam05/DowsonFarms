@@ -1,153 +1,22 @@
-/* /serviceworker.js  (ROOT) — lean, stable, now with NETWORK-FIRST for version.js */
-
-// Try to read the app version for cache scoping; fall back to "v0"
-try { importScripts('./js/version.js'); } catch (e) {}
-const SW_VERSION    = (typeof self !== 'undefined' && (self.DF_VERSION || self.APP_VERSION)) || 'v0';
-const CACHE_PREFIX  = 'df-cache';
-const STATIC_CACHE  = `${CACHE_PREFIX}-static-${SW_VERSION}`;
-const RUNTIME_CACHE = `${CACHE_PREFIX}-rt-${SW_VERSION}`;
-
-// Keep this list small & deterministic.
-// (Everything else is fetched on demand under the runtime cache.)
-const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './assets/css/theme.css',
-  // NOTE: version.js is precached but we will still serve it network-first below
-  './js/version.js',
-  './js/core.js',
-  './js/ui-nav.js',
-  './js/ui-subnav.js',
-  './assets/data/menus.js',
-  // Icons
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png',
-  './assets/icons/apple-touch-icon.png'
+const CACHE_NAME = "dowsonfarms-cache-v1";
+const CORE_ASSETS = [
+  "index.html",
+  "assets/css/theme.css",
+  "assets/data/menus.js",
+  "js/core.js",
+  "assets/icons/icon-192.png",
+  "assets/icons/icon-512.png",
+  "assets/icons/apple-touch-icon.png"
 ];
 
-/* ---------- Helpers ---------- */
-function isHTML(req) {
-  return req.mode === 'navigate' ||
-         req.destination === 'document' ||
-         (req.headers.get('accept') || '').includes('text/html');
-}
-function isStatic(req) {
-  const d = req.destination;
-  return ['style','script','worker','font'].includes(d) ||
-         req.url.includes('/assets/css/') ||
-         req.url.includes('/assets/data/') ||
-         req.url.includes('/js/');
-}
-function isImage(req) {
-  return req.destination === 'image' ||
-         /\.(png|jpe?g|gif|webp|svg)$/i.test(new URL(req.url).pathname);
-}
-function isVersionJS(req) {
-  try {
-    const p = new URL(req.url).pathname.toLowerCase();
-    return p.endsWith('/js/version.js');
-  } catch { return false; }
-}
-
-/* ---------- Install ---------- */
-self.addEventListener('install', (event) => {
+self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((c) => c.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
   );
-  // Activate new SW immediately
-  self.skipWaiting();
 });
 
-/* ---------- Activate ---------- */
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(
-      keys
-        .filter((k) => k.startsWith(CACHE_PREFIX) && ![STATIC_CACHE, RUNTIME_CACHE].includes(k))
-        .map((k) => caches.delete(k))
-    );
-    await self.clients.claim();
-  })());
-});
-
-/* ---------- Fetch ---------- */
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
-
-  // Only handle same-origin
-  if (url.origin !== self.location.origin) return;
-
-  // Always serve version.js network-first so the UI footer can reflect the latest build
-  if (isVersionJS(req)) { event.respondWith(versionNetworkFirst(req)); return; }
-
-  if (isHTML(req))   { event.respondWith(htmlNetworkFirst(req)); return; }
-  if (isStatic(req)) { event.respondWith(staticCacheFirst(req)); return; }
-  if (isImage(req))  { event.respondWith(imageStaleWhileRevalidate(req)); return; }
-
-  // Default: cache-then-network fallback
+self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(req).then((res) => res || fetch(req))
+    caches.match(event.request).then(resp => resp || fetch(event.request))
   );
 });
-
-/* ---------- Messages (kept minimal, optional) ---------- */
-self.addEventListener('message', (event) => {
-  if (event?.data?.type === 'SKIP_WAITING') self.skipWaiting();
-});
-
-/* ---------- Strategies ---------- */
-async function htmlNetworkFirst(req) {
-  try {
-    // Always prefer fresh HTML so navigation reflects latest app shell
-    const fresh = await fetch(req, { cache: 'no-store' });
-    const rt = await caches.open(RUNTIME_CACHE);
-    rt.put(req, fresh.clone());
-    return fresh;
-  } catch {
-    const cached = await caches.match(req);
-    if (cached) return cached;
-    const home = await caches.match('./index.html');
-    return home || new Response('<!doctype html><h1>Offline</h1>', {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
-  }
-}
-
-async function versionNetworkFirst(req) {
-  // Network first with no-store; fall back to any cached copy
-  try {
-    const fresh = await fetch(req, { cache: 'no-store' });
-    const rt = await caches.open(RUNTIME_CACHE);
-    rt.put(req, fresh.clone());
-    return fresh;
-  } catch {
-    const cached = await caches.match(req) || await caches.match('./js/version.js');
-    if (cached) return cached;
-    // As a last resort, respond with a tiny stub so the app doesn't crash
-    const body = "self.DF_VERSION='v0.0.0';";
-    return new Response(body, { headers: { 'Content-Type': 'application/javascript' } });
-  }
-}
-
-async function staticCacheFirst(req) {
-  const cached = await caches.match(req);
-  if (cached) return cached;
-  const res = await fetch(req);
-  try {
-    const st = await caches.open(STATIC_CACHE);
-    st.put(req, res.clone());
-  } catch (_) {}
-  return res;
-}
-
-async function imageStaleWhileRevalidate(req) {
-  const rt = await caches.open(RUNTIME_CACHE);
-  const cached = await rt.match(req);
-  const fetchPromise = fetch(req)
-    .then((res) => { rt.put(req, res.clone()); return res; })
-    .catch(() => cached);
-  return cached || fetchPromise;
-}
