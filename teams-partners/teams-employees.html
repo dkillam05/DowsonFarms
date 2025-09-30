@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Employees</title>
 
-  <!-- IMPORTANT for GitHub Pages repo paths -->
+  <!-- IMPORTANT for GitHub Pages paths -->
   <base href="/DowsonFarms/">
 
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
-    body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
-    header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
+    :root{ --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; --ok:#125212; --err:#a00; }
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
+    header{height:40px;background:var(--band);display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
     header .title{font-weight:700;color:#333}.spacer{flex:1}
     main{padding:18px;max-width:1100px;margin:0 auto}
     h1{margin:0 0 10px;color:#1B5E20}
@@ -29,6 +30,13 @@
     .list-item:last-child{border-bottom:none}
     .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
     .perm-grid .head{font-weight:700}
+
+    /* Diagnostic banner */
+    #diagBar{position:sticky;top:0;z-index:9999;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.12);
+             background:#fffbe7;color:#333;font-size:13px;display:none}
+    #diagBar.ok{background:#eef5ee;color:var(--ok)}
+    #diagBar.err{background:#ffe9e9;color:var(--err)}
+    #diagBar code{background:#0001;padding:2px 4px;border-radius:6px}
   </style>
 </head>
 <body>
@@ -38,6 +46,9 @@
     <div class="spacer"></div>
     <a href="index.html">Home</a>
   </header>
+
+  <!-- Diagnostic banner -->
+  <div id="diagBar"></div>
 
   <main>
     <h1>Employees</h1>
@@ -97,14 +108,17 @@
     </div>
   </main>
 
-  <!-- Data source for menu paths (used by overrides UI) -->
-  <script src="assets/data/menus.js?v=5"></script>
+  <!-- Menus (for overrides UI) -->
+  <script src="assets/data/menus.js?v=7"></script>
 
-  <!-- Firebase + guard (must be before page logic) -->
-  <script type="module" src="js/firebase-init.js?v=5"></script>
-  <script type="module" src="js/auth-guard.js?v=5"></script>
+  <!-- Firebase + guard -->
+  <script type="module" src="js/firebase-init.js?v=7"></script>
+  <script type="module" src="js/auth-guard.js?v=7"></script>
 
-  <!-- Page logic (calls Cloud Function inviteEmployee) -->
-  <script type="module" src="js/employees-admin.js?v=5"></script>
+  <!-- Diagnostics (creates sticky banner + exposes window.DF_DIAG) -->
+  <script type="module" src="js/employees-diag.js?v=7"></script>
+
+  <!-- Page logic -->
+  <script type="module" src="js/employees-admin.js?v=7"></script>
 </body>
 </html>
