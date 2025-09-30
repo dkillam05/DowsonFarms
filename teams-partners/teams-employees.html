@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Employees</title>
+
+  <!-- IMPORTANT for GitHub Pages repo paths -->
   <base href="/DowsonFarms/">
+
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
     body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
@@ -94,7 +97,14 @@
     </div>
   </main>
 
-  <script src="/DowsonFarms/assets/data/menus.js"></script>
-  <script type="module" src="/DowsonFarms/js/employees-admin.js"></script>
+  <!-- Data source for menu paths (used by overrides UI) -->
+  <script src="assets/data/menus.js?v=5"></script>
+
+  <!-- Firebase + guard (must be before page logic) -->
+  <script type="module" src="js/firebase-init.js?v=5"></script>
+  <script type="module" src="js/auth-guard.js?v=5"></script>
+
+  <!-- Page logic (calls Cloud Function inviteEmployee) -->
+  <script type="module" src="js/employees-admin.js?v=5"></script>
 </body>
 </html>
