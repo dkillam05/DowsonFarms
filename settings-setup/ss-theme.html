@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Theme — Dowson Farms</title>
+
+  <!-- Prepaint theme (single, consolidated) -->
+  <script>
+  (function () {
+    try {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = (pref === 'auto') ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', pref);   // remember chosen mode
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    } catch (_) {}
+  })();
+  </script>
+
+  <!-- App styles / scripts -->
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+
+  <!-- Page-local styles -->
+  <style>
+    .theme-section { max-width: 520px; }
+    .theme-options { display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+    .switch { display:flex; align-items:center; gap:12px; padding:10px 12px; border:2px solid var(--brand-green);
+              border-radius:12px; background:#fff; }
+    :root[data-theme="dark"] .switch,
+    :root[data-theme="auto"] .switch { background:var(--tile-bg, #1c1f18); }
+    .switch input[type="radio"] { position:absolute; opacity:0; pointer-events:none; }
+    .switch-track { width:48px; height:28px; border-radius:999px; background:#e5e5e5; display:inline-flex; align-items:center;
+                    padding:3px; box-sizing:border-box; transition:background .2s ease, box-shadow .2s ease;
+                    border:1px solid rgba(0,0,0,.12); }
+    .switch .knob { width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25);
+                    transform:translateX(0); transition:transform .20s ease; }
+    .switch input:checked + .switch-track { background:var(--brand-green); border-color:var(--brand-green); }
+    .switch input:checked + .switch-track .knob { transform:translateX(20px); }
+    .switch-label { font-weight:700; color:var(--brand-green); }
+    .switch-desc { margin-left:auto; font-size:.9rem; color:#666; }
+    .switch input:focus-visible + .switch-track { box-shadow:0 0 0 3px rgba(27,94,32,.25); outline:none; }
+    #theme-status { margin-top:10px; color:#666; font-size:.95rem; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right">
+      <span id="clock" class="clock">--:--</span>
+    </div>
+  </header>
+
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="settings.html">Setup / Settings</a></li>
+      <li class="sep">›</li>
+      <li><span>Theme</span></li>
+    </ol>
+  </nav>
+
+  <!-- Content -->
+  <main class="content">
+    <div class="theme-section">
+      <h1>🌗 Theme</h1>
+
+      <div class="theme-options" role="radiogroup" aria-label="Theme mode">
+        <label class="switch" for="t-light">
+          <input type="radio" id="t-light" name="theme" value="light" />
+          <span class="switch-track" aria-hidden="true"><span class="knob"></span></span>
+          <span class="switch-label">Light</span>
+          <span class="switch-desc">Always light</span>
+        </label>
+
+        <label class="switch" for="t-auto">
+          <input type="radio" id="t-auto" name="theme" value="auto" />
+          <span class="switch-track" aria-hidden="true"><span class="knob"></span></span>
+          <span class="switch-label">Auto</span>
+          <span class="switch-desc">Follow device</span>
+        </label>
+
+        <label class="switch" for="t-dark">
+          <input type="radio" id="t-dark" name="theme" value="dark" />
+          <span class="switch-track" aria-hidden="true"><span class="knob"></span></span>
+          <span class="switch-label">Dark</span>
+          <span class="switch-desc">Always dark</span>
+        </label>
+      </div>
+
+      <div id="theme-status">—</div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Page logic: save + apply theme -->
+  <script>
+  (function themeUI(){
+    const root = document.documentElement;
+    const radios = Array.from(document.querySelectorAll('input[name="theme"]'));
+    const statusEl = document.getElementById('theme-status');
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const saved = localStorage.getItem('df_theme') || 'auto';
+    const current = (saved === 'light' || saved === 'dark' || saved === 'auto') ? saved : 'auto';
+    (document.getElementById('t-' + current) || document.getElementById('t-auto')).checked = true;
+    apply(current);
+
+    radios.forEach(r => {
+      r.addEventListener('change', () => {
+        if (!r.checked) return;
+        const mode = r.value; // light/dark/auto
+        localStorage.setItem('df_theme', mode);
+        apply(mode);
+      });
+    });
+
+    media.addEventListener?.('change', () => {
+      const mode = localStorage.getItem('df_theme') || 'auto';
+      if (mode === 'auto') apply('auto');
+    });
+
+    function apply(mode){
+      // Persist the *preference* in data-theme; compute actual color-scheme for paint
+      root.setAttribute('data-theme', mode);
+      const actual = (mode === 'auto') ? (media.matches ? 'dark' : 'light') : mode;
+      root.style.colorScheme = actual === 'dark' ? 'dark' : 'light';
+      statusEl.textContent = (mode === 'auto')
+        ? `Following device: ${actual[0].toUpperCase()}${actual.slice(1)}`
+        : `Forced: ${mode[0].toUpperCase()}${mode.slice(1)}`;
+    }
+  })();
+  </script>
+
+  <!-- Service worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>

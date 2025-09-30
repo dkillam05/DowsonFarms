@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Sub-Contractors — Dowson Farms</title>
+
+  <!-- Prepaint theme -->
+  <script>
+    (function(){
+      var pref=localStorage.getItem('df_theme')||'auto';
+      var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = pref==='auto' ? (dark?'dark':'light') : pref;
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.style.colorScheme = theme==='dark'?'dark':'light';
+    })();
+  </script>
+
+  <!-- App assets (we're in /teams-partners → use ../) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
+
+  <!-- Firebase init -->
+  <script type="module" src="../js/firebase-init.js"></script>
+
+  <style>
+    .line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:640px){ .field-row{grid-template-columns:1fr} }
+    .grid3 {display:grid;gap:10px;grid-template-columns:92px 92px 92px;justify-content:center}
+    .chip{padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+    .muted-small{opacity:.8;font-size:.9rem}
+    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    #scBizPhone,#scCellPhone{font-size:16px}
+
+    /* Toast */
+    #dfToast{display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
+      background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;}
+
+    /* Overrides — match Roles/Employees */
+    .pill-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
+    .pill{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:18px;
+      border:2px solid var(--btn-secondary-border,#164d1a);background:var(--tile-bg,#fff);
+      color:var(--btn-secondary-fg,#164d1a);font-weight:600;line-height:1;user-select:none}
+    .pill[aria-pressed="true"]{background:var(--btn-primary-bg,#1b5e20);color:#fff;border-color:var(--btn-primary-bg,#1b5e20);
+      box-shadow:0 2px 10px rgba(0,0,0,.12) inset}
+    .menu-card{border:1px solid var(--tile-border);border-radius:16px;background:var(--tile-bg);margin:12px 0}
+    .menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer}
+    .menu-body{padding:16px;border-top:1px dashed var(--tile-border);display:none}
+    .subwrap{border:2px dashed var(--tile-border);border-radius:14px;padding:12px;margin-top:14px}
+    .subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:10px 6px}
+    .subbody{padding:8px 4px 2px;display:none}
+    .muted-sm{opacity:.85;font-size:.92rem}
+
+    .modal-backdrop{display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.45);
+      align-items:center;justify-content:center;padding:20px}
+    .modal{background:var(--tile-bg);border:1px solid var(--tile-border);border-radius:16px;
+      width:min(820px,96vw);max-height:min(80vh,720px);display:flex;flex-direction:column}
+    .modal header{padding:14px 16px;border-bottom:1px dashed var(--tile-border);display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .modal .body{padding:12px 16px;overflow:auto}
+    .modal .actions{padding:12px 16px;border-top:1px dashed var(--tile-border);display:flex;gap:10px;justify-content:flex-end}
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  </header>
+
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="../index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="index.html">Teams &amp; Partners</a></li>
+      <li class="sep">›</li>
+      <li><span>Sub-Contractors</span></li>
+    </ol>
+  </nav>
+
+  <!-- Main -->
+  <main class="content" data-has-form>
+    <div class="line" style="justify-content:space-between;">
+      <h1 style="margin:0;">🧰 Sub-Contractors</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+    </div>
+    <div style="margin-top:12px;"></div>
+
+    <!-- FORM -->
+    <form id="sc-form" novalidate>
+      <div class="field">
+        <label for="scCompany">Company Name <span class="req-star">*</span></label>
+        <input id="scCompany" type="text" required placeholder="Business / company name" />
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="scFirst">Main Contact — First Name <span class="req-star">*</span></label>
+          <input id="scFirst" type="text" required placeholder="First name" />
+        </div>
+        <div class="field">
+          <label for="scLast">Main Contact — Last Name <span class="req-star">*</span></label>
+          <input id="scLast" type="text" required placeholder="Last name" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="scBizPhone">Business Phone <span class="req-star">*</span></label>
+          <input id="scBizPhone" type="tel" inputmode="numeric" required placeholder="(555) 123-4567" maxlength="14" />
+        </div>
+        <div class="field">
+          <label for="scCellPhone">Cell Phone <span class="req-star">*</span></label>
+          <input id="scCellPhone" type="tel" inputmode="numeric" required placeholder="(555) 123-4567" maxlength="14" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="scEmail">Primary Email <span class="req-star">*</span></label>
+          <input id="scEmail" type="email" inputmode="email" required placeholder="name@example.com" />
+        </div>
+        <div class="field">
+          <label for="scRole">Role (Permissions) <span class="req-star">*</span></label>
+          <select id="scRole" required></select>
+          <small class="muted" id="roleHint" style="display:block;margin-top:4px;"></small>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="scTrade">Trade / Service</label>
+          <input id="scTrade" type="text" placeholder="e.g., Trucking, Excavation" />
+        </div>
+        <div class="field">
+          <label for="scNotes">Notes</label>
+          <input id="scNotes" type="text" placeholder="Optional notes" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>&nbsp;</label>
+        <button type="button" class="btn-outline" id="exceptionsBtn">Permission Overrides</button>
+      </div>
+
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div class="grid3">
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+          <button class="btn-secondary" type="button" id="inviteBtn" style="width:92px;height:92px;">Invite</button>
+        </div>
+      </section>
+    </form>
+
+    <!-- SAVED -->
+    <section class="card" id="savedCard" style="margin-top:16px;">
+      <h2 style="margin:0 0 8px 0;">Saved Sub-Contractors</h2>
+      <div class="line">
+        <input id="searchInput" class="search" type="search" placeholder="Search subcontractors…" />
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
+      </div>
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Quick View modal -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Sub-Contractors</h2>
+      <ul id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overrides modal -->
+  <div id="ovB" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+    <div class="modal" role="document">
+      <header>
+        <h2 id="ovTitle" style="margin:0;">Permission Overrides</h2>
+        <label class="muted-small" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="ovEnabled" />
+          Enable overrides for this company
+        </label>
+      </header>
+      <div id="ovBody" class="body"></div>
+      <div class="actions">
+        <button class="btn-outline" id="ovCancel" type="button">Cancel</button>
+        <button class="btn-primary" id="ovSave" type="button">Save Overrides</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="dfToast" role="status" aria-live="polite"><span id="dfToastText">Saved</span></div>
+
+  <!-- Page logic -->
+  <script type="module">
+    const { auth, db } = window.DF_FB;
+
+    import { sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import {
+      collection, doc, setDoc, deleteDoc, getDocs, getDoc,
+      serverTimestamp, query, where, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+    /* ========= Menus (from DF_MENUS) ========= */
+    function buildMenusFromDF(df){
+      const out = {};
+      if (!df || !Array.isArray(df.tiles)) return out;
+      df.tiles.forEach(tile => {
+        const top = String(tile.label || '').trim();
+        if (!top) return;
+        const kids = Array.isArray(tile.children) ? tile.children : [];
+        const subs = kids.map(k => String(k.label || '').trim()).filter(Boolean);
+        if (subs.length) out[top] = subs;
+      });
+      return out;
+    }
+    const MENUS = buildMenusFromDF(window.DF_MENUS || {});
+    const ACTIONS = ['view','edit','add','archive','delete'];
+
+    /* ========= DOM helpers ========= */
+    const $ = s => document.querySelector(s);
+    const chip = s => s ? `<span class="chip">${s}</span>` : '';
+    function showToast(msg){
+      const box=$('#dfToast'), txt=$('#dfToastText');
+      txt.textContent = msg || 'Saved';
+      box.style.display='block';
+      clearTimeout(window.__toastT);
+      window.__toastT=setTimeout(()=> box.style.display='none', 1800);
+    }
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    function formatPhoneDigits(d){
+      const x=d.replace(/\D/g,'').slice(0,10);
+      const a=x.slice(0,3), b=x.slice(3,6), c=x.slice(6,10);
+      if(x.length<=3) return x ? `(${a}` : '';
+      if(x.length<=6) return `(${a}) ${b}`;
+      return `(${a}) ${b}-${c}`;
+    }
+    function attachPhoneMask(input){
+      input.addEventListener('input', ()=>{ input.value = formatPhoneDigits(input.value); });
+      input.addEventListener('blur',  ()=>{ input.value = formatPhoneDigits(input.value); });
+    }
+    const isValidPhoneUS = s => /^\(\d{3}\)\s\d{3}-\d{4}$/.test(s||'');
+    const isEmail       = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((s||'').trim());
+
+    /* ========= Firestore: users (type=subcontractor) ========= */
+    const USERS = collection(db, "users");
+
+    async function listSubs(){
+      const snaps = await getDocs(query(USERS, where('type','==','subcontractor')));
+      const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
+      return out;
+    }
+    async function upsertSub(item){
+      const id = (item.email ? String(item.email).toLowerCase() : crypto.randomUUID());
+      await setDoc(doc(USERS, id), {
+        ...item,
+        id,
+        type: 'subcontractor',
+        updatedAt: serverTimestamp(),
+        createdAt: item.createdAt || serverTimestamp()
+      }, { merge:true });
+      return id;
+    }
+    async function removeById(id){ await deleteDoc(doc(USERS, id)); }
+
+    /* ========= Roles dropdown (from /roles) ========= */
+    async function fetchRoles(){
+      try {
+        const snaps = await getDocs(query(collection(db,'roles'), orderBy('label')));
+        const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
+        return out;
+      } catch {
+        const snaps = await getDocs(collection(db,'roles'));
+        const out=[]; snaps.forEach(d=> out.push({id:d.id, ...(d.data()||{})}));
+        return out;
+      }
+    }
+    async function fillRoleSelect(sel, value){
+      $('#roleHint').textContent = 'Loading roles…';
+      const roles = await fetchRoles();
+      $('#roleHint').textContent = '';
+      if (!roles.length){
+        sel.innerHTML = '<option value="" disabled selected>No roles found</option>';
+        return;
+      }
+      sel.innerHTML = `<option value="" disabled ${value?'':'selected'}>Select role…</option>` +
+        roles.map(r=>{
+          const label = (r.label||r.id||'').toString();
+          return `<option value="${label}">${label}</option>`;
+        }).join('');
+      if (value) sel.value=value;
+    }
+
+    /* ========= Overrides modal (same as Employees) ========= */
+    function pill(label, pressed){
+      const b=document.createElement('button');
+      b.type='button'; b.className='pill'; b.textContent=label;
+      b.setAttribute('aria-pressed', pressed?'true':'false');
+      b.addEventListener('click', ()=>{
+        const on = b.getAttribute('aria-pressed')==='true';
+        b.setAttribute('aria-pressed', on?'false':'true');
+      });
+      return b;
+    }
+    function ensureShapeForOverrides(grants){
+      const perms = {};
+      Object.keys(MENUS).forEach(menu=>{
+        perms[menu] = perms[menu] || {};
+        (MENUS[menu]||[]).forEach(sm=>{
+          const g = (grants?.[menu]?.[sm]) || {};
+          perms[menu][sm] = {
+            view:!!g.view, edit:!!g.edit, add:!!g.add, archive:!!g.archive, delete:!!g.delete
+          };
+        });
+      });
+      return perms;
+    }
+    function menuSummary(perms, menu){
+      const subs = Object.values(perms[menu]||{});
+      if (!subs.length) return 'No access';
+      const allFalse = subs.every(p=>!p.view && !p.edit && !p.add && !p.archive && !p.delete);
+      if (allFalse) return 'No access';
+      const allTrue  = subs.every(p=>p.view && p.edit && p.add && p.archive && p.delete);
+      if (allTrue) return 'All';
+      return 'Custom';
+    }
+    function summarizeChildren(perms, menu){
+      const keys = Object.keys(perms[menu]||{});
+      const on = keys.filter(k=>{
+        const p = perms[menu][k]; return p.view||p.edit||p.add||p.archive||p.delete;
+      }).length;
+      if (!on) return 'None';
+      if (on===keys.length) return 'All submenus';
+      return `${on} of ${keys.length} submenus`;
+    }
+
+    function openOverridesModal(current){
+      const B = $('#ovB'), body = $('#ovBody'), enabled = $('#ovEnabled');
+      B.style.display='flex';
+      enabled.checked = !!current?.enabled;
+
+      let perms = ensureShapeForOverrides(current?.grants||{});
+      body.innerHTML = '';
+
+      Object.keys(MENUS).forEach(menu=>{
+        const card = document.createElement('div'); card.className='menu-card';
+
+        const head = document.createElement('div'); head.className='menu-head';
+        const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
+        const caret = document.createElement('span'); caret.textContent='▸'; caret.style.transition='transform .2s';
+        const title = document.createElement('strong'); title.textContent = menu;
+        left.append(caret,title);
+        const right = document.createElement('div'); right.className='muted-sm';
+        head.append(left,right);
+
+        const mbody = document.createElement('div'); mbody.className='menu-body'; mbody.style.display='none';
+
+        const grid = document.createElement('div'); grid.className='pill-grid';
+        ACTIONS.forEach(name=>{
+          const k = name;
+          const pressed = (MENUS[menu]||[]).every(sm => !!perms[menu][sm][k]);
+          const p = pill(name[0].toUpperCase()+name.slice(1), pressed);
+          p.setAttribute('aria-label', `${menu}::${k}`);
+          p.addEventListener('click', ()=>{
+            const isOn = p.getAttribute('aria-pressed')==='true';
+            (MENUS[menu]||[]).forEach(sm => perms[menu][sm][k] = isOn);
+            mbody.querySelectorAll(`[data-sub="${menu}::${k}"]`).forEach(btn=>{
+              btn.setAttribute('aria-pressed', isOn ? 'true':'false');
+            });
+            right.textContent = menuSummary(perms, menu);
+            shRight.textContent = summarizeChildren(perms, menu);
+          });
+          grid.appendChild(p);
+        });
+        mbody.appendChild(grid);
+
+        const subWrap = document.createElement('div'); subWrap.className='subwrap';
+        const sh = document.createElement('div'); sh.className='subhead';
+        const shL = document.createElement('div'); shL.style.display='flex'; shL.style.alignItems='center'; shL.style.gap='8px';
+        const subCaret = document.createElement('span'); subCaret.textContent='▸'; subCaret.style.transition='transform .2s';
+        const shT = document.createElement('strong'); shT.textContent='Manage submenus';
+        shL.append(subCaret, shT);
+        const shRight = document.createElement('span'); shRight.className='muted-sm';
+        sh.append(shL, shRight);
+        const subBody = document.createElement('div'); subBody.className='subbody';
+
+        (MENUS[menu]||[]).forEach(sm=>{
+          const section = document.createElement('section'); section.style.margin='10px 0 14px';
+          const h = document.createElement('h3'); h.style.margin='0 0 8px'; h.textContent = `${menu} › ${sm}`;
+          const grid2 = document.createElement('div'); grid2.className='pill-grid';
+          ACTIONS.forEach(name=>{
+            const k = name;
+            const btn = pill(name[0].toUpperCase()+name.slice(1), !!perms[menu][sm][k]);
+            btn.setAttribute('data-sub', `${menu}::${k}`);
+            btn.addEventListener('click', ()=>{
+              const isOn = btn.getAttribute('aria-pressed')==='true';
+              perms[menu][sm][k] = isOn;
+              shRight.textContent = summarizeChildren(perms, menu);
+              right.textContent = menuSummary(perms, menu);
+              const allOn  = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===true);
+              const allOff = (MENUS[menu]||[]).every(s=>perms[menu][s][k]===false);
+              const parentBtn = mbody.querySelector(`.pill[aria-label="${menu}::${k}"]`);
+              if (parentBtn) parentBtn.setAttribute('aria-pressed', allOn ? 'true' : (allOff ? 'false' : parentBtn.getAttribute('aria-pressed')));
+            });
+            grid2.appendChild(btn);
+          });
+          section.append(h, grid2);
+          subBody.appendChild(section);
+        });
+
+        sh.addEventListener('click', ()=>{
+          const open = subBody.style.display !== 'none';
+          subBody.style.display = open ? 'none' : 'block';
+          subCaret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+
+        subWrap.append(sh, subBody);
+        mbody.appendChild(subWrap);
+
+        head.addEventListener('click', ()=>{
+          const open = mbody.style.display !== 'none';
+          mbody.style.display = open ? 'none' : 'block';
+          caret.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+
+        right.textContent   = menuSummary(perms, menu);
+        shRight.textContent = summarizeChildren(perms, menu);
+
+        card.append(head, mbody);
+        body.appendChild(card);
+      });
+
+      $('#ovCancel').onclick = ()=> B.style.display='none';
+      $('#ovSave').onclick = ()=>{
+        const grants = {};
+        Object.keys(MENUS).forEach(menu=>{
+          (MENUS[menu]||[]).forEach(sm=>{
+            const g = perms[menu][sm];
+            if (g.view||g.edit||g.add||g.archive||g.delete) {
+              grants[menu] = grants[menu] || {};
+              grants[menu][sm] = {};
+              ACTIONS.forEach(k=>{ if (g[k]) grants[menu][sm][k] = true; });
+            }
+          });
+        });
+        const payload = {
+          enabled: !!$('#ovEnabled').checked,
+          grants:  $('#ovEnabled').checked ? grants : {}
+        };
+        $('#exceptionsBtn').dataset.payload = JSON.stringify(payload);
+        $('#ovB').style.display='none';
+        const nMenus = Object.values(payload.grants||{}).reduce((sum,subs)=> sum + Object.keys(subs||{}).length, 0);
+        showToast(payload.enabled ? `Overrides saved (${nMenus} submenus)` : 'Overrides disabled');
+      };
+    }
+
+    /* ========= List / Manage / Invite ========= */
+    async function render(){
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
+      const rows=(await listSubs())
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>{
+          const bag=[x.company, x.first+' '+x.last, x.trade, x.email, x.phoneBiz, x.phoneCell].join(' ').toLowerCase();
+          return !q || bag.includes(q);
+        })
+        .sort((a,b)=> (a.company||'').localeCompare(b.company||'',undefined,{sensitivity:'base'}));
+
+      const L=$('#savedList');
+      L.innerHTML = rows.length ? rows.map(r=>{
+        const name = r.company || '(No Company)';
+        const person = [r.first,r.last].filter(Boolean).join(' ');
+        const rowChips = [person, r.trade, r.phoneBiz, r.phoneCell, r.email].filter(Boolean).map(chip).join(' ');
+        const exEnabled = r.exceptions?.enabled;
+        const exCount = exEnabled ? Object.values(r.exceptions.grants||{}).reduce((n,subs)=> n + Object.keys(subs||{}).length, 0) : 0;
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div class="line">
+            <strong>${name}</strong>
+            ${rowChips}
+            ${exEnabled ? `<span class="chip">${exCount} override${exCount>1?'s':''}</span>`:''}
+            ${r.invitedAt ? `<span class="chip">Invited</span>`:''}
+            ${r.archived ? `<span class="chip">Archived</span>`:''}
+          </div>
+          <div class="line" style="margin-top:8px;">
+            <button class="btn-secondary" data-edit="${r.id}">Manage</button>
+            <button class="btn-outline" data-invite="${r.id}">Invite</button>
+          </div>
+        </li>`;
+      }).join('') : '<li class="muted">No sub-contractors yet.</li>';
+
+      L.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openManage(b.getAttribute('data-edit'))));
+      L.querySelectorAll('[data-invite]').forEach(b=> b.addEventListener('click', ()=> inviteSub(b.getAttribute('data-invite'))));
+    }
+
+    async function openManage(id){
+      const snap = await getDoc(doc(USERS, id));
+      if (!snap.exists()){ alert('Not found'); return; }
+      const r = { id: snap.id, ...(snap.data()||{}) };
+
+      // Populate form
+      $('#scCompany').value    = r.company||'';
+      $('#scFirst').value      = r.first||'';
+      $('#scLast').value       = r.last||'';
+      $('#scBizPhone').value   = r.phoneBiz||'';
+      $('#scCellPhone').value  = r.phoneCell||'';
+      $('#scEmail').value      = r.email||'';
+      await fillRoleSelect($('#scRole'), r.role||'');
+      $('#scTrade').value      = r.trade||'';
+      $('#scNotes').value      = r.notes||'';
+      $('#exceptionsBtn').dataset.payload = JSON.stringify(r.exceptions || {enabled:false,grants:{}});
+
+      window.scrollTo({top:0, behavior:'smooth'});
+      $('#scCompany').focus();
+    }
+
+    async function inviteSub(id){
+      const snap = await getDoc(doc(USERS, id));
+      if (!snap.exists()){ alert('Record not found'); return; }
+      const r = { id: snap.id, ...(snap.data()||{}) };
+      if(!r.email){ alert('Primary email required to send invite.'); return; }
+
+      const actionCodeSettings = {
+        url: new URL('../teams-partners/index.html', document.baseURI).href,
+        handleCodeInApp: true
+      };
+
+      try{
+        await sendSignInLinkToEmail(auth, r.email, actionCodeSettings);
+        r.invitedAt = Date.now();
+        await upsertSub(r);
+        await render();
+        showToast('Invite sent');
+      }catch(err){
+        console.error(err);
+        alert('Could not send invite. Check Firebase Auth (Authorized domains, Email templates).');
+      }
+    }
+
+    /* ========= Wire up ========= */
+    attachPhoneMask($('#scBizPhone')); attachPhoneMask($('#scCellPhone'));
+    await fillRoleSelect($('#scRole'));
+
+    $('#exceptionsBtn').addEventListener('click', ()=>{
+      const prev = $('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}};
+      openOverridesModal(prev);
+    });
+
+    document.getElementById('sc-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const company = ($('#scCompany').value||'').trim();
+      const first   = titleCase(($('#scFirst').value||'').trim());
+      const last    = titleCase(($('#scLast').value||'').trim()));
+      const biz     = $('#scBizPhone').value;
+      const cell    = $('#scCellPhone').value;
+      const email   = ($('#scEmail').value||'').trim().toLowerCase();
+      const role    = $('#scRole').value;
+
+      if(!company){ alert('Company is required.'); return; }
+      if(!first || !last){ alert('Main contact First and Last are required.'); return; }
+      if(!isValidPhoneUS(biz) || !isValidPhoneUS(cell)){ alert('Phones must be (###) ###-####'); return; }
+      if(!isEmail(email)){ alert('Valid primary email is required.'); return; }
+      if(!role){ alert('Role is required.'); return; }
+
+      const overrides = ($('#exceptionsBtn').dataset.payload ? JSON.parse($('#exceptionsBtn').dataset.payload) : {enabled:false,grants:{}});
+
+      await upsertSub({
+        company, first, last,
+        phoneBiz: biz, phoneCell: cell,
+        email, role,
+        trade: ($('#scTrade').value||'').trim(),
+        notes: ($('#scNotes').value||'').trim(),
+        archived:false,
+        exceptions: overrides,
+        createdAt: Date.now(), updatedAt: Date.now()
+      });
+
+      e.target.reset();
+      delete $('#exceptionsBtn').dataset.payload;
+      await fillRoleSelect($('#scRole'));
+      await render();
+      showToast('Sub-contractor saved');
+    });
+
+    $('#clearBtn').addEventListener('click', ()=>{
+      $('#sc-form').reset();
+      delete $('#exceptionsBtn').dataset.payload;
+      fillRoleSelect($('#scRole'));
+    });
+
+    $('#searchInput').addEventListener('input', render);
+    $('#toggleShowArchived').addEventListener('change', render);
+
+    // Quick View
+    $('#quickViewBtn').addEventListener('click', async ()=>{
+      const rows=(await listSubs()).filter(x=>!x.archived)
+        .sort((a,b)=> (a.company||'').localeCompare(b.company||'',undefined,{sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = rows.length ? rows.map(r=>{
+        const top = `<strong>${r.company||'(No Company)'}</strong>`;
+        const line2 = [ [r.first,r.last].filter(Boolean).join(' '), r.trade ].filter(Boolean).join(' — ');
+        const contact = [r.phoneBiz, r.phoneCell, r.email].filter(Boolean).join(' • ');
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div>${top}</div>
+          ${ line2 ? `<div class="muted-small">${line2}</div>` : '' }
+          ${ contact ? `<div class="muted-small">${contact}</div>` : '' }
+        </li>`;
+      }).join('') : '<li class="muted">No sub-contractors.</li>';
+      B.style.display='flex';
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
+
+    // Initial render
+    await render();
+
+    // Breadcrumbs helper if provided by core.js
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'../index.html'},
+      {label:'Teams & Partners', href:'./index.html'},
+      {label:'Sub-Contractors'}
+    ]);
+  </script>
+
+  <!-- SW -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>

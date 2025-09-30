@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Farms — Dowson Farms</title>
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme = (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
+
+  <link rel="stylesheet" href="theme.css" />
+  <script defer src="version.js"></script>
+  <script defer src="core.js"></script>
+  <style>
+    #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
+    .grid2 {display:grid;gap:10px;grid-template-columns:92px 92px;justify-content:center}
+    .fld-row {display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .badge {padding:2px 8px;border-radius:999px;border:1px solid var(--tile-border);font-size:.85rem}
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  </header>
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="settings.html">Setup / Settings</a></li>
+      <li class="sep">›</li>
+      <li><span>Farms</span></li>
+    </ol>
+  </nav>
+
+  <main class="content" data-has-form>
+    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">🏡 Farms</h1>
+      <button type="button" class="btn-secondary" id="quickViewBtn">Quick View</button>
+    </div>
+    <div style="margin-top:12px;"></div>
+
+    <!-- FORM -->
+    <form id="farm-form" novalidate>
+      <div class="field">
+        <label for="farmName">Farm <span class="req-star">*</span></label>
+        <input id="farmName" type="text" required placeholder="Type farm name…" />
+      </div>
+
+      <section class="card" style="padding:12px; margin-top:8px;">
+        <div class="grid2">
+          <button class="btn-primary" type="submit" id="saveBtn" style="width:92px;height:92px;">Save</button>
+          <button class="btn-outline" type="reset" id="clearBtn" style="width:92px;height:92px;">Clear</button>
+        </div>
+      </section>
+    </form>
+
+    <!-- SAVED -->
+    <section class="card" id="savedCard" style="margin-top:16px;">
+      <h2 style="margin:0 0 8px 0;">Saved Farms</h2>
+      <div class="row" style="align-items:center; gap:12px;">
+        <input id="searchInput" class="search" type="search" placeholder="Search farms…" />
+        <label class="muted" for="toggleShowArchived">
+          <input type="checkbox" id="toggleShowArchived" /> Show archived
+        </label>
+      </div>
+      <ul id="savedList" style="list-style:none; padding:0; margin:12px 0 0;"></ul>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <!-- Quick View (farms) -->
+  <div class="auth-modal__backdrop" id="qvBackdrop" role="dialog" aria-modal="true" aria-labelledby="qvTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(560px,92vw);">
+      <h2 id="qvTitle">Farms</h2>
+      <ul id="qvList" style="list-style:none; padding:0; margin:8px 0 0;"></ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qvClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Fields for a Farm -->
+  <div class="auth-modal__backdrop" id="manageBackdrop" role="dialog" aria-modal="true" aria-labelledby="manageTitle" style="display:none;">
+    <div class="auth-modal" role="document" style="max-width:min(740px,94vw);">
+      <h2 id="manageTitle">Manage Fields</h2>
+      <div class="row" style="gap:10px;align-items:center;margin:4px 0 10px;">
+        <input id="manageSearch" placeholder="Search fields…" style="flex:1;font-size:16px;height:40px;padding:8px 12px;border-radius:10px;">
+        <span id="manageSummary" class="muted"></span>
+      </div>
+      <div id="manageList" style="max-height:min(52vh,500px); overflow:auto; border:1px solid var(--tile-border); border-radius:10px; padding:6px;"></div>
+      <div class="modal-actions" style="justify-content:space-between;">
+        <button class="btn-outline" id="manageCancel">Cancel</button>
+        <button class="btn-primary" id="manageSave">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function FarmsPage(){
+    const FARM_KEY='df.farms';
+    const FIELD_KEY='df.fields';
+
+    const $=s=>document.querySelector(s);
+    const $$=(s)=>Array.from(document.querySelectorAll(s));
+    const $name=$('#farmName'), $saved=$('#savedList');
+
+    function titleCase(s){ return (s||'').toLowerCase().replace(/\b([a-z])/g,c=>c.toUpperCase()); }
+    function load(k){ try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(_){return[]} }
+    function save(k,v){ localStorage.setItem(k, JSON.stringify(v)) }
+    function upsertFarm(item){ const list=load(FARM_KEY); const i=list.findIndex(x=>x.id===item.id); if(i>=0) list[i]=item; else list.push(item); save(FARM_KEY,list) }
+
+    function farmFieldStats(farmId){
+      const fields=load(FIELD_KEY).filter(f=>f.farmId===farmId);
+      const total=fields.reduce((s,f)=>s+(Number(f.acres)||0),0);
+      return {count:fields.length, acres: total};
+    }
+
+    function renderSaved(){
+      const q=($('#searchInput').value||'').toLowerCase().trim();
+      const showA=$('#toggleShowArchived').checked;
+      const rows=load(FARM_KEY)
+        .filter(x=>showA?true:!x.archived)
+        .filter(x=>!q || x.name.toLowerCase().includes(q))
+        .sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+
+      $saved.innerHTML = rows.length ? rows.map(r=>{
+        const s=farmFieldStats(r.id);
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div class="fld-row">
+            <strong>${r.name}</strong>
+            <span class="badge">${s.count} fields</span>
+            <span class="badge">${s.acres.toFixed(s.acres%1?2:0)} ac</span>
+          </div>
+          <div class="fld-row" style="margin-top:8px;">
+            <button class="btn-secondary" data-manage="${r.id}">Manage Fields</button>
+          </div>
+        </li>`;
+      }).join('') : '<li class="muted">No farms yet.</li>';
+
+      $saved.querySelectorAll('[data-manage]').forEach(b=>{
+        b.addEventListener('click', ()=> openManage(b.getAttribute('data-manage')));
+      });
+    }
+
+    // Manage Fields modal
+    function openManage(farmId){
+      const farms=load(FARM_KEY);
+      const farm=farms.find(f=>f.id===farmId); if(!farm) return;
+      $('#manageTitle').textContent = `Manage Fields — ${farm.name}`;
+
+      const fields=load(FIELD_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const box=$('#manageList');
+      box.innerHTML = fields.map(f=>{
+        const checked = f.farmId===farmId ? 'checked' : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--tile-border);">
+          <input type="checkbox" data-field="${f.id}" ${checked}/>
+          <span style="min-width:220px;"><strong>${f.name}</strong></span>
+          <span class="badge">${Number(f.acres||0).toFixed(f.acres%1?2:0)} ac</span>
+          ${f.county ? `<span class="badge">${f.county}</span>` : ''}
+        </label>`;
+      }).join('') || '<div class="muted" style="padding:8px;">No fields found.</div>';
+
+      const updateSummary=()=>{
+        const checks=box.querySelectorAll('input[type="checkbox"]:checked');
+        let acres=0;
+        checks.forEach(ch=>{
+          const f=fields.find(x=>x.id===ch.dataset.field);
+          acres += Number(f?.acres||0);
+        });
+        $('#manageSummary').textContent = `${checks.length} selected • ${acres.toFixed(acres%1?2:0)} ac`;
+      };
+      box.addEventListener('change', updateSummary); updateSummary();
+
+      // search inside modal
+      const search=$('#manageSearch');
+      search.value='';
+      search.oninput=()=>{
+        const q=search.value.toLowerCase().trim();
+        box.querySelectorAll('label').forEach(l=>{
+          const name=l.querySelector('strong')?.textContent.toLowerCase()||'';
+          l.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
+        });
+      };
+
+      const B=$('#manageBackdrop'); B.style.display='flex';
+      $('#manageCancel').onclick=()=> B.style.display='none';
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+      $('#manageSave').onclick=()=>{
+        const checks=box.querySelectorAll('input[type="checkbox"]');
+        const list=load(FIELD_KEY);
+        checks.forEach(ch=>{
+          const id=ch.dataset.field;
+          const idx=list.findIndex(f=>f.id===id);
+          if(idx>=0){
+            list[idx].farmId = ch.checked ? farmId : (list[idx].farmId===farmId ? null : list[idx].farmId);
+            list[idx].updatedAt = Date.now();
+          }
+        });
+        save(FIELD_KEY,list);
+        B.style.display='none';
+        renderSaved();
+      };
+    }
+
+    // Quick view (farms)
+    $('#quickViewBtn').addEventListener('click', ()=>{
+      const farms=load(FARM_KEY).sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+      const L=$('#qvList'), B=$('#qvBackdrop');
+      L.innerHTML = farms.length ? farms.map(f=>{
+        const s=farmFieldStats(f.id);
+        return `<li class="card" style="padding:10px; margin:8px 0;">
+          <div class="fld-row">
+            <strong>${f.name}</strong>
+            <span class="badge">${s.count} fields</span>
+            <span class="badge">${s.acres.toFixed(s.acres%1?2:0)} ac</span>
+          </div>
+        </li>`;
+      }).join('') : '<li>No farms.</li>';
+      B.style.display='flex';
+      $('#qvClose').addEventListener('click', ()=> B.style.display='none', {once:true});
+      B.addEventListener('click', (e)=>{ if(e.target===B) B.style.display='none'; }, {once:true});
+    });
+
+    // Save farm
+    $('#farm-form').addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const pretty=titleCase(($name.value||'').trim()); if(!pretty){$name.focus();return;}
+      upsertFarm({id:pretty.toLowerCase(), name:pretty, archived:false, createdAt:Date.now(), updatedAt:Date.now()});
+      $('#farm-form').reset(); renderSaved();
+    });
+
+    $('#clearBtn').addEventListener('click', ()=>$('#farm-form').reset());
+    $('#searchInput').addEventListener('input', renderSaved);
+    $('#toggleShowArchived').addEventListener('change', renderSaved);
+
+    renderSaved();
+
+    window.setBreadcrumbs && window.setBreadcrumbs([
+      {label:'Home', href:'index.html'},
+      {label:'Setup / Settings', href:'settings.html'},
+      {label:'Farms'}
+    ]);
+  })();
+  </script>
+</body>
+</html>

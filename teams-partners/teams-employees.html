@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Employees — Dowson Farms</title>
+  <script>
+    (function () {
+      const pref = localStorage.getItem('df_theme') || 'auto';
+      const dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      const mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode;
+    })();
+  </script>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
+  <script type="module" src="../js/fb-employees.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  </header>
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="../index.html">Home</a></li><li class="sep">›</li>
+      <li><a href="./index.html">Teams &amp; Partners</a></li><li class="sep">›</li>
+      <li><span>Employees</span></li>
+    </ol>
+  </nav>
+
+  <main class="content" data-has-form>
+    <h1>👥 Employees</h1>
+    <!-- Your existing employees UI will hook into fb-employees.js -->
+    <p class="muted">Use the Employees module to add/invite and assign roles.</p>
+  </main>
+
+  <footer class="app-footer"><span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span></footer>
+</body>
+</html>

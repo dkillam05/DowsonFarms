@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Dowson Farms</title>
+  <base href="/DowsonFarms/">
+  <script>
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/css/theme.css" />
+  <script defer src="js/version.js?v=home1"></script>
+  <script type="module" src="js/firebase-init.js?v=home1"></script>
+  <script defer src="js/core.js?v=home1"></script>
+  <link rel="manifest" href="manifest.webmanifest?v=home1" />
+</head>
+<body class="home-page">
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  </header>
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><span>Home</span></li></ol></nav>
+
+  <main class="content">
+    <h1>Home</h1>
+    <!-- Sections get rendered here from DF_MENUS -->
+    <div class="df-tiles" data-source="global"></div>
+  </main>
+
+  <footer class="app-footer">
+    <span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span>
+  </footer>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('serviceworker.js').catch(console.error);
+      });
+    }
+  </script>
+
+  <script defer src="assets/data/menus.js?v=home1"></script>
+  <script defer src="js/ui-nav.js?v=home1"></script>
+</body>
+</html>
