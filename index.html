@@ -5,16 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Dowson Farms</title>
 
-  <!-- PWA (so it opens like an app when saved to home screen) -->
+  <!-- PWA bits so “Add to Home Screen” looks like an app -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="assets/icons/app-icon-192.png" />
 
-  <!-- Theme (JD green + dark gold) -->
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Marcellus&display=swap" rel="stylesheet">
+
+  <!-- Theme -->
   <link rel="stylesheet" href="assets/css/theme.css" />
 
-  <!-- Your global menus (unchanged) -->
+  <!-- Your global menus (exact file you already have) -->
   <script src="assets/data/menus.js"></script>
 
   <!-- Core behavior -->
@@ -25,45 +28,50 @@
   <!-- HEADER -->
   <header class="app-header push" role="banner">
     <div class="brand">
-      <img class="brand-mark" src="assets/icons/df-logo.svg" alt="" onerror="this.src='assets/icons/app-icon-192.png'">
+      <img class="brand-mark" src="assets/icons/df-logo.svg" alt=""
+           onerror="this.src='assets/icons/app-icon-192.png'">
       <span class="brand-title">Dowson Farms</span>
     </div>
     <div class="header-right">
       <span id="df-clock" class="clock" aria-live="polite"></span>
-      <button id="logout" class="logout" type="button">Logout</button>
+      <button id="logout" class="btn-pill" type="button">Logout</button>
     </div>
   </header>
 
   <!-- BREADCRUMBS (+ hamburger lives here) -->
   <nav class="breadcrumbs push" aria-label="Breadcrumb">
-    <button id="hamburger" class="ham" aria-expanded="false" aria-controls="drawer" aria-label="Toggle menu">☰</button>
+    <button id="hamburger" class="ham" aria-expanded="false" aria-controls="drawer" aria-label="Toggle menu">
+      <span class="ham-box"><span class="ham-inner"></span></span>
+    </button>
     <ol id="crumbs"></ol>
   </nav>
 
   <!-- SIDEBAR DRAWER + BACKDROP -->
   <aside id="drawer" class="drawer" aria-hidden="true">
-    <div class="drawer-head"><span class="drawer-title">Navigation</span></div>
+    <div class="drawer-head">
+      <span class="drawer-title">Navigation</span>
+    </div>
     <ul id="nav" class="nav-tree" aria-label="Main sidebar"></ul>
   </aside>
   <div id="backdrop" class="backdrop" hidden></div>
 
   <!-- MAIN CONTENT -->
   <main class="content push" role="main">
-    <section class="home-hero">
-      <h1>Welcome</h1>
+    <section class="home">
+      <h1 class="home-title">Welcome</h1>
 
-      <!-- Omnibox (routes to AI Reports with q=) -->
-      <form class="omnibox" action="reports/reports-ai.html" method="get">
+      <!-- Omnibox (routes to AI Reports page with ?q=) -->
+      <form class="omnibox" action="reports/reports-ai.html" method="get" autocomplete="off">
         <input type="search" name="q" placeholder="Search farms, fields, equipment, people…" aria-label="Search" />
         <button class="btn-primary" type="submit">Search</button>
       </form>
 
-      <!-- Auto-rendered quick links for ALL top-level menu sections -->
+      <!-- Top-level sections rendered from DF_MENUS -->
       <div id="home-panels" class="home-panels" aria-label="Top sections"></div>
     </section>
   </main>
 
-  <!-- FOOTER (shows date) -->
+  <!-- FOOTER (shows date only) -->
   <footer class="app-footer push" role="contentinfo">
     <span id="df-date-footer" aria-live="polite"></span>
   </footer>
