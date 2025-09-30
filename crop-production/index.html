@@ -1,26 +1,36 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Crop Production — Dowson Farms</title>
-  <base href="../">
-  <link rel="stylesheet" href="../assets/css/theme.css">
+  <base href="../"/>
+  <link rel="stylesheet" href="../assets/css/theme.css"/>
 </head>
 <body>
   <header class="app-hd">
-    <div>Crop Production</div>
+    <button id="hamburger" class="hamburger" aria-label="Open menu">☰</button>
+    <div class="hd-title">
+      <img class="hd-logo" src="../assets/icons/logo.png" alt="">
+      <span>Crop Production</span>
+    </div>
     <div class="hd-meta">
       <span id="df-date"></span>
       <span id="df-clock"></span>
     </div>
   </header>
 
+  <aside id="drawer" class="app-drawer" aria-label="Navigation">
+    <div class="drawer-hd">Menu</div>
+    <ul id="nav" class="nav"></ul>
+  </aside>
+  <div id="backdrop" class="backdrop"></div>
+
   <main class="content">
-    <h1>Crop Production</h1>
-    <div class="card">
-      <h2>🌽 Operations</h2>
-      <div class="card-actions">
+    <h1>Operations</h1>
+    <section class="card">
+      <h2>Workflows</h2>
+      <div class="actions">
         <a class="btn" href="crop-production/crop-planting.html">🌱 Planting</a>
         <a class="btn" href="crop-production/crop-spraying.html">💦 Spraying</a>
         <a class="btn" href="crop-production/crop-aerial.html">🚁 Aerial Spraying</a>
@@ -30,17 +40,34 @@
         <a class="btn" href="crop-production/crop-maintenance.html">🛠️ Maintenance</a>
         <a class="btn" href="crop-production/crop-trials.html">🧬 Trials</a>
       </div>
-    </div>
+    </section>
   </main>
 
-  <footer class="app-ft">
-    <a href="../index.html">🏠 Home</a>
-    <a href="../crop-production/" class="active">🌽 Crops</a>
-    <a href="../equipment/">🚜 Equip</a>
-    <a href="../teams-partners/">👥 Teams</a>
-    <a href="../reports/">📖 Reports</a>
-  </footer>
-
+  <script src="../assets/data/menus.js"></script>
   <script src="../js/core.js"></script>
+  <script>
+  // same drawer build as home (reused inline to avoid new files)
+  (function(){
+    const drawer=document.getElementById('drawer');
+    const backdrop=document.getElementById('backdrop');
+    const btn=document.getElementById('hamburger');
+    const nav=document.getElementById('nav');
+    const menus=(window.DF_MENUS&&Array.isArray(window.DF_MENUS.tiles))?window.DF_MENUS.tiles:[];
+    function open(){drawer.classList.add('open');backdrop.classList.add('show');}
+    function close(){drawer.classList.remove('open');backdrop.classList.remove('show');}
+    btn.addEventListener('click',open);backdrop.addEventListener('click',close);
+    nav.innerHTML='';
+    menus.forEach(sec=>{
+      const li=document.createElement('li');
+      const b=document.createElement('button');
+      b.className='section-btn'; b.setAttribute('aria-expanded','false');
+      b.innerHTML=`<span class="section-ico">${sec.iconEmoji||'📁'}</span><span>${sec.label||''}</span><span class="chev">›</span>`;
+      const sub=document.createElement('div'); sub.className='sub';
+      (sec.children||[]).forEach(c=>{ const a=document.createElement('a'); a.href=c.href||'#'; a.textContent=`${c.iconEmoji||''} ${c.label||''}`; sub.appendChild(a); });
+      b.addEventListener('click',(e)=>{ if(e.target.classList.contains('chev')){ const open=sub.classList.toggle('open'); b.setAttribute('aria-expanded',open?'true':'false'); } else { if(sec.href) location.href=sec.href; }});
+      li.appendChild(b); if(sec.children&&sec.children.length) li.appendChild(sub); nav.appendChild(li);
+    });
+  })();
+  </script>
 </body>
 </html>
