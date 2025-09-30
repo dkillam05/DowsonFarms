@@ -1,81 +1,46 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1B5E20" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Crop Production — Dowson Farms</title>
-
-  <!-- Theme CSS  →  assets/css/theme.css (relative to /crop/) -->
-  <link rel="stylesheet" href="../assets/css/theme.css" />
-
-  <!-- Global app scripts  →  js/version.js & js/core.js -->
-  <script defer src="../js/version.js"></script>
-  <script defer src="../js/core.js"></script>
-
-  <!-- PWA bits (still at repo root) -->
-  <link rel="manifest" href="../manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-  <!-- Icons  →  assets/icons/... -->
-  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+  <base href="../">
+  <link rel="stylesheet" href="../assets/css/theme.css">
 </head>
 <body>
-  <!-- Header -->
-  <header class="app-header">
-    <div class="app-header__left">
-      <!-- Logo  →  assets/icons/icon-192.png -->
-      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
-    </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
+  <header class="app-hd">
+    <div>Crop Production</div>
+    <div class="hd-meta">
+      <span id="df-date"></span>
+      <span id="df-clock"></span>
     </div>
   </header>
 
-  <!-- Breadcrumbs (Home must step back up one folder) -->
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="../index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><span>Crop Production</span></li>
-    </ol>
-  </nav>
-
-  <!-- Main -->
   <main class="content">
-    <h1>🌽 Crop Production</h1>
-
-    <!-- Sub-tiles auto-filled from menus.js
-         data-section is set explicitly to avoid auto-detect issues -->
-    <div class="df-tiles" data-section="Crop Production"></div>
+    <h1>Crop Production</h1>
+    <div class="card">
+      <h2>🌽 Operations</h2>
+      <div class="card-actions">
+        <a class="btn" href="crop-production/crop-planting.html">🌱 Planting</a>
+        <a class="btn" href="crop-production/crop-spraying.html">💦 Spraying</a>
+        <a class="btn" href="crop-production/crop-aerial.html">🚁 Aerial Spraying</a>
+        <a class="btn" href="crop-production/crop-harvest.html">🌾 Harvest</a>
+        <a class="btn" href="crop-production/crop-fertilizer.html">🧪 Fertilizer</a>
+        <a class="btn" href="crop-production/crop-scouting.html">🔎 Scouting</a>
+        <a class="btn" href="crop-production/crop-maintenance.html">🛠️ Maintenance</a>
+        <a class="btn" href="crop-production/crop-trials.html">🧬 Trials</a>
+      </div>
+    </div>
   </main>
 
-  <!-- Footer -->
-  <footer class="app-footer">
-    <span>Dowson Farms</span>
-    <span class="dot">•</span>
-    <span id="report-date">—</span>
-    <span class="dot">•</span>
-    <span id="version">v0.0.0</span>
+  <footer class="app-ft">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../crop-production/" class="active">🌽 Crops</a>
+    <a href="../equipment/">🚜 Equip</a>
+    <a href="../teams-partners/">👥 Teams</a>
+    <a href="../reports/">📖 Reports</a>
   </footer>
 
-  <!-- Service worker (your SW lives in /js/, so step back one) -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
-      });
-    }
-  </script>
-
-  <!-- Menus + subnav renderer (order matters: menus first) -->
-  <!-- menus.js  →  assets/data/menus.js -->
-  <script defer src="../assets/data/menus.js"></script>
-  <!-- ui-subnav.js  →  js/ui-subnav.js -->
-  <script defer src="../js/ui-subnav.js"></script>
+  <script src="../js/core.js"></script>
 </body>
 </html>
