@@ -1,11 +1,10 @@
-<!-- assets/data/menus.js -->
-<script>
-/* Dowson Farms — Global Navigation (one source of truth) */
-const DF_MENUS = {
+/* Dowson Farms — Global Navigation (one source of truth)
+   NOTE: plain JS file (no <script> wrapper). */
+window.DF_MENUS = {
   tiles: [
     {
       label: "Crop Production",
-      href: "crop-production/index.html",
+      href: "crop-production/",            // folder-style
       iconEmoji: "🌽",
       children: [
         { label: "Planting",          href: "crop-production/crop-planting.html",     iconEmoji: "🌱" },
@@ -18,10 +17,12 @@ const DF_MENUS = {
         { label: "Trials",            href: "crop-production/crop-trials.html",       iconEmoji: "🧬" }
       ]
     },
-    { label: "Field Maintenance", href: "crop-production/crop-maintenance.html", iconEmoji: "🛠️", children: [] },
+
+    { label: "Field Maintenance", href: "field-maintenance/field-maintenance.html", iconEmoji: "🛠️", children: [] },
+
     {
       label: "Grain Tracking",
-      href: "grain-tracking/index.html",
+      href: "grain-tracking/",            // folder-style
       iconEmoji: "🌾",
       children: [
         { label: "Grain Bags",         href: "grain-tracking/grain-bags.html",        iconEmoji: "👝" },
@@ -30,12 +31,13 @@ const DF_MENUS = {
         { label: "Grain Ticket (OCR)", href: "grain-tracking/grain-ticket-ocr.html",  iconEmoji: "🎫" }
       ]
     },
+
     {
       label: "Equipment",
-      href: "equipment/index.html",
+      href: "equipment/",                 // folder-style
       iconEmoji: "🚜",
       children: [
-        { label: "Starfire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
+        { label: "StarFire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
         { label: "Tractors",              href: "equipment/equipment-tractors.html",     iconEmoji: "🚜" },
         { label: "Combines",              href: "equipment/equipment-combines.html",     iconEmoji: "🌽" },
         { label: "Sprayers / Spreaders",  href: "equipment/equipment-sprayers.html",     iconEmoji: "💦" },
@@ -45,9 +47,10 @@ const DF_MENUS = {
         { label: "Trailers",              href: "equipment/equipment-trailers.html",     iconEmoji: "🚚" }
       ]
     },
+
     {
       label: "Calculators",
-      href: "calculators/index.html",
+      href: "calculators/",               // folder-style
       iconEmoji: "🔢",
       children: [
         { label: "Combine Yield", href: "calculators/calc-combine-yield.html", iconEmoji: "🌽" },
@@ -58,9 +61,10 @@ const DF_MENUS = {
         { label: "Grain Shrink",  href: "calculators/calc-grain-shrink.html",  iconEmoji: "📉" }
       ]
     },
+
     {
       label: "Teams & Partners",
-      href: "teams-partners/index.html",
+      href: "teams-partners/",            // folder-style
       iconEmoji: "🫱🏼‍🫲🏽",
       children: [
         { label: "Employees",       href: "teams-partners/teams-employees.html",       iconEmoji: "👥" },
@@ -69,9 +73,10 @@ const DF_MENUS = {
         { label: "Dictionary",      href: "teams-partners/teams-dictionary.html",      iconEmoji: "🗂️" }
       ]
     },
+
     {
       label: "Reports",
-      href: "reports/index.html",
+      href: "reports/",                   // folder-style
       iconEmoji: "📖",
       children: [
         { label: "Pre-Defined Reports", href: "reports/reports-predefined.html",  iconEmoji: "📁" },
@@ -79,9 +84,10 @@ const DF_MENUS = {
         { label: "AI Report History",   href: "reports/reports-ai-history.html",  iconEmoji: "🕘" }
       ]
     },
+
     {
       label: "Setup / Settings",
-      href: "settings-setup/index.html",
+      href: "settings-setup/",           // folder-style
       iconEmoji: "⚙️",
       children: [
         { label: "Farms",         href: "settings-setup/ss-farms.html",        iconEmoji: "🏡" },
@@ -101,9 +107,10 @@ const DF_MENUS = {
         }
       ]
     },
+
     {
       label: "Feedback",
-      href: "feedback/index.html",
+      href: "feedback/",                 // folder-style
       iconEmoji: "💬",
       children: [
         { label: "Ideas",         href: "feedback/fb-ideas.html", iconEmoji: "💡" },
@@ -112,6 +119,3 @@ const DF_MENUS = {
     }
   ]
 };
-
-window.DF_MENUS = DF_MENUS;
-</script>
