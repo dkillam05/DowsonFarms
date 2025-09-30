@@ -1,59 +1,124 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Dowson Farms</title>
-  <base href="./">
-  <link rel="stylesheet" href="assets/css/theme.css">
+  <base href="./"/>
+  <link rel="icon" sizes="192x192" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/css/theme.css"/>
 </head>
 <body>
+  <!-- Header -->
   <header class="app-hd">
-    <div>Dowson Farms</div>
+    <button id="hamburger" class="hamburger" aria-label="Open menu">☰</button>
+    <div class="hd-title">
+      <img class="hd-logo" src="assets/icons/logo.png" alt="">
+      <span>Dowson Farms</span>
+    </div>
     <div class="hd-meta">
       <span id="df-date"></span>
       <span id="df-clock"></span>
     </div>
   </header>
 
+  <!-- Drawer -->
+  <aside id="drawer" class="app-drawer" aria-label="Navigation">
+    <div class="drawer-hd">Menu</div>
+    <ul id="nav" class="nav"></ul>
+  </aside>
+  <div id="backdrop" class="backdrop"></div>
+
+  <!-- Content -->
   <main class="content">
     <h1>Welcome</h1>
-    <div id="home-sections"></div>
+    <p class="subtle">Pick a section on the left (tap ☰ on mobile). Top-level opens, child links navigate.</p>
+
+    <!-- Optional quick actions pulled from your first 3 sections -->
+    <section id="quick" class="card"></section>
   </main>
 
-  <footer class="app-ft">
-    <a href="index.html" class="active">🏠 Home</a>
-    <a href="crop-production/">🌽 Crops</a>
-    <a href="equipment/">🚜 Equip</a>
-    <a href="teams-partners/">👥 Teams</a>
-    <a href="reports/">📖 Reports</a>
-  </footer>
-
+  <!-- Your data + core -->
   <script src="assets/data/menus.js"></script>
   <script src="js/core.js"></script>
+
+  <!-- Drawer + real menu rendering -->
   <script>
-  (function(){
-    const host = document.getElementById('home-sections');
+  (function () {
+    'use strict';
+    const drawer = document.getElementById('drawer');
+    const backdrop = document.getElementById('backdrop');
+    const btn = document.getElementById('hamburger');
+    const nav = document.getElementById('nav');
     const menus = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
-    host.innerHTML = '';
-    menus.forEach(sec => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `<h2>${sec.iconEmoji || ''} ${sec.label}</h2>`;
-      if (sec.children && sec.children.length){
-        const actions = document.createElement('div');
-        actions.className = 'card-actions';
-        sec.children.forEach(c => {
-          const a = document.createElement('a');
-          a.className = 'btn';
-          a.href = c.href;
-          a.textContent = c.iconEmoji + ' ' + c.label;
-          actions.appendChild(a);
-        });
-        card.appendChild(actions);
-      }
-      host.appendChild(card);
+
+    // open/close
+    function openDrawer(){ drawer.classList.add('open'); backdrop.classList.add('show'); }
+    function closeDrawer(){ drawer.classList.remove('open'); backdrop.classList.remove('show'); }
+    btn.addEventListener('click', openDrawer);
+    backdrop.addEventListener('click', closeDrawer);
+
+    // build nav from DF_MENUS (real data)
+    nav.innerHTML = '';
+    menus.forEach((sec, i) => {
+      const li = document.createElement('li');
+
+      // Section button (click label -> go to section href; click chevron -> expand)
+      const b = document.createElement('button');
+      b.className = 'section-btn';
+      b.setAttribute('aria-expanded', 'false');
+      b.innerHTML = `<span class="section-ico">${sec.iconEmoji || '📁'}</span>
+                     <span>${sec.label || ''}</span>
+                     <span class="chev">›</span>`;
+      b.addEventListener('click', (e) => {
+        // if tapped near the left text, navigate; if tapped anywhere toggle? We'll toggle on chevron only:
+        const isChevron = e.target.classList.contains('chev');
+        if (isChevron) {
+          const open = sub.classList.toggle('open');
+          b.setAttribute('aria-expanded', open ? 'true' : 'false');
+        } else {
+          if (sec.href) location.href = sec.href;
+        }
+      });
+
+      // Sub list
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      (sec.children || []).forEach(ch => {
+        const a = document.createElement('a');
+        a.href = ch.href || '#';
+        a.textContent = `${ch.iconEmoji || ''} ${ch.label || ''}`;
+        sub.appendChild(a);
+      });
+
+      li.appendChild(b);
+      if (sec.children && sec.children.length) li.appendChild(sub);
+      nav.appendChild(li);
     });
+
+    // Quick actions on Home (first 3 sections for visual variety)
+    (function quickActions(){
+      const q = document.getElementById('quick');
+      if (!menus.length) { q.remove(); return; }
+      const picks = menus.slice(0, 3);
+      q.innerHTML = '<h2>Quick Actions</h2><div class="actions" id="qa"></div>';
+      const host = document.getElementById('qa');
+      picks.forEach(sec=>{
+        const a = document.createElement('a');
+        a.className = 'btn';
+        a.href = sec.href || '#';
+        a.textContent = `${sec.iconEmoji || '📁'} ${sec.label}`;
+        host.appendChild(a);
+      });
+    })();
+
+    // Close drawer on route change (mobile)
+    window.addEventListener('hashchange', closeDrawer);
+    document.addEventListener('click', (e)=>{
+      if (e.target.tagName === 'A' && drawer.classList.contains('open')) closeDrawer();
+    });
+
   })();
   </script>
 </body>
