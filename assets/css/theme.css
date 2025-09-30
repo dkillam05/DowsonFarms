@@ -1,26 +1,39 @@
-/* === Brand tokens (JD green + gold) === */
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+/* Dowson Farms – Professional Theme (JD green + dark gold)
+   Single stylesheet; no other CSS files required.
+   ------------------------------------------------------ */
 
+/* Brand fonts: script for title; Playfair as elegant fallback */
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@600;700&display=swap');
+
+/* ===== Design tokens ===== */
 :root{
+  /* base surfaces */
   --bg: #f6f7f9;
   --surface: #ffffff;
-  --surface-2: #f3f5f7;
+  --surface-2: #f1f3f7;
+
+  /* text & borders */
   --ink: #0f172a;
   --muted: #64748b;
   --border: rgba(15,23,42,.12);
 
   /* brand */
-  --brand-green: #1B5E20;           /* JD dark green */
-  --brand-gold:  #B8860B;           /* dark goldenrod */
+  --brand-green: #1B5E20;  /* JD dark green */
+  --brand-gold:  #B8860B;  /* dark goldenrod */
+
+  /* interactive */
   --accent: var(--brand-green);
   --accent-hover: #154a18;
 
+  /* layout */
   --header-h: 56px;
   --crumb-h: 44px;
   --drawer-w: 320px;
   --radius: 14px;
   --shadow: 0 12px 30px rgba(2,6,23,.08);
 }
+
+/* Dark auto */
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#0b0f14; --surface:#10161c; --surface-2:#151c24;
@@ -29,25 +42,36 @@
   }
 }
 
-/* === Header (green) === */
+/* ===== Base ===== */
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font: 400 16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  padding-top: calc(var(--header-h) + var(--crumb-h));
+  padding-bottom: 44px; /* footer */
+}
+a{ color:inherit; text-decoration:none; }
+
+/* ===== Header (JD green, script title, clock right) ===== */
 .app-header{
   position:fixed; inset:0 0 auto 0; height:var(--header-h);
   display:flex; align-items:center; gap:10px;
   background:var(--brand-green); color:#fff; padding:0 12px; z-index:1000;
-  border-bottom:1px solid rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(255,255,255,.08);
 }
 .app-header .logo{
   width:28px; height:28px; border-radius:6px; overflow:hidden; display:grid; place-items:center;
-  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
 }
 .app-header .logo img{ width:100%; height:100%; object-fit:contain; }
 .app-header .title{
   font-family:'Great Vibes','Playfair Display',serif;
-  font-weight:600; letter-spacing:.2px; font-size:1.35rem; line-height:1;
+  font-weight:600; font-size:1.35rem; line-height:1; letter-spacing:.2px;
 }
 .app-header .spacer{ margin-left:auto; opacity:.95; font-size:.92rem; display:flex; gap:10px; }
 
-/* === Breadcrumbs strip === */
+/* ===== Breadcrumbs bar (hamburger + trail + logout) ===== */
 .breadcrumbs{
   position:fixed; top:var(--header-h); left:0; right:0; height:var(--crumb-h);
   display:flex; align-items:center; gap:10px; padding:0 12px;
@@ -57,22 +81,93 @@
   width:36px; height:36px; border-radius:10px; border:1px solid var(--border);
   background:var(--surface-2); cursor:pointer; display:grid; place-items:center;
 }
+.breadcrumbs ol{
+  list-style:none; display:flex; gap:6px; margin:0; padding:0;
+  white-space:nowrap; overflow:hidden; flex:1 1 auto; min-width:0;
+}
+.breadcrumbs li{ flex:0 0 auto; min-width:0; }
+.breadcrumbs li.sep{ color:var(--muted); }
+.breadcrumbs a, .breadcrumbs span{ display:block; overflow:hidden; text-overflow:ellipsis; }
 .logout-btn{
   border:1px solid var(--border); background:var(--surface-2); color:inherit;
   padding:8px 12px; border-radius:10px; font-weight:700; cursor:pointer;
 }
 .logout-btn:hover{ background:var(--brand-gold); color:#111; border-color:var(--brand-gold); }
 
-/* === Drawer (unchanged behavior, brand accents) === */
-.section-btn{ width:100%; border:0; background:transparent; display:flex; align-items:center; gap:10px; padding:12px; font-weight:800; cursor:pointer; }
+/* ===== Drawer (solid, collapsible sections) ===== */
+.drawer{
+  position:fixed; top:calc(var(--header-h) + var(--crumb-h)); bottom:0; left:0;
+  width:var(--drawer-w); background:var(--surface);
+  border-right:1px solid var(--border); transform:translateX(-100%);
+  transition: transform .18s ease-out; z-index:1200; overflow:auto;
+}
+.drawer.open{ transform:translateX(0); }
+.drawer-hd{
+  position:sticky; top:0; background:var(--surface); padding:12px;
+  font-weight:800; border-bottom:1px solid var(--border);
+}
+.nav{ list-style:none; margin:0; padding:8px; }
+.nav > li{ border:1px solid var(--border); border-radius:12px; margin:8px 4px; overflow:hidden; background:var(--surface); }
+.section-btn{
+  width:100%; border:0; background:transparent; display:flex; align-items:center; gap:10px;
+  padding:12px; font-weight:800; cursor:pointer;
+}
+.section-ico{ width:22px; text-align:center; }
+.chev{ margin-left:auto; opacity:.7; transition:transform .15s; }
+.section-btn[aria-expanded="true"] .chev{ transform:rotate(90deg); opacity:1; }
+.sub{ display:none; background:var(--surface-2); border-top:1px solid var(--border); }
+.sub.open{ display:block; }
+.sub a{
+  display:block; padding:11px 14px; border-top:1px dashed var(--border); color:var(--muted);
+}
+.sub a:first-child{ border-top:0; }
 .sub a:hover{ color:#fff; background:var(--accent); border-color:var(--accent); }
 
-/* === Buttons & highlights use brand colors === */
+/* Backdrop for mobile drawer */
+.backdrop{
+  position:fixed; inset:calc(var(--header-h) + var(--crumb-h)) 0 0 0;
+  background:rgba(0,0,0,.45); opacity:0; pointer-events:none; transition:opacity .12s ease; z-index:1100;
+}
+.backdrop.show{ opacity:1; pointer-events:auto; }
+
+/* ===== Content & cards ===== */
+.content{ padding:16px; max-width:1100px; margin:0 auto; }
+h1{ margin:0 0 8px; font-weight:800; font-size:1.18rem; }
+.subtle{ color:var(--muted); margin:0 0 16px; }
+.card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); margin:12px 0;
+}
+.card h2{ margin:0 0 8px; font-size:1rem; }
+.row{ display:flex; flex-wrap:wrap; gap:10px; }
+.btn{
+  flex:1; min-width:150px; text-align:center; padding:10px 12px;
+  border-radius:10px; border:1px solid var(--border); background:var(--surface-2);
+  font-weight:800; cursor:pointer;
+}
 .btn:hover{ background:var(--accent); color:#fff; border-color:var(--accent-hover); }
 
-/* === Footer now used for date (no status) === */
+/* Search bar */
+.searchbar{ display:flex; gap:8px; }
+.searchbar input{
+  flex:1; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:var(--surface);
+}
+.icon-btn{
+  width:48px; height:48px; border-radius:12px; border:1px solid var(--border);
+  background:var(--surface-2); display:grid; place-items:center; cursor:pointer; font-weight:800;
+}
+.icon-btn:hover{ background:var(--accent); color:#fff; border-color:var(--accent-hover); }
+
+/* ===== Footer (version • date) ===== */
 .app-footer{
   position:fixed; left:0; right:0; bottom:0; height:44px;
   display:flex; align-items:center; justify-content:center; gap:10px;
   background:var(--surface); border-top:1px solid var(--border); color:var(--muted); z-index:1000;
+}
+
+/* ===== Desktop/tablet: pin drawer and push content ===== */
+@media (min-width: 1024px){
+  body{ padding-left: var(--drawer-w); }
+  .drawer{ transform:none; }
+  .backdrop{ display:none; }
 }
