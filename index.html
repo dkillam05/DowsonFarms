@@ -1,108 +1,72 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Dowson Farms</title>
-  <base href="./"/>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#1B5E20"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="Dowson Farms"/>
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
+  <!-- PWA (so it opens like an app when saved to home screen) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/app-icon-192.png" />
 
-  <!-- Favicon(s) -->
-  <link rel="icon" sizes="192x192" href="assets/icons/icon-192.png">
-  <link rel="icon" sizes="512x512" href="assets/icons/icon-512.png">
+  <!-- Theme (JD green + dark gold) -->
+  <link rel="stylesheet" href="assets/css/theme.css" />
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="assets/css/theme.css"/>
+  <!-- Your global menus (unchanged) -->
+  <script src="assets/data/menus.js"></script>
+
+  <!-- Core behavior -->
+  <script defer src="js/core.js"></script>
 </head>
 <body>
 
-  <!-- Header -->
-  <header class="app-header">
-    <button id="hamburger" class="hamburger" aria-label="Toggle menu">☰</button>
+  <!-- HEADER -->
+  <header class="app-header push" role="banner">
     <div class="brand">
-      <div class="logo">
-        <!-- use any of your icons here -->
-        <img src="assets/icons/farm-tractor.png" alt="DF"/>
-      </div>
-      <div class="title">Dowson Farms</div>
+      <img class="brand-mark" src="assets/icons/df-logo.svg" alt="" onerror="this.src='assets/icons/app-icon-192.png'">
+      <span class="brand-title">Dowson Farms</span>
     </div>
-    <div class="hdr-actions">
-      <span id="df-clock" aria-live="polite"></span>
-      <button id="logout" class="icon-btn">Logout</button>
+    <div class="header-right">
+      <span id="df-clock" class="clock" aria-live="polite"></span>
+      <button id="logout" class="logout" type="button">Logout</button>
     </div>
   </header>
 
-  <!-- Breadcrumbs -->
-  <nav class="breadcrumbs">
-    <ol id="crumbs"><li><span>Home</span></li></ol>
+  <!-- BREADCRUMBS (+ hamburger lives here) -->
+  <nav class="breadcrumbs push" aria-label="Breadcrumb">
+    <button id="hamburger" class="ham" aria-expanded="false" aria-controls="drawer" aria-label="Toggle menu">☰</button>
+    <ol id="crumbs"></ol>
   </nav>
 
-  <!-- Drawer -->
-  <aside id="drawer" class="drawer" aria-label="Navigation">
-    <div class="drawer-hd">Menu</div>
-    <ul id="nav" class="nav"></ul>
+  <!-- SIDEBAR DRAWER + BACKDROP -->
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head"><span class="drawer-title">Navigation</span></div>
+    <ul id="nav" class="nav-tree" aria-label="Main sidebar"></ul>
   </aside>
-  <div id="backdrop" class="backdrop" aria-hidden="true"></div>
+  <div id="backdrop" class="backdrop" hidden></div>
 
-  <!-- Content -->
-  <main class="content">
-    <h1>Search your operation</h1>
-    <section class="card">
-      <div class="searchbar">
-        <input id="global-search" type="text" placeholder="Ask: “planting on North Field 2023”, “maintenance for S780”, “Jake’s hours last week”…" autocomplete="off">
-        <button class="icon-btn" title="Voice (placeholder)">🎤</button>
-      </div>
-    </section>
+  <!-- MAIN CONTENT -->
+  <main class="content push" role="main">
+    <section class="home-hero">
+      <h1>Welcome</h1>
 
-    <section class="card">
-      <h2 style="margin-top:0;">Quick actions</h2>
-      <div class="row">
-        <a class="btn" href="crop-production/">📊 View & Analyze Crop Production</a>
-        <a class="btn" href="crop-production/add.html">➕ Add Crop Records</a>
-        <a class="btn" href="equipment/">📊 View & Analyze Equipment</a>
-        <a class="btn" href="equipment/add.html">➕ Add Equipment</a>
-        <a class="btn" href="teams-partners/">📊 View & Analyze Teams & Partners</a>
-        <a class="btn" href="teams-partners/add.html">➕ Add Team Member</a>
-      </div>
-    </section>
+      <!-- Omnibox (routes to AI Reports with q=) -->
+      <form class="omnibox" action="reports/reports-ai.html" method="get">
+        <input type="search" name="q" placeholder="Search farms, fields, equipment, people…" aria-label="Search" />
+        <button class="btn-primary" type="submit">Search</button>
+      </form>
 
-    <section class="card">
-      <h2 style="margin-top:0;">Recent activity</h2>
-      <div class="row" id="recent"></div>
+      <!-- Auto-rendered quick links for ALL top-level menu sections -->
+      <div id="home-panels" class="home-panels" aria-label="Top sections"></div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer class="app-footer">
-    <span id="version">v0.0.0</span><span>•</span><span id="df-date-footer"></span>
+  <!-- FOOTER (shows date) -->
+  <footer class="app-footer push" role="contentinfo">
+    <span id="df-date-footer" aria-live="polite"></span>
   </footer>
 
-  <!-- Data + Core -->
-  <script src="assets/data/menus.js"></script>
-  <script src="js/core.js"></script>
-  <script>
-  // Page-only wiring
-  (function(){
-    const recent=document.getElementById('recent');
-    [
-      {label:'Imported planting logs (Apr 2024)', href:'crop-production/crop-planting.html'},
-      {label:'Added equipment “S780”', href:'equipment/equipment-combines.html'},
-      {label:'Generated AI report', href:'reports/reports-ai.html'}
-    ].forEach(i=>{
-      const a=document.createElement('a'); a.href=i.href; a.className='btn'; a.textContent=i.label; recent.appendChild(a);
-    });
-
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("serviceworker.js").catch(()=>{});
-    }
-  })();
-  </script>
 </body>
 </html>
