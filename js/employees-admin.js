@@ -1,6 +1,5 @@
 // js/employees-admin.js
-// Matches the Employees page you installed (ids: btnAdd, btnSave, btnSaveInvite, btnDelete,
-// empList, firstName, lastName, email, roles, status)
+// Employees admin (Save & Send Invite via Cloud Function)
 
 import { app, auth, db } from "./firebase-init.js";
 import {
@@ -9,151 +8,152 @@ import {
 import {
   getFunctions, httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-// --- Elements ---------------------------------------------------------------
-const statusEl   = document.getElementById("status");
-const listEl     = document.getElementById("empList");
-const addBtn     = document.getElementById("btnAdd");
-const saveBtn    = document.getElementById("btnSave");        // note: Save alone does nothing permanent (see below)
-const inviteBtn  = document.getElementById("btnSaveInvite");
-const deleteBtn  = document.getElementById("btnDelete");      // not wired yet (safe no-op)
+// ---------- DOM ----------
+const statusEl  = document.getElementById("status");
+const listEl    = document.getElementById("empList");
+const btnAdd    = document.getElementById("btnAdd");
+const btnSave   = document.getElementById("btnSave");
+const btnInvite = document.getElementById("btnSaveInvite");
+const btnDelete = document.getElementById("btnDelete");
 
-const firstInp   = document.getElementById("firstName");
-const lastInp    = document.getElementById("lastName");
-const emailInp   = document.getElementById("email");
-const rolesSel   = document.getElementById("roles");          // <select multiple>
+const firstInp  = document.getElementById("firstName");
+const lastInp   = document.getElementById("lastName");
+const emailInp  = document.getElementById("email");
+const rolesSel  = document.getElementById("roles"); // <select multiple>
 
-// --- State -----------------------------------------------------------------
-let selectedUid = null;  // uid from /users collection (when you click an existing employee)
+let authedUser = null;
 
-// --- Helpers ---------------------------------------------------------------
-function ok(msg){ statusEl.className = "ok"; statusEl.textContent = msg; statusEl.style.display="block"; }
-function err(msg){ statusEl.className = "err"; statusEl.textContent = msg; statusEl.style.display="block"; }
-function clearMsg(){ statusEl.style.display="none"; }
+// ---------- UI helpers ----------
+const show = (cls,msg)=>{ statusEl.className = cls; statusEl.textContent = msg; statusEl.style.display="block"; };
+const ok  = (m)=>show("ok",m);
+const err = (m)=>show("err",m);
+const hide= ()=>{ statusEl.style.display="none"; };
 
-function selectedRoleKeys(){
-  return Array.from(rolesSel.selectedOptions).map(o => o.value);
-}
+const roleKeysSelected = () => Array.from(rolesSel.selectedOptions).map(o=>o.value);
 
-// --- Load Roles into the dropdown ------------------------------------------
+// ---------- Data loaders ----------
 async function loadRoles(){
   rolesSel.innerHTML = "";
   const snap = await getDocs(collection(db,"roles"));
-  const roles = [];
-  snap.forEach(d=>{
+  const rows = [];
+  snap.forEach(d => {
     const r = d.data();
-    const key = (r.key || d.id);
-    const name = r.name || key;
-    roles.push({key, name});
+    rows.push({ key: r.key || d.id, name: r.name || (r.key || d.id) });
   });
-  // sort by name
-  roles.sort((a,b)=>a.name.localeCompare(b.name));
-  // populate options
-  roles.forEach(r=>{
-    const opt = document.createElement("option");
-    opt.value = r.key;
-    opt.textContent = r.name;
-    rolesSel.appendChild(opt);
+  rows.sort((a,b)=>a.name.localeCompare(b.name));
+  rows.forEach(r=>{
+    const o = document.createElement("option");
+    o.value = r.key; o.textContent = r.name;
+    rolesSel.appendChild(o);
   });
 }
 
-// --- Load employees list (from /users, real accounts only) -----------------
-async function loadEmployeesList(){
+async function loadEmployees(){
   listEl.innerHTML = "";
   const snap = await getDocs(collection(db,"users"));
-  const items = [];
+  const rows = [];
   snap.forEach(d=>{
     const u = d.data();
-    items.push({ id:d.id, first:u.firstName||u.first||"", last:u.lastName||u.last||"", email:u.email||"" });
+    rows.push({ id:d.id, first:u.firstName||u.first||"", last:u.lastName||u.last||"", email:u.email||"" });
   });
-  items.sort((a,b)=> (a.first+a.last).localeCompare(b.first+b.last));
-
-  items.forEach(it=>{
+  rows.sort((a,b)=>(a.first+a.last).localeCompare(b.first+b.last));
+  rows.forEach(u=>{
     const row = document.createElement("div");
     row.className = "list-item";
     const left = document.createElement("div");
-    left.innerHTML = `<strong>${(it.first+" "+it.last).trim()||"(no name)"}</strong><br><span class="muted">${it.email}</span>`;
-    const right = document.createElement("button");
-    right.textContent = "Select";
-    right.onclick = ()=>selectEmployee(it);
-    row.appendChild(left);
-    row.appendChild(right);
+    left.innerHTML = `<strong>${(u.first+" "+u.last).trim()||"(no name)"}</strong><br><span class="muted">${u.email}</span>`;
+    const sel = document.createElement("button");
+    sel.textContent = "Select";
+    sel.onclick = ()=>selectEmployee(u);
+    row.appendChild(left); row.appendChild(sel);
     listEl.appendChild(row);
   });
 }
 
-function selectEmployee(it){
-  selectedUid = it.id;
-  firstInp.value = it.first || "";
-  lastInp.value  = it.last || "";
-  emailInp.value = it.email || "";
-  clearMsg();
-  ok(`Selected: ${it.first||""} ${it.last||""}`);
+function selectEmployee(u){
+  firstInp.value = u.first || "";
+  lastInp.value  = u.last  || "";
+  emailInp.value = u.email || "";
+  hide(); ok(`Selected: ${u.first||""} ${u.last||""}`);
 }
 
-// --- Add button: clear form -------------------------------------------------
+// ---------- Form actions ----------
 function onAdd(){
-  selectedUid = null;
-  firstInp.value = ""; lastInp.value = ""; emailInp.value = "";
+  firstInp.value=""; lastInp.value=""; emailInp.value="";
   rolesSel.selectedIndex = -1;
-  clearMsg();
-  ok("New employee form ready. Use “Save & Send Invite” to create the account.");
+  ok("New employee. Use “Save & Send Invite”.");
 }
 
-// --- Save button: (info only) ----------------------------------------------
-// To keep things correct, we don’t permanently save without creating the Auth user.
-// This button just gives guidance.
 function onSave(){
-  ok("To create a real account, use “Save & Send Invite”. This will create the Auth user and write /users/{uid}.");
+  ok("Use “Save & Send Invite” (creates Auth user and writes /users/{uid}).");
 }
 
-// --- Invite button: create Auth user via Cloud Function + write /users/{uid}-
-async function onSaveInvite(){
-  clearMsg();
+// IMPORTANT: wait for auth, refresh token, then call the function
+async function onInvite(){
+  hide();
+  if(!authedUser){ err("Must be signed in."); return; }
+
   const first = firstInp.value.trim();
   const last  = lastInp.value.trim();
-  const email = emailInp.value.trim().toLowerCase();
-  const roles = selectedRoleKeys();
+  const email = (emailInp.value || "").trim().toLowerCase();
+  const roles = roleKeysSelected();
 
   if(!email){ err("Enter an email."); return; }
-  if(!roles.length){ err("Choose at least one role."); return; }
+  if(roles.length===0){ err("Pick at least one role."); return; }
 
   try{
-    // Call the deployed function
+    // Ensure token exists and is fresh so context.auth is populated
+    await authedUser.getIdToken(true);
+
     const functions = getFunctions(app, "us-central1");
-    const invite = httpsCallable(functions, "inviteEmployee");
-    const res = await invite({ first, last, email, roles, overrides:{} });
+    const invite    = httpsCallable(functions, "inviteEmployee");
+
+    const res = await invite({ first, last, email, roles, overridesByPath:{} });
     const uid = res?.data?.uid || res?.data?.userId || null;
 
-    // Upsert Firestore so permissions exist on first login
     if(uid){
       await setDoc(doc(db,"users",uid), {
         firstName:first, lastName:last, email, roles,
         updatedAt: new Date()
-      }, {merge:true});
+      }, { merge:true });
     }
 
-    ok("Invite sent. They must set a password before they can sign in.");
-    await loadEmployeesList();
+    ok("Invite sent. They’ll set a password before first login.");
+    await loadEmployees();
   }catch(e){
     console.error(e);
-    err(`Invite failed: ${e?.message || e}`);
+    err(e?.message || "Invite failed.");
   }
 }
 
-// --- Delete button (not implemented yet) -----------------------------------
 function onDelete(){
-  err("Delete is not wired yet in this cut. (Safer while we’re testing.)");
+  err("Delete is disabled in this test build.");
 }
 
-// --- Init -------------------------------------------------------------------
-(async function init(){
-  await loadRoles();          // fixes the empty dropdown
-  await loadEmployeesList();  // shows current users
-})();
+// ---------- Auth gate: enable buttons only after sign-in ----------
+function lockButtons(locked){
+  [btnAdd, btnSave, btnInvite, btnDelete].forEach(b=> b && (b.disabled = locked));
+}
 
-// Bind buttons
-addBtn?.addEventListener("click", onAdd);
-saveBtn?.addEventListener("click", onSave);
-inviteBtn?.addEventListener("click", onSaveInvite);
-deleteBtn?.addEventListener("click", onDelete);
+lockButtons(true);
+onAuthStateChanged(auth, async (u)=>{
+  authedUser = u || null;
+  if(u){
+    lockButtons(false);
+    await loadRoles();
+    await loadEmployees();
+  }else{
+    lockButtons(true);
+    err("Must be signed in.");
+  }
+});
+
+// Bind
+btnAdd?.addEventListener("click", onAdd);
+btnSave?.addEventListener("click", onSave);
+btnInvite?.addEventListener("click", onInvite);
+btnDelete?.addEventListener("click", onDelete);
