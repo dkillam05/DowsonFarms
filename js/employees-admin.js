@@ -8,9 +8,7 @@ import {
 import {
   getFunctions, httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
-import {
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 // ---------- DOM ----------
 const statusEl  = document.getElementById("status");
@@ -28,12 +26,16 @@ const rolesSel  = document.getElementById("roles"); // <select multiple>
 let authedUser = null;
 
 // ---------- UI helpers ----------
-const show = (cls,msg)=>{ statusEl.className = cls; statusEl.textContent = msg; statusEl.style.display="block"; };
+function show(cls,msg){ statusEl.className = cls; statusEl.textContent = msg; statusEl.style.display="block"; }
 const ok  = (m)=>show("ok",m);
 const err = (m)=>show("err",m);
 const hide= ()=>{ statusEl.style.display="none"; };
 
 const roleKeysSelected = () => Array.from(rolesSel.selectedOptions).map(o=>o.value);
+
+function lockButtons(locked){
+  [btnAdd, btnSave, btnInvite, btnDelete].forEach(b=> b && (b.disabled = locked));
+}
 
 // ---------- Data loaders ----------
 async function loadRoles(){
@@ -78,7 +80,7 @@ function selectEmployee(u){
   firstInp.value = u.first || "";
   lastInp.value  = u.last  || "";
   emailInp.value = u.email || "";
-  hide(); ok(`Selected: ${u.first||""} ${u.last||""}`);
+  ok(`Selected: ${u.first||""} ${u.last||""}`);
 }
 
 // ---------- Form actions ----------
@@ -92,9 +94,8 @@ function onSave(){
   ok("Use “Save & Send Invite” (creates Auth user and writes /users/{uid}).");
 }
 
-// IMPORTANT: wait for auth, refresh token, then call the function
+// Create + invite via Cloud Function
 async function onInvite(){
-  hide();
   if(!authedUser){ err("Must be signed in."); return; }
 
   const first = firstInp.value.trim();
@@ -106,7 +107,7 @@ async function onInvite(){
   if(roles.length===0){ err("Pick at least one role."); return; }
 
   try{
-    // Ensure token exists and is fresh so context.auth is populated
+    // ensure fresh token so context.auth is populated in the callable
     await authedUser.getIdToken(true);
 
     const functions = getFunctions(app, "us-central1");
@@ -134,16 +135,13 @@ function onDelete(){
   err("Delete is disabled in this test build.");
 }
 
-// ---------- Auth gate: enable buttons only after sign-in ----------
-function lockButtons(locked){
-  [btnAdd, btnSave, btnInvite, btnDelete].forEach(b=> b && (b.disabled = locked));
-}
-
+// ---------- Auth gate ----------
 lockButtons(true);
 onAuthStateChanged(auth, async (u)=>{
   authedUser = u || null;
   if(u){
     lockButtons(false);
+    ok(`Signed in as ${u.email || u.uid}`);
     await loadRoles();
     await loadEmployees();
   }else{
