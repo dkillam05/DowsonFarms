@@ -1,178 +1,102 @@
-/* Dowson Farms — PRO theme (drop-in replacement)
-   - Neutral, professional UI
-   - Mobile-first
-   - Clean tiles, lists, forms
-   - Auto dark mode via prefers-color-scheme
-*/
+/* Dowson Farms — new theme (no Deere, no old tiles) */
+/* Mobile-first, dark header + bottom nav, card layout */
 
-/* ====== Tokens ====== */
-:root{
+:root {
   --page: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #f0f3f7;
-  --text: #0f172a;         /* slate-900 */
-  --muted: #64748b;        /* slate-500 */
-  --border: rgba(15,23,42,.12);
+  --surface: #fff;
+  --surface-2: #f0f2f6;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: rgba(0,0,0,0.1);
 
-  --accent: #2563eb;       /* blue-600 */
-  --accent-700: #1d4ed8;
-
-  --radius: 14px;
-  --pad: 16px;
+  --accent: #2563eb;
+  --accent-dark: #1e40af;
 
   --header-h: 60px;
-  --footer-h: 0px;         /* bump later if you add a bottom bar */
-
-  --shadow: 0 10px 30px rgba(2,6,23,.08);
+  --footer-h: 60px;
+  --radius: 14px;
 }
 
-@media (prefers-color-scheme: dark){
-  :root{
-    --page: #0b0f14;
-    --surface: #10161c;
-    --surface-2: #0f141b;
-    --text: #e5e7eb;       /* zinc-200 */
-    --muted: #9aa3af;      /* zinc-400 */
-    --border: rgba(148,163,184,.18);
-    --shadow: 0 14px 34px rgba(0,0,0,.35);
-    --accent: #60a5fa;     /* blue-300 */
-    --accent-700: #93c5fd;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1e2530;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --border: rgba(255,255,255,0.15);
+
+    --accent: #60a5fa;
+    --accent-dark: #3b82f6;
   }
 }
 
-/* ====== Base ====== */
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  background:var(--page);
-  color:var(--text);
-  font: 400 16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 400 16px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+  background: var(--page);
+  color: var(--text);
   padding-top: var(--header-h);
   padding-bottom: var(--footer-h);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a{ color:inherit; text-decoration:none; }
-img{ display:block; max-width:100%; }
+a { color: inherit; text-decoration: none; }
 
-/* ====== Header ====== */
-.app-hd{
-  position:fixed; inset:0 0 auto 0; height:var(--header-h);
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 var(--pad);
-  box-shadow: 0 6px 18px rgba(2,6,23,.05);
+/* Header */
+.app-hd {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+  background: var(--accent);
+  color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  font-weight: 600;
   z-index: 1000;
 }
-.app-hd__brand{
-  display:flex; align-items:center; gap:10px;
-  font-weight:700; letter-spacing:.2px;
-}
-.app-logo{ width:28px; height:28px; border-radius:7px; background:#e2e8f0; }
-.hd-meta{ display:flex; align-items:center; gap:10px; }
-.hd-meta #df-date{ font-weight:600; color:var(--muted); }
-.hd-meta #df-clock{ font-variant-numeric:tabular-nums; font-weight:700; }
-.icon-btn{
-  display:inline-grid; place-items:center;
-  width:34px; height:34px;
-  border-radius:10px; border:1px solid var(--border);
-  background:var(--surface);
-  box-shadow: 0 3px 10px rgba(2,6,23,.06);
-  cursor:pointer;
-}
-.icon-btn:hover{ border-color: rgba(37,99,235,.35); }
+.hd-meta { display: flex; gap: 12px; font-size: 0.9rem; }
 
-/* ====== Content ====== */
-.content{
-  padding: 14px;
-  max-width: 1100px;
-  margin: 0 auto;
+/* Footer / bottom nav */
+.app-ft {
+  position: fixed; bottom: 0; left: 0; right: 0; height: var(--footer-h);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-around;
+  z-index: 1000;
 }
-.section-h1{
-  margin: 2px 0 6px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing:.2px;
+.app-ft a {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
-.subtle{ color:var(--muted); margin:0 0 14px; }
+.app-ft a.active { color: var(--accent); font-weight: 700; }
 
-/* ====== Home: Tiles ====== */
-.tile-grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap:12px;
-}
-.tile{
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:8px;
-  height:110px;
-  background:var(--surface);
-  border:1px solid var(--border);
+/* Content */
+.content { padding: 16px; max-width: 1100px; margin: 0 auto; }
+h1 { margin: 0 0 12px; font-size: 1.25rem; font-weight: 700; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding:10px;
-  transition: transform .08s ease, box-shadow .12s ease, border-color .12s ease;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
-.tile:hover{ transform: translateY(-2px); border-color: rgba(37,99,235,.35); }
-.tile__icon{ font-size: 26px; line-height:1; }
-.tile__label{ font-weight: 700; text-align:center; }
-
-/* ====== Cards (can reuse on any page) ====== */
-.card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding:14px;
+.card h2 { margin: 0 0 8px; font-size: 1rem; }
+.card-actions {
+  display: flex; flex-wrap: wrap; gap: 8px;
 }
-.card + .card{ margin-top:12px; }
-
-/* ====== Lists ====== */
-.list{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
-.item{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:12px 14px; border-bottom:1px solid var(--border);
+.btn {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
 }
-.item:last-child{ border-bottom:0; }
-.item-title{ font-weight:700; }
-.item-sub{ color:var(--muted); font-size:.92rem; }
-
-/* ====== Forms ====== */
-.form{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; }
-.field{ margin:0 0 12px; }
-label{ display:block; font-weight:700; margin:0 0 6px; }
-input,select,textarea{
-  width:100%; padding:11px 12px; border-radius:12px;
-  border:1px solid var(--border);
-  background:var(--surface-2); color:var(--text);
-  font-size:16px; outline:none;
-}
-input:focus,select:focus,textarea:focus{
-  border-color: rgba(37,99,235,.55);
-  box-shadow: 0 0 0 3px rgba(37,99,235,.20);
-}
-.btn{
-  display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  padding:10px 14px; border-radius:12px; border:1px solid var(--border);
-  background:var(--surface); cursor:pointer; font-weight:700;
-}
-.btn--primary{
-  color:#fff; background:var(--accent); border-color:var(--accent);
-}
-.btn--primary:hover{ background:var(--accent-700); border-color:var(--accent-700); }
-
-/* ====== Footer note ====== */
-.footer-lite{
-  display:flex; align-items:center; gap:8px; color:var(--muted);
-  padding:10px 2px; font-size:.92rem;
-}
-.badge{ display:inline-block; padding:.2rem .5rem; border-radius:999px; background:var(--surface-2); border:1px solid var(--border); }
-
-/* ====== Small screens tweaks ====== */
-@media (max-width:360px){
-  .tile{ height:100px; }
-  .tile-grid{ gap:10px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-}
+.btn:hover { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
