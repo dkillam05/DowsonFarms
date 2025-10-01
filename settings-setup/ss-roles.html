@@ -2,174 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1B5E20" />
-  <title>Dowson Farms — Account Roles & Access</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account Roles</title>
 
+  <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
-  <script>
-    (function () {
-      var pref = localStorage.getItem('df_theme') || 'auto';
-      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-      document.documentElement.setAttribute('data-theme', mode);
-      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
-    })();
-  </script>
 
-  <link rel="stylesheet" href="../assets/css/theme.css" />
-
+  <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
-    :root { --brand-green:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
-    body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
-    header .title { font-weight:700; color:#333; }
-    header .spacer { flex:1; }
-    header .btn { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20; font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
-    main { padding:18px; max-width:1200px; margin:0 auto; }
-    h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
+    body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
+    header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
+    header .title{font-weight:700;color:#333} .spacer{flex:1}
+    main{padding:18px;max-width:1100px;margin:0 auto}
+    h1{margin:0 0 8px;color:#1B5E20}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+    select,input[type=text]{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
+    button{padding:8px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer;font-weight:600}
+    #status{margin:10px 0;padding:8px 10px;border-radius:10px;background:#eef5ee;border:1px solid #cfe3cf;color:#125212;display:none}
+    .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
+    .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
+    .perm-grid .head{font-weight:700}
+    .muted{color:#666;font-size:12px}
 
-    .card { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
-    .card h2 { margin:0; padding:14px 16px; border-bottom:1px solid rgba(0,0,0,.06); color:var(--brand-green); font-size:18px; }
-    .card .body { padding:14px 16px 16px; }
-
-    .grid { display:grid; gap:16px; grid-template-columns: minmax(320px, 1fr) minmax(520px, 2fr); }
-    @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
-
-    .field { margin-bottom:12px; }
-    .field label { display:block; font-size:13px; margin-bottom:6px; color:#444; }
-    .field input, .field textarea, .field select {
-      width:100%; padding:10px 12px; border:1px solid rgba(0,0,0,.2); border-radius:12px; font-size:14px; outline:none; background:#fff;
-    }
-    .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
-    .btn.primary { appearance:none; border:0; background:var(--brand-green); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer; }
-    .btn.secondary { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#333; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer; }
-    .btn.danger { background:#b00020; color:#fff; border:0; }
-
-    table.matrix { width:100%; border-collapse: collapse; }
-    .matrix th, .matrix td { padding:10px 8px; border-bottom:1px solid rgba(0,0,0,.06); font-size:14px; text-align:left; }
-    .matrix th { color:#333; }
-    .matrix tr:hover { background:#fafafa; }
-    .indent-1 { padding-left:18px; }
-    .indent-2 { padding-left:36px; }
-    .muted { color:#666; font-size:12px; }
-    .warn { color:#a00; font-size:12px; }
-
-    .toast {
-      position: fixed; left:50%; transform: translateX(-50%);
-      bottom: 18px; background:#333; color:#fff; padding:10px 14px; border-radius:12px; font-size:14px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .18s;
-    }
-    .toast.show { opacity: 1; }
+    /* small diagnostics bar */
+    #diag{white-space:pre-wrap;font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          padding:8px 10px;border-bottom:1px solid #0002;display:none}
+    #diag.ok{background:#eef5ee;color:#125212;display:block}
+    #diag.err{background:#ffe9e9;color:#a00;display:block}
   </style>
 </head>
 <body>
-
   <header>
-    <button onclick="history.back()" class="btn" aria-label="Back">← Back</button>
-    <div class="title">Settings → Account Roles & Access</div>
+    <a href="settings-setup/" style="text-decoration:none">← Back</a>
+    <div class="title">Account Roles</div>
     <div class="spacer"></div>
-    <button id="logoutBtn" class="btn">Logout</button>
+    <a href="index.html">Home</a>
   </header>
 
+  <!-- Diagnostics -->
+  <div id="diag">Loading…</div>
+
   <main>
-    <nav data-df-breadcrumbs></nav>
+    <h1>Account Roles</h1>
+    <p class="muted">Create roles and set what each role can do for every menu item.</p>
 
-    <h1>Account Roles & Access</h1>
-    <p class="muted">Pick a role, then choose what it can <strong>View</strong> (visibility), <strong>Create</strong>, <strong>Edit</strong>, <strong>Delete</strong>, and <strong>Archive</strong> in each menu/submenu.</p>
+    <div id="status"></div>
 
-    <div class="grid">
-      <!-- Role picker & details -->
-      <section class="card">
-        <h2>Role</h2>
-        <div class="body">
-          <div class="field">
-            <label for="roleSelect">Select role</label>
-            <select id="roleSelect"></select>
-            <div class="muted" style="margin-top:6px;">Choose an existing role to edit, or select “➕ New role”.</div>
-          </div>
+    <div class="row">
+      <label>Role:</label>
+      <select id="roleSelect"></select>
+      <input id="newRoleName" type="text" placeholder="New role name (e.g., managers)" />
+      <button id="btnAddRole">Add Role</button>
+      <button id="btnDeleteRole" style="color:#a00">Delete Role</button>
+      <span class="muted">Tip: Builder has full access automatically.</span>
+    </div>
 
-          <form id="roleForm" novalidate>
-            <input type="hidden" id="roleDocId" value="">
-            <div class="field">
-              <label for="roleName">Role name</label>
-              <input id="roleName" type="text" placeholder="e.g., Manager, Operator, Admin" required />
-            </div>
-            <div class="field">
-              <label for="roleKey">Key (unique, no spaces)</label>
-              <input id="roleKey" type="text" placeholder="e.g., manager, operator, admin" required />
-            </div>
-            <div class="field">
-              <label for="roleDesc">Description</label>
-              <textarea id="roleDesc" rows="2" placeholder="What can this role do?"></textarea>
-            </div>
-            <div class="row">
-              <label><input type="checkbox" id="roleDefault" /> Default for new users</label>
-            </div>
-
-            <div class="row" style="margin-top:10px;">
-              <button type="button" class="btn secondary" id="resetBtn">Reset</button>
-              <div style="flex:1"></div>
-              <button type="submit" class="btn primary" id="saveRoleBtn">Save Role</button>
-            </div>
-            <p class="warn" style="margin-top:8px;">Deleting a role removes it from the list; users with that role won’t auto-update. (We’ll add migration later.)</p>
-            <div class="row">
-              <button type="button" id="deleteRoleBtn" class="btn danger">Delete Role</button>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      <!-- Access Matrix -->
-      <section class="card">
-        <h2>Menu Access (View / Create / Edit / Delete / Archive)</h2>
-        <div class="body">
-          <table class="matrix" id="accessTable" aria-label="Access Matrix">
-            <thead>
-              <tr>
-                <th>Menu / Submenu</th>
-                <th>View</th>
-                <th>Create</th>
-                <th>Edit</th>
-                <th>Delete</th>
-                <th>Archive</th>
-                <th>All</th>
-              </tr>
-            </thead>
-            <tbody id="accessBody"></tbody>
-          </table>
-          <div class="row" style="margin-top:12px;">
-            <div class="muted">Press “Save Access” to apply.</div>
-            <div style="flex:1"></div>
-            <button class="btn primary" id="saveAccessBtn">Save Access</button>
-          </div>
-        </div>
-      </section>
+    <div class="card">
+      <div class="perm-grid" id="permHeader">
+        <div class="head">Menu Path</div>
+        <div class="head">View</div>
+        <div class="head">Create</div>
+        <div class="head">Edit</div>
+        <div class="head">Delete</div>
+        <div class="head">Archive</div>
+      </div>
+      <div id="permRows"></div>
+      <div class="row">
+        <button id="btnSavePerms">Save Permissions</button>
+      </div>
     </div>
   </main>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
+  <script src="assets/data/menus.js"></script>
 
-  <!-- Firebase + Guard -->
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script type="module" src="../js/auth-guard.js"></script>
+  <!-- 2) Firebase init + (optional) auth guard -->
+  <script type="module" src="js/firebase-init.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- Global menus + role-aware renderer (breadcrumbs only here) -->
-  <script src="../assets/data/menus.js"></script>
-  <script type="module" src="../js/ui-nav.js"></script>
-
-  <!-- Roles page logic -->
-  <script type="module" src="../js/roles.js"></script>
-
-  <script>
-    // Logout
-    import("../js/firebase-init.js").then(({ auth }) => {
-      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
-        document.getElementById("logoutBtn").addEventListener("click", () => {
-          signOut(auth).then(() => location.href = "../auth/");
-        });
-      });
-    });
+  <!-- 3) Roles admin (relies on firebase-init) -->
+  <script type="module">
+    import "./js/roles-admin.js";
+    // simple diag: show if menus loaded
+    const d = document.getElementById("diag");
+    try{
+      const ok = !!(window.DF_MENUS && (window.DF_MENUS.tiles||[]).length);
+      d.textContent = ok ? "menus.js loaded ✓" : "menus.js missing tiles";
+      d.className = ok ? "ok" : "err";
+    }catch(e){
+      d.textContent = e.message;
+      d.className = "err";
+    }
   </script>
 </body>
 </html>
