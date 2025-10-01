@@ -4,25 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Teams & Partners</title>
-
-  <!-- GitHub Pages subpath -->
   <base href="/DowsonFarms/">
-
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
-    body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
-    header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
-    header .title{font-weight:700;color:#333} header .spacer{flex:1}
+    :root{ --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; --ok:#125212; --err:#a00; }
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    header{height:40px;background:var(--band);display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
+    header .title{font-weight:700;color:#333}.spacer{flex:1}
     main{padding:18px;max-width:1100px;margin:0 auto}
-    h1{font-size:22px;color:#1B5E20;margin-top:0}
-    /* tile styling (same as TEST) */
-    .df-tiles{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-    .df-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;
-      border:1px solid rgba(0,0,0,.1);border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.06);
-      text-decoration:none;color:#333;padding:24px 18px;transition:transform .15s}
-    .df-tile:hover{transform:translateY(-3px)}
-    .df-tile span{margin-top:8px;font-weight:600}
-    #uiNavStatus{margin:10px 0;padding:10px;border-radius:8px;background:#e7f7e7;border:1px solid #bfe6bf;color:#114411;font:600 14px/1.3 system-ui,Segoe UI,Roboto,Arial}
+    h1{margin:0 0 10px;color:#1B5E20}
+    /* tiny diag banner */
+    #diag{margin:12px 0;padding:8px 10px;border-radius:10px;font-size:13px;display:none}
+    #diag.ok{background:#eef5ee;border:1px solid #cfe3cf;color:var(--ok)}
+    #diag.err{background:#ffe9e9;border:1px solid #f3b9b9;color:var(--err)}
   </style>
 </head>
 <body>
@@ -30,19 +24,48 @@
     <a href="index.html" style="text-decoration:none">← Home</a>
     <div class="title">Teams & Partners</div>
     <div class="spacer"></div>
-    <a href="settings-setup/">Settings</a>
+    <a href="auth/">Logout</a>
   </header>
 
   <main>
-    <h1>Teams & Partners</h1>
-    <p>Choose an area below.</p>
+    <nav data-df-breadcrumbs></nav>
 
-    <!-- SUBNAV target for this section -->
+    <!-- Diagnostics -->
+    <div id="diag"></div>
+
+    <h1>Teams & Partners</h1>
+    <p>People you work with — employees, subs, vendors, and shared dictionaries.</p>
+
+    <!-- This is the important hook: ui-nav.js will render the section’s sub-tiles here -->
     <div data-df-subnav data-section="teams-partners/index.html"></div>
   </main>
 
-  <!-- Use the same working test renderer -->
-  <script src="/DowsonFarms/assets/data/menus.js"></script>
-  <script src="/DowsonFarms/js/ui-nav.test.js"></script>
+  <!-- Order matters -->
+  <script type="module" src="js/firebase-init.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <script src="assets/data/menus.js"></script>
+  <script type="module" src="js/ui-nav.js"></script>
+
+  <!-- Tiny inline diag so you can see what's happening -->
+  <script type="module">
+    import { auth } from "../js/firebase-init.js";
+    (async function(){
+      const d = document.getElementById('diag');
+      // wait a tick for DF_ACCESS (ui-nav loads it)
+      await new Promise(r=>setTimeout(r, 300));
+      const A = window.DF_ACCESS || {};
+      const kids = (A.filterChildren ? A.filterChildren((window.DF_MENUS?.tiles||[])
+        .find(t=>t.href==="teams-partners/index.html")?.children||[]) : []);
+      const roleKeys = (A.roleKeys||[]).join(", ") || "none";
+      const count = kids.length;
+      d.className = count>0 ? "ok" : "err";
+      d.style.display = "block";
+      d.innerHTML = count>0
+        ? `Visible sub-menus: <b>${count}</b> · Role keys: <code>${roleKeys}</code>`
+        : `No visible sub-menus. Check Firestore role(s) permissions for paths like
+           <code>teams-partners/</code> and each child (e.g. <code>teams-partners/teams-employees.html</code>).`;
+    })();
+  </script>
 </body>
 </html>
