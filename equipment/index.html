@@ -6,70 +6,139 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Equipment — Dowson Farms</title>
 
-  <!-- Prepaint theme -->
+  <!-- GitHub Pages base (IMPORTANT) -->
+  <base href="/DowsonFarms/">
+
+  <!-- Theme prepaint -->
   <script>
-  (function () {
-    var pref = localStorage.getItem('df_theme') || 'auto';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
-    document.documentElement.style.colorScheme =
-      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
-  })();
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
-  <!-- We are in /equipment/, so use ../ to reach shared assets -->
-  <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js"></script>
-  <script defer src="../js/core.js"></script>
+  <link rel="stylesheet" href="assets/css/theme.css?v=15" />
+  <style>
+    :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
+    body { margin:0; background:var(--paper); color:var(--ink);
+           font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px;
+             padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
+    header .title { font-weight:700; color:#333; }
+    header .spacer { flex:1; }
+    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
+                     font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    main { padding:18px; max-width:1100px; margin:0 auto; }
+    h1 { font-size:22px; color:var(--brand); margin-top:0; }
+    footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
 
-  <!-- PWA -->
-  <link rel="manifest" href="../manifest.webmanifest" />
+    /* Tiles */
+    #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
+             background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
+             box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#333;
+             padding:24px 18px; transition:transform .15s; }
+    .tile:hover { transform: translateY(-3px); }
+    .tile span { margin-top:8px; font-weight:600; }
 
-  <!-- iOS icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+    /* Diagnostic banner */
+    #diag { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
+    #diag.ok  { background:#eef5ee; color:#1a4d1a; }
+    #diag.err { background:#ffe9e9; color:#a00; }
+
+    a.back { text-decoration:none; }
+  </style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="app-header__left">
-      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
-    </div>
-    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  <header>
+    <a class="back" href="index.html">← Home</a>
+    <div class="spacer"></div>
+    <div class="title">Equipment</div>
+    <div class="spacer"></div>
+    <button id="logoutBtn" class="logout">Logout</button>
   </header>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="../index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><span>Equipment</span></li>
-    </ol>
-  </nav>
+  <!-- Diagnostics -->
+  <div id="diag" class="err">Booting…</div>
 
-  <main class="content">
+  <main>
     <h1>🚜 Equipment</h1>
-    <div class="df-tiles" data-section="Equipment"></div>
+    <p>Tractors, combines, sprayers/spreaders, implements, trucks, trailers, and more.</p>
+    <div id="tiles"></div>
   </main>
 
-  <footer class="app-footer">
-    <span>Dowson Farms</span><span class="dot">•</span>
-    <span id="report-date">—</span><span class="dot">•</span>
-    <span id="version">v0.0.0</span>
-  </footer>
+  <footer>Dowson Farms App © <span id="year"></span></footer>
 
-  <!-- Your SW is in /js/ -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
-      });
+  <!-- Menus (global) -->
+  <script src="assets/data/menus.js?v=15"></script>
+
+  <!-- Firebase + guard + access (BASE-RELATIVE paths, no ../) -->
+  <script type="module" src="js/firebase-init.js?v=15"></script>
+  <script type="module" src="js/auth-guard.js?v=15"></script>
+
+  <!-- Page logic -->
+  <script type="module">
+    import { auth } from "./js/firebase-init.js?v=15";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "./js/access.js?v=15";
+
+    const diag = document.getElementById("diag");
+    const tilesEl = document.getElementById("tiles");
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    window.onerror = (m) => { diag.textContent = `JS error: ${m}`; diag.className = "err"; };
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => location.href = "auth/");
+    });
+
+    function menus() {
+      return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
     }
-  </script>
+    function getEquipNode() {
+      const t = menus();
+      return t.find(x => (x.href && x.href.replace(/index\.html$/,'').endsWith('equipment/')))
+          || t.find(x => String(x.label||'').toLowerCase() === 'equipment');
+    }
 
-  <script defer src="../assets/data/menus.js"></script>
-  <script defer src="../js/ui-subnav.js"></script>
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        diag.textContent = "Waiting for Firebase auth…";
+        diag.className = "err";
+        return;
+      }
+      try {
+        const access = await loadAccess();
+        const node = getEquipNode();
+        if (!node) {
+          diag.textContent = "menus.js missing equipment node";
+          diag.className = "err";
+          return;
+        }
+        const kids = Array.isArray(node.children) ? node.children : [];
+        const visible = kids.filter(ch => (access.canView ? access.canView(ch.href) : true));
+
+        diag.textContent = `Visible sub-menus: ${visible.length}`;
+        diag.className = visible.length ? "ok" : "err";
+
+        tilesEl.innerHTML = "";
+        visible.forEach(it => {
+          const a = document.createElement("a");
+          a.className = "tile";
+          a.href = it.href;
+          a.title = it.label;
+          a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
+          tilesEl.appendChild(a);
+        });
+      } catch (e) {
+        diag.textContent = "Error: " + e.message;
+        diag.className = "err";
+      }
+    });
+  </script>
 </body>
 </html>
