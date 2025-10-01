@@ -1,11 +1,12 @@
 /* Dowson Farms — Global Navigation (one source of truth)
    Loads as a normal script and sets window.DF_MENUS.
+   NOTE: All TOP-LEVEL sections use folder-style hrefs (e.g., "section/").
 */
 window.DF_MENUS = {
   tiles: [
     {
       label: "Crop Production",
-      href: "crop-production/index.html",       // use explicit index for reliable matching
+      href: "crop-production/",                 // folder-style
       iconEmoji: "🌽",
       children: [
         { label: "Planting",          href: "crop-production/crop-planting.html",     iconEmoji: "🌱" },
@@ -19,11 +20,18 @@ window.DF_MENUS = {
       ]
     },
 
-    { label: "Field Maintenance", href: "field-maintenance/field-maintenance.html", iconEmoji: "🛠️", children: [] },
+    {
+      label: "Field Maintenance",
+      href: "field-maintenance/",               // folder-style
+      iconEmoji: "🛠️",
+      children: [
+        { label: "Overview", href: "field-maintenance/field-maintenance.html", iconEmoji: "🛠️" }
+      ]
+    },
 
     {
       label: "Grain Tracking",
-      href: "grain-tracking/index.html",
+      href: "grain-tracking/",                  // folder-style
       iconEmoji: "🌾",
       children: [
         { label: "Grain Bags",         href: "grain-tracking/grain-bags.html",        iconEmoji: "👝" },
@@ -35,7 +43,7 @@ window.DF_MENUS = {
 
     {
       label: "Equipment",
-      href: "equipment/index.html",
+      href: "equipment/",                       // folder-style
       iconEmoji: "🚜",
       children: [
         { label: "StarFire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
@@ -51,7 +59,7 @@ window.DF_MENUS = {
 
     {
       label: "Calculators",
-      href: "calculators/index.html",
+      href: "calculators/",                     // folder-style
       iconEmoji: "🔢",
       children: [
         { label: "Combine Yield", href: "calculators/calc-combine-yield.html", iconEmoji: "🌽" },
@@ -65,7 +73,7 @@ window.DF_MENUS = {
 
     {
       label: "Teams & Partners",
-      href: "teams-partners/index.html",         // <-- key change: explicit index.html
+      href: "teams-partners/",                  // folder-style
       iconEmoji: "🫱🏼‍🫲🏽",
       children: [
         { label: "Employees",       href: "teams-partners/teams-employees.html",       iconEmoji: "👥" },
@@ -77,7 +85,7 @@ window.DF_MENUS = {
 
     {
       label: "Reports",
-      href: "reports/index.html",
+      href: "reports/",                         // folder-style
       iconEmoji: "📖",
       children: [
         { label: "Pre-Defined Reports", href: "reports/reports-predefined.html",  iconEmoji: "📁" },
@@ -88,7 +96,7 @@ window.DF_MENUS = {
 
     {
       label: "Setup / Settings",
-      href: "settings-setup/index.html",
+      href: "settings-setup/",                  // folder-style
       iconEmoji: "⚙️",
       children: [
         { label: "Farms",         href: "settings-setup/ss-farms.html",        iconEmoji: "🏡" },
@@ -98,7 +106,8 @@ window.DF_MENUS = {
         { label: "Account Roles", href: "settings-setup/ss-roles.html",        iconEmoji: "🛡️" },
         { label: "Check for Updates", href: "settings-setup/index.html#check-updates", iconEmoji: "🔄" },
         {
-          label: "Products", href: "settings-setup/products/index.html", iconEmoji: "📦",
+          label: "Products", href: "settings-setup/products/",                 // folder-style for nested group
+          iconEmoji: "📦",
           children: [
             { label: "Seed",        href: "settings-setup/products/products-seed.html",        iconEmoji: "🌽" },
             { label: "Fertilizer",  href: "settings-setup/products/products-fertilizer.html",  iconEmoji: "🧂" },
@@ -111,7 +120,7 @@ window.DF_MENUS = {
 
     {
       label: "Feedback",
-      href: "feedback/index.html",
+      href: "feedback/",                         // folder-style
       iconEmoji: "💬",
       children: [
         { label: "Ideas",         href: "feedback/fb-ideas.html", iconEmoji: "💡" },
