@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms — Calculators</title>
 
-  <!-- GitHub Pages base (IMPORTANT) -->
+  <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
 
   <!-- Theme prepaint -->
@@ -77,16 +77,16 @@
 
   <!-- ───────────── SCRIPTS (order matters) ───────────── -->
 
-  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
+  <!-- 1) Menus -->
   <script src="assets/data/menus.js"></script>
 
-  <!-- 2) Firebase app/auth/db -->
+  <!-- 2) Firebase init -->
   <script type="module" src="js/firebase-init.js"></script>
 
-  <!-- 3) (optional) guard -->
+  <!-- 3) Guard -->
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- 4) Inline module: render ONLY Calculators children via access filter -->
+  <!-- 4) Inline renderer for Calculators -->
   <script type="module">
     const SECTION_HREF = "calculators/";
 
@@ -133,7 +133,7 @@
 
       const node = findSectionNode();
       if(!node){
-        diag.textContent = `DF_MENUS missing a tile with href "${SECTION_HREF}". Check assets/data/menus.js.`;
+        diag.textContent = `DF_MENUS missing a tile with href "${SECTION_HREF}".`;
         diag.className = "err";
         return;
       }
