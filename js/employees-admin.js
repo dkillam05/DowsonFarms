@@ -1,123 +1,268 @@
-// js/employees-admin.js
-import { app, auth, db } from "./firebase-init.js";
-import { collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
-import { onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+// js/employees-admin.js — Manage employees + per-employee permission overrides
 
-// UI refs
-const statusEl  = document.getElementById("status");
-const listEl    = document.getElementById("empList");
-const btnAdd    = document.getElementById("btnAdd");
-const btnRefresh= document.getElementById("btnRefresh");
-const btnSave   = document.getElementById("btnSave");
-const btnInvite = document.getElementById("btnSaveInvite");
-const btnDelete = document.getElementById("btnDelete");
-const firstInp  = document.getElementById("firstName");
-const lastInp   = document.getElementById("lastName");
-const emailInp  = document.getElementById("email");
-const rolesSel  = document.getElementById("roles");
+import { auth, db } from "./firebase-init.js";
+import {
+  collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import {
+  httpsCallable, getFunctions
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-const DIAG = window.DF_DIAG || { setError:()=>{}, note:()=>{} };
-let authedUser = null;
+// ---------- DOM refs ----------
+const listEl   = document.getElementById("empList");
+const statusEl = document.getElementById("status");
+const selHint  = document.getElementById("selHint");
 
-const show = (cls,msg)=>{ statusEl.className = cls; statusEl.textContent = msg; statusEl.style.display="block"; };
-const ok  = (m)=>show("ok",m);
-const err = (m)=>show("err",m);
-const hide= ()=>{ statusEl.style.display="none"; };
-const lockButtons = (locked)=>[btnAdd,btnRefresh,btnSave,btnInvite,btnDelete].forEach(b=>b && (b.disabled=locked));
-const selectedRoles = ()=> Array.from(rolesSel.selectedOptions).map(o=>o.value);
+const firstEl  = document.getElementById("firstName");
+const lastEl   = document.getElementById("lastName");
+const emailEl  = document.getElementById("email");
+const rolesEl  = document.getElementById("roles");
 
-async function loadRoles(){
-  rolesSel.innerHTML = "";
-  const snap = await getDocs(collection(db,"roles"));
-  const arr=[];
-  snap.forEach(d=>{ const r=d.data(); arr.push({key:r.key||d.id, name:r.name||r.key||d.id}); });
-  arr.sort((a,b)=>a.name.localeCompare(b.name));
-  arr.forEach(r=>{ const o=document.createElement("option"); o.value=r.key; o.textContent=r.name; rolesSel.appendChild(o); });
+const btnAdd        = document.getElementById("btnAdd");
+const btnRefresh    = document.getElementById("btnRefresh");
+const btnSave       = document.getElementById("btnSave");
+const btnSaveInvite = document.getElementById("btnSaveInvite");
+const btnDelete     = document.getElementById("btnDelete");
+
+const permRowsEl    = document.getElementById("permRows");
+const btnSaveOv     = document.getElementById("btnSaveOverrides");
+const btnClearOv    = document.getElementById("btnClearOverrides");
+
+// ---------- State ----------
+let employees = [];      // {id, first,last,email,roles, overridesByPath?}
+let selectedId = null;   // user doc id
+
+// ---------- Helpers ----------
+function toast(ok, msg){
+  statusEl.className = ok ? "ok" : "err";
+  statusEl.textContent = msg;
+  statusEl.style.display = "block";
+  setTimeout(() => statusEl.style.display = "none", 4000);
 }
 
-async function loadEmployees(){
+function getMenus(){
+  const root = window.DF_MENUS || {};
+  return Array.isArray(root.tiles) ? root.tiles : [];
+}
+function flattenMenus(){
+  const out = [];
+  const walk = (node) => {
+    if (!node) return;
+    if (node.href) out.push({ label: node.label || node.href, href: node.href });
+    if (Array.isArray(node.children)) node.children.forEach(walk);
+  };
+  getMenus().forEach(walk);
+  // unique by href
+  const seen = new Set();
+  return out.filter(x => !seen.has(x.href) && seen.add(x.href));
+}
+
+function renderEmpList(){
   listEl.innerHTML = "";
-  const snap = await getDocs(collection(db,"users"));
-  const rows=[];
-  snap.forEach(d=>{ const u=d.data(); rows.push({id:d.id, first:u.firstName||u.first||"", last:u.lastName||u.last||"", email:u.email||""}); });
-  rows.sort((a,b)=>(a.first+a.last).localeCompare(b.first+b.last));
-  rows.forEach(u=>{
-    const row=document.createElement("div"); row.className="list-item";
-    const left=document.createElement("div");
-    left.innerHTML = `<strong>${(u.first+" "+u.last).trim()||"(no name)"}</strong><br><span class="muted">${u.email}</span>`;
-    const sel=document.createElement("button"); sel.textContent="Select"; sel.onclick=()=>selectEmployee(u);
-    row.appendChild(left); row.appendChild(sel); listEl.appendChild(row);
+  employees.forEach(u => {
+    const row = document.createElement("div");
+    row.className = "list-item";
+    row.role = "button";
+    row.tabIndex = 0;
+    row.innerHTML = `
+      <div><strong>${u.first || ""} ${u.last || ""}</strong><br><span class="muted">${u.email || ""}</span></div>
+      <div class="muted">${Array.isArray(u.roles) ? u.roles.join(", ") : ""}</div>
+    `;
+    row.addEventListener("click", () => selectEmp(u.id));
+    listEl.appendChild(row);
   });
 }
 
-function selectEmployee(u){
-  firstInp.value=u.first||""; lastInp.value=u.last||""; emailInp.value=u.email||"";
-  ok(`Selected: ${u.first||""} ${u.last||""}`);
+function getSelected(){
+  return employees.find(e => e.id === selectedId) || null;
 }
 
-function onAdd(){ firstInp.value=""; lastInp.value=""; emailInp.value=""; rolesSel.selectedIndex=-1; ok("New employee. Use “Save & Send Invite”."); }
-function onSave(){ ok("Use “Save & Send Invite” (creates Auth user and writes /users/{uid})."); }
-async function onRefresh(){ await loadEmployees(); ok("List refreshed."); }
+function formToData(){
+  const roles = Array.from(rolesEl.selectedOptions).map(o => String(o.value || "").toLowerCase());
+  return {
+    first: firstEl.value.trim(),
+    last:  lastEl.value.trim(),
+    email: emailEl.value.trim().toLowerCase(),
+    roles
+  };
+}
 
-async function onInvite(){
-  hide();
-  if(!authedUser){ err("Must be signed in."); return; }
+function fillForm(u){
+  firstEl.value = u?.first || "";
+  lastEl.value  = u?.last || "";
+  emailEl.value = u?.email || "";
 
-  const first = firstInp.value.trim();
-  const last  = lastInp.value.trim();
-  const email = (emailInp.value||"").trim().toLowerCase();
-  const roles = selectedRoles();
-  if(!email){ err("Enter an email."); return; }
-  if(!roles.length){ err("Pick at least one role."); return; }
+  // roles options come from roles collection
+  Array.from(rolesEl.options).forEach(opt => {
+    opt.selected = Array.isArray(u?.roles) && u.roles.map(r=>String(r).toLowerCase()).includes(String(opt.value).toLowerCase());
+  });
+}
 
-  try{
-    await authedUser.getIdToken(true);
+async function loadRolesIntoSelect(){
+  rolesEl.innerHTML = "";
+  const rs = await getDocs(collection(db, "roles"));
+  const opts = [];
+  rs.forEach(d => {
+    const data = d.data() || {};
+    const key = (data.key || d.id || "").toLowerCase();
+    if (!key) return;
+    const o = document.createElement("option");
+    o.value = key;
+    o.textContent = key;
+    opts.push(o);
+  });
+  if (!opts.length) {
+    const o = document.createElement("option");
+    o.value = "employee";
+    o.textContent = "employee";
+    opts.push(o);
+  }
+  opts.forEach(o => rolesEl.appendChild(o));
+}
 
-    // 1) Create user + seed Firestore (Cloud Function)
-    const inviteFn = httpsCallable(getFunctions(app,"us-central1"), "inviteEmployee");
-    const res = await inviteFn({ first, last, email, roles, overridesByPath:{} });
-    const uid = res?.data?.uid;
+async function refreshList(){
+  const snap = await getDocs(collection(db, "users"));
+  employees = [];
+  snap.forEach(d => employees.push({ id:d.id, ...d.data() }));
+  renderEmpList();
+  selHint.textContent = selectedId ? `(selected ${selectedId})` : "(no employee selected)";
+}
 
-    if(uid){
-      await setDoc(doc(db,"users",uid), {
-        firstName:first, lastName:last, email, roles, updatedAt: new Date()
-      }, { merge:true });
+// ---------- Overrides UI ----------
+function buildPermRow(pathLabel, href, current = {}){
+  const row = document.createElement("div");
+  row.className = "perm-grid";
+  row.dataset.href = href;
+
+  function cb(name){
+    const el = document.createElement("input");
+    el.type = "checkbox";
+    el.checked = !!current[name];
+    el.dataset.key = name;
+    return el;
     }
+  const lbl = document.createElement("div");
+  lbl.textContent = pathLabel;
 
-    // 2) SEND EMAIL (this is the missing piece)
-    // Firebase sends the reset email using your Auth templates.
-    const actionCodeSettings = {
-      url: "https://dkillam05.github.io/DowsonFarms/auth/post-reset.html",
-      handleCodeInApp: false
-    };
-    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+  row.appendChild(lbl);
+  row.appendChild(cb("view"));
+  row.appendChild(cb("create"));
+  row.appendChild(cb("edit"));
+  row.appendChild(cb("delete"));
+  row.appendChild(cb("archive"));
+  return row;
+}
 
-    ok("Invite email sent. They must set a password before first login.");
-    DIAG.note("inviteEmployee + sendPasswordResetEmail OK");
-    await loadEmployees();
-  }catch(e){
-    console.error("Invite failed", e);
-    err(e?.message || "Invite failed.");
-    DIAG.setError(e);
+function renderOverridesGrid(user){
+  permRowsEl.innerHTML = "";
+  const flat = flattenMenus();
+  const ov = (user && user.overridesByPath) || {};
+  flat.forEach(item => {
+    const curr = ov[item.href] || {};
+    const row = buildPermRow(item.label, item.href, curr);
+    permRowsEl.appendChild(row);
+  });
+}
+
+function collectOverridesFromGrid(){
+  const out = {};
+  const rows = Array.from(permRowsEl.querySelectorAll(".perm-grid"));
+  rows.forEach(r => {
+    const href = r.dataset.href;
+    const checks = Array.from(r.querySelectorAll("input[type=checkbox]"));
+    const obj = {};
+    checks.forEach(c => { if (c.checked) obj[c.dataset.key] = true; });
+    // only store if ANY true
+    if (Object.keys(obj).length) out[href] = obj;
+  });
+  return out;
+}
+
+// ---------- Actions ----------
+async function selectEmp(id){
+  selectedId = id;
+  selHint.textContent = `(selected ${selectedId})`;
+  const u = getSelected();
+  fillForm(u);
+  renderOverridesGrid(u);
+}
+
+async function addEmployee(){
+  const base = { first:"", last:"", email:"", roles:["employee"], createdAt: Date.now() };
+  const dref = await addDoc(collection(db, "users"), base);
+  await refreshList();
+  await selectEmp(dref.id);
+  toast(true, "New employee created (draft). Enter details and Save.");
+}
+
+async function saveEmployee(inviteAfter=false){
+  if (!selectedId) { toast(false, "Select an employee first."); return; }
+  const data = formToData();
+  if (!data.email) { toast(false, "Email is required."); return; }
+  await updateDoc(doc(db, "users", selectedId), data);
+  await refreshList();
+  await selectEmp(selectedId);
+  toast(true, "Employee saved.");
+  if (inviteAfter) {
+    try {
+      const fns = getFunctions();
+      const invite = httpsCallable(fns, "inviteEmployee");
+      await invite({ uid: selectedId, email: data.email, first: data.first, last: data.last });
+      toast(true, "Invite email sent.");
+    } catch (e) {
+      toast(false, "Invite failed: " + (e.message || e.code || "unknown"));
+    }
   }
 }
 
-lockButtons(true);
-onAuthStateChanged(auth, async (u)=>{
-  authedUser = u || null;
-  if(u){
-    lockButtons(false);
-    ok(`Signed in as ${u.email || u.uid}`);
-    try{ await loadRoles(); await loadEmployees(); } catch(e){ DIAG.setError(e); }
-  }else{
-    lockButtons(true);
-    err("Must be signed in.");
-  }
-});
+async function deleteEmployee(){
+  if (!selectedId) { toast(false, "Select an employee first."); return; }
+  await deleteDoc(doc(db, "users", selectedId));
+  selectedId = null;
+  await refreshList();
+  fillForm(null);
+  permRowsEl.innerHTML = "";
+  selHint.textContent = "(no employee selected)";
+  toast(true, "Employee removed.");
+}
 
-btnAdd?.addEventListener("click", onAdd);
-btnRefresh?.addEventListener("click", onRefresh);
-btnSave?.addEventListener("click", onSave);
-btnInvite?.addEventListener("click", onInvite);
-btnDelete?.addEventListener("click", ()=>err("Delete disabled in test build."));
+async function saveOverrides(){
+  if (!selectedId) { toast(false, "Select an employee first."); return; }
+  const overridesByPath = collectOverridesFromGrid();
+  await setDoc(doc(db, "users", selectedId), { overridesByPath }, { merge:true });
+  // reflect in memory state for the selected user
+  const u = getSelected();
+  if (u) u.overridesByPath = overridesByPath;
+  toast(true, "Overrides saved.");
+}
+
+async function clearOverrides(){
+  if (!selectedId) { toast(false, "Select an employee first."); return; }
+  await setDoc(doc(db, "users", selectedId), { overridesByPath: {} }, { merge:true });
+  const u = getSelected();
+  if (u) u.overridesByPath = {};
+  renderOverridesGrid(u);
+  toast(true, "Overrides cleared.");
+}
+
+// ---------- Wire up ----------
+btnAdd?.addEventListener("click", addEmployee);
+btnRefresh?.addEventListener("click", refreshList);
+btnSave?.addEventListener("click", () => saveEmployee(false));
+btnSaveInvite?.addEventListener("click", () => saveEmployee(true));
+btnDelete?.addEventListener("click", deleteEmployee);
+btnSaveOv?.addEventListener("click", saveOverrides);
+btnClearOv?.addEventListener("click", clearOverrides);
+
+// ---------- Bootstrap ----------
+(async function init(){
+  // load roles select first
+  await loadRolesIntoSelect();
+  // auth not strictly required here, but nice to ensure
+  onAuthStateChanged(auth, async () => {
+    await refreshList();
+  });
+})();
