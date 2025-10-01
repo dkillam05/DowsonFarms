@@ -31,14 +31,6 @@
   <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
-
-  <style>
-    /* Tiny diagnostics banner */
-    #diagBar{white-space:pre-wrap;font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-             padding:8px 10px;border-bottom:1px solid #0002;display:none}
-    #diagBar.ok{background:#eef5ee;color:#1a4d1a;display:block}
-    #diagBar.err{background:#ffe9e9;color:#a00;display:block}
-  </style>
 </head>
 <body>
   <!-- Header -->
@@ -59,15 +51,13 @@
     </ol>
   </nav>
 
-  <!-- Diagnostics -->
-  <div id="diagBar">Loading…</div>
-
   <!-- Main -->
   <main class="content">
     <h1>⚙️ Settings & Setup</h1>
 
-    <!-- Sub-tiles from menus.js (no fallbacks) -->
-    <div class="df-tiles" id="tiles"></div>
+    <!-- Sub-tiles from menus.js (same renderer as your other sections) -->
+    <!-- ui-subnav.js matches by href first, so we pass it explicitly -->
+    <div class="df-tiles" data-section="Settings & Setup" data-section-href="settings-setup/"></div>
 
     <section id="check-updates" style="margin-top:28px">
       <h2>App Updates</h2>
@@ -79,107 +69,22 @@
 
   <!-- Footer -->
   <footer class="app-footer">
-    <span>Dowson Farms</span><span class="dot">•</span>
-    <span id="report-date">—</span><span class="dot">•</span>
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker (yours lives in /js/) -->
+  <!-- Service worker (file is in /js/) -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
       });
     }
-  </script>
-
-  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
-  <script defer src="../assets/data/menus.js"></script>
-
-  <!-- 2) Firebase init + (optional) guard -->
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script type="module" src="../js/auth-guard.js"></script>
-
-  <!-- 3) Inline module: load access and render ONLY the Settings & Setup children -->
-  <script type="module">
-    import { auth } from "../js/firebase-init.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "../js/access.js";
-
-    const tilesEl = document.getElementById("tiles");
-    const diag    = document.getElementById("diagBar");
-
-    const sectionHref = "settings-setup/"; // exact href used in menus.js
-
-    function dump(x){ try { return JSON.stringify(x,null,2); } catch { return String(x); } }
-    function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
-
-    function findSectionNode(){
-      const tiles = getMenus();
-      // prefer href match, fallback to label contains
-      return tiles.find(t => (t.href||"").replace(/index\.html$/,'') === sectionHref)
-          || tiles.find(t => (t.label||"").toLowerCase().includes("setup / settings"));
-    }
-
-    function renderTiles(list){
-      tilesEl.innerHTML = "";
-      list.forEach(it=>{
-        const a = document.createElement("a");
-        a.className = "tile";
-        a.href = it.href;
-        a.title = it.label;
-        a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
-        tilesEl.appendChild(a);
-      });
-    }
-
-    async function renderFor(user){
-      if(!user){
-        diag.textContent = "No Firebase user yet (waiting for auth)…";
-        diag.className = "err";
-        tilesEl.innerHTML = "";
-        return;
-      }
-
-      const node = findSectionNode();
-      if(!node){
-        diag.textContent = "DF_MENUS missing a 'settings-setup/' tile. Check ../assets/data/menus.js.";
-        diag.className = "err";
-        tilesEl.innerHTML = "";
-        return;
-      }
-
-      try{
-        const access = await loadAccess();
-        const children = Array.isArray(node.children) ? node.children : [];
-        const visible  = children.filter(ch => (access.canView ? access.canView(ch.href) : true));
-
-        // Diagnostics
-        const lines = [
-          `Section: ${sectionHref}`,
-          `Role keys: ${dump(access.roleKeys)}`,
-          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
-          `Visible sub-menus: ${visible.length}`
-        ];
-        diag.textContent = lines.join("\n");
-        diag.className = visible.length ? "ok" : "err";
-
-        if (!visible.length){
-          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>${sectionHref}</code>. Check Firestore role permissions.</p>`;
-          return;
-        }
-        renderTiles(visible);
-      }catch(e){
-        diag.textContent = "Error: " + (e && e.message ? e.message : e);
-        diag.className = "err";
-        tilesEl.innerHTML = "";
-      }
-    }
-
-    onAuthStateChanged(auth, (user) => { renderFor(user); });
-
-    // Updates button (optional)
-    (function () {
+    // Optional: simple update-check feedback
+    window.addEventListener("DOMContentLoaded", () => {
       const btn = document.getElementById("btnCheckUpdates");
       const msg = document.getElementById("updMsg");
       if (!btn) return;
@@ -192,9 +97,15 @@
             if (reg && reg.update) await reg.update();
           }
           msg.textContent = "Update check complete.";
-        } catch (e) { msg.textContent = "Could not check for updates."; }
+        } catch (e) {
+          msg.textContent = "Could not check for updates.";
+        }
       });
-    })();
+    });
   </script>
+
+  <!-- Menus + subnav renderer (order matches other pages) -->
+  <script defer src="../assets/data/menus.js"></script>
+  <script defer src="../js/ui-subnav.js"></script>
 </body>
 </html>
