@@ -1,110 +1,178 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Teams & Partners</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Dowson Farms — Teams & Partners</title>
 
-  <!-- IMPORTANT for GitHub Pages paths -->
-  <base href="/DowsonFarms/"/>
+  <!-- GitHub Pages base (IMPORTANT) -->
+  <base href="/DowsonFarms/">
 
-  <link rel="stylesheet" href="assets/css/theme.css"/>
+  <!-- Theme prepaint -->
+  <script>
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
-    :root { --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; --brand:#1B5E20; }
-    body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    header{height:40px;background:var(--band);display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid rgba(0,0,0,.08)}
-    header .title{font-weight:700}
-    header .spacer{flex:1}
-    header a, header button{color:#1B5E20;font-weight:600;text-decoration:none}
-    main{max-width:1100px;margin:0 auto;padding:18px}
-    h1{margin:10px 0 8px;color:var(--brand)}
-    p.lead{margin:0 0 18px}
-    .tiles{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-    .tile{display:flex;align-items:center;gap:12px;padding:18px;border-radius:14px;background:#fff;border:1px solid rgba(0,0,0,.12);text-decoration:none;color:inherit}
-    .tile .emoji{font-size:22px}
-    .banner{margin:8px 0 14px;padding:10px 12px;border-radius:10px;font-size:14px}
-    .banner.err{background:#ffe9e9;border:1px solid #f3b9b9;color:#a00}
-    .banner.ok{background:#eef5ee;border:1px solid #cfe3cf;color:#125212}
+    :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
+    body { margin:0; background:var(--paper); color:var(--ink);
+           font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
+             padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
+    header .title { font-weight:700; color:#333; }
+    header .spacer { flex:1; }
+    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
+                     font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    main { padding:18px; max-width:1100px; margin:0 auto; }
+    h1 { font-size:22px; color:var(--brand); margin-top:0; }
+    footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
+
+    /* Tiles */
+    #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
+             background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
+             box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#333;
+             padding:24px 18px; transition:transform .15s; }
+    .tile:hover { transform: translateY(-3px); }
+    .tile span { margin-top:8px; font-weight:600; }
+
+    /* Sticky diagnostic banner */
+    #diagBar { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+               font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
+    #diagBar.ok  { background:#eef5ee; color:#1a4d1a; }
+    #diagBar.err { background:#ffe9e9; color:#a00; }
+
+    a.back { text-decoration:none; }
   </style>
 </head>
 <body>
   <header>
-    <a href="index.html">← Home</a>
+    <a class="back" href="index.html">← Home</a>
+    <div class="spacer"></div>
     <div class="title">Teams & Partners</div>
     <div class="spacer"></div>
-    <button id="logoutBtn">Logout</button>
+    <button id="logoutBtn" class="logout">Logout</button>
   </header>
 
+  <!-- Diagnostics -->
+  <div id="diagBar" class="err">Loading…</div>
+
   <main>
-    <div id="diag" class="banner" style="display:none"></div>
-
     <h1>Teams & Partners</h1>
-    <p class="lead">People you work with — employees, subs, vendors, and shared dictionaries.</p>
+    <p>People you work with — employees, subs, vendors, and shared dictionaries.</p>
 
-    <div id="subnav" class="tiles" aria-live="polite"></div>
+    <!-- Tiles render here -->
+    <div id="tiles"></div>
   </main>
 
-  <!-- Load order (auth first, then menus, then access, then render) -->
-  <script type="module" src="js/firebase-init.js"></script>
-  <script type="module" src="js/auth-guard.js"></script>
+  <footer>
+    Dowson Farms App © <span id="year"></span>
+  </footer>
+
+  <!-- ───────────── SCRIPTS (order matters; same pattern as Home) ───────────── -->
+
+  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
   <script src="assets/data/menus.js"></script>
 
+  <!-- 2) Firebase app/auth/db -->
+  <script type="module" src="js/firebase-init.js"></script>
+
+  <!-- 3) (optional) guard -->
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <!-- 4) Inline module: load access and render ONLY the Teams & Partners children -->
   <script type="module">
-    import { auth } from "js/firebase-init.js";
+    import { auth } from "../js/firebase-init.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "js/access.js";
+    import { loadAccess } from "../js/access.js";
 
-    const SECTION_HREF = "teams-partners/";         // must match DF_MENUS.tiles[].href
-    const subnavEl = document.getElementById("subnav");
-    const diagEl   = document.getElementById("diag");
+    const yearEl  = document.getElementById("year");
+    const tilesEl = document.getElementById("tiles");
+    const diag    = document.getElementById("diagBar");
+    yearEl.textContent = new Date().getFullYear();
 
-    document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth).then(() => location.href="auth/"));
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => location.href = "auth/");
+    });
 
-    function showDiagOk(msg){
-      diagEl.className = "banner ok"; diagEl.textContent = msg; diagEl.style.display = "";
+    function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
+    function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
+
+    // Find the Teams & Partners node in DF_MENUS
+    function getTeamsNode() {
+      const tiles = getMenus();
+      // Prefer href match, then label as fallback
+      return tiles.find(t => (t.href && t.href.replace(/index\.html$/,'').endsWith("teams-partners/")))
+          || tiles.find(t => (t.label||"").toLowerCase().includes("teams & partners"));
     }
-    function showDiagErr(msg){
-      diagEl.className = "banner err"; diagEl.textContent = msg; diagEl.style.display = "";
-    }
 
-    function render(access){
-      // Find this section from the global menu
-      const tiles = (window.DF_MENUS && window.DF_MENUS.tiles) ? window.DF_MENUS.tiles : [];
-      const section = tiles.find(t => t.href === SECTION_HREF);
-      if(!section){
-        showDiagErr(`menus.js missing section href "${SECTION_HREF}".`);
+    async function renderFor(user){
+      if(!user){
+        diag.textContent = "No Firebase user yet (waiting for auth)…";
+        diag.className = "err";
+        tilesEl.innerHTML = "";
         return;
       }
 
-      // Filter children by role permissions
-      const visibleChildren = access.filterChildren(section.children || []);
-      subnavEl.innerHTML = "";
-
-      if(visibleChildren.length === 0){
-        showDiagErr(`No visible sub-menus for ${SECTION_HREF} (role keys: ${access.roleKeys.join(", ")||"none"}).`);
+      const teams = getTeamsNode();
+      if(!teams){
+        diag.textContent = "DF_MENUS missing a 'teams-partners/' tile. Check assets/data/menus.js.";
+        diag.className = "err";
+        tilesEl.innerHTML = "";
         return;
       }
 
-      showDiagOk(`Visible sub-menus: ${visibleChildren.length} · Role keys: ${access.roleKeys.join(", ")||"none"}`);
-
-      // Render tiles
-      for(const ch of visibleChildren){
-        const a = document.createElement("a");
-        a.className = "tile";
-        a.href = ch.href;
-        a.innerHTML = `<div class="emoji">${ch.iconEmoji || "•"}</div><div>${ch.label}</div>`;
-        subnavEl.appendChild(a);
-      }
-    }
-
-    // Wait for auth state, then load access and render (prevents “no auth user” race)
-    onAuthStateChanged(auth, async () => {
       try{
         const access = await loadAccess();
-        render(access);
+
+        // Filter children by access.canView(child.href)
+        const children = Array.isArray(teams.children) ? teams.children : [];
+        const visible  = children.filter(ch => (access.canView ? access.canView(ch.href) : true));
+
+        // Diagnostics banner
+        const lines = [
+          `Section: teams-partners/`,
+          `User: ${user.email || user.uid}`,
+          `Role keys: ${dump(access.roleKeys)}`,
+          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
+          `Visible sub-menus: ${visible.length}`
+        ];
+        diag.textContent = lines.join("\n");
+        diag.className = visible.length ? "ok" : "err";
+
+        // Render sub-tiles
+        tilesEl.innerHTML = "";
+        if(!visible.length){
+          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>teams-partners/</code>. Check Firestore <code>roles/&hellip;/permissionsByPath</code> for that path or specific pages.</p>`;
+          return;
+        }
+
+        visible.forEach(it=>{
+          const a = document.createElement("a");
+          a.className = "tile";
+          a.href = it.href;
+          a.title = it.label;
+          a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
+          tilesEl.appendChild(a);
+        });
       }catch(e){
-        showDiagErr(`Access load failed: ${e && e.message ? e.message : String(e)}`);
+        diag.textContent = "Error loading access: " + e.message;
+        diag.className = "err";
+        tilesEl.innerHTML = "";
       }
+    }
+
+    // Wait for Firebase auth state before rendering
+    onAuthStateChanged(auth, (user) => {
+      renderFor(user);
     });
   </script>
 </body>
