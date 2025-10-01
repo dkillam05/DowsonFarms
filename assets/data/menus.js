@@ -1,11 +1,11 @@
 /* Dowson Farms — Global Navigation (one source of truth)
-   NOTE: plain JS (no <script> wrapper). Loads as a normal script and sets window.DF_MENUS.
+   Loads as a normal script and sets window.DF_MENUS.
 */
 window.DF_MENUS = {
   tiles: [
     {
       label: "Crop Production",
-      href: "crop-production/",            // folder-style
+      href: "crop-production/index.html",       // use explicit index for reliable matching
       iconEmoji: "🌽",
       children: [
         { label: "Planting",          href: "crop-production/crop-planting.html",     iconEmoji: "🌱" },
@@ -18,11 +18,12 @@ window.DF_MENUS = {
         { label: "Trials",            href: "crop-production/crop-trials.html",       iconEmoji: "🧬" }
       ]
     },
+
     { label: "Field Maintenance", href: "field-maintenance/field-maintenance.html", iconEmoji: "🛠️", children: [] },
 
     {
       label: "Grain Tracking",
-      href: "grain-tracking/",            // folder-style
+      href: "grain-tracking/index.html",
       iconEmoji: "🌾",
       children: [
         { label: "Grain Bags",         href: "grain-tracking/grain-bags.html",        iconEmoji: "👝" },
@@ -34,7 +35,7 @@ window.DF_MENUS = {
 
     {
       label: "Equipment",
-      href: "equipment/",                 // folder-style
+      href: "equipment/index.html",
       iconEmoji: "🚜",
       children: [
         { label: "StarFire / Technology", href: "equipment/equipment-starfire.html",     iconEmoji: "🛰️" },
@@ -50,7 +51,7 @@ window.DF_MENUS = {
 
     {
       label: "Calculators",
-      href: "calculators/",               // folder-style
+      href: "calculators/index.html",
       iconEmoji: "🔢",
       children: [
         { label: "Combine Yield", href: "calculators/calc-combine-yield.html", iconEmoji: "🌽" },
@@ -64,7 +65,7 @@ window.DF_MENUS = {
 
     {
       label: "Teams & Partners",
-      href: "teams-partners/",            // folder-style
+      href: "teams-partners/index.html",         // <-- key change: explicit index.html
       iconEmoji: "🫱🏼‍🫲🏽",
       children: [
         { label: "Employees",       href: "teams-partners/teams-employees.html",       iconEmoji: "👥" },
@@ -76,7 +77,7 @@ window.DF_MENUS = {
 
     {
       label: "Reports",
-      href: "reports/",                   // folder-style
+      href: "reports/index.html",
       iconEmoji: "📖",
       children: [
         { label: "Pre-Defined Reports", href: "reports/reports-predefined.html",  iconEmoji: "📁" },
@@ -87,7 +88,7 @@ window.DF_MENUS = {
 
     {
       label: "Setup / Settings",
-      href: "settings-setup/",           // ✔️ CHANGED: folder-style, not index.html
+      href: "settings-setup/index.html",
       iconEmoji: "⚙️",
       children: [
         { label: "Farms",         href: "settings-setup/ss-farms.html",        iconEmoji: "🏡" },
@@ -110,7 +111,7 @@ window.DF_MENUS = {
 
     {
       label: "Feedback",
-      href: "feedback/",                 // folder-style
+      href: "feedback/index.html",
       iconEmoji: "💬",
       children: [
         { label: "Ideas",         href: "feedback/fb-ideas.html", iconEmoji: "💡" },
