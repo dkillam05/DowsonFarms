@@ -13,7 +13,6 @@
     header .title{font-weight:700;color:#333}.spacer{flex:1}
     main{padding:18px;max-width:1100px;margin:0 auto}
     h1{margin:0 0 10px;color:#1B5E20}
-    /* tiny diag banner */
     #diag{margin:12px 0;padding:8px 10px;border-radius:10px;font-size:13px;display:none}
     #diag.ok{background:#eef5ee;border:1px solid #cfe3cf;color:var(--ok)}
     #diag.err{background:#ffe9e9;border:1px solid #f3b9b9;color:var(--err)}
@@ -30,41 +29,43 @@
   <main>
     <nav data-df-breadcrumbs></nav>
 
-    <!-- Diagnostics -->
+    <!-- tiny banner to prove the subnav sees children -->
     <div id="diag"></div>
 
     <h1>Teams & Partners</h1>
     <p>People you work with — employees, subs, vendors, and shared dictionaries.</p>
 
-    <!-- This is the important hook: ui-nav.js will render the section’s sub-tiles here -->
+    <!-- IMPORTANT: this is what renders the 4 tiles -->
     <div data-df-subnav data-section="teams-partners/index.html"></div>
   </main>
 
-  <!-- Order matters -->
+  <!-- Load in this order -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
-
   <script src="assets/data/menus.js"></script>
   <script type="module" src="js/ui-nav.js"></script>
 
-  <!-- Tiny inline diag so you can see what's happening -->
+  <!-- Mini diag: confirms visibility from DF_ACCESS -->
   <script type="module">
-    import { auth } from "../js/firebase-init.js";
-    (async function(){
-      const d = document.getElementById('diag');
-      // wait a tick for DF_ACCESS (ui-nav loads it)
-      await new Promise(r=>setTimeout(r, 300));
-      const A = window.DF_ACCESS || {};
-      const kids = (A.filterChildren ? A.filterChildren((window.DF_MENUS?.tiles||[])
-        .find(t=>t.href==="teams-partners/index.html")?.children||[]) : []);
-      const roleKeys = (A.roleKeys||[]).join(", ") || "none";
-      const count = kids.length;
-      d.className = count>0 ? "ok" : "err";
-      d.style.display = "block";
-      d.innerHTML = count>0
-        ? `Visible sub-menus: <b>${count}</b> · Role keys: <code>${roleKeys}</code>`
-        : `No visible sub-menus. Check Firestore role(s) permissions for paths like
-           <code>teams-partners/</code> and each child (e.g. <code>teams-partners/teams-employees.html</code>).`;
+    (async () => {
+      const banner = document.getElementById('diag');
+      await new Promise(r=>setTimeout(r,300));
+      const menus = (window.DF_MENUS?.tiles||[]);
+      const section = menus.find(t => t.href === "teams-partners/index.html");
+      const kids = section?.children || [];
+      const A = window.DF_ACCESS;
+      const visible = A?.filterChildren ? A.filterChildren(kids) : kids;
+      const roleKeys = (A?.roleKeys||[]).join(", ") || "none";
+      banner.style.display = "block";
+      if (visible.length > 0) {
+        banner.className = "ok";
+        banner.innerHTML = `Visible sub-menus: <b>${visible.length}</b> · Role keys: <code>${roleKeys}</code>`;
+      } else {
+        banner.className = "err";
+        banner.innerHTML = `No visible sub-menus. Check role permissions for
+          <code>teams-partners/</code> or the specific pages (e.g.
+          <code>teams-partners/teams-employees.html</code>). Role keys: <code>${roleKeys}</code>`;
+      }
     })();
   </script>
 </body>
