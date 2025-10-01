@@ -1,8 +1,10 @@
-// ui-nav.js — renders home tiles & subnav using DF_MENUS and DF_ACCESS
-// Includes a SECONDARY inline Builder bypass so nav never hides for Builder.
+// js/ui-nav.js — renders home tiles & subnav using DF_MENUS + DF_ACCESS (auth-safe)
 
+import { auth } from "./firebase-init.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { loadAccess } from "./access.js";
-const $ = s => document.querySelector(s);
+
+const $ = (s) => document.querySelector(s);
 
 function renderHome(tiles){
   const container = document.querySelector("[data-df-tiles]");
@@ -42,7 +44,8 @@ function renderSubnav(sectionHref, topTile, children){
   hook.innerHTML = "";
 
   const list = document.createElement("div");
-  list.style.display="grid"; list.style.gap="12px";
+  list.style.display="grid";
+  list.style.gap="12px";
 
   (children || []).forEach(ch=>{
     const a = document.createElement("a");
@@ -53,15 +56,19 @@ function renderSubnav(sectionHref, topTile, children){
     a.style.border="1px solid rgba(0,0,0,.1)";
     a.style.borderRadius="12px";
     a.style.padding="14px 16px";
-    a.style.textDecoration="none"; a.style.color="#333";
+    a.style.textDecoration="none";
+    a.style.color="#333";
     a.textContent = ch.label;
     list.appendChild(a);
   });
 
   if(!children || !children.length){
     const warn = document.createElement("div");
-    warn.style.background="#ffe9e9"; warn.style.border="1px solid #f3b9b9";
-    warn.style.color="#a00"; warn.style.padding="10px 12px"; warn.style.borderRadius="10px";
+    warn.style.background="#ffe9e9";
+    warn.style.border="1px solid #f3b9b9";
+    warn.style.color="#a00";
+    warn.style.padding="10px 12px";
+    warn.style.borderRadius="10px";
     warn.textContent = `No visible sub-menus for ${sectionHref}.`;
     hook.appendChild(warn);
   } else {
@@ -69,15 +76,19 @@ function renderSubnav(sectionHref, topTile, children){
   }
 }
 
-async function main(){
-  // Load access first
+function normPath(s){
+  if(!s) return "";
+  return s.replace(/index\.html$/,"").replace(/\/+$/,"/"); // ensure trailing slash if folder
+}
+
+async function doRender(){
+  // Menus loaded?
+  const MENUS = (window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)) ? window.DF_MENUS.tiles : [];
+  if(!MENUS.length) return; // nothing to render
+
+  // Access (after auth is ready)
   const access = await loadAccess();
-
-  // ===== Builder secondary bypass (defensive; no seeding) =====
   const isBuilder = access.roleKeys && access.roleKeys.includes("__builder__");
-
-  // Menus
-  const MENUS = window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles) ? window.DF_MENUS.tiles : [];
 
   // HOME
   const tilesHook = document.querySelector("[data-df-tiles]");
@@ -89,16 +100,22 @@ async function main(){
   // SUBNAV
   const subnavHook = document.querySelector("[data-df-subnav]");
   if(subnavHook){
-    const section = subnavHook.getAttribute("data-section"); // e.g. "teams-partners/index.html"
-    const top = MENUS.find(t => t.href === section);
+    const sectionAttr = subnavHook.getAttribute("data-section") || "";
+    const target = normPath(sectionAttr || "");
+    // find by normalized href (so "teams-partners/" matches)
+    const top = MENUS.find(t => normPath(t.href) === target);
     let kids = [];
     if(top){
-      kids = isBuilder
-        ? (top.children || []).slice()
-        : access.filterChildren(top.children || []);
+      kids = isBuilder ? (top.children || []).slice()
+                       : (access.filterChildren ? access.filterChildren(top.children || []) : (top.children || []));
     }
-    renderSubnav(section, top, kids);
+    renderSubnav(target, top, kids);
   }
 }
 
-document.addEventListener("DOMContentLoaded", main);
+// ✅ Wait for Firebase auth to settle before rendering (prevents race)
+document.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, () => {
+    doRender();
+  });
+});
