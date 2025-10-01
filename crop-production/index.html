@@ -4,78 +4,169 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Crop Production — Dowson Farms</title>
+  <title>Dowson Farms — Crop Production</title>
 
-  <!-- Theme CSS  →  assets/css/theme.css (relative to /crop/) -->
-  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <!-- GitHub Pages base (IMPORTANT) -->
+  <base href="/DowsonFarms/">
 
-  <!-- Global app scripts  →  js/version.js & js/core.js -->
-  <script defer src="../js/version.js"></script>
-  <script defer src="../js/core.js"></script>
-
-  <!-- PWA bits (still at repo root) -->
-  <link rel="manifest" href="../manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-  <!-- Icons  →  assets/icons/... -->
-  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
-</head>
-<body>
-  <!-- Header -->
-  <header class="app-header">
-    <div class="app-header__left">
-      <!-- Logo  →  assets/icons/icon-192.png -->
-      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
-    </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
-    </div>
-  </header>
-
-  <!-- Breadcrumbs (Home must step back up one folder) -->
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="../index.html">Home</a></li>
-      <li class="sep">›</li>
-      <li><span>Crop Production</span></li>
-    </ol>
-  </nav>
-
-  <!-- Main -->
-  <main class="content">
-    <h1>🌽 Crop Production</h1>
-
-    <!-- Sub-tiles auto-filled from menus.js
-         data-section is set explicitly to avoid auto-detect issues -->
-    <div class="df-tiles" data-section="Crop Production"></div>
-  </main>
-
-  <!-- Footer -->
-  <footer class="app-footer">
-    <span>Dowson Farms</span>
-    <span class="dot">•</span>
-    <span id="report-date">—</span>
-    <span class="dot">•</span>
-    <span id="version">v0.0.0</span>
-  </footer>
-
-  <!-- Service worker (your SW lives in /js/, so step back one) -->
+  <!-- Theme prepaint -->
   <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
-      });
-    }
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
   </script>
 
-  <!-- Menus + subnav renderer (order matters: menus first) -->
-  <!-- menus.js  →  assets/data/menus.js -->
-  <script defer src="../assets/data/menus.js"></script>
-  <!-- ui-subnav.js  →  js/ui-subnav.js -->
-  <script defer src="../js/ui-subnav.js"></script>
+  <link rel="stylesheet" href="assets/css/theme.css" />
+  <style>
+    :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
+    body { margin:0; background:var(--paper); color:var(--ink);
+           font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
+             padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
+    header .title { font-weight:700; color:#333; }
+    header .spacer { flex:1; }
+    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
+                     font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    main { padding:18px; max-width:1100px; margin:0 auto; }
+    h1 { font-size:22px; color:var(--brand); margin-top:0; }
+    footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
+
+    /* Tiles */
+    #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
+             background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
+             box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#333;
+             padding:24px 18px; transition:transform .15s; }
+    .tile:hover { transform: translateY(-3px); }
+    .tile span { margin-top:8px; font-weight:600; }
+
+    /* Sticky diagnostic banner */
+    #diagBar { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+               font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
+    #diagBar.ok  { background:#eef5ee; color:#1a4d1a; }
+    #diagBar.err { background:#ffe9e9; color:#a00; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" style="text-decoration:none">← Home</a>
+    <div class="spacer"></div>
+    <div class="title">Crop Production</div>
+    <div class="spacer"></div>
+    <button id="logoutBtn" class="logout">Logout</button>
+  </header>
+
+  <!-- Diagnostics -->
+  <div id="diagBar" class="err">Loading…</div>
+
+  <main>
+    <h1>🌽 Crop Production</h1>
+    <p>Planting, spraying, harvest, fertilizer, scouting, maintenance, trials.</p>
+
+    <!-- Tiles render here -->
+    <div id="tiles"></div>
+  </main>
+
+  <footer>
+    Dowson Farms App © <span id="year"></span>
+  </footer>
+
+  <!-- ───────────── SCRIPTS (order matters) ───────────── -->
+
+  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
+  <script src="assets/data/menus.js"></script>
+
+  <!-- 2) Firebase app/auth/db -->
+  <script type="module" src="js/firebase-init.js"></script>
+
+  <!-- 3) (optional) guard -->
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <!-- 4) Inline module: render ONLY Crop Production children via access filter -->
+  <script type="module">
+    const SECTION_HREF = "crop-production/";
+
+    import { auth } from "js/firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "js/access.js";
+
+    const yearEl  = document.getElementById("year");
+    const tilesEl = document.getElementById("tiles");
+    const diag    = document.getElementById("diagBar");
+    yearEl.textContent = new Date().getFullYear();
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => location.href = "auth/");
+    });
+
+    function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
+    function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
+
+    function findSectionNode() {
+      const tiles = getMenus();
+      return tiles.find(t => t.href && t.href.replace(/index\.html$/,'') === SECTION_HREF);
+    }
+
+    function renderTiles(items){
+      tilesEl.innerHTML = "";
+      items.forEach(it=>{
+        const a = document.createElement("a");
+        a.className = "tile";
+        a.href = it.href;
+        a.title = it.label;
+        a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
+        tilesEl.appendChild(a);
+      });
+    }
+
+    async function renderFor(user){
+      if(!user){
+        diag.textContent = "No Firebase user yet (waiting for auth)…";
+        diag.className = "err";
+        tilesEl.innerHTML = "";
+        return;
+      }
+
+      const node = findSectionNode();
+      if(!node){
+        diag.textContent = `DF_MENUS missing a tile with href "${SECTION_HREF}". Check assets/data/menus.js.`;
+        diag.className = "err";
+        return;
+      }
+
+      try{
+        const access = await loadAccess();
+        const kids   = Array.isArray(node.children) ? node.children : [];
+        const visible = access.filterChildren ? access.filterChildren(kids) : kids;
+
+        const lines = [
+          `Section: ${SECTION_HREF}`,
+          `User: ${user.email || user.uid}`,
+          `Role keys: ${dump(access.roleKeys)}`,
+          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
+          `Visible sub-menus: ${visible.length}`
+        ];
+        diag.textContent = lines.join("\n");
+        diag.className   = visible.length ? "ok" : "err";
+
+        if(!visible.length){
+          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>${SECTION_HREF}</code>. Check role perms/overrides.</p>`;
+          return;
+        }
+
+        renderTiles(visible);
+      }catch(e){
+        diag.textContent = "Error loading access: " + e.message;
+        diag.className = "err";
+        tilesEl.innerHTML = "";
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => renderFor(user));
+  </script>
 </body>
 </html>
