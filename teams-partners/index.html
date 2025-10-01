@@ -1,92 +1,109 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Teams & Partners</title>
-  <base href="/DowsonFarms/">
-  <link rel="stylesheet" href="../assets/css/theme.css" />
+
+  <!-- IMPORTANT for GitHub Pages paths -->
+  <base href="/DowsonFarms/"/>
+
+  <link rel="stylesheet" href="assets/css/theme.css"/>
   <style>
-    #diagBar {
-      margin: 0;
-      padding: 8px 10px;
-      font-size: 13px;
-      border-bottom: 1px solid rgba(0,0,0,.1);
-    }
-    #diagBar.ok { background:#eef5ee; color:#125212; }
-    #diagBar.err { background:#ffe9e9; color:#a00; }
+    :root { --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; --brand:#1B5E20; }
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    header{height:40px;background:var(--band);display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid rgba(0,0,0,.08)}
+    header .title{font-weight:700}
+    header .spacer{flex:1}
+    header a, header button{color:#1B5E20;font-weight:600;text-decoration:none}
+    main{max-width:1100px;margin:0 auto;padding:18px}
+    h1{margin:10px 0 8px;color:var(--brand)}
+    p.lead{margin:0 0 18px}
+    .tiles{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    .tile{display:flex;align-items:center;gap:12px;padding:18px;border-radius:14px;background:#fff;border:1px solid rgba(0,0,0,.12);text-decoration:none;color:inherit}
+    .tile .emoji{font-size:22px}
+    .banner{margin:8px 0 14px;padding:10px 12px;border-radius:10px;font-size:14px}
+    .banner.err{background:#ffe9e9;border:1px solid #f3b9b9;color:#a00}
+    .banner.ok{background:#eef5ee;border:1px solid #cfe3cf;color:#125212}
   </style>
 </head>
 <body>
   <header>
-    <a href="../index.html">← Home</a>
+    <a href="index.html">← Home</a>
     <div class="title">Teams & Partners</div>
     <div class="spacer"></div>
-    <a href="../auth/index.html" id="logoutLink">Logout</a>
+    <button id="logoutBtn">Logout</button>
   </header>
 
-  <!-- diagnostic banner -->
-  <div id="diagBar"></div>
-
   <main>
+    <div id="diag" class="banner" style="display:none"></div>
+
     <h1>Teams & Partners</h1>
-    <p>People you work with — employees, subs, vendors, and shared dictionaries.</p>
-    <div id="tiles"></div>
+    <p class="lead">People you work with — employees, subs, vendors, and shared dictionaries.</p>
+
+    <div id="subnav" class="tiles" aria-live="polite"></div>
   </main>
 
-  <script src="../assets/data/menus.js"></script>
+  <!-- Load order (auth first, then menus, then access, then render) -->
+  <script type="module" src="js/firebase-init.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+  <script src="assets/data/menus.js"></script>
+
   <script type="module">
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadUserRoles } from "../js/auth-guard.js"; // your helper
+    import { auth } from "js/firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "js/access.js";
 
-    const diag = document.getElementById("diagBar");
-    const tiles = document.getElementById("tiles");
+    const SECTION_HREF = "teams-partners/";         // must match DF_MENUS.tiles[].href
+    const subnavEl = document.getElementById("subnav");
+    const diagEl   = document.getElementById("diag");
 
-    const menu = window.DF_MENUS.tiles.find(t => t.href === "teams-partners/");
-    const children = menu?.children || [];
+    document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth).then(() => location.href="auth/"));
 
-    function renderTiles(roleKeys) {
-      tiles.innerHTML = "";
-      if (!children.length) {
-        tiles.innerHTML = `<p>No defined sub-menus for Teams & Partners.</p>`;
+    function showDiagOk(msg){
+      diagEl.className = "banner ok"; diagEl.textContent = msg; diagEl.style.display = "";
+    }
+    function showDiagErr(msg){
+      diagEl.className = "banner err"; diagEl.textContent = msg; diagEl.style.display = "";
+    }
+
+    function render(access){
+      // Find this section from the global menu
+      const tiles = (window.DF_MENUS && window.DF_MENUS.tiles) ? window.DF_MENUS.tiles : [];
+      const section = tiles.find(t => t.href === SECTION_HREF);
+      if(!section){
+        showDiagErr(`menus.js missing section href "${SECTION_HREF}".`);
         return;
       }
 
-      // Fallback: if Builder role missing, inject it
-      if (!roleKeys || roleKeys.length === 0) {
-        roleKeys = ["__builder__"];
+      // Filter children by role permissions
+      const visibleChildren = access.filterChildren(section.children || []);
+      subnavEl.innerHTML = "";
+
+      if(visibleChildren.length === 0){
+        showDiagErr(`No visible sub-menus for ${SECTION_HREF} (role keys: ${access.roleKeys.join(", ")||"none"}).`);
+        return;
       }
 
-      // Always allow builder to see all submenus
-      if (roleKeys.includes("__builder__")) {
-        children.forEach(ch => {
-          const div = document.createElement("div");
-          div.className = "tile";
-          div.innerHTML = `<a href="../${ch.href}" style="display:block;padding:12px;border:1px solid #ccc;margin:6px 0;border-radius:10px;text-decoration:none">
-            ${ch.iconEmoji} ${ch.label}</a>`;
-          tiles.appendChild(div);
-        });
-        diag.className = "ok";
-        diag.textContent = `Visible sub-menus: ${children.length} · Role keys: ${roleKeys.join(", ")}`;
-      } else {
-        diag.className = "err";
-        diag.textContent = `No visible sub-menus. Role keys: ${roleKeys.join(", ")}`;
+      showDiagOk(`Visible sub-menus: ${visibleChildren.length} · Role keys: ${access.roleKeys.join(", ")||"none"}`);
+
+      // Render tiles
+      for(const ch of visibleChildren){
+        const a = document.createElement("a");
+        a.className = "tile";
+        a.href = ch.href;
+        a.innerHTML = `<div class="emoji">${ch.iconEmoji || "•"}</div><div>${ch.label}</div>`;
+        subnavEl.appendChild(a);
       }
     }
 
-    const auth = getAuth();
-    onAuthStateChanged(auth, async user => {
-      if (!user) {
-        renderTiles([]);
-        return;
-      }
-      try {
-        const roleKeys = await loadUserRoles(user);
-        renderTiles(roleKeys);
-      } catch (e) {
-        diag.className = "err";
-        diag.textContent = `Error loading roles: ${e.message}`;
-        renderTiles([]);
+    // Wait for auth state, then load access and render (prevents “no auth user” race)
+    onAuthStateChanged(auth, async () => {
+      try{
+        const access = await loadAccess();
+        render(access);
+      }catch(e){
+        showDiagErr(`Access load failed: ${e && e.message ? e.message : String(e)}`);
       }
     });
   </script>
