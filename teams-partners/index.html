@@ -6,10 +6,8 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms — Teams & Partners</title>
 
-  <!-- GitHub Pages base (IMPORTANT) -->
   <base href="/DowsonFarms/">
 
-  <!-- Theme prepaint -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -23,19 +21,15 @@
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
     :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
-    body { margin:0; background:var(--paper); color:var(--ink);
-           font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
-             padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
-    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
-                     font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand); font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
     main { padding:18px; max-width:1100px; margin:0 auto; }
     h1 { font-size:22px; color:var(--brand); margin-top:0; }
     footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
 
-    /* Tiles */
     #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
     .tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
              background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
@@ -44,7 +38,6 @@
     .tile:hover { transform: translateY(-3px); }
     .tile span { margin-top:8px; font-weight:600; }
 
-    /* Sticky diagnostic banner */
     #diagBar { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
                font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
     #diagBar.ok  { background:#eef5ee; color:#1a4d1a; }
@@ -62,37 +55,28 @@
     <button id="logoutBtn" class="logout">Logout</button>
   </header>
 
-  <!-- Diagnostics -->
   <div id="diagBar" class="err">Loading…</div>
 
   <main>
     <h1>Teams & Partners</h1>
     <p>People you work with — employees, subs, vendors, and shared dictionaries.</p>
-
-    <!-- Tiles render here -->
     <div id="tiles"></div>
   </main>
 
-  <footer>
-    Dowson Farms App © <span id="year"></span>
-  </footer>
+  <footer>Dowson Farms App © <span id="year"></span></footer>
 
-  <!-- ───────────── SCRIPTS (order matters; same pattern as Home) ───────────── -->
-
-  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
+  <!-- 1) menus -->
   <script src="assets/data/menus.js"></script>
-
-  <!-- 2) Firebase app/auth/db -->
+  <!-- 2) firebase -->
   <script type="module" src="js/firebase-init.js"></script>
-
-  <!-- 3) (optional) guard -->
+  <!-- 3) optional guard -->
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- 4) Inline module: load access and render ONLY the Teams & Partners children -->
+  <!-- 4) render -->
   <script type="module">
-    import { auth } from "../js/firebase-init.js";
+    import { auth } from "./js/firebase-init.js";            /* ← fixed */
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "../js/access.js";
+    import { loadAccess } from "./js/access.js";              /* ← fixed */
 
     const yearEl  = document.getElementById("year");
     const tilesEl = document.getElementById("tiles");
@@ -106,10 +90,8 @@
     function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
     function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
 
-    // Find the Teams & Partners node in DF_MENUS
     function getTeamsNode() {
       const tiles = getMenus();
-      // Prefer href match, then label as fallback
       return tiles.find(t => (t.href && t.href.replace(/index\.html$/,'').endsWith("teams-partners/")))
           || tiles.find(t => (t.label||"").toLowerCase().includes("teams & partners"));
     }
@@ -132,12 +114,9 @@
 
       try{
         const access = await loadAccess();
-
-        // Filter children by access.canView(child.href)
         const children = Array.isArray(teams.children) ? teams.children : [];
         const visible  = children.filter(ch => (access.canView ? access.canView(ch.href) : true));
 
-        // Diagnostics banner
         const lines = [
           `Section: teams-partners/`,
           `User: ${user.email || user.uid}`,
@@ -148,10 +127,9 @@
         diag.textContent = lines.join("\n");
         diag.className = visible.length ? "ok" : "err";
 
-        // Render sub-tiles
         tilesEl.innerHTML = "";
         if(!visible.length){
-          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>teams-partners/</code>. Check Firestore <code>roles/&hellip;/permissionsByPath</code> for that path or specific pages.</p>`;
+          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>teams-partners/</code>. Check Firestore <code>roles/&hellip;/permissionsByPath</code>.</p>`;
           return;
         }
 
@@ -170,10 +148,7 @@
       }
     }
 
-    // Wait for Firebase auth state before rendering
-    onAuthStateChanged(auth, (user) => {
-      renderFor(user);
-    });
+    onAuthStateChanged(auth, (user) => { renderFor(user); });
   </script>
 </body>
 </html>
