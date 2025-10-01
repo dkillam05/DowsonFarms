@@ -1,4 +1,5 @@
 // js/employees-admin.js — Manage employees + per-employee permission overrides
+// This version normalizes name fields so first/last show even if docs used firstName/lastName.
 
 import { auth, db } from "./firebase-init.js";
 import {
@@ -43,6 +44,17 @@ function toast(ok, msg){
   setTimeout(() => statusEl.style.display = "none", 4000);
 }
 
+function normalizeUser(u = {}) {
+  // accept first/last or firstName/lastName; create displayName fallback
+  const first = u.first ?? u.firstName ?? "";
+  const last  = u.last  ?? u.lastName  ?? "";
+  const email = (u.email || "").toLowerCase();
+  const displayName = u.displayName || [first, last].filter(Boolean).join(" ").trim() || email || "(no name)";
+  // normalize roles to lowercase array
+  const roles = Array.isArray(u.roles) ? u.roles.map(r => String(r).toLowerCase()) : (u.roles ? [String(u.roles).toLowerCase()] : []);
+  return { ...u, first, last, email, displayName, roles };
+}
+
 function getMenus(){
   const root = window.DF_MENUS || {};
   return Array.isArray(root.tiles) ? root.tiles : [];
@@ -55,7 +67,6 @@ function flattenMenus(){
     if (Array.isArray(node.children)) node.children.forEach(walk);
   };
   getMenus().forEach(walk);
-  // unique by href
   const seen = new Set();
   return out.filter(x => !seen.has(x.href) && seen.add(x.href));
 }
@@ -67,8 +78,9 @@ function renderEmpList(){
     row.className = "list-item";
     row.role = "button";
     row.tabIndex = 0;
+    const name = u.displayName || [u.first, u.last].filter(Boolean).join(" ").trim() || "(no name)";
     row.innerHTML = `
-      <div><strong>${u.first || ""} ${u.last || ""}</strong><br><span class="muted">${u.email || ""}</span></div>
+      <div><strong>${name}</strong><br><span class="muted">${u.email || ""}</span></div>
       <div class="muted">${Array.isArray(u.roles) ? u.roles.join(", ") : ""}</div>
     `;
     row.addEventListener("click", () => selectEmp(u.id));
@@ -82,12 +94,11 @@ function getSelected(){
 
 function formToData(){
   const roles = Array.from(rolesEl.selectedOptions).map(o => String(o.value || "").toLowerCase());
-  return {
-    first: firstEl.value.trim(),
-    last:  lastEl.value.trim(),
-    email: emailEl.value.trim().toLowerCase(),
-    roles
-  };
+  const first = firstEl.value.trim();
+  const last  = lastEl.value.trim();
+  const email = emailEl.value.trim().toLowerCase();
+  const displayName = [first, last].filter(Boolean).join(" ").trim();
+  return { first, last, email, roles, displayName };
 }
 
 function fillForm(u){
@@ -95,9 +106,8 @@ function fillForm(u){
   lastEl.value  = u?.last || "";
   emailEl.value = u?.email || "";
 
-  // roles options come from roles collection
   Array.from(rolesEl.options).forEach(opt => {
-    opt.selected = Array.isArray(u?.roles) && u.roles.map(r=>String(r).toLowerCase()).includes(String(opt.value).toLowerCase());
+    opt.selected = Array.isArray(u?.roles) && u.roles.includes(String(opt.value).toLowerCase());
   });
 }
 
@@ -126,7 +136,7 @@ async function loadRolesIntoSelect(){
 async function refreshList(){
   const snap = await getDocs(collection(db, "users"));
   employees = [];
-  snap.forEach(d => employees.push({ id:d.id, ...d.data() }));
+  snap.forEach(d => employees.push(normalizeUser({ id:d.id, ...d.data() })));
   renderEmpList();
   selHint.textContent = selectedId ? `(selected ${selectedId})` : "(no employee selected)";
 }
@@ -143,7 +153,7 @@ function buildPermRow(pathLabel, href, current = {}){
     el.checked = !!current[name];
     el.dataset.key = name;
     return el;
-    }
+  }
   const lbl = document.createElement("div");
   lbl.textContent = pathLabel;
 
@@ -175,8 +185,7 @@ function collectOverridesFromGrid(){
     const checks = Array.from(r.querySelectorAll("input[type=checkbox]"));
     const obj = {};
     checks.forEach(c => { if (c.checked) obj[c.dataset.key] = true; });
-    // only store if ANY true
-    if (Object.keys(obj).length) out[href] = obj;
+    if (Object.keys(obj).length) out[href] = obj; // only store positives
   });
   return out;
 }
@@ -185,7 +194,8 @@ function collectOverridesFromGrid(){
 async function selectEmp(id){
   selectedId = id;
   selHint.textContent = `(selected ${selectedId})`;
-  const u = getSelected();
+  const raw = getSelected();
+  const u = normalizeUser(raw || {});
   fillForm(u);
   renderOverridesGrid(u);
 }
@@ -202,10 +212,13 @@ async function saveEmployee(inviteAfter=false){
   if (!selectedId) { toast(false, "Select an employee first."); return; }
   const data = formToData();
   if (!data.email) { toast(false, "Email is required."); return; }
+
   await updateDoc(doc(db, "users", selectedId), data);
+
   await refreshList();
   await selectEmp(selectedId);
   toast(true, "Employee saved.");
+
   if (inviteAfter) {
     try {
       const fns = getFunctions();
@@ -233,7 +246,6 @@ async function saveOverrides(){
   if (!selectedId) { toast(false, "Select an employee first."); return; }
   const overridesByPath = collectOverridesFromGrid();
   await setDoc(doc(db, "users", selectedId), { overridesByPath }, { merge:true });
-  // reflect in memory state for the selected user
   const u = getSelected();
   if (u) u.overridesByPath = overridesByPath;
   toast(true, "Overrides saved.");
@@ -259,9 +271,7 @@ btnClearOv?.addEventListener("click", clearOverrides);
 
 // ---------- Bootstrap ----------
 (async function init(){
-  // load roles select first
   await loadRolesIntoSelect();
-  // auth not strictly required here, but nice to ensure
   onAuthStateChanged(auth, async () => {
     await refreshList();
   });
