@@ -1,149 +1,131 @@
-/* Role-aware navigation renderer
-   Inputs:
-     - window.DF_MENUS (from assets/data/menus.js)
-     - loadAccess() from ./access.js  (provides canView + filter helpers)
-*/
-(function () {
-  'use strict';
+// js/ui-nav.js
+// Role-aware rendering for home tiles, breadcrumbs, and subnav
+import { loadAccess } from "./access.js";
 
-  // --- URL helpers (base-aware, canonical) -----------------------------------
-  const BASE = (() => {
-    const baseEl = document.querySelector('base');
-    if (!baseEl || !baseEl.href) return '/DowsonFarms/';
-    try { const u = new URL(baseEl.href); return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/'); }
-    catch { return '/DowsonFarms/'; }
-  })();
+const qs  = (s, r=document) => r.querySelector(s);
+const qsa = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-  const stripIndex = (p) => String(p || '').replace(/index\.html$/i, '');
-  const abs = (href) => {
-    if (!href) return '';
-    if (/^https?:/i.test(href) || href.startsWith('/')) return href;
-    return BASE + href; // resolve relative to <base>
-  };
-  const canonicalPath = () => stripIndex(location.pathname);
-
-  // --- tiny DOM helpers ------------------------------------------------------
-  const el = (tag, attrs = {}, html = '') => {
-    const e = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs)) {
-      if (v == null) continue;
-      if (k === 'class') e.className = v;
-      else if (k.startsWith('data-')) e.setAttribute(k, v);
-      else e[k] = v;
-    }
-    if (html) e.innerHTML = html;
-    return e;
-  };
-
-  const styleOnce = (id, css) => {
-    if (document.getElementById(id)) return;
-    const s = document.createElement('style'); s.id = id; s.textContent = css; document.head.appendChild(s);
-  };
-
-  // --- UI pieces -------------------------------------------------------------
-  function renderTiles(container, items) {
-    container.innerHTML = '';
-    styleOnce('df-tiles-style', `
-      .df-tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-      .df-tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
-                  background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
-                  box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#333;
-                  padding:24px 18px; transition:transform .15s; }
-      .df-tile:hover { transform: translateY(-3px); }
-      .df-tile span { margin-top:8px; font-weight:600; }
-    `);
-    const grid = el('div', { class: 'df-tiles' });
-    items.forEach(it => {
-      const a = el('a', { href: it.href, class: 'df-tile', title: it.label });
-      a.innerHTML = `${it.iconEmoji || '•'} <span>${it.label}</span>`;
-      grid.appendChild(a);
-    });
-    container.appendChild(grid);
+function el(tag, attrs={}, children=[]) {
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "html") n.innerHTML = v;
+    else n.setAttribute(k, v);
   }
+  (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(c==null) return;
+    if (typeof c === "string") n.appendChild(document.createTextNode(c));
+    else n.appendChild(c);
+  });
+  return n;
+}
 
-  function renderBreadcrumbs(container, tiles, canView) {
-    container.innerHTML = '';
-    styleOnce('df-bc-style', `
-      .df-bc { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; color:#444; }
-      .df-bc a { color:#1B5E20; text-decoration:none; font-weight:600; }
-      .df-bc .sep { opacity:.5; }
-    `);
-    const nav = el('div', { class: 'df-bc' });
+function renderHomeTiles(DF_ACCESS){
+  const host = qs("[data-df-tiles]");
+  if (!host || !window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles)) return;
 
-    const path = canonicalPath();
-    const items = [{ label: 'Home', href: 'index.html' }];
+  const tiles = DF_ACCESS.filterMenusForHome(window.DF_MENUS.tiles);
+  const grid = el("div", { class: "df-tiles" });
 
-    const matchAbs = (href) => stripIndex(abs(href)) === path;
-    let gp, p, n;
-    for (const T of tiles) {
-      if (matchAbs(T.href)) { n = T; break; }
-      if (Array.isArray(T.children)) {
-        for (const C of T.children) {
-          if (matchAbs(C.href)) { gp = T; n = C; break; }
-          if (Array.isArray(C.children)) {
-            for (const G of C.children) {
-              if (matchAbs(G.href)) { gp = T; p = C; n = G; break; }
-            }
+  tiles.forEach(t => {
+    const a = el("a", { class:"df-tile", href: t.href, title: t.label });
+    a.appendChild(document.createTextNode(t.iconEmoji || "•"));
+    a.appendChild(el("span", {}, t.label));
+    grid.appendChild(a);
+  });
+
+  host.innerHTML = "";
+  host.appendChild(grid);
+}
+
+function currentPath() {
+  // resolve path relative to <base href="/DowsonFarms/">
+  const url = new URL(location.href);
+  let p = url.pathname;
+  // strip the repo base if present
+  if (p.startsWith("/DowsonFarms/")) p = p.slice("/DowsonFarms/".length);
+  return p || "index.html";
+}
+
+function findMenuByHref(href) {
+  const all = window.DF_MENUS?.tiles || [];
+  for (const top of all) {
+    if (top.href === href) return { parent:null, item:top };
+    if (Array.isArray(top.children)) {
+      for (const ch of top.children) {
+        if (ch.href === href) return { parent:top, item:ch };
+        if (Array.isArray(ch.children)) {
+          for (const g of ch.children) {
+            if (g.href === href) return { parent:ch, item:g, grandparent:top };
           }
         }
       }
-      if (n) break;
     }
-    const pushIf = (node) => { if (node && (!canView || canView(node.href))) items.push({ label: node.label, href: node.href }); };
-    pushIf(gp); pushIf(p); pushIf(n);
+  }
+  return null;
+}
 
-    items.forEach((it, i) => {
-      if (i) nav.appendChild(el('span', { class: 'sep' }, '›'));
-      if (i < items.length - 1) nav.appendChild(el('a', { href: it.href }, it.label));
-      else nav.appendChild(el('span', {}, it.label));
-    });
+function renderBreadcrumbs(node) {
+  const nav = qs("[data-df-breadcrumbs]");
+  if (!nav || !node) return;
+  const trail = [];
 
-    container.appendChild(nav);
+  if (node.grandparent) trail.push(node.grandparent);
+  if (node.parent) trail.push(node.parent);
+  trail.push(node.item);
+
+  const wrap = el("div", { class:"df-breadcrumbs" });
+  trail.forEach((m, i) => {
+    const a = el("a", { href: m.href }, m.label);
+    wrap.appendChild(a);
+    if (i < trail.length - 1) wrap.appendChild(el("span", { class:"sep" }, " / "));
+  });
+
+  nav.innerHTML = "";
+  nav.appendChild(wrap);
+}
+
+function renderSubnav(DF_ACCESS){
+  const host = qsa("[data-df-subnav]");
+  if (!host.length) return;
+
+  const path = host[0].getAttribute("data-section") || currentPath();
+  const node = findMenuByHref(path);
+  if (!node) return;
+
+  // Determine which children to show
+  let children = [];
+  if (node.item && Array.isArray(node.item.children)) {
+    children = node.item.children;
+  } else if (node.parent && Array.isArray(node.parent.children)) {
+    // when pointed at a child, show siblings
+    children = node.parent.children;
   }
 
-  // --- section matching (deterministic; uses DF_MENUS as source of truth) ---
-  function findSectionNodeFromSource(allTiles, sectionHref) {
-    const want = stripIndex(abs(sectionHref || ''));
-    // 1) exact absolute match
-    for (const t of allTiles) if (stripIndex(abs(t.href)) === want) return t;
-    // 2) endsWith fallback (handles base/trailing slash)
-    for (const t of allTiles) if (want && stripIndex(abs(t.href)).endsWith(want)) return t;
-    // 3) last resort: current location’s parent
-    const path = canonicalPath();
-    for (const t of allTiles) if (path.startsWith(stripIndex(abs(t.href)))) return t;
-    return null;
+  const vis = DF_ACCESS.filterChildren(children);
+
+  const bar = el("div", { class:"df-subnav" });
+  vis.forEach(ch => {
+    bar.appendChild(el("a", { href: ch.href, class:"pill" }, `${ch.iconEmoji || "•"} ${ch.label}`));
+  });
+
+  host.forEach(h => { h.innerHTML = ""; h.appendChild(bar.cloneNode(true)); });
+
+  // Optional breadcrumbs
+  renderBreadcrumbs(node);
+}
+
+(async function boot(){
+  try {
+    if (!window.DF_MENUS) {
+      console.warn("[ui-nav] DF_MENUS missing. Ensure assets/data/menus.js is included before ui-nav.js");
+      return;
+    }
+    const DF_ACCESS = await loadAccess();
+
+    renderHomeTiles(DF_ACCESS);
+    renderSubnav(DF_ACCESS);
+  } catch (e) {
+    console.error("[ui-nav] failed", e);
   }
-
-  // --- boot ------------------------------------------------------------------
-  async function boot() {
-    const MENUS = window.DF_MENUS || { tiles: [] };
-    if (!MENUS.tiles || !MENUS.tiles.length) return;
-
-    // Access (cache-busted import prevents stale module errors)
-    const { loadAccess } = await import(`./access.js?v=${Date.now()}`);
-    const ACC = await loadAccess();
-
-    // HOME tiles (role-filtered)
-    document.querySelectorAll('[data-df-tiles]').forEach(c => {
-      renderTiles(c, ACC.filterMenusForHome(MENUS.tiles));
-    });
-
-    // Breadcrumbs (role-filtered)
-    document.querySelectorAll('[data-df-breadcrumbs]').forEach(c => {
-      renderBreadcrumbs(c, ACC.filterMenusForHome(MENUS.tiles), ACC.canView);
-    });
-
-    // Subnav for section pages
-    document.querySelectorAll('[data-df-subnav]').forEach(c => {
-      const sectionHref = c.getAttribute('data-section') || '';
-      // IMPORTANT: find the section on the SOURCE MENU (not the filtered copy),
-      // so it cannot be dropped by any filtering quirk. Then filter its children.
-      const sectionNode = findSectionNodeFromSource(MENUS.tiles, sectionHref);
-      const childrenRaw = Array.isArray(sectionNode?.children) ? sectionNode.children : [];
-      const children = (ACC.filterChildren ? ACC.filterChildren(childrenRaw) : childrenRaw);
-      renderTiles(c, children);
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', boot);
 })();
