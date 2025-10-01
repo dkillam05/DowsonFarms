@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms — Calculators</title>
 
-  <!-- GitHub Pages base -->
+  <!-- IMPORTANT for GitHub Pages paths -->
   <base href="/DowsonFarms/">
 
   <!-- Theme prepaint -->
@@ -25,7 +25,7 @@
     :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink);
            font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
+    header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px;
              padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
@@ -71,28 +71,26 @@
     <div id="tiles"></div>
   </main>
 
-  <footer>
-    Dowson Farms App © <span id="year"></span>
-  </footer>
+  <footer>Dowson Farms App © <span id="year"></span></footer>
 
-  <!-- ───────────── SCRIPTS (order matters) ───────────── -->
+  <!-- ───────────── SCRIPTS (order MUST match Teams) ───────────── -->
 
-  <!-- 1) Menus -->
+  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
   <script src="assets/data/menus.js"></script>
 
-  <!-- 2) Firebase init -->
-  <script type="module" src="js/firebase-init.js"></script>
+  <!-- 2) Firebase app/auth/db -->
+  <script type="module" src="../js/firebase-init.js"></script>
 
   <!-- 3) Guard -->
-  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="../js/auth-guard.js"></script>
 
-  <!-- 4) Inline renderer for Calculators -->
+  <!-- 4) Inline renderer for this section -->
   <script type="module">
     const SECTION_HREF = "calculators/";
 
-    import { auth } from "js/firebase-init.js";
+    import { auth } from "../js/firebase-init.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "js/access.js";
+    import { loadAccess } from "../js/access.js";
 
     const yearEl  = document.getElementById("year");
     const tilesEl = document.getElementById("tiles");
@@ -154,7 +152,7 @@
         diag.className   = visible.length ? "ok" : "err";
 
         if(!visible.length){
-          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>${SECTION_HREF}</code>. Check role perms/overrides.</p>`;
+          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>${SECTION_HREF}</code>.</p>`;
           return;
         }
 
