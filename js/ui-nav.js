@@ -1,131 +1,104 @@
-// js/ui-nav.js
-// Role-aware rendering for home tiles, breadcrumbs, and subnav
+// ui-nav.js — renders home tiles & subnav using DF_MENUS and DF_ACCESS
+// Includes a SECONDARY inline Builder bypass so nav never hides for Builder.
+
 import { loadAccess } from "./access.js";
+const $ = s => document.querySelector(s);
 
-const qs  = (s, r=document) => r.querySelector(s);
-const qsa = (s, r=document) => Array.from(r.querySelectorAll(s));
+function renderHome(tiles){
+  const container = document.querySelector("[data-df-tiles]");
+  if(!container) return;
+  container.innerHTML = "";
 
-function el(tag, attrs={}, children=[]) {
-  const n = document.createElement(tag);
-  for (const [k,v] of Object.entries(attrs)) {
-    if (k === "class") n.className = v;
-    else if (k === "html") n.innerHTML = v;
-    else n.setAttribute(k, v);
-  }
-  (Array.isArray(children)?children:[children]).forEach(c=>{
-    if(c==null) return;
-    if (typeof c === "string") n.appendChild(document.createTextNode(c));
-    else n.appendChild(c);
-  });
-  return n;
-}
+  const grid = document.createElement("div");
+  grid.style.display="grid";
+  grid.style.gap="18px";
+  grid.style.gridTemplateColumns="repeat(auto-fit, minmax(220px,1fr))";
 
-function renderHomeTiles(DF_ACCESS){
-  const host = qs("[data-df-tiles]");
-  if (!host || !window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles)) return;
-
-  const tiles = DF_ACCESS.filterMenusForHome(window.DF_MENUS.tiles);
-  const grid = el("div", { class: "df-tiles" });
-
-  tiles.forEach(t => {
-    const a = el("a", { class:"df-tile", href: t.href, title: t.label });
-    a.appendChild(document.createTextNode(t.iconEmoji || "•"));
-    a.appendChild(el("span", {}, t.label));
+  tiles.forEach(t=>{
+    const a = document.createElement("a");
+    a.href = t.href;
+    a.className = "df-tile";
+    a.style.display="flex";
+    a.style.flexDirection="column";
+    a.style.alignItems="center";
+    a.style.justifyContent="center";
+    a.style.background="#fff";
+    a.style.border="1px solid rgba(0,0,0,.1)";
+    a.style.borderRadius="16px";
+    a.style.boxShadow="0 6px 18px rgba(0,0,0,.06)";
+    a.style.padding="24px 18px";
+    a.style.textDecoration="none";
+    a.style.color="#333";
+    a.innerHTML = `${t.iconEmoji || "•"} <span style="margin-top:8px;font-weight:600">${t.label}</span>`;
     grid.appendChild(a);
   });
 
-  host.innerHTML = "";
-  host.appendChild(grid);
+  container.appendChild(grid);
 }
 
-function currentPath() {
-  // resolve path relative to <base href="/DowsonFarms/">
-  const url = new URL(location.href);
-  let p = url.pathname;
-  // strip the repo base if present
-  if (p.startsWith("/DowsonFarms/")) p = p.slice("/DowsonFarms/".length);
-  return p || "index.html";
-}
+function renderSubnav(sectionHref, topTile, children){
+  const hook = document.querySelector("[data-df-subnav]");
+  if(!hook) return;
+  hook.innerHTML = "";
 
-function findMenuByHref(href) {
-  const all = window.DF_MENUS?.tiles || [];
-  for (const top of all) {
-    if (top.href === href) return { parent:null, item:top };
-    if (Array.isArray(top.children)) {
-      for (const ch of top.children) {
-        if (ch.href === href) return { parent:top, item:ch };
-        if (Array.isArray(ch.children)) {
-          for (const g of ch.children) {
-            if (g.href === href) return { parent:ch, item:g, grandparent:top };
-          }
-        }
-      }
-    }
-  }
-  return null;
-}
+  const list = document.createElement("div");
+  list.style.display="grid"; list.style.gap="12px";
 
-function renderBreadcrumbs(node) {
-  const nav = qs("[data-df-breadcrumbs]");
-  if (!nav || !node) return;
-  const trail = [];
-
-  if (node.grandparent) trail.push(node.grandparent);
-  if (node.parent) trail.push(node.parent);
-  trail.push(node.item);
-
-  const wrap = el("div", { class:"df-breadcrumbs" });
-  trail.forEach((m, i) => {
-    const a = el("a", { href: m.href }, m.label);
-    wrap.appendChild(a);
-    if (i < trail.length - 1) wrap.appendChild(el("span", { class:"sep" }, " / "));
+  (children || []).forEach(ch=>{
+    const a = document.createElement("a");
+    a.href = ch.href;
+    a.className="df-tile";
+    a.style.display="block";
+    a.style.background="#fff";
+    a.style.border="1px solid rgba(0,0,0,.1)";
+    a.style.borderRadius="12px";
+    a.style.padding="14px 16px";
+    a.style.textDecoration="none"; a.style.color="#333";
+    a.textContent = ch.label;
+    list.appendChild(a);
   });
 
-  nav.innerHTML = "";
-  nav.appendChild(wrap);
+  if(!children || !children.length){
+    const warn = document.createElement("div");
+    warn.style.background="#ffe9e9"; warn.style.border="1px solid #f3b9b9";
+    warn.style.color="#a00"; warn.style.padding="10px 12px"; warn.style.borderRadius="10px";
+    warn.textContent = `No visible sub-menus for ${sectionHref}.`;
+    hook.appendChild(warn);
+  } else {
+    hook.appendChild(list);
+  }
 }
 
-function renderSubnav(DF_ACCESS){
-  const host = qsa("[data-df-subnav]");
-  if (!host.length) return;
+async function main(){
+  // Load access first
+  const access = await loadAccess();
 
-  const path = host[0].getAttribute("data-section") || currentPath();
-  const node = findMenuByHref(path);
-  if (!node) return;
+  // ===== Builder secondary bypass (defensive; no seeding) =====
+  const isBuilder = access.roleKeys && access.roleKeys.includes("__builder__");
 
-  // Determine which children to show
-  let children = [];
-  if (node.item && Array.isArray(node.item.children)) {
-    children = node.item.children;
-  } else if (node.parent && Array.isArray(node.parent.children)) {
-    // when pointed at a child, show siblings
-    children = node.parent.children;
+  // Menus
+  const MENUS = window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles) ? window.DF_MENUS.tiles : [];
+
+  // HOME
+  const tilesHook = document.querySelector("[data-df-tiles]");
+  if(tilesHook){
+    const tiles = isBuilder ? MENUS.slice() : access.filterMenusForHome(MENUS);
+    renderHome(tiles);
   }
 
-  const vis = DF_ACCESS.filterChildren(children);
-
-  const bar = el("div", { class:"df-subnav" });
-  vis.forEach(ch => {
-    bar.appendChild(el("a", { href: ch.href, class:"pill" }, `${ch.iconEmoji || "•"} ${ch.label}`));
-  });
-
-  host.forEach(h => { h.innerHTML = ""; h.appendChild(bar.cloneNode(true)); });
-
-  // Optional breadcrumbs
-  renderBreadcrumbs(node);
-}
-
-(async function boot(){
-  try {
-    if (!window.DF_MENUS) {
-      console.warn("[ui-nav] DF_MENUS missing. Ensure assets/data/menus.js is included before ui-nav.js");
-      return;
+  // SUBNAV
+  const subnavHook = document.querySelector("[data-df-subnav]");
+  if(subnavHook){
+    const section = subnavHook.getAttribute("data-section"); // e.g. "teams-partners/index.html"
+    const top = MENUS.find(t => t.href === section);
+    let kids = [];
+    if(top){
+      kids = isBuilder
+        ? (top.children || []).slice()
+        : access.filterChildren(top.children || []);
     }
-    const DF_ACCESS = await loadAccess();
-
-    renderHomeTiles(DF_ACCESS);
-    renderSubnav(DF_ACCESS);
-  } catch (e) {
-    console.error("[ui-nav] failed", e);
+    renderSubnav(section, top, kids);
   }
-})();
+}
+
+document.addEventListener("DOMContentLoaded", main);
