@@ -20,7 +20,7 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="assets/css/theme.css?v=12" />
+  <link rel="stylesheet" href="../assets/css/theme.css?v=13" />
   <style>
     :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink);
@@ -54,7 +54,7 @@
 </head>
 <body>
   <header>
-    <a class="back" href="index.html">← Home</a>
+    <a class="back" href="../index.html">← Home</a>
     <div class="spacer"></div>
     <div class="title">Calculators</div>
     <div class="spacer"></div>
@@ -72,66 +72,23 @@
 
   <footer>Dowson Farms App © <span id="year"></span></footer>
 
-  <!-- 1) Menus (plain, sets window.DF_MENUS). Add onload/onerror for hard signal. -->
-  <script src="assets/data/menus.js?v=12"
-          onload="window.__menusLoaded = true"
-          onerror="window.__menusError = 'assets/data/menus.js failed to load'"></script>
+  <!-- Menus -->
+  <script src="../assets/data/menus.js?v=13"></script>
 
-  <!-- 2) Inline DIAG + watchdog BEFORE modules so we can report module import failures -->
-  <script>
-    (function () {
-      const start = performance.now();
-      const diag = document.getElementById('diag');
-      const lines = [];
-      function stamp(msg, bad){
-        const t = Math.round(performance.now()-start);
-        lines.push(`[${t}ms] ${msg}`);
-        diag.textContent = lines.join('\n');
-        if (bad) diag.className = 'err';
-      }
-      window.__DIAG = { stamp, fail: (m)=>stamp(m,true), ok: (m)=>{stamp(m); diag.className='ok';} };
-
-      stamp('HTML parsed');
-
-      // Global error traps (module import errors show up here)
-      window.addEventListener('error', (e) => stamp(`window.onerror: ${e.message || e.filename}`, true));
-      window.addEventListener('unhandledrejection', (e) => stamp(`unhandledrejection: ${e.reason}`, true));
-
-      // Watchdog: if we never progress to auth within 4s, yell with clues
-      setTimeout(() => {
-        if (!window.__authSeen) {
-          const menusState = window.__menusLoaded ? 'loaded' : (window.__menusError || 'NOT loaded yet');
-          stamp(`Watchdog: still waiting for auth.\nmenus.js: ${menusState}\nCheck script paths & caching.`, true);
-        }
-      }, 4000);
-    })();
-  </script>
-
-  <!-- 3) Firebase + guard (module) -->
+  <!-- Firebase + access with CORRECT relative paths -->
   <script type="module">
-    import { auth } from "js/firebase-init.js?v=12";
+    import { auth } from "../js/firebase-init.js?v=13";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "../js/access.js?v=13";
 
-    __DIAG.stamp('firebase-init.js imported');
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      signOut(auth).then(() => location.href = "auth/");
+    const diag = document.getElementById("diag");
+    const tilesEl = document.getElementById("tiles");
+    const yearEl = document.getElementById("year");
+    yearEl.textContent = new Date().getFullYear();
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => location.href = "../auth/");
     });
-
-    onAuthStateChanged(auth, (user) => {
-      window.__authSeen = true;
-      __DIAG.stamp(`auth state: ${user ? (user.email || user.uid) : 'no user'}`);
-      if (!user) return; // render waits for user in next module
-    });
-  </script>
-
-  <!-- 4) Render module -->
-  <script type="module">
-    import { auth } from "js/firebase-init.js?v=12";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "js/access.js?v=12";
-
-    const tilesEl = document.getElementById('tiles');
-    const yearEl = document.getElementById('year'); yearEl.textContent = new Date().getFullYear();
 
     function menus() {
       return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
@@ -141,65 +98,41 @@
       return t.find(x => (x.href && x.href.replace(/index\.html$/,'').endsWith('calculators/')))
           || t.find(x => String(x.label||'').toLowerCase() === 'calculators');
     }
-    function dump(obj){ try{return JSON.stringify(obj,null,2)}catch(_){return String(obj)} }
-
-    // Check menus file really arrived
-    if (window.__menusError) {
-      __DIAG.fail(window.__menusError);
-    } else if (!window.__menusLoaded) {
-      __DIAG.stamp('menus.js not confirmed yet (race) …');
-    } else {
-      __DIAG.stamp('menus.js loaded');
-    }
-
-    const calcNode = getCalcNode();
-    if (!calcNode) {
-      __DIAG.fail("DF_MENUS does not contain a 'calculators/' node. Check assets/data/menus.js");
-    } else {
-      __DIAG.stamp(`menus ok: found calculators/ with ${Array.isArray(calcNode.children)?calcNode.children.length:0} children`);
-    }
 
     onAuthStateChanged(auth, async (user) => {
-      if (!user) return; // banner already shows "no user" from previous module
+      if (!user) {
+        diag.textContent = "No Firebase user yet.";
+        diag.className = "err";
+        return;
+      }
       try {
-        __DIAG.stamp('imported access.js; calling loadAccess()');
         const access = await loadAccess();
-        __DIAG.stamp(`loadAccess() done; roleKeys=${dump(access.roleKeys)}`);
-
-        const kids = Array.isArray(calcNode?.children) ? calcNode.children : [];
-        const visible = kids.filter(ch => (access.canView ? access.canView(ch.href) : true));
-        __DIAG.stamp(`visible sub-menus: ${visible.length}`);
-
-        tilesEl.innerHTML = '';
-        if (!visible.length) {
-          tilesEl.innerHTML = `<p style="color:#a00">
-            No visible sub-menus for <code>calculators/</code>.<br/>
-            Check Firestore <code>roles/&hellip;/permissionsByPath</code>.
-          </p>`;
+        const calcNode = getCalcNode();
+        if (!calcNode) {
+          diag.textContent = "menus.js missing calculators node";
+          diag.className = "err";
           return;
         }
+        const kids = Array.isArray(calcNode.children) ? calcNode.children : [];
+        const visible = kids.filter(ch => (access.canView ? access.canView(ch.href) : true));
+
+        diag.textContent = `Visible sub-menus: ${visible.length}`;
+        diag.className = visible.length ? "ok" : "err";
+
+        tilesEl.innerHTML = "";
         visible.forEach(it => {
-          const a = document.createElement('a');
-          a.className = 'tile';
+          const a = document.createElement("a");
+          a.className = "tile";
           a.href = it.href;
           a.title = it.label;
           a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
           tilesEl.appendChild(a);
         });
-        __DIAG.ok('render complete');
       } catch (e) {
-        __DIAG.fail(`render error: ${e && e.message ? e.message : e}`);
+        diag.textContent = "Error: " + e.message;
+        diag.className = "err";
       }
     });
-  </script>
-
-  <!-- (optional) service worker, uses base so no ../ -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("js/serviceworker.js").catch(()=>{});
-      });
-    }
   </script>
 </body>
 </html>
