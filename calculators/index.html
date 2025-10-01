@@ -6,33 +6,21 @@
   <meta name="theme-color" content="#1B5E20" />
   <title>Calculators — Dowson Farms</title>
 
-  <!-- GitHub Pages base (IMPORTANT) -->
+  <!-- IMPORTANT for GitHub Pages -->
   <base href="/DowsonFarms/">
 
   <!-- Theme prepaint -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
-      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
       var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
       document.documentElement.setAttribute('data-theme', mode);
       document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
-  <!-- Styles / core -->
-  <link rel="stylesheet" href="assets/css/theme.css" />
-  <script defer src="js/version.js"></script>
-  <script defer src="js/core.js"></script>
-
-  <!-- (optional) PWA bits -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
-
+  <link rel="stylesheet" href="assets/css/theme.css?v=12" />
   <style>
     :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink);
@@ -56,12 +44,11 @@
     .tile:hover { transform: translateY(-3px); }
     .tile span { margin-top:8px; font-weight:600; }
 
-    /* Sticky diagnostic banner */
-    #diagBar { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-               font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
-    #diagBar.ok  { background:#eef5ee; color:#1a4d1a; }
-    #diagBar.err { background:#ffe9e9; color:#a00; }
-
+    /* Diagnostic banner */
+    #diag { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
+    #diag.ok  { background:#eef5ee; color:#1a4d1a; }
+    #diag.err { background:#ffe9e9; color:#a00; }
     a.back { text-decoration:none; }
   </style>
 </head>
@@ -75,124 +62,142 @@
   </header>
 
   <!-- Diagnostics -->
-  <div id="diagBar" class="err">Loading…</div>
+  <div id="diag" class="err">Booting…</div>
 
   <main>
     <h1>🔢 Calculators</h1>
     <p>Quick tools for yield, mixes, area, and more.</p>
-
-    <!-- Sub-tiles render here -->
     <div id="tiles"></div>
   </main>
 
-  <footer>
-    Dowson Farms App © <span id="year"></span>
-  </footer>
+  <footer>Dowson Farms App © <span id="year"></span></footer>
 
-  <!-- ───────────── SCRIPTS (order matters; same pattern as Teams) ───────────── -->
+  <!-- 1) Menus (plain, sets window.DF_MENUS). Add onload/onerror for hard signal. -->
+  <script src="assets/data/menus.js?v=12"
+          onload="window.__menusLoaded = true"
+          onerror="window.__menusError = 'assets/data/menus.js failed to load'"></script>
 
-  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
-  <script src="assets/data/menus.js?v=11"></script>
+  <!-- 2) Inline DIAG + watchdog BEFORE modules so we can report module import failures -->
+  <script>
+    (function () {
+      const start = performance.now();
+      const diag = document.getElementById('diag');
+      const lines = [];
+      function stamp(msg, bad){
+        const t = Math.round(performance.now()-start);
+        lines.push(`[${t}ms] ${msg}`);
+        diag.textContent = lines.join('\n');
+        if (bad) diag.className = 'err';
+      }
+      window.__DIAG = { stamp, fail: (m)=>stamp(m,true), ok: (m)=>{stamp(m); diag.className='ok';} };
 
-  <!-- 2) Firebase app/auth/db -->
-  <script type="module" src="js/firebase-init.js?v=11"></script>
+      stamp('HTML parsed');
 
-  <!-- 3) (optional) guard -->
-  <script type="module" src="js/auth-guard.js?v=11"></script>
+      // Global error traps (module import errors show up here)
+      window.addEventListener('error', (e) => stamp(`window.onerror: ${e.message || e.filename}`, true));
+      window.addEventListener('unhandledrejection', (e) => stamp(`unhandledrejection: ${e.reason}`, true));
 
-  <!-- 4) Inline module: render ONLY the Calculators children -->
+      // Watchdog: if we never progress to auth within 4s, yell with clues
+      setTimeout(() => {
+        if (!window.__authSeen) {
+          const menusState = window.__menusLoaded ? 'loaded' : (window.__menusError || 'NOT loaded yet');
+          stamp(`Watchdog: still waiting for auth.\nmenus.js: ${menusState}\nCheck script paths & caching.`, true);
+        }
+      }, 4000);
+    })();
+  </script>
+
+  <!-- 3) Firebase + guard (module) -->
   <script type="module">
-    import { auth } from "js/firebase-init.js?v=11";
+    import { auth } from "js/firebase-init.js?v=12";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "js/access.js?v=11";
 
-    const yearEl  = document.getElementById("year");
-    const tilesEl = document.getElementById("tiles");
-    const diag    = document.getElementById("diagBar");
-    yearEl.textContent = new Date().getFullYear();
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
+    __DIAG.stamp('firebase-init.js imported');
+    document.getElementById('logoutBtn').addEventListener('click', () => {
       signOut(auth).then(() => location.href = "auth/");
     });
 
-    function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
-    function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
+    onAuthStateChanged(auth, (user) => {
+      window.__authSeen = true;
+      __DIAG.stamp(`auth state: ${user ? (user.email || user.uid) : 'no user'}`);
+      if (!user) return; // render waits for user in next module
+    });
+  </script>
 
-    // Find the Calculators node in DF_MENUS
+  <!-- 4) Render module -->
+  <script type="module">
+    import { auth } from "js/firebase-init.js?v=12";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "js/access.js?v=12";
+
+    const tilesEl = document.getElementById('tiles');
+    const yearEl = document.getElementById('year'); yearEl.textContent = new Date().getFullYear();
+
+    function menus() {
+      return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
+    }
     function getCalcNode() {
-      const tiles = getMenus();
-      return tiles.find(t => (t.href && t.href.replace(/index\.html$/,'').endsWith("calculators/")))
-          || tiles.find(t => (t.label||"").toLowerCase() === "calculators");
+      const t = menus();
+      return t.find(x => (x.href && x.href.replace(/index\.html$/,'').endsWith('calculators/')))
+          || t.find(x => String(x.label||'').toLowerCase() === 'calculators');
+    }
+    function dump(obj){ try{return JSON.stringify(obj,null,2)}catch(_){return String(obj)} }
+
+    // Check menus file really arrived
+    if (window.__menusError) {
+      __DIAG.fail(window.__menusError);
+    } else if (!window.__menusLoaded) {
+      __DIAG.stamp('menus.js not confirmed yet (race) …');
+    } else {
+      __DIAG.stamp('menus.js loaded');
     }
 
-    async function renderFor(user){
-      if(!user){
-        diag.textContent = "No Firebase user yet (waiting for auth)…";
-        diag.className = "err";
-        tilesEl.innerHTML = "";
-        return;
-      }
+    const calcNode = getCalcNode();
+    if (!calcNode) {
+      __DIAG.fail("DF_MENUS does not contain a 'calculators/' node. Check assets/data/menus.js");
+    } else {
+      __DIAG.stamp(`menus ok: found calculators/ with ${Array.isArray(calcNode.children)?calcNode.children.length:0} children`);
+    }
 
-      const calc = getCalcNode();
-      if(!calc){
-        diag.textContent = "DF_MENUS missing a 'calculators/' tile. Check assets/data/menus.js.";
-        diag.className = "err";
-        tilesEl.innerHTML = "";
-        return;
-      }
-
-      try{
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return; // banner already shows "no user" from previous module
+      try {
+        __DIAG.stamp('imported access.js; calling loadAccess()');
         const access = await loadAccess();
+        __DIAG.stamp(`loadAccess() done; roleKeys=${dump(access.roleKeys)}`);
 
-        // Filter children by access.canView(child.href)
-        const children = Array.isArray(calc.children) ? calc.children : [];
-        const visible  = children.filter(ch => (access.canView ? access.canView(ch.href) : true));
+        const kids = Array.isArray(calcNode?.children) ? calcNode.children : [];
+        const visible = kids.filter(ch => (access.canView ? access.canView(ch.href) : true));
+        __DIAG.stamp(`visible sub-menus: ${visible.length}`);
 
-        // Diagnostics banner
-        const lines = [
-          `Section: calculators/`,
-          `User: ${user.email || user.uid}`,
-          `Role keys: ${dump(access.roleKeys)}`,
-          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
-          `Visible sub-menus: ${visible.length}`
-        ];
-        diag.textContent = lines.join("\n");
-        diag.className = visible.length ? "ok" : "err";
-
-        // Render sub-tiles
-        tilesEl.innerHTML = "";
-        if(!visible.length){
-          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>calculators/</code>. Check Firestore <code>roles/&hellip;/permissionsByPath</code> for that path or specific pages.</p>`;
+        tilesEl.innerHTML = '';
+        if (!visible.length) {
+          tilesEl.innerHTML = `<p style="color:#a00">
+            No visible sub-menus for <code>calculators/</code>.<br/>
+            Check Firestore <code>roles/&hellip;/permissionsByPath</code>.
+          </p>`;
           return;
         }
-
-        visible.forEach(it=>{
-          const a = document.createElement("a");
-          a.className = "tile";
+        visible.forEach(it => {
+          const a = document.createElement('a');
+          a.className = 'tile';
           a.href = it.href;
           a.title = it.label;
           a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
           tilesEl.appendChild(a);
         });
-      }catch(e){
-        diag.textContent = "Error loading access: " + e.message;
-        diag.className = "err";
-        tilesEl.innerHTML = "";
+        __DIAG.ok('render complete');
+      } catch (e) {
+        __DIAG.fail(`render error: ${e && e.message ? e.message : e}`);
       }
-    }
-
-    // Wait for Firebase auth state before rendering
-    onAuthStateChanged(auth, (user) => {
-      diag.textContent = "Imports ok, waiting for auth…";
-      renderFor(user);
     });
   </script>
 
-  <!-- Service worker (optional) -->
+  <!-- (optional) service worker, uses base so no ../ -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("js/serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("js/serviceworker.js").catch(()=>{});
       });
     }
   </script>
