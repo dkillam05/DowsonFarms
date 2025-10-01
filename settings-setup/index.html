@@ -4,22 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Account Roles</title>
+
+  <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
+
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
     body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
     header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
-    header .title{font-weight:700;color:#333} header .spacer{flex:1}
+    header .title{font-weight:700;color:#333} .spacer{flex:1}
     main{padding:18px;max-width:1100px;margin:0 auto}
     h1{margin:0 0 8px;color:#1B5E20}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
-    select, input[type=text]{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
+    select,input[type=text]{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
     button{padding:8px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer;font-weight:600}
     #status{margin:10px 0;padding:8px 10px;border-radius:10px;background:#eef5ee;border:1px solid #cfe3cf;color:#125212;display:none}
     .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
     .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
     .perm-grid .head{font-weight:700}
     .muted{color:#666;font-size:12px}
+
+    /* small diagnostics bar */
+    #diag{white-space:pre-wrap;font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          padding:8px 10px;border-bottom:1px solid #0002;display:none}
+    #diag.ok{background:#eef5ee;color:#125212;display:block}
+    #diag.err{background:#ffe9e9;color:#a00;display:block}
   </style>
 </head>
 <body>
@@ -30,6 +39,9 @@
     <a href="index.html">Home</a>
   </header>
 
+  <!-- Diagnostics -->
+  <div id="diag">Loading…</div>
+
   <main>
     <h1>Account Roles</h1>
     <p class="muted">Create roles and set what each role can do for every menu item.</p>
@@ -39,10 +51,10 @@
     <div class="row">
       <label>Role:</label>
       <select id="roleSelect"></select>
-      <input id="newRoleName" type="text" placeholder="New role name (e.g., operators)" />
+      <input id="newRoleName" type="text" placeholder="New role name (e.g., managers)" />
       <button id="btnAddRole">Add Role</button>
       <button id="btnDeleteRole" style="color:#a00">Delete Role</button>
-      <span class="muted">Tip: builder has full access automatically.</span>
+      <span class="muted">Tip: Builder has full access automatically.</span>
     </div>
 
     <div class="card">
@@ -61,8 +73,26 @@
     </div>
   </main>
 
-  <!-- Menus + Firebase + Roles admin -->
-  <script src="/DowsonFarms/assets/data/menus.js"></script>
-  <script type="module" src="/DowsonFarms/js/roles-admin.js"></script>
+  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
+  <script src="assets/data/menus.js"></script>
+
+  <!-- 2) Firebase init + (optional) auth guard -->
+  <script type="module" src="js/firebase-init.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <!-- 3) Roles admin (relies on firebase-init) -->
+  <script type="module">
+    import "./js/roles-admin.js";
+    // simple diag: show if menus loaded
+    const d = document.getElementById("diag");
+    try{
+      const ok = !!(window.DF_MENUS && (window.DF_MENUS.tiles||[]).length);
+      d.textContent = ok ? "menus.js loaded ✓" : "menus.js missing tiles";
+      d.className = ok ? "ok" : "err";
+    }catch(e){
+      d.textContent = e.message;
+      d.className = "err";
+    }
+  </script>
 </body>
 </html>
