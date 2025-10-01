@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Dowson Farms — Calculators</title>
+  <title>Calculators — Dowson Farms</title>
 
-  <!-- IMPORTANT for GitHub Pages paths -->
+  <!-- GitHub Pages base (IMPORTANT) -->
   <base href="/DowsonFarms/">
 
   <!-- Theme prepaint -->
@@ -20,12 +20,24 @@
     })();
   </script>
 
+  <!-- Styles / core -->
   <link rel="stylesheet" href="assets/css/theme.css" />
+  <script defer src="js/version.js"></script>
+  <script defer src="js/core.js"></script>
+
+  <!-- (optional) PWA bits -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+
   <style>
     :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink);
            font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px;
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
              padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
@@ -49,11 +61,13 @@
                font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
     #diagBar.ok  { background:#eef5ee; color:#1a4d1a; }
     #diagBar.err { background:#ffe9e9; color:#a00; }
+
+    a.back { text-decoration:none; }
   </style>
 </head>
 <body>
   <header>
-    <a href="index.html" style="text-decoration:none">← Home</a>
+    <a class="back" href="index.html">← Home</a>
     <div class="spacer"></div>
     <div class="title">Calculators</div>
     <div class="spacer"></div>
@@ -67,30 +81,30 @@
     <h1>🔢 Calculators</h1>
     <p>Quick tools for yield, mixes, area, and more.</p>
 
-    <!-- Tiles render here -->
+    <!-- Sub-tiles render here -->
     <div id="tiles"></div>
   </main>
 
-  <footer>Dowson Farms App © <span id="year"></span></footer>
+  <footer>
+    Dowson Farms App © <span id="year"></span>
+  </footer>
 
-  <!-- ───────────── SCRIPTS (order MUST match Teams) ───────────── -->
+  <!-- ───────────── SCRIPTS (order matters; same pattern as Teams) ───────────── -->
 
   <!-- 1) Menus (plain script sets window.DF_MENUS) -->
-  <script src="assets/data/menus.js"></script>
+  <script src="assets/data/menus.js?v=11"></script>
 
   <!-- 2) Firebase app/auth/db -->
-  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="js/firebase-init.js?v=11"></script>
 
-  <!-- 3) Guard -->
-  <script type="module" src="../js/auth-guard.js"></script>
+  <!-- 3) (optional) guard -->
+  <script type="module" src="js/auth-guard.js?v=11"></script>
 
-  <!-- 4) Inline renderer for this section -->
+  <!-- 4) Inline module: render ONLY the Calculators children -->
   <script type="module">
-    const SECTION_HREF = "calculators/";
-
-    import { auth } from "../js/firebase-init.js";
+    import { auth } from "js/firebase-init.js?v=11";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "../js/access.js";
+    import { loadAccess } from "js/access.js?v=11";
 
     const yearEl  = document.getElementById("year");
     const tilesEl = document.getElementById("tiles");
@@ -104,21 +118,11 @@
     function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
     function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
 
-    function findSectionNode() {
+    // Find the Calculators node in DF_MENUS
+    function getCalcNode() {
       const tiles = getMenus();
-      return tiles.find(t => t.href && t.href.replace(/index\.html$/,'') === SECTION_HREF);
-    }
-
-    function renderTiles(items){
-      tilesEl.innerHTML = "";
-      items.forEach(it=>{
-        const a = document.createElement("a");
-        a.className = "tile";
-        a.href = it.href;
-        a.title = it.label;
-        a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
-        tilesEl.appendChild(a);
-      });
+      return tiles.find(t => (t.href && t.href.replace(/index\.html$/,'').endsWith("calculators/")))
+          || tiles.find(t => (t.label||"").toLowerCase() === "calculators");
     }
 
     async function renderFor(user){
@@ -129,34 +133,47 @@
         return;
       }
 
-      const node = findSectionNode();
-      if(!node){
-        diag.textContent = `DF_MENUS missing a tile with href "${SECTION_HREF}".`;
+      const calc = getCalcNode();
+      if(!calc){
+        diag.textContent = "DF_MENUS missing a 'calculators/' tile. Check assets/data/menus.js.";
         diag.className = "err";
+        tilesEl.innerHTML = "";
         return;
       }
 
       try{
         const access = await loadAccess();
-        const kids   = Array.isArray(node.children) ? node.children : [];
-        const visible = access.filterChildren ? access.filterChildren(kids) : kids;
 
+        // Filter children by access.canView(child.href)
+        const children = Array.isArray(calc.children) ? calc.children : [];
+        const visible  = children.filter(ch => (access.canView ? access.canView(ch.href) : true));
+
+        // Diagnostics banner
         const lines = [
-          `Section: ${SECTION_HREF}`,
+          `Section: calculators/`,
           `User: ${user.email || user.uid}`,
           `Role keys: ${dump(access.roleKeys)}`,
           `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
           `Visible sub-menus: ${visible.length}`
         ];
         diag.textContent = lines.join("\n");
-        diag.className   = visible.length ? "ok" : "err";
+        diag.className = visible.length ? "ok" : "err";
 
+        // Render sub-tiles
+        tilesEl.innerHTML = "";
         if(!visible.length){
-          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>${SECTION_HREF}</code>.</p>`;
+          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>calculators/</code>. Check Firestore <code>roles/&hellip;/permissionsByPath</code> for that path or specific pages.</p>`;
           return;
         }
 
-        renderTiles(visible);
+        visible.forEach(it=>{
+          const a = document.createElement("a");
+          a.className = "tile";
+          a.href = it.href;
+          a.title = it.label;
+          a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
+          tilesEl.appendChild(a);
+        });
       }catch(e){
         diag.textContent = "Error loading access: " + e.message;
         diag.className = "err";
@@ -164,7 +181,20 @@
       }
     }
 
-    onAuthStateChanged(auth, (user) => renderFor(user));
+    // Wait for Firebase auth state before rendering
+    onAuthStateChanged(auth, (user) => {
+      diag.textContent = "Imports ok, waiting for auth…";
+      renderFor(user);
+    });
+  </script>
+
+  <!-- Service worker (optional) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("js/serviceworker.js").catch(console.error);
+      });
+    }
   </script>
 </body>
 </html>
