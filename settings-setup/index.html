@@ -2,97 +2,199 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Account Roles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1B5E20" />
+  <title>Settings & Setup — Dowson Farms</title>
 
-  <!-- GitHub Pages base -->
-  <base href="/DowsonFarms/">
+  <!-- Prepaint theme -->
+  <script>
+  (function () {
+    var pref = localStorage.getItem('df_theme') || 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', pref === 'auto' ? (dark ? 'dark' : 'light') : pref);
+    document.documentElement.style.colorScheme =
+      (pref === 'auto' ? (dark ? 'dark' : 'light') : pref) === 'dark' ? 'dark' : 'light';
+  })();
+  </script>
 
-  <link rel="stylesheet" href="assets/css/theme.css" />
+  <!-- We are in /settings-setup/, so use ../ to reach shared assets -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="../manifest.webmanifest" />
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+
   <style>
-    body{margin:0;background:#f6f3e4;color:#222;font-family:system-ui,Segoe UI,Roboto,Arial}
-    header{height:40px;background:#E6DCB8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
-    header .title{font-weight:700;color:#333} .spacer{flex:1}
-    main{padding:18px;max-width:1100px;margin:0 auto}
-    h1{margin:0 0 8px;color:#1B5E20}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
-    select,input[type=text]{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
-    button{padding:8px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer;font-weight:600}
-    #status{margin:10px 0;padding:8px 10px;border-radius:10px;background:#eef5ee;border:1px solid #cfe3cf;color:#125212;display:none}
-    .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
-    .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
-    .perm-grid .head{font-weight:700}
-    .muted{color:#666;font-size:12px}
-
-    /* small diagnostics bar */
-    #diag{white-space:pre-wrap;font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-          padding:8px 10px;border-bottom:1px solid #0002;display:none}
-    #diag.ok{background:#eef5ee;color:#125212;display:block}
-    #diag.err{background:#ffe9e9;color:#a00;display:block}
+    /* Tiny diagnostics banner */
+    #diagBar{white-space:pre-wrap;font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+             padding:8px 10px;border-bottom:1px solid #0002;display:none}
+    #diagBar.ok{background:#eef5ee;color:#1a4d1a;display:block}
+    #diagBar.err{background:#ffe9e9;color:#a00;display:block}
   </style>
 </head>
 <body>
-  <header>
-    <a href="settings-setup/" style="text-decoration:none">← Back</a>
-    <div class="title">Account Roles</div>
-    <div class="spacer"></div>
-    <a href="index.html">Home</a>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
+      <div class="app-header__title">Dowson Farms</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="../index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><span>Settings & Setup</span></li>
+    </ol>
+  </nav>
+
   <!-- Diagnostics -->
-  <div id="diag">Loading…</div>
+  <div id="diagBar">Loading…</div>
 
-  <main>
-    <h1>Account Roles</h1>
-    <p class="muted">Create roles and set what each role can do for every menu item.</p>
+  <!-- Main -->
+  <main class="content">
+    <h1>⚙️ Settings & Setup</h1>
 
-    <div id="status"></div>
+    <!-- Sub-tiles from menus.js (no fallbacks) -->
+    <div class="df-tiles" id="tiles"></div>
 
-    <div class="row">
-      <label>Role:</label>
-      <select id="roleSelect"></select>
-      <input id="newRoleName" type="text" placeholder="New role name (e.g., managers)" />
-      <button id="btnAddRole">Add Role</button>
-      <button id="btnDeleteRole" style="color:#a00">Delete Role</button>
-      <span class="muted">Tip: Builder has full access automatically.</span>
-    </div>
-
-    <div class="card">
-      <div class="perm-grid" id="permHeader">
-        <div class="head">Menu Path</div>
-        <div class="head">View</div>
-        <div class="head">Create</div>
-        <div class="head">Edit</div>
-        <div class="head">Delete</div>
-        <div class="head">Archive</div>
-      </div>
-      <div id="permRows"></div>
-      <div class="row">
-        <button id="btnSavePerms">Save Permissions</button>
-      </div>
-    </div>
+    <section id="check-updates" style="margin-top:28px">
+      <h2>App Updates</h2>
+      <p>Check for a new build and refresh cached files.</p>
+      <button id="btnCheckUpdates" class="button">Check for Updates</button>
+      <span id="updMsg" class="muted" style="margin-left:10px"></span>
+    </section>
   </main>
 
-  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
-  <script src="assets/data/menus.js"></script>
+  <!-- Footer -->
+  <footer class="app-footer">
+    <span>Dowson Farms</span><span class="dot">•</span>
+    <span id="report-date">—</span><span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
 
-  <!-- 2) Firebase init + (optional) auth guard -->
-  <script type="module" src="js/firebase-init.js"></script>
-  <script type="module" src="js/auth-guard.js"></script>
-
-  <!-- 3) Roles admin (relies on firebase-init) -->
-  <script type="module">
-    import "./js/roles-admin.js";
-    // simple diag: show if menus loaded
-    const d = document.getElementById("diag");
-    try{
-      const ok = !!(window.DF_MENUS && (window.DF_MENUS.tiles||[]).length);
-      d.textContent = ok ? "menus.js loaded ✓" : "menus.js missing tiles";
-      d.className = ok ? "ok" : "err";
-    }catch(e){
-      d.textContent = e.message;
-      d.className = "err";
+  <!-- Service worker (yours lives in /js/) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("../js/serviceworker.js").catch(console.error);
+      });
     }
+  </script>
+
+  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
+  <script defer src="../assets/data/menus.js"></script>
+
+  <!-- 2) Firebase init + (optional) guard -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth-guard.js"></script>
+
+  <!-- 3) Inline module: load access and render ONLY the Settings & Setup children -->
+  <script type="module">
+    import { auth } from "../js/firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "../js/access.js";
+
+    const tilesEl = document.getElementById("tiles");
+    const diag    = document.getElementById("diagBar");
+
+    const sectionHref = "settings-setup/"; // exact href used in menus.js
+
+    function dump(x){ try { return JSON.stringify(x,null,2); } catch { return String(x); } }
+    function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
+
+    function findSectionNode(){
+      const tiles = getMenus();
+      // prefer href match, fallback to label contains
+      return tiles.find(t => (t.href||"").replace(/index\.html$/,'') === sectionHref)
+          || tiles.find(t => (t.label||"").toLowerCase().includes("setup / settings"));
+    }
+
+    function renderTiles(list){
+      tilesEl.innerHTML = "";
+      list.forEach(it=>{
+        const a = document.createElement("a");
+        a.className = "tile";
+        a.href = it.href;
+        a.title = it.label;
+        a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
+        tilesEl.appendChild(a);
+      });
+    }
+
+    async function renderFor(user){
+      if(!user){
+        diag.textContent = "No Firebase user yet (waiting for auth)…";
+        diag.className = "err";
+        tilesEl.innerHTML = "";
+        return;
+      }
+
+      const node = findSectionNode();
+      if(!node){
+        diag.textContent = "DF_MENUS missing a 'settings-setup/' tile. Check ../assets/data/menus.js.";
+        diag.className = "err";
+        tilesEl.innerHTML = "";
+        return;
+      }
+
+      try{
+        const access = await loadAccess();
+        const children = Array.isArray(node.children) ? node.children : [];
+        const visible  = children.filter(ch => (access.canView ? access.canView(ch.href) : true));
+
+        // Diagnostics
+        const lines = [
+          `Section: ${sectionHref}`,
+          `Role keys: ${dump(access.roleKeys)}`,
+          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
+          `Visible sub-menus: ${visible.length}`
+        ];
+        diag.textContent = lines.join("\n");
+        diag.className = visible.length ? "ok" : "err";
+
+        if (!visible.length){
+          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>${sectionHref}</code>. Check Firestore role permissions.</p>`;
+          return;
+        }
+        renderTiles(visible);
+      }catch(e){
+        diag.textContent = "Error: " + (e && e.message ? e.message : e);
+        diag.className = "err";
+        tilesEl.innerHTML = "";
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => { renderFor(user); });
+
+    // Updates button (optional)
+    (function () {
+      const btn = document.getElementById("btnCheckUpdates");
+      const msg = document.getElementById("updMsg");
+      if (!btn) return;
+      btn.addEventListener("click", async () => {
+        msg.textContent = "Checking…";
+        try {
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.getRegistration('/DowsonFarms/js/serviceworker.js') ||
+                        await navigator.serviceWorker.getRegistration();
+            if (reg && reg.update) await reg.update();
+          }
+          msg.textContent = "Update check complete.";
+        } catch (e) { msg.textContent = "Could not check for updates."; }
+      });
+    })();
   </script>
 </body>
 </html>
