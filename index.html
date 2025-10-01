@@ -2,29 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms — Home</title>
 
-  <!-- GitHub Pages base -->
+  <!-- GitHub Pages base (IMPORTANT) -->
   <base href="/DowsonFarms/">
-  <link rel="stylesheet" href="assets/css/theme.css" />
 
+  <!-- Theme prepaint -->
+  <script>
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
-    :root { --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
+    :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink);
-           font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px;
+           font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
              padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
-    header .btn { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20;
-                  font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
+                     font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
     main { padding:18px; max-width:1100px; margin:0 auto; }
-    h1 { font-size:22px; color:#1B5E20; margin-top:0; }
+    h1 { font-size:22px; color:var(--brand); margin-top:0; }
     footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
 
-    .tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    /* Tiles */
+    #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
     .tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
              background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
              box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#333;
@@ -32,9 +44,10 @@
     .tile:hover { transform: translateY(-3px); }
     .tile span { margin-top:8px; font-weight:600; }
 
-    /* Diagnostics */
-    #diagBar { margin:0; padding:10px; font-size:13px; background:#fffbe7; border-bottom:1px solid #ccc; white-space:pre-wrap; }
-    #diagBar.ok { background:#eef5ee; color:#125212; }
+    /* Sticky diagnostic banner */
+    #diagBar { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+               font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
+    #diagBar.ok  { background:#eef5ee; color:#1a4d1a; }
     #diagBar.err { background:#ffe9e9; color:#a00; }
   </style>
 </head>
@@ -42,61 +55,83 @@
   <header>
     <div class="title">Dowson Farms — Home</div>
     <div class="spacer"></div>
-    <button id="logoutBtn" class="btn">Logout</button>
+    <button id="logoutBtn" class="logout">Logout</button>
   </header>
 
-  <!-- Diagnostic banner -->
-  <div id="diagBar">Loading…</div>
+  <!-- Diagnostics -->
+  <div id="diagBar" class="err">Loading…</div>
 
   <main>
     <h1>Welcome to Dowson Farms</h1>
     <p>Select an area to begin:</p>
-    <div id="tiles" class="tiles"></div>
+
+    <!-- Tiles render here -->
+    <div id="tiles"></div>
   </main>
 
-  <footer>Dowson Farms App © <span id="year"></span></footer>
+  <footer>
+    Dowson Farms App © <span id="year"></span>
+  </footer>
 
-  <!-- Firebase + Guard (ensures unauthenticated users are sent to /auth/) -->
+  <!-- ───────────────────────── SCRIPTS (order matters) ───────────────────────── -->
+
+  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
+  <script src="assets/data/menus.js"></script>
+
+  <!-- 2) Firebase app/auth/db -->
   <script type="module" src="js/firebase-init.js"></script>
+
+  <!-- 3) (optional) your existing guard; OK to keep if you want redirect-on-logout -->
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- Menus + Role engine -->
-  <script src="assets/data/menus.js"></script>
-  <!-- If your file is named access.js, keep this import line; if it's role-engine.js, change it -->
+  <!-- 4) Role engine used to load perms (exports loadAccess) -->
   <script type="module">
     import { auth } from "./js/firebase-init.js";
-    import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "./js/access.js"; // <- change to ./js/role-engine.js if that's your file
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "./js/access.js";
 
-    const diag = document.getElementById("diagBar");
+    const yearEl  = document.getElementById("year");
     const tilesEl = document.getElementById("tiles");
-    document.getElementById("year").textContent = new Date().getFullYear();
+    const diag    = document.getElementById("diagBar");
+    yearEl.textContent = new Date().getFullYear();
+
     document.getElementById("logoutBtn").addEventListener("click", () => {
-      signOut(auth).then(()=>location.href="auth/");
+      signOut(auth).then(() => location.href = "auth/");
     });
 
-    function dump(obj){ try { return JSON.stringify(obj, null, 2); } catch { return String(obj); } }
+    function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
 
-    async function render(){
+    async function renderFor(user){
+      if(!user){
+        diag.textContent = "No Firebase user yet (waiting for auth)…";
+        diag.className = "err";
+        tilesEl.innerHTML = "";
+        return;
+      }
+
       try{
-        const access = await loadAccess(); // builds DF_ACCESS from Firestore roles
-        const menus = (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
-        const filtered = (access.filterMenusForHome ? access.filterMenusForHome(menus) : menus) || [];
+        // Load access (role docs + merged permissions)
+        const access = await loadAccess();
 
-        // diagnostics
-        const lines = [];
-        lines.push(`User: ${auth.currentUser ? auth.currentUser.email : "(no auth user)"}`);
-        lines.push(`Role keys: ${dump(access.roleKeys)}`);
-        lines.push(`permsByPath keys: ${Object.keys(access.permsByPath || {}).length}`);
-        lines.push(dump(access.permsByPath || {}));
-        lines.push(`Visible top tiles: ${filtered.length}`);
+        // Source menus
+        const menus = (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
+        const filtered = access.filterMenusForHome ? access.filterMenusForHome(menus) : menus;
+
+        // Diagnostics
+        const lines = [
+          `User: ${user.email || user.uid}`,
+          `Role keys: ${dump(access.roleKeys)}`,
+          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
+          dump(access.permsByPath || {}),
+          `Visible top tiles: ${filtered.length}`
+        ];
         diag.textContent = lines.join("\n");
         diag.className = filtered.length ? "ok" : "err";
 
-        // render tiles
+        // Render tiles
         tilesEl.innerHTML = "";
         if(!filtered.length){
-          tilesEl.innerHTML = `<p style="color:#a00">No visible tiles for your role. Check Firestore “roles/…/permissionsByPath”.</p>`;
+          tilesEl.innerHTML = `<p style="color:#a00">No visible tiles for your role. Check Firestore <code>roles/&hellip;/permissionsByPath</code>.</p>`;
           return;
         }
         filtered.forEach(it=>{
@@ -108,13 +143,16 @@
           tilesEl.appendChild(a);
         });
       }catch(e){
-        diag.textContent = "Error loading roles: " + e.message;
+        diag.textContent = "Error loading access: " + e.message;
         diag.className = "err";
+        tilesEl.innerHTML = "";
       }
     }
 
-    // Wait a tick for auth-guard to ensure user is present, then render
-    if (document.readyState !== "loading") render(); else document.addEventListener("DOMContentLoaded", render);
+    // ✅ Wait for Firebase auth state before rendering (fixes the “no auth user” race)
+    onAuthStateChanged(auth, (user) => {
+      renderFor(user);
+    });
   </script>
 </body>
 </html>
