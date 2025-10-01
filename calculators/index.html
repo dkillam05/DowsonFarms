@@ -20,12 +20,12 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="../assets/css/theme.css?v=13" />
+  <link rel="stylesheet" href="assets/css/theme.css?v=14" />
   <style>
     :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
     body { margin:0; background:var(--paper); color:var(--ink);
            font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
+    header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px;
              padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
@@ -49,12 +49,13 @@
             font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
     #diag.ok  { background:#eef5ee; color:#1a4d1a; }
     #diag.err { background:#ffe9e9; color:#a00; }
+
     a.back { text-decoration:none; }
   </style>
 </head>
 <body>
   <header>
-    <a class="back" href="../index.html">← Home</a>
+    <a class="back" href="index.html">← Home</a>
     <div class="spacer"></div>
     <div class="title">Calculators</div>
     <div class="spacer"></div>
@@ -72,22 +73,31 @@
 
   <footer>Dowson Farms App © <span id="year"></span></footer>
 
-  <!-- Menus -->
-  <script src="../assets/data/menus.js?v=13"></script>
+  <!-- Menus (global) -->
+  <script src="assets/data/menus.js?v=14"></script>
 
-  <!-- Firebase + access with CORRECT relative paths -->
+  <!-- Firebase + guard + access (BASE-RELATIVE paths, no ../) -->
+  <script type="module" src="js/firebase-init.js?v=14"></script>
+  <script type="module" src="js/auth-guard.js?v=14"></script>
+
+  <!-- Page logic -->
   <script type="module">
-    import { auth } from "../js/firebase-init.js?v=13";
+    import { auth } from "./js/firebase-init.js?v=14";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "../js/access.js?v=13";
+    import { loadAccess } from "./js/access.js?v=14";
 
     const diag = document.getElementById("diag");
     const tilesEl = document.getElementById("tiles");
-    const yearEl = document.getElementById("year");
-    yearEl.textContent = new Date().getFullYear();
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // surface JS errors in the banner
+    window.onerror = (m, s, l, c, e) => {
+      diag.textContent = `JS error: ${m}`;
+      diag.className = "err";
+    };
 
     document.getElementById("logoutBtn").addEventListener("click", () => {
-      signOut(auth).then(() => location.href = "../auth/");
+      signOut(auth).then(() => location.href = "auth/");
     });
 
     function menus() {
@@ -101,7 +111,7 @@
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        diag.textContent = "No Firebase user yet.";
+        diag.textContent = "Waiting for Firebase auth…";
         diag.className = "err";
         return;
       }
