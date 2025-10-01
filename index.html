@@ -9,7 +9,7 @@
   <!-- GitHub Pages base (IMPORTANT) -->
   <base href="/DowsonFarms/">
 
-  <!-- Theme prepaint -->
+  <!-- Theme prepaint (no flash) -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -23,20 +23,20 @@
   <link rel="stylesheet" href="assets/css/theme.css" />
 
   <style>
-    :root { --brand-green:#1B5E20; --paper:#f6f3e4; --ink:#222; --band:#E6DCB8; }
+    :root { --brand:#1B5E20; --paper:#f6f3e4; --ink:#222; --band:#E6DCB8; }
     body { margin:0; background:var(--paper); color:var(--ink);
            font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
              padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
     header .title { font-weight:700; color:#333; }
     header .spacer { flex:1; }
-    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:#1B5E20;
+    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
                      font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
     main { padding:18px; max-width:1100px; margin:0 auto; }
-    h1 { font-size:22px; color:var(--brand-green); margin-top:0; }
+    h1 { font-size:22px; color:var(--brand); margin-top:0; }
     footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
 
-    /* Tiles (ui-nav.js also injects its own; this is safe fallback styling) */
+    /* Tiles container (ui-nav.js injects tiles into this) */
     .df-tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
     .df-tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
                 background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
@@ -44,9 +44,6 @@
                 padding:24px 18px; transition:transform .15s; }
     .df-tile:hover { transform: translateY(-3px); }
     .df-tile span { margin-top:8px; font-weight:600; }
-    /* Tiny debug footer (from guard test) */
-    #authDebug { position:fixed; left:0; right:0; bottom:0; background:#eee; color:#111;
-                 font-size:12px; padding:6px 10px; border-top:1px solid #ccc; z-index:9999; }
   </style>
 </head>
 <body>
@@ -57,19 +54,19 @@
     <button id="logoutBtn" class="logout">Logout</button>
   </header>
 
+  <!-- Diagnostic banner (from js/access-diag.js) will render above main -->
+
   <main>
     <h1>Welcome to Dowson Farms</h1>
     <p>Select an area to begin:</p>
 
-    <!-- This is where your icons/tiles go -->
+    <!-- ui-nav.js will render the allowed tiles here based on DF_ACCESS -->
     <div id="homeTiles" data-df-tiles></div>
   </main>
 
-  <footer>
-    Dowson Farms App © <span id="year"></span>
-  </footer>
+  <footer>Dowson Farms App © <span id="year"></span></footer>
 
-  <!-- 1) Firebase + Guard (must come first) -->
+  <!-- 1) Firebase + Guard (must be first) -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
@@ -77,50 +74,16 @@
   <script src="assets/data/menus.js"></script>
   <script type="module" src="js/ui-nav.js"></script>
 
-  <!-- 3) Hard fallback: if tiles didn't render, show them anyway (builder-safe) -->
-  <script>
-    (function fallbackTiles(){
-      // Wait a tick for ui-nav.js to render. If nothing appears, render a basic grid from DF_MENUS.
-      function renderFallback() {
-        var container = document.getElementById('homeTiles');
-        if (!container) return;
-        if (container.querySelector('a.df-tile')) return; // already rendered
-
-        if (!window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles) || !window.DF_MENUS.tiles.length) {
-          container.innerHTML = "<p style='color:#a00'>Menus not loaded. Check <code>assets/data/menus.js</code> path.</p>";
-          return;
-        }
-
-        var grid = document.createElement('div');
-        grid.className = 'df-tiles';
-        window.DF_MENUS.tiles.forEach(function(it){
-          // Show the section if it has children or an href; this is a pure fallback (no role filtering).
-          var a = document.createElement('a');
-          a.className = 'df-tile';
-          a.href = it.href;
-          a.title = it.label;
-          a.innerHTML = (it.iconEmoji || '•') + ' <span>' + it.label + '</span>';
-          grid.appendChild(a);
-        });
-        container.appendChild(grid);
-      }
-      // try after DOMContentLoaded; retry shortly in case module load lags
-      document.addEventListener('DOMContentLoaded', function(){
-        setTimeout(renderFallback, 900);
-        setTimeout(renderFallback, 2000);
-      });
-    })();
-  </script>
+  <!-- 3) Role diagnostics (TEMP: keep while we debug visibility) -->
+  <script type="module" src="js/access-diag.js"></script>
 
   <!-- 4) Logout hookup -->
-  <script>
+  <script type="module">
+    import { auth } from "./js/firebase-init.js";
+    import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     document.getElementById("year").textContent = new Date().getFullYear();
-    import("./js/firebase-init.js").then(({ auth }) => {
-      import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js").then(({ signOut }) => {
-        document.getElementById("logoutBtn").addEventListener("click", () => {
-          signOut(auth).then(() => location.href = "auth/");
-        });
-      });
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => location.href = "auth/");
     });
   </script>
 </body>
