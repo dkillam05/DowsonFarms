@@ -1,6 +1,7 @@
 // Dowson Farms — Drawer builder (accordion)
-// Builds from window.DF_DRAWER_MENUS, applies DF_ACCESS.canView if present,
-// adds consistent Logout row + bottom branding/version.
+// - Builds from window.DF_DRAWER_MENUS
+// - Applies DF_ACCESS.canView (if present)
+// - Adds a compact footer pinned to the very bottom (Logout + brand + version)
 
 (function(){
   const drawer   = document.getElementById('drawer');
@@ -17,23 +18,22 @@
   backdrop && backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeDrawer(); });
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
 
-  // Access filter (optional)
+  // Optional permission filter
   const canView = (href) => {
     try { return (window.DF_ACCESS && typeof window.DF_ACCESS.canView === 'function')
       ? window.DF_ACCESS.canView(href) : true; }
     catch { return true; }
   };
 
-  // Build accordion
   function build(){
     const data = (window.DF_DRAWER_MENUS || []);
     nav.innerHTML = '';
 
     data.forEach(group => {
-      // Skip group entirely if no visible child for this user
+      // Skip group if nothing inside is visible
       const hasVisible = (group.children||[]).some(ch => {
-        if (Array.isArray(ch.children)) return ch.children.some(g => canView(g.href || ''));
-        return canView(ch.href || '');
+        if (Array.isArray(ch.children)) return ch.children.some(g => canView(g.href||''));
+        return canView(ch.href||'');
       });
       if (!hasVisible) return;
 
@@ -45,7 +45,6 @@
       btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
       btn.addEventListener('click', ()=>{
         const expanded = g.getAttribute('aria-expanded') === 'true';
-        // collapse others
         nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
         g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
       });
@@ -55,7 +54,6 @@
       panel.className = 'panel';
 
       (group.children||[]).forEach(item=>{
-        // if subgroup
         if (Array.isArray(item.children) && item.children.length){
           const anyVisible = item.children.some(link => canView(link.href||''));
           if (!anyVisible) return;
@@ -68,7 +66,6 @@
           sbtn.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}<span class="chev">›</span>`;
           sbtn.addEventListener('click', ()=>{
             const exp = sg.getAttribute('aria-expanded')==='true';
-            // collapse sibling subgroups
             panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
             sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
           });
@@ -90,7 +87,6 @@
           sg.appendChild(subpanel);
           panel.appendChild(sg);
         } else {
-          // normal link
           if (!canView(item.href||'')) return;
           const a = document.createElement('a');
           a.className = 'item';
@@ -105,23 +101,22 @@
       nav.appendChild(g);
     });
 
-    // Footer block
-    const div = document.createElement('div');
-    div.className = 'footerDivider';
-    nav.appendChild(div);
+    // Build compact footer and append it as a sibling of <nav> so it
+    // sits at the bottom of the flex column (no separate “banner” area).
+    let foot = drawer.querySelector('.drawerFooter');
+    if (foot) foot.remove();
 
-    const foot = document.createElement('div');
+    foot = document.createElement('div');
     foot.className = 'drawerFooter';
 
-    // Logout row — same metrics as normal items
+    // Logout
     const logout = document.createElement('a');
     logout.href = '#';
     logout.className = 'item logout';
-    logout.innerHTML = `<span class="icon">↩️</span> Logout`;  // emoji can be changed
+    logout.innerHTML = `<span class="icon">↩️</span> Logout`;
     logout.addEventListener('click', async (e)=>{
       e.preventDefault();
       try{
-        // If Firebase auth is loaded, sign out. Otherwise just bounce to /auth/
         if (window.firebaseAuth) {
           const { signOut } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');
           await signOut(window.firebaseAuth);
@@ -132,7 +127,7 @@
     });
     foot.appendChild(logout);
 
-    // Branding + version
+    // Brand + version
     const brand = document.createElement('div');
     brand.className = 'footBrand';
     brand.innerHTML = `
@@ -150,16 +145,17 @@
     ver.textContent = `App ${v}`;
     foot.appendChild(ver);
 
-    nav.appendChild(foot);
+    // Append AFTER <nav> so it’s the last child of .drawer
+    drawer.appendChild(foot);
   }
 
-  // Expose a small hook to rebuild (e.g., after roles load)
+  // Expose a hook to rebuild (e.g., after roles load)
   window.DF_REBUILD_DRAWER = build;
 
   // Initial build
   build();
 
-  // If permissions arrive later, rebuild once
+  // Rebuild once when DF_ACCESS appears
   if (!window.DF_ACCESS) {
     const t = setInterval(()=>{
       if (window.DF_ACCESS) { clearInterval(t); build(); }
