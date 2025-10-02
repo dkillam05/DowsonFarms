@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
   <title>Crop Types — Dowson Farms</title>
+
+  <!-- GitHub Pages base (IMPORTANT for all relative paths) -->
+  <base href="/DowsonFarms/">
+
+  <!-- Theme prepaint to avoid flash -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -14,38 +19,80 @@
       document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
-  <link rel="stylesheet" href="../assets/css/theme.css" />
-  <script defer src="../js/version.js"></script>
-  <script type="module" src="../js/firebase-init.js"></script>
-  <script defer src="../js/core.js"></script>
-  <script defer src="../assets/data/menus.js"></script>
-  <script type="module" src="../js/fb-crop-types.js?v=ct1"></script>
+
+  <!-- New theme (do NOT include legacy core.js here) -->
+  <link rel="stylesheet" href="assets/css/theme.css" />
+
+  <style>
+    :root { --brand:#1B5E20; --band:#E6DCB8; --paper:#f6f3e4; --ink:#222; }
+    body { margin:0; background:var(--paper); color:var(--ink);
+           font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px;
+             padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
+    header .title { font-weight:700; color:#333; }
+    header .spacer { flex:1; }
+    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
+                     font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    main { padding:18px; max-width:1100px; margin:0 auto; }
+    h1 { font-size:22px; color:var(--brand); margin-top:0; }
+    footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
+
+    /* Cards / form */
+    .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}
+    .form-grid .span-2{grid-column:span 2}
+    .field label{display:block;font-size:12px;color:#555;margin-bottom:4px}
+    .field input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
+
+    .btn-primary{padding:8px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#1B5E20;color:#fff;cursor:pointer;font-weight:700}
+    .btn-outline{padding:8px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer;font-weight:600}
+
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid #eee;padding:8px 10px;text-align:left}
+
+    /* Sticky diagnostic banner */
+    #diagBar{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;
+             font-size:12px;padding:8px 10px;border-bottom:1px solid #0002}
+    #diagBar.ok{background:#eef5ee;color:#1a4d1a}
+    #diagBar.err{background:#ffe9e9;color:#a00}
+    a.back{ text-decoration:none; }
+  </style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="app-header__left">
-      <img src="../assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
-    </div>
-    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  <header>
+    <a class="back" href="settings-setup/">← Settings & Setup</a>
+    <div class="spacer"></div>
+    <div class="title">Crop Types</div>
+    <div class="spacer"></div>
+    <button id="logoutBtn" class="logout">Logout</button>
   </header>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="../index.html">Home</a></li><li class="sep">›</li>
-      <li><a href="index.html">Setup / Settings</a></li><li class="sep">›</li>
-      <li><span>Crop Types</span></li>
-    </ol>
-  </nav>
+  <!-- Diagnostics -->
+  <div id="diagBar" class="err">Loading…</div>
 
   <main class="content" data-has-form>
     <h1>🌾 Crop Types</h1>
+
+    <!-- Your form -->
     <form id="ct-form" class="card" novalidate>
       <div class="form-grid">
-        <div class="field span-2"><label for="ctName">Crop Type *</label><input id="ctName" type="text" placeholder="Corn" required /></div>
-        <div class="field"><label for="ctMoisture">Desired Moisture (%) *</label><input id="ctMoisture" type="number" step="0.1" min="0" max="100" required /></div>
-        <div class="field"><label for="ctTestWeight">Test Weight (lb/bu) *</label><input id="ctTestWeight" type="number" step="0.1" min="0" required /></div>
-        <div class="field span-2"><label for="ctColor">Color *</label><input id="ctColor" type="color" value="#1B5E20" required /></div>
+        <div class="field span-2">
+          <label for="ctName">Crop Type *</label>
+          <input id="ctName" type="text" placeholder="Corn" required />
+        </div>
+        <div class="field">
+          <label for="ctMoisture">Desired Moisture (%) *</label>
+          <input id="ctMoisture" type="number" step="0.1" min="0" max="100" required />
+        </div>
+        <div class="field">
+          <label for="ctTestWeight">Test Weight (lb/bu) *</label>
+          <input id="ctTestWeight" type="number" step="0.1" min="0" required />
+        </div>
+        <div class="field span-2">
+          <label for="ctColor">Color *</label>
+          <input id="ctColor" type="color" value="#1B5E20" required />
+        </div>
       </div>
       <div class="row" style="gap:10px;margin-top:10px;">
         <button class="btn-primary" type="submit" id="saveBtn">Save</button>
@@ -54,6 +101,7 @@
       <input type="hidden" id="ctId" />
     </form>
 
+    <!-- Table -->
     <section class="card">
       <div class="row" style="align-items:center;justify-content:space-between;">
         <h2 style="margin:0;">Existing Crop Types</h2>
@@ -61,14 +109,49 @@
       </div>
       <div style="overflow:auto;">
         <table class="table" id="ctTable" aria-label="Crop Types">
-          <thead><tr><th>Name</th><th>Desired Moisture</th><th>Test Weight</th><th>Color</th><th>Updated</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr><th>Name</th><th>Desired Moisture</th><th>Test Weight</th><th>Color</th><th>Updated</th><th>Actions</th></tr>
+          </thead>
           <tbody id="ctTbody"></tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <footer class="app-footer"><span>Dowson Farms</span><span class="dot">•</span><span id="report-date">—</span><span class="dot">•</span><span id="version">v0.0.0</span></footer>
+  <footer>Dowson Farms App © <span id="year"></span></footer>
   <div id="dfToast" class="toast"><span id="dfToastText">Saved</span></div>
+
+  <!-- ───────── SCRIPTS (order matters) ───────── -->
+  <!-- 1) Global menus (sets window.DF_MENUS) -->
+  <script src="assets/data/menus.js"></script>
+  <!-- 2) Firebase init -->
+  <script type="module" src="js/firebase-init.js"></script>
+  <!-- 3) Optional guard -->
+  <script type="module" src="js/auth-guard.js"></script>
+  <!-- 4) Page logic -->
+  <script type="module">
+    import { auth } from "./js/firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import "./js/fb-crop-types.js?v=ct1";
+
+    const yearEl = document.getElementById("year");
+    const diag   = document.getElementById("diagBar");
+    yearEl.textContent = new Date().getFullYear();
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => location.href = "auth/");
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if(!user){
+        diag.textContent = "No Firebase user yet (waiting for auth)…";
+        diag.className = "err";
+        return;
+      }
+      // lightweight diag
+      diag.textContent = `User: ${user.email || user.uid}`;
+      diag.className = "ok";
+    });
+  </script>
 </body>
 </html>
