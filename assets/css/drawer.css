@@ -35,6 +35,7 @@ body.drawer-open .drawerBackdrop{opacity:1;visibility:visible}
 .drawer .group[aria-expanded="true"] .panel{max-height:1200px}
 .drawer .group[aria-expanded="true"] > button .chev{transform:rotate(90deg)}
 
+/* Standard item style */
 .drawer a.item{
   display:flex;align-items:center;gap:12px;padding:12px 16px;text-decoration:none;color:#223;border-top:1px solid #0001;
 }
@@ -60,41 +61,26 @@ body.drawer-open .drawerBackdrop{opacity:1;visibility:visible}
   background:#fff;
 }
 
-/* Logout button — make it look like a real, raised control */
+/* Logout — identical look/size to other .item entries */
 .drawerFooter .item.logout{
-  display:flex;align-items:center;gap:10px;
-  border:1px solid #d5d5d5;
-  border-radius:12px;
+  display:flex;align-items:center;gap:12px;
   padding:12px 16px;
-  margin:0 0 10px 0;
-  color:#17351a;
-  background:linear-gradient(#ffffff, #f2f2f2);
-  box-shadow:
-    0 1px 0 #fff inset,              /* soft inner highlight */
-    0 1px 2px rgba(0,0,0,.08);       /* subtle lift */
-  text-decoration:none;
-  font-weight:700;
+  text-decoration:none;color:#223;
+  border:1px solid #0002;border-radius:10px;background:#fff;
+  margin:2px 6px 10px;
 }
+.drawerFooter .item.logout:hover{background:#f4f4ef}
 .drawerFooter .item.logout .icon{width:20px}
-.drawerFooter .item.logout:hover{
-  background:linear-gradient(#fff, #ededed);
-}
-.drawerFooter .item.logout:active{
-  transform:translateY(1px);
-  box-shadow:
-    0 0 0 #fff inset,
-    0 0 0 rgba(0,0,0,0.0);
-}
 
 /* Brand + version (bottom) */
 .drawerFooter .brandBottom{
-  display:flex;align-items:center;gap:10px;margin-top:2px;
+  display:flex;align-items:center;gap:10px;margin-top:2px;padding:0 6px;
 }
 .drawerFooter .brandBottom img{width:28px;height:28px;border-radius:6px}
 .drawerFooter .brandBottom .sub{font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456}
 
 .drawerFooter .appVersion{
-  margin-top:6px;font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456;
+  margin-top:6px;font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456;padding:0 6px;
 }
 
 /* Safe space for iOS gesture bar */
