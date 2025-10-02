@@ -1,4 +1,4 @@
-/* Dowson Farms — Drawer Menus (accordion data) */
+/* Dowson Farms — Drawer Menus (data only, no rendering here) */
 window.DF_DRAWER_MENUS = [
   {
     label: "Crop Production",
