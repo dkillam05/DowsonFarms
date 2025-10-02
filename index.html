@@ -9,7 +9,7 @@
   <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
 
-  <!-- Theme prepaint -->
+  <!-- Prepaint theme (same pattern everywhere) -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -25,16 +25,15 @@
   <link rel="stylesheet" href="assets/css/drawer.css" />
 
   <style>
-    .app-header{height:48px;background:#E6DCB8;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid #0001}
-    .burger{background:none;border:none;font-size:22px;cursor:pointer}
+    /* lightweight page chrome (kept inline to avoid touching theme.css) */
+    :root { --band:#E6DCB8; --ink:#123; }
+    .app-header{height:48px;background:var(--band);display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid #0001}
+    .burger{background:none;border:0;font-size:22px;cursor:pointer}
     .app-title{font-weight:700;color:#1B5E20}
     .spacer{flex:1}
     .clock{font-variant-numeric:tabular-nums}
     main{padding:18px;max-width:1100px;margin:0 auto}
-    #tiles{display:grid;gap:18px;grid-template-columns: repeat(auto-fit, minmax(220px,1fr))}
-    .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border:1px solid #0002;border-radius:16px;box-shadow:0 6px 18px #00000010;text-decoration:none;color:#333;padding:24px 18px}
-    .tile span{margin-top:8px;font-weight:600}
-    #diagBar{white-space:pre-wrap;font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:12px;padding:8px 10px;border-bottom:1px solid #0002}
+    #diagBar{white-space:pre-wrap;font:12px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;padding:8px 10px;border-bottom:1px solid #0002}
     #diagBar.ok{background:#eef5ee;color:#1a4d1a}
     #diagBar.err{background:#ffe9e9;color:#a00}
   </style>
@@ -49,7 +48,7 @@
     <span id="clock" class="clock">--:--</span>
   </header>
 
-  <!-- Drawer (global, built by js/drawer.js from assets/data/drawer-menus.js) -->
+  <!-- Drawer (built by js/drawer.js from assets/data/drawer-menus.js) -->
   <div id="drawer" class="drawer" aria-label="Side menu">
     <div class="brand">
       <img src="assets/icons/icon-192.png" alt="">
@@ -63,69 +62,61 @@
   <div id="drawerBackdrop" class="drawerBackdrop"></div>
 
   <!-- Diagnostics -->
-  <div id="diagBar" class="err">Loading…</div>
+  <div id="diagBar" class="err">Booting…</div>
 
   <!-- Main -->
   <main>
     <h1>Welcome</h1>
-    <p>Select an area to begin:</p>
-    <div id="tiles"></div>
+    <p>This Home screen will grow (Chat-style box, weather, quick cards). Use the ☰ menu for navigation.</p>
   </main>
 
-  <!-- Menus (top-level tiles; keep your existing DF_MENUS) -->
+  <!-- ───────── Load order (keep as-is) ───────── -->
+
+  <!-- 1) Existing global menus (do NOT change; used by access rules elsewhere) -->
   <script src="assets/data/menus.js"></script>
 
-  <!-- Drawer menus (accordion data) -->
+  <!-- 2) Drawer data (accordion structure only) -->
   <script src="assets/data/drawer-menus.js"></script>
 
-  <!-- Footer links (global bottom nav) -->
+  <!-- 3) Footer links (this file also renders the fixed bottom bar) -->
   <script src="assets/data/footer-links.js"></script>
 
-  <!-- Firebase + (optional) auth guard -->
+  <!-- 4) Firebase + optional guard -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- Access-driven tiles -->
+  <!-- 5) Drawer renderer (module; filters links with DF_ACCESS.canView) -->
+  <script type="module" src="js/drawer.js"></script>
+
+  <!-- 6) Tiny page helpers: live clock + auth diagnostics -->
   <script type="module">
     import { auth } from "./js/firebase-init.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import { loadAccess } from "./js/access.js";
 
-    const tilesEl = document.getElementById("tiles");
-    const diag    = document.getElementById("diagBar");
+    // clock
+    const clock = document.getElementById('clock');
+    setInterval(()=>{ const d=new Date(); clock.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }, 1000);
 
+    // diagnostics
+    const diag = document.getElementById('diagBar');
     function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
 
-    async function renderFor(user){
-      if(!user){ diag.textContent="No Firebase user yet (waiting for auth)…"; diag.className="err"; tilesEl.innerHTML=""; return; }
-      const access = await loadAccess();
-      const menus  = (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
-      const filtered = access.filterMenusForHome ? access.filterMenusForHome(menus) : menus;
-
-      diag.textContent = [
-        `User: ${user.email || user.uid}`,
-        `Role keys: ${dump(access.roleKeys)}`,
-        `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
-        `Visible top tiles: ${filtered.length}`
-      ].join("\n");
-      diag.className = filtered.length ? "ok" : "err";
-
-      tilesEl.innerHTML = "";
-      filtered.forEach(it=>{
-        const a = document.createElement("a");
-        a.className = "tile";
-        a.href = it.href;
-        a.title = it.label;
-        a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
-        tilesEl.appendChild(a);
-      });
-    }
-
-    onAuthStateChanged(auth, (user) => renderFor(user));
+    onAuthStateChanged(auth, async (user) => {
+      if(!user){ diag.textContent = "Waiting for Firebase auth…"; diag.className="err"; return; }
+      try{
+        const access = await loadAccess();
+        diag.textContent = [
+          `User: ${user.email || user.uid}`,
+          `Role keys: ${dump(access.roleKeys)}`,
+          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`
+        ].join("\n");
+        diag.className = "ok";
+      }catch(e){
+        diag.textContent = "Access error: " + e.message;
+        diag.className = "err";
+      }
+    });
   </script>
-
-  <!-- Global drawer + footer renderers -->
-  <script src="js/drawer.js"></script>
-  <script src="js/footer.js"></script>
 </body>
 </html>
