@@ -1,87 +1,105 @@
-/* Drawer overlay */
+/* Dowson Farms — Drawer (accordion) */
+
+/* Backdrop */
 .drawerBackdrop{
-  position:fixed;inset:0;background:rgba(0,0,0,.35);
-  opacity:0;visibility:hidden;transition:opacity .18s ease;z-index:90;
+  position:fixed; inset:0; background:rgba(0,0,0,.35);
+  opacity:0; visibility:hidden; transition:opacity .18s ease; z-index:90;
 }
+body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
 
-/* Drawer panel */
+/* Panel */
 .drawer{
-  position:fixed;inset:0 auto 0 0;width:86vw;max-width:420px;
-  background:#f9f9f7;border-right:1px solid #0002;translate:-100% 0;
-  transition:translate .22s ease;z-index:100;overflow:auto;
-  display:flex;flex-direction:column;
+  position:fixed; inset:0 auto 0 0; width:86vw; max-width:420px;
+  background:#f9f9f7; border-right:1px solid #0002;
+  translate:-100% 0; transition:translate .22s ease; z-index:100; overflow:auto;
 }
-body.drawer-open .drawer{translate:0 0}
-body.drawer-open .drawerBackdrop{opacity:1;visibility:visible}
+body.drawer-open .drawer{ translate:0 0; }
 
-/* Brand strip (top) */
+/* Brand */
 .drawer .brand{
-  display:flex;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #0002;
-  background:#fff;
+  display:flex; gap:10px; align-items:center; padding:12px;
+  border-bottom:1px solid #0002; background:#fff;
 }
-.drawer .brand img{width:36px;height:36px;border-radius:8px}
-.drawer .brand .mono{font:12px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456}
+.drawer .brand img{ width:36px; height:36px; border-radius:8px; }
+.drawer .brand .mono{ font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456; }
 
-/* Nav groups (accordion) */
-.drawer nav{padding:8px 6px}
-.drawer .group{border:1px solid #0002;border-radius:10px;background:#fff;margin:8px 6px;overflow:hidden}
+/* Layout + shared row metrics */
+.drawer nav{ padding:6px; }
+:root{
+  --df-item-pad-y: 12px;
+  --df-item-pad-x: 16px;
+}
+
+/* Top-level groups */
+.drawer .group{
+  border:1px solid #0002; border-radius:10px; background:#fff;
+  margin:8px 6px; overflow:hidden;
+}
 .drawer .group > button{
-  width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:0;cursor:pointer;
-  font-weight:700;color:#123;
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:12px 14px; background:#fff; border:0; cursor:pointer;
+  font-weight:700; color:#123;
 }
-.drawer .group > button .icon{width:22px}
-.drawer .group > button .chev{margin-left:auto;transition:transform .18s ease}
-.drawer .panel{max-height:0;overflow:hidden;transition:max-height .22s ease}
-.drawer .group[aria-expanded="true"] .panel{max-height:1200px}
-.drawer .group[aria-expanded="true"] > button .chev{transform:rotate(90deg)}
+.drawer .group > button .icon{ width:22px; }
+.drawer .group > button .chev{ margin-left:auto; transition:transform .18s ease; }
 
-/* Standard item style */
+/* First-level panel */
+.drawer .panel{ max-height:0; overflow:hidden; transition:max-height .22s ease; }
+.drawer .group[aria-expanded="true"] .panel{ max-height:1200px; }
+.drawer .group[aria-expanded="true"] > button .chev{ transform:rotate(90deg); }
+
+/* Items (links) — baseline row height */
 .drawer a.item{
-  display:flex;align-items:center;gap:12px;padding:12px 16px;text-decoration:none;color:#223;border-top:1px solid #0001;
+  display:flex; align-items:center; gap:12px;
+  padding:var(--df-item-pad-y) var(--df-item-pad-x);
+  text-decoration:none; color:#223; border-top:1px solid #0001;
+  font-size:16px; line-height:1.2; background:#fff;
 }
-.drawer a.item:hover{background:#f4f4ef}
-.drawer a.item .icon{width:20px}
+.drawer a.item:hover{ background:#f4f4ef; }
+.drawer a.item .icon{ width:20px; }
 
 /* Second-level (nested) */
-.drawer .subgroup{border-top:1px solid #0001}
+.drawer .subgroup{ border-top:1px solid #0001; }
 .drawer .subgroup > button{
-  width:100%;display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fbfbfa;border:0;cursor:pointer;
-  font-weight:600;color:#234;
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:12px 16px; background:#fbfbfa; border:0; cursor:pointer;
+  font-weight:600; color:#234;
 }
-.drawer .subgroup .chev{margin-left:auto;transition:transform .18s ease}
-.drawer .subpanel{max-height:0;overflow:hidden;transition:max-height .22s ease;border-top:1px solid #0001;background:#fff}
-.drawer .subgroup[aria-expanded="true"] .subpanel{max-height:900px}
-.drawer .subgroup[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.drawer .subgroup .chev{ margin-left:auto; transition:transform .18s ease; }
+.drawer .subpanel{
+  max-height:0; overflow:hidden; transition:max-height .22s ease;
+  border-top:1px solid #0001; background:#fff;
+}
+.drawer .subgroup[aria-expanded="true"] .subpanel{ max-height:900px; }
+.drawer .subgroup[aria-expanded="true"] .chev{ transform:rotate(90deg); }
 
-/* ─── Bottom area ─── */
+/* Footer divider */
+.drawer .footerDivider{ height:1px; background:#0001; margin:8px 0 6px; }
+
+/* Footer block */
 .drawerFooter{
-  margin-top:auto;
-  padding:12px 10px 14px;
-  border-top:1px solid #0002;
-  background:#fff;
+  padding:8px 6px 10px;           /* trimmed so Logout row doesn't look oversized */
+  background:#f9f9f7;
 }
 
-/* Logout — identical look/size to other .item entries */
+/* Logout row — same metrics as normal items, with subtle outline */
 .drawerFooter .item.logout{
-  display:flex;align-items:center;gap:12px;
-  padding:12px 16px;
-  text-decoration:none;color:#223;
-  border:1px solid #0002;border-radius:10px;background:#fff;
-  margin:2px 6px 10px;
+  display:flex; align-items:center; gap:12px;
+  padding:var(--df-item-pad-y) var(--df-item-pad-x);
+  font-size:16px; line-height:1.2; color:#223; text-decoration:none;
+  border:1px solid #0002; border-radius:10px; background:#fff;
+  margin:6px 0;
 }
-.drawerFooter .item.logout:hover{background:#f4f4ef}
-.drawerFooter .item.logout .icon{width:20px}
+.drawerFooter .item.logout:hover{ background:#f4f4ef; }
+.drawerFooter .item.logout .icon{ width:20px; }
 
-/* Brand + version (bottom) */
-.drawerFooter .brandBottom{
-  display:flex;align-items:center;gap:10px;margin-top:2px;padding:0 6px;
+/* Footer brand line */
+.drawerFooter .footBrand{
+  display:flex; align-items:center; gap:10px; margin:10px 2px 2px;
 }
-.drawerFooter .brandBottom img{width:28px;height:28px;border-radius:6px}
-.drawerFooter .brandBottom .sub{font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456}
-
-.drawerFooter .appVersion{
-  margin-top:6px;font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456;padding:0 6px;
+.drawerFooter .footBrand img{ width:24px; height:24px; border-radius:6px; }
+.drawerFooter .footBrand .title{ font-weight:700; }
+.drawerFooter .footBrand .mono{
+  font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456;
 }
-
-/* Safe space for iOS gesture bar */
-.drawer::after{content:"";display:block;height:10px}
+.drawerFooter .ver{ margin:4px 2px 0; font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456; }
