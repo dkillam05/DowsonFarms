@@ -1,4 +1,4 @@
-/* Drawer layout */
+/* Drawer shell */
 .drawerBackdrop{
   position:fixed;inset:0;background:rgba(0,0,0,.35);
   opacity:0;visibility:hidden;transition:opacity .18s ease;z-index:90;
@@ -7,16 +7,21 @@
   position:fixed;inset:0 auto 0 0;width:86vw;max-width:420px;
   background:#f9f9f7;border-right:1px solid #0002;translate:-100% 0;
   transition:translate .22s ease;z-index:100;overflow:auto;
+  display:flex;flex-direction:column;
 }
-.drawer .brand{display:flex;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #0002}
-.drawer .brand img{width:36px;height:36px;border-radius:8px}
-.drawer .brand .mono{font:12px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456}
-
 body.drawer-open .drawer{translate:0 0}
 body.drawer-open .drawerBackdrop{opacity:1;visibility:visible}
 
-/* Groups (top level) */
-.drawer nav{padding:6px}
+/* Header brand strip */
+.drawer .brand{
+  display:flex;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #0002;
+  background:#fff;
+}
+.drawer .brand img{width:36px;height:36px;border-radius:8px}
+.drawer .brand .mono{font:12px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456}
+
+/* Nav groups */
+.drawer nav{padding:8px 6px}
 .drawer .group{border:1px solid #0002;border-radius:10px;background:#fff;margin:8px 6px;overflow:hidden}
 .drawer .group > button{
   width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:0;cursor:pointer;
@@ -24,13 +29,10 @@ body.drawer-open .drawerBackdrop{opacity:1;visibility:visible}
 }
 .drawer .group > button .icon{width:22px}
 .drawer .group > button .chev{margin-left:auto;transition:transform .18s ease}
-
-/* First-level panel */
 .drawer .panel{max-height:0;overflow:hidden;transition:max-height .22s ease}
 .drawer .group[aria-expanded="true"] .panel{max-height:1200px}
 .drawer .group[aria-expanded="true"] > button .chev{transform:rotate(90deg)}
 
-/* Items */
 .drawer a.item{
   display:flex;align-items:center;gap:12px;padding:12px 16px;text-decoration:none;color:#223;border-top:1px solid #0001;
 }
@@ -47,3 +49,31 @@ body.drawer-open .drawerBackdrop{opacity:1;visibility:visible}
 .drawer .subpanel{max-height:0;overflow:hidden;transition:max-height .22s ease;border-top:1px solid #0001;background:#fff}
 .drawer .subgroup[aria-expanded="true"] .subpanel{max-height:900px}
 .drawer .subgroup[aria-expanded="true"] .chev{transform:rotate(90deg)}
+
+/* ─── Bottom footer area inside drawer ─── */
+.drawerFooter{
+  margin-top:auto;               /* stick to bottom */
+  padding:12px 10px 14px;
+  border-top:1px solid #0002;
+  background:#fff;
+}
+.drawerFooter .logoutBtn{
+  width:100%;display:flex;align-items:center;gap:12px;
+  padding:12px 14px;margin:0 0 10px 0;border:1px solid #e5e5e5;border-radius:10px;
+  background:#fff;color:#123;text-align:left;font-weight:700;cursor:pointer;
+}
+.drawerFooter .logoutBtn:hover{background:#f6f6f3}
+.drawerFooter .logoutBtn .icon{width:20px}
+
+.drawerFooter .brandBottom{
+  display:flex;align-items:center;gap:10px;margin-top:2px;
+}
+.drawerFooter .brandBottom img{width:28px;height:28px;border-radius:6px}
+.drawerFooter .brandBottom .sub{font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456}
+
+.drawerFooter .appVersion{
+  margin-top:6px;font:12px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;color:#456;
+}
+
+/* safe space at bottom so iOS gesture bar doesn’t cover */
+.drawer::after{content:"";display:block;height:10px}
