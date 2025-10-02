@@ -1,0 +1,34 @@
+/* Dowson Farms — Global Header */
+.app-header {
+  height: 54px;
+  background: #0f5a1a; /* match footer */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid #0003;
+  color: #fff;
+}
+.app-header .burger {
+  background: none;
+  border: 0;
+  font-size: 26px;
+  cursor: pointer;
+  color: #fff; /* white hamburger bars */
+}
+.app-header .app-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+.app-header .app-title {
+  font-weight: 700;
+  color: #fff; /* white title */
+}
+.app-header .spacer {
+  flex: 1;
+}
+.app-header .clock {
+  font-variant-numeric: tabular-nums;
+  color: #fff; /* white clock */
+}
