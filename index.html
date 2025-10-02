@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f5a1a" />
+  <meta name="theme-color" content="#1B5E20" />
   <title>Dowson Farms — Home</title>
 
   <!-- GitHub Pages base -->
@@ -24,12 +24,26 @@
   <link rel="stylesheet" href="assets/css/theme.css" />
   <link rel="stylesheet" href="assets/css/drawer.css" />
   <link rel="stylesheet" href="assets/css/header.css" />
+
+  <style>
+    main.content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 74px 18px 18px; /* space for fixed header */
+    }
+  </style>
 </head>
 <body>
-  <!-- Header (built by js/header.js) -->
-  <header id="dfHeader" class="df-header"></header>
+  <!-- Header (global, injected via header.css) -->
+  <header class="df-header">
+    <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
+    <img src="assets/icons/icon-192.png" alt="" style="width:28px;height:28px;border-radius:6px">
+    <div class="app-title">Dowson Farms</div>
+    <div class="spacer"></div>
+    <span id="clock" class="clock">--:--</span>
+  </header>
 
-  <!-- Drawer (built by js/drawer.js from assets/data/drawer-menus.js) -->
+  <!-- Drawer -->
   <div id="drawer" class="drawer" aria-label="Side menu">
     <div class="brand">
       <img src="assets/icons/icon-192.png" alt="">
@@ -43,30 +57,31 @@
   <div id="drawerBackdrop" class="drawerBackdrop"></div>
 
   <!-- Main -->
-  <main class="content" style="max-width:1100px;margin:0 auto;padding:18px">
+  <main class="content">
     <h1>Welcome</h1>
     <p>This Home screen will grow (Chat-style box, weather, quick cards). Use the ☰ menu for navigation.</p>
   </main>
 
-  <!-- Fixed bottom nav (built by js/footer.js from assets/data/footer-links.js) -->
-  <div id="dfFooterMount"></div>
-
   <!-- ───────── Load order (keep as-is) ───────── -->
-
-  <!-- 1) Existing global menus (used by access rules elsewhere) -->
   <script src="assets/data/menus.js"></script>
-
-  <!-- 2) Drawer + Footer data sources -->
   <script src="assets/data/drawer-menus.js"></script>
   <script src="assets/data/footer-links.js"></script>
 
-  <!-- 3) Firebase + guard -->
+  <!-- Firebase + guard -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- 4) Global header/drawer/footer renderers (no diagnostics) -->
-  <script src="js/header.js"></script>
+  <!-- Drawer + footer renderers -->
   <script type="module" src="js/drawer.js"></script>
   <script src="js/footer.js"></script>
+
+  <!-- Clock -->
+  <script type="module">
+    const clock = document.getElementById('clock');
+    setInterval(() => {
+      const d = new Date();
+      clock.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }, 1000);
+  </script>
 </body>
 </html>
