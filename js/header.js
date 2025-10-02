@@ -7,19 +7,27 @@
     <img src="assets/icons/icon-192.png" alt="" class="app-logo">
     <div class="app-title">Dowson Farms</div>
     <div class="spacer"></div>
-    <span id="clock" class="clock">--:--</span>
+    <span id="dateDisplay" class="clock">--/--/----</span>
   `;
   document.body.prepend(header);
 
-  // Live clock (Central Time)
-  const clockEl = header.querySelector("#clock");
-  function tick() {
+  // Date display (Central Time)
+  const dateEl = header.querySelector("#dateDisplay");
+  function updateDate() {
     const now = new Date();
-    clockEl.textContent = now.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
+    dateEl.textContent = now.toLocaleDateString("en-US", {
+      month: "short", // "Oct"
+      day: "numeric", // "2"
+      year: "numeric" // "2025"
     });
   }
-  tick();
-  setInterval(tick, 1000);
+  updateDate();
+
+  // Optional: refresh at midnight to roll over the day
+  const millisTillMidnight =
+    new Date().setHours(24, 0, 0, 0) - new Date().getTime();
+  setTimeout(function () {
+    updateDate();
+    setInterval(updateDate, 24 * 60 * 60 * 1000);
+  }, millisTillMidnight);
 })();
