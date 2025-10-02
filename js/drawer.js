@@ -1,42 +1,107 @@
-<script>
-(function(){
-  const body = document.body;
+/* Global Drawer (uses window.DF_DRAWER_MENUS exactly) */
+(function () {
+  if (window.__DF_DRAWER_MOUNTED__) return;
+  window.__DF_DRAWER_MOUNTED__ = true;
 
-  const drawer = document.getElementById('drawer');
-  const backdrop = document.getElementById('drawerBackdrop');
-  const burger = document.getElementById('hamburger');
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  if(!drawer || !backdrop || !burger){
-    console.warn('Drawer: missing #drawer, #drawerBackdrop, or #hamburger');
-    return;
+  const SECTIONS = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
+
+  function ensureHamburger() {
+    const header = $('.app-header');
+    if (!header || $('#dfHamburger')) return;
+    const left = header.querySelector('.app-header__left') || header.firstElementChild || header;
+    const btn  = document.createElement('button');
+    btn.id = 'dfHamburger';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Open menu');
+    btn.textContent = '☰';
+    btn.addEventListener('click', toggleDrawer);
+    left.prepend(btn);
   }
 
-  function openDrawer(){ body.classList.add('drawer-open'); burger.setAttribute('aria-expanded','true'); trapStart.focus(); }
-  function closeDrawer(){ body.classList.remove('drawer-open'); burger.setAttribute('aria-expanded','false'); burger.focus(); }
-  function toggleDrawer(){ body.classList.contains('drawer-open') ? closeDrawer() : openDrawer(); }
+  function buildDrawer() {
+    if ($('#dfDrawer')) return;
 
-  // Backdrop / esc / clicks
-  burger.addEventListener('click', toggleDrawer);
-  backdrop.addEventListener('click', closeDrawer);
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
+    const wrap = document.createElement('div');
+    wrap.id = 'dfDrawerRoot';
+    wrap.innerHTML = `
+      <div id="dfDrawerBackdrop" class="drawer-backdrop" hidden></div>
+      <aside id="dfDrawer" class="drawer" aria-label="Side menu" aria-hidden="true">
+        <div class="brand">
+          <img src="/DowsonFarms/assets/icons/icon-192.png" alt="Dowson Farms" />
+          <div>
+            <div class="brand-title">Dowson Farms</div>
+            <div class="brand-sub mono" id="farmSub">All systems operational</div>
+          </div>
+        </div>
+        <nav class="drawer-nav"></nav>
+      </aside>
+    `;
+    document.body.appendChild(wrap);
 
-  // Close when any link inside drawer is clicked
-  drawer.addEventListener('click', (e)=>{
-    const a = e.target.closest('a');
-    if(a) closeDrawer();
-  });
+    $('#dfDrawerBackdrop').addEventListener('click', closeDrawer);
 
-  // Focus trap (basic)
-  const trapStart = document.createElement('button');
-  trapStart.style.position='fixed'; trapStart.style.opacity='0'; trapStart.tabIndex = 0;
-  const trapEnd = trapStart.cloneNode(true);
-  drawer.prepend(trapStart); drawer.appendChild(trapEnd);
-  trapStart.addEventListener('focus', ()=>{ const focusables = drawer.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])'); (focusables[1]||burger).focus(); });
-  trapEnd.addEventListener('focus', ()=>{ const focusables = drawer.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])'); (focusables[focusables.length-2]||burger).focus(); });
+    const nav = $('.drawer-nav', wrap);
 
-  // Accordion toggle
-  drawer.querySelectorAll('.drawer-sec > button').forEach(btn=>{
-    btn.addEventListener('click', ()=> btn.parentElement.classList.toggle('open'));
+    // One accordion per section
+    SECTIONS.forEach(section => {
+      const secBtn = document.createElement('button');
+      secBtn.className = 'drawer-acc';
+      secBtn.type = 'button';
+      secBtn.innerHTML = `<span class="emoji">${section.icon || ''}</span>${section.label}<span class="caret">›</span>`;
+
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+
+      // href: "#" entries act as sub-headers
+      (section.children || []).forEach(item => {
+        if (item && item.href === '#') {
+          const st = document.createElement('div');
+          st.className = 'drawer-subtitle';
+          st.textContent = item.label;
+          panel.appendChild(st);
+        } else {
+          const a = document.createElement('a');
+          a.className = 'drawer-link';
+          a.href = item.href;
+          a.innerHTML = `<span>${item.icon || ''}</span> ${item.label}`;
+          panel.appendChild(a);
+        }
+      });
+
+      secBtn.addEventListener('click', () => {
+        const open = secBtn.classList.toggle('open');
+        panel.style.maxHeight = open ? panel.scrollHeight + 'px' : '0px';
+      });
+
+      nav.appendChild(secBtn);
+      nav.appendChild(panel);
+    });
+
+    // Start collapsed
+    $$('.panel', wrap).forEach(p => (p.style.maxHeight = '0px'));
+  }
+
+  function openDrawer() {
+    $('#dfDrawer')?.setAttribute('aria-hidden', 'false');
+    const b = $('#dfDrawerBackdrop'); if (b) b.hidden = false;
+    document.documentElement.classList.add('drawer-open');
+  }
+  function closeDrawer() {
+    $('#dfDrawer')?.setAttribute('aria-hidden', 'true');
+    const b = $('#dfDrawerBackdrop'); if (b) b.hidden = true;
+    document.documentElement.classList.remove('drawer-open');
+  }
+  function toggleDrawer() {
+    const isHidden = $('#dfDrawer')?.getAttribute('aria-hidden') !== 'false';
+    isHidden ? openDrawer() : closeDrawer();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    ensureHamburger();
+    buildDrawer();
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
   });
 })();
-</script>
