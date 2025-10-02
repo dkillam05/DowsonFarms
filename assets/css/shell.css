@@ -1,0 +1,53 @@
+:root{
+  --brand:#0d5b75; --band:#e9f1f5; --paper:#f6f3e4; --ink:#222;
+  --nav:#0d5b75; --nav-ink:#fff; --nav-muted:#bfe0ec;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+     font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+
+/* Top app bar */
+.appbar{height:52px;display:flex;align-items:center;gap:12px;
+  padding:0 14px;background:var(--band);border-bottom:1px solid #0001;position:sticky;top:0;z-index:30}
+.appbar .menu{appearance:none;border:0;background:transparent;font-size:24px;line-height:0;cursor:pointer}
+.appbar .title{font-weight:700;color:#123c49}
+.appbar .spacer{flex:1}
+.appbar .logo{height:28px;width:28px;border-radius:6px}
+
+/* Drawer */
+.drawer-backdrop{position:fixed;inset:0;background:#0006;opacity:0;pointer-events:none;transition:.2s;z-index:49}
+.drawer{position:fixed;inset:0 auto 0 0;width:290px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.22);
+  transform:translateX(-100%);transition:transform .22s ease;z-index:50;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer-open .drawer-backdrop{opacity:1;pointer-events:auto}
+.drawer .brand{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid #0001}
+.drawer .brand img{width:40px;height:40px;border-radius:8px}
+.drawer nav a{display:flex;align-items:center;gap:10px;padding:12px 14px;color:#123c49;text-decoration:none;border-bottom:1px solid #0001}
+.drawer nav a:hover{background:#f5fbfe}
+
+/* Content wrapper (leave room for bottom bar) */
+.main{padding:16px 16px 86px;max-width:1100px;margin:0 auto}
+
+/* Bottom nav */
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:64px;background:var(--nav);
+  color:var(--nav-ink);display:flex;z-index:40;border-top:1px solid #0003}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-decoration:none;color:var(--nav-muted);font-size:11px;font-weight:600}
+.tabbar a .ico{font-size:20px;line-height:20px;margin-bottom:3px}
+.tabbar a.active{color:#fff}
+
+/* Cards & layout bits */
+.card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:14px;margin:14px 0}
+h1{margin:8px 0 12px}
+.grid2{display:grid;gap:14px}
+@media(min-width:760px){ .grid2{grid-template-columns:1fr 1fr} }
+
+/* Ask AI */
+.ask{display:flex;gap:8px}
+.ask input{flex:1;padding:10px 12px;border-radius:12px;border:1px solid #0002;background:#fff}
+.ask button{padding:10px 14px;border-radius:12px;border:1px solid #0002;background:#fff;cursor:pointer;font-weight:700}
+
+/* Tiny status */
+.badge{display:inline-block;background:#eaf6ff;color:#0d5b75;border:1px solid #bfe0ec;border-radius:999px;padding:2px 8px;font-size:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
