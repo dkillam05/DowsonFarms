@@ -1,107 +1,78 @@
-/* Global Drawer (uses window.DF_DRAWER_MENUS exactly) */
-(function () {
-  if (window.__DF_DRAWER_MOUNTED__) return;
-  window.__DF_DRAWER_MOUNTED__ = true;
+(function(){
+  const drawer   = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  const toggle   = document.getElementById('drawerToggle');
+  const nav      = drawer.querySelector('nav');
 
-  const $  = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  function openDrawer(){ document.body.classList.add('drawer-open'); }
+  function closeDrawer(){ document.body.classList.remove('drawer-open'); }
+  function clickOutside(e){ if(e.target === backdrop) closeDrawer(); }
 
-  const SECTIONS = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
+  toggle && toggle.addEventListener('click', openDrawer);
+  backdrop && backdrop.addEventListener('click', clickOutside);
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
 
-  function ensureHamburger() {
-    const header = $('.app-header');
-    if (!header || $('#dfHamburger')) return;
-    const left = header.querySelector('.app-header__left') || header.firstElementChild || header;
-    const btn  = document.createElement('button');
-    btn.id = 'dfHamburger';
-    btn.type = 'button';
-    btn.setAttribute('aria-label', 'Open menu');
-    btn.textContent = '☰';
-    btn.addEventListener('click', toggleDrawer);
-    left.prepend(btn);
-  }
+  // Build accordion from DF_DRAWER_MENUS
+  const data = (window.DF_DRAWER_MENUS || []);
+  nav.innerHTML = '';
+  data.forEach(group => {
+    const g = document.createElement('div');
+    g.className = 'group';
+    g.setAttribute('aria-expanded','false');
 
-  function buildDrawer() {
-    if ($('#dfDrawer')) return;
+    const btn = document.createElement('button');
+    btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
+    btn.addEventListener('click', ()=> {
+      const expanded = g.getAttribute('aria-expanded') === 'true';
+      // collapse others for cleanliness
+      nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+      g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+    });
+    g.appendChild(btn);
 
-    const wrap = document.createElement('div');
-    wrap.id = 'dfDrawerRoot';
-    wrap.innerHTML = `
-      <div id="dfDrawerBackdrop" class="drawer-backdrop" hidden></div>
-      <aside id="dfDrawer" class="drawer" aria-label="Side menu" aria-hidden="true">
-        <div class="brand">
-          <img src="/DowsonFarms/assets/icons/icon-192.png" alt="Dowson Farms" />
-          <div>
-            <div class="brand-title">Dowson Farms</div>
-            <div class="brand-sub mono" id="farmSub">All systems operational</div>
-          </div>
-        </div>
-        <nav class="drawer-nav"></nav>
-      </aside>
-    `;
-    document.body.appendChild(wrap);
+    const panel = document.createElement('div');
+    panel.className = 'panel';
 
-    $('#dfDrawerBackdrop').addEventListener('click', closeDrawer);
+    (group.children||[]).forEach(item=>{
+      if(Array.isArray(item.children) && item.children.length){
+        // subgroup (second-level accordion)
+        const sg = document.createElement('div');
+        sg.className = 'subgroup';
+        sg.setAttribute('aria-expanded','false');
+        const sbtn = document.createElement('button');
+        sbtn.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}<span class="chev">›</span>`;
+        sbtn.addEventListener('click', ()=>{
+          const exp = sg.getAttribute('aria-expanded')==='true';
+          // collapse sibling subgroups
+          panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+          sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
+        });
+        sg.appendChild(sbtn);
 
-    const nav = $('.drawer-nav', wrap);
-
-    // One accordion per section
-    SECTIONS.forEach(section => {
-      const secBtn = document.createElement('button');
-      secBtn.className = 'drawer-acc';
-      secBtn.type = 'button';
-      secBtn.innerHTML = `<span class="emoji">${section.icon || ''}</span>${section.label}<span class="caret">›</span>`;
-
-      const panel = document.createElement('div');
-      panel.className = 'panel';
-
-      // href: "#" entries act as sub-headers
-      (section.children || []).forEach(item => {
-        if (item && item.href === '#') {
-          const st = document.createElement('div');
-          st.className = 'drawer-subtitle';
-          st.textContent = item.label;
-          panel.appendChild(st);
-        } else {
+        const subpanel = document.createElement('div');
+        subpanel.className = 'subpanel';
+        item.children.forEach(link=>{
           const a = document.createElement('a');
-          a.className = 'drawer-link';
-          a.href = item.href;
-          a.innerHTML = `<span>${item.icon || ''}</span> ${item.label}`;
-          panel.appendChild(a);
-        }
-      });
-
-      secBtn.addEventListener('click', () => {
-        const open = secBtn.classList.toggle('open');
-        panel.style.maxHeight = open ? panel.scrollHeight + 'px' : '0px';
-      });
-
-      nav.appendChild(secBtn);
-      nav.appendChild(panel);
+          a.className = 'item';
+          a.href = link.href || '#';
+          a.innerHTML = `<span class="icon">${link.icon||''}</span>${link.label}`;
+          a.addEventListener('click', closeDrawer);
+          subpanel.appendChild(a);
+        });
+        sg.appendChild(subpanel);
+        panel.appendChild(sg);
+      } else {
+        // normal link
+        const a = document.createElement('a');
+        a.className = 'item';
+        a.href = item.href || '#';
+        a.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}`;
+        a.addEventListener('click', closeDrawer);
+        panel.appendChild(a);
+      }
     });
 
-    // Start collapsed
-    $$('.panel', wrap).forEach(p => (p.style.maxHeight = '0px'));
-  }
-
-  function openDrawer() {
-    $('#dfDrawer')?.setAttribute('aria-hidden', 'false');
-    const b = $('#dfDrawerBackdrop'); if (b) b.hidden = false;
-    document.documentElement.classList.add('drawer-open');
-  }
-  function closeDrawer() {
-    $('#dfDrawer')?.setAttribute('aria-hidden', 'true');
-    const b = $('#dfDrawerBackdrop'); if (b) b.hidden = true;
-    document.documentElement.classList.remove('drawer-open');
-  }
-  function toggleDrawer() {
-    const isHidden = $('#dfDrawer')?.getAttribute('aria-hidden') !== 'false';
-    isHidden ? openDrawer() : closeDrawer();
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    ensureHamburger();
-    buildDrawer();
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+    g.appendChild(panel);
+    nav.appendChild(g);
   });
 })();
