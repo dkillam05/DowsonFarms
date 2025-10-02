@@ -1,3 +1,6 @@
+// Dowson Farms — Drawer Renderer
+import { loadAccess } from "./access.js";
+
 (function(){
   const drawer   = document.getElementById('drawer');
   const backdrop = document.getElementById('drawerBackdrop');
@@ -12,67 +15,72 @@
   backdrop && backdrop.addEventListener('click', clickOutside);
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
 
-  // Build accordion from DF_DRAWER_MENUS
-  const data = (window.DF_DRAWER_MENUS || []);
-  nav.innerHTML = '';
-  data.forEach(group => {
-    const g = document.createElement('div');
-    g.className = 'group';
-    g.setAttribute('aria-expanded','false');
+  async function buildDrawer(){
+    const access = await loadAccess();
+    const data = (window.DF_DRAWER_MENUS || []);
+    nav.innerHTML = '';
 
-    const btn = document.createElement('button');
-    btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
-    btn.addEventListener('click', ()=> {
-      const expanded = g.getAttribute('aria-expanded') === 'true';
-      // collapse others for cleanliness
-      nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
-      g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+    data.forEach(group => {
+      const g = document.createElement('div');
+      g.className = 'group';
+      g.setAttribute('aria-expanded','false');
+
+      const btn = document.createElement('button');
+      btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
+      btn.addEventListener('click', ()=> {
+        const expanded = g.getAttribute('aria-expanded') === 'true';
+        nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+        g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      });
+      g.appendChild(btn);
+
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+
+      (group.children||[]).forEach(item=>{
+        if(Array.isArray(item.children) && item.children.length){
+          const sg = document.createElement('div');
+          sg.className = 'subgroup';
+          sg.setAttribute('aria-expanded','false');
+          const sbtn = document.createElement('button');
+          sbtn.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}<span class="chev">›</span>`;
+          sbtn.addEventListener('click', ()=>{
+            const exp = sg.getAttribute('aria-expanded')==='true';
+            panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+            sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
+          });
+          sg.appendChild(sbtn);
+
+          const subpanel = document.createElement('div');
+          subpanel.className = 'subpanel';
+          item.children.forEach(link=>{
+            if(!access.canView || access.canView(link.href)){
+              const a = document.createElement('a');
+              a.className = 'item';
+              a.href = link.href || '#';
+              a.innerHTML = `<span class="icon">${link.icon||''}</span>${link.label}`;
+              a.addEventListener('click', closeDrawer);
+              subpanel.appendChild(a);
+            }
+          });
+          sg.appendChild(subpanel);
+          panel.appendChild(sg);
+        } else {
+          if(!access.canView || access.canView(item.href)){
+            const a = document.createElement('a');
+            a.className = 'item';
+            a.href = item.href || '#';
+            a.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}`;
+            a.addEventListener('click', closeDrawer);
+            panel.appendChild(a);
+          }
+        }
+      });
+
+      g.appendChild(panel);
+      nav.appendChild(g);
     });
-    g.appendChild(btn);
+  }
 
-    const panel = document.createElement('div');
-    panel.className = 'panel';
-
-    (group.children||[]).forEach(item=>{
-      if(Array.isArray(item.children) && item.children.length){
-        // subgroup (second-level accordion)
-        const sg = document.createElement('div');
-        sg.className = 'subgroup';
-        sg.setAttribute('aria-expanded','false');
-        const sbtn = document.createElement('button');
-        sbtn.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}<span class="chev">›</span>`;
-        sbtn.addEventListener('click', ()=>{
-          const exp = sg.getAttribute('aria-expanded')==='true';
-          // collapse sibling subgroups
-          panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
-          sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
-        });
-        sg.appendChild(sbtn);
-
-        const subpanel = document.createElement('div');
-        subpanel.className = 'subpanel';
-        item.children.forEach(link=>{
-          const a = document.createElement('a');
-          a.className = 'item';
-          a.href = link.href || '#';
-          a.innerHTML = `<span class="icon">${link.icon||''}</span>${link.label}`;
-          a.addEventListener('click', closeDrawer);
-          subpanel.appendChild(a);
-        });
-        sg.appendChild(subpanel);
-        panel.appendChild(sg);
-      } else {
-        // normal link
-        const a = document.createElement('a');
-        a.className = 'item';
-        a.href = item.href || '#';
-        a.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}`;
-        a.addEventListener('click', closeDrawer);
-        panel.appendChild(a);
-      }
-    });
-
-    g.appendChild(panel);
-    nav.appendChild(g);
-  });
+  document.addEventListener("DOMContentLoaded", buildDrawer);
 })();
