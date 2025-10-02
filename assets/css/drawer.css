@@ -1,76 +1,58 @@
-/* Drawer shell */
+/* Drawer (left slide-in) */
 #drawer {
   position: fixed;
-  top: 0; left: 0; bottom: 0;
-  width: 86%;
-  max-width: 360px;
-  background: #fff;
-  color: #222;
+  top: 0; left: 0;
+  width: min(320px, 85vw);
+  height: 100dvh;
+  background: var(--paper, #fff);
+  color: var(--ink, #222);
+  box-shadow: 2px 0 18px rgba(0,0,0,.18);
   transform: translateX(-100%);
-  transition: transform .24s ease;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.06), 10px 0 30px rgba(0,0,0,.25);
+  transition: transform .2s ease-out;
+  z-index: 1002;
+  display: flex; flex-direction: column;
+}
+body.drawer-open #drawer { transform: translateX(0); }
+
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.28);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease-out;
   z-index: 1001;
-  display: flex;
-  flex-direction: column;
 }
-#drawer.open { transform: translateX(0); }
+body.drawer-open .drawer-backdrop { opacity: 1; pointer-events: auto; }
 
-/* Backdrop */
-#drawerBackdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.35);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .2s ease;
-  z-index: 1000;
-}
-#drawerBackdrop.show { opacity: 1; visibility: visible; }
-
-/* Brand area */
+/* Header/brand inside drawer */
 #drawer .brand {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px;
+  display: flex; gap: 10px; align-items: center;
+  padding: 14px 14px 12px;
   border-bottom: 1px solid rgba(0,0,0,.08);
 }
 #drawer .brand img { width: 36px; height: 36px; border-radius: 8px; }
-#drawer .mono { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #4a4a4a; }
+#drawer .brand .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#666; font-size: 12px; }
 
-/* Nav & accordion */
-#drawer nav { padding: 8px 6px 14px 6px; overflow:auto; }
-.dr-item { display:block; padding: 10px 12px; border-radius: 8px; text-decoration:none; color:#222; }
-.dr-item:hover { background: rgba(0,0,0,.04); }
-.dr-item > span.emoji { margin-right: 10px; }
+/* Accordion nav */
+#drawer nav { padding: 10px 8px 20px; overflow:auto; }
+.drawer-sec { border-radius: 12px; overflow: hidden; margin: 8px 0; background:#fff; border:1px solid rgba(0,0,0,.08); }
+.drawer-sec > button {
+  width:100%; text-align:left; display:flex; align-items:center; gap:8px;
+  background:#fff; border:0; padding:12px 12px; cursor:pointer; font-weight:700; color:#222;
+}
+.drawer-sec > button .caret { margin-left:auto; transition: transform .15s ease; }
+.drawer-sec.open > button .caret { transform: rotate(90deg); }
 
-.acc {
-  margin: 6px 0;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,.08);
-  background: #fafafa;
-}
-.acc-hd {
-  display:flex; align-items:center; gap:10px;
-  padding: 10px 12px; cursor:pointer; user-select:none;
-}
-.acc-hd .chev { margin-left:auto; transition: transform .15s ease; }
-.acc.open .acc-hd .chev { transform: rotate(90deg); }
-.acc-bd {
-  max-height: 0; overflow: hidden;
-  transition: max-height .22s ease;
-  background:#fff;
-}
-.acc.open .acc-bd { max-height: 600px; }
+.drawer-sec .panel { display:none; padding: 4px 8px 10px; border-top:1px solid rgba(0,0,0,.06); background:#fff; }
+.drawer-sec.open .panel { display:block; }
 
-.acc-bd a {
-  display:flex; align-items:center; gap:10px;
-  padding: 10px 14px; text-decoration:none; color:#222;
+.drawer-link { 
+  display:flex; align-items:center; gap:8px; 
+  padding:8px 8px; border-radius:8px; color:#222; text-decoration:none;
 }
-.acc-bd a:hover { background: rgba(0,0,0,.04); }
+.drawer-link:hover { background: rgba(0,0,0,.05); }
 
-/* Hamburger button (optional styling) */
-.hamburger {
-  appearance: none;
-  border: none; background: transparent; padding: 8px;
-  border-radius: 8px; cursor: pointer;
-}
+/* Simple divider title inside panel */
+.drawer-subtitle { font-size:12px; color:#666; margin:6px 6px 2px; }
+
+/* Prevent body scroll when open */
+body.drawer-open { overflow:hidden; touch-action:none; }
