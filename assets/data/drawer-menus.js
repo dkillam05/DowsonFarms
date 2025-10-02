@@ -1,4 +1,4 @@
-/* Dowson Farms — Drawer Menus (separate from DF_MENUS; safe to add) */
+/* Dowson Farms — Drawer Menus (accordion data) */
 window.DF_DRAWER_MENUS = [
   {
     label: "Crop Production",
@@ -6,14 +6,18 @@ window.DF_DRAWER_MENUS = [
     children: [
       { label: "Views / Reports", href: "#", icon: "📊" },
       { label: "Active Field Trials", href: "#", icon: "🧬" },
-      { label: "Add Records", href: "#", icon: "➕" },
-      { label: "Planting", href: "crop-production/crop-planting.html", icon: "🌱" },
-      { label: "Spraying", href: "crop-production/crop-spraying.html", icon: "💦" },
-      { label: "Aerial Spraying", href: "crop-production/crop-aerial.html", icon: "🚁" },
-      { label: "Fertilizer", href: "crop-production/crop-fertilizer.html", icon: "🧪" },
-      { label: "Harvest", href: "crop-production/crop-harvest.html", icon: "🌾" },
-      { label: "Scouting", href: "crop-production/crop-scouting.html", icon: "🔎" },
-      { label: "Field Repairs", href: "#", icon: "🛠️" }
+      {
+        label: "Add Records", icon: "➕",
+        children: [
+          { label: "Planting", href: "crop-production/crop-planting.html", icon: "🌱" },
+          { label: "Spraying", href: "crop-production/crop-spraying.html", icon: "💦" },
+          { label: "Aerial Spraying", href: "crop-production/crop-aerial.html", icon: "🚁" },
+          { label: "Fertilizer", href: "crop-production/crop-fertilizer.html", icon: "🧪" },
+          { label: "Harvest", href: "crop-production/crop-harvest.html", icon: "🌾" },
+          { label: "Scouting", href: "crop-production/crop-scouting.html", icon: "🔎" },
+          { label: "Field Repairs", href: "#", icon: "🛠️" }
+        ]
+      }
     ]
   },
   {
@@ -73,11 +77,15 @@ window.DF_DRAWER_MENUS = [
       { label: "Equipment Make", href: "#", icon: "🏭" },
       { label: "Equipment Model", href: "#", icon: "📑" },
       { label: "Crop Types", href: "settings-setup/ss-crop-types.html", icon: "🌾" },
-      { label: "Products", href: "settings-setup/products/", icon: "📦" },
-      { label: "Seed", href: "settings-setup/products/products-seed.html", icon: "🌽" },
-      { label: "Chemical", href: "settings-setup/products/products-chemical.html", icon: "🧪" },
-      { label: "Fertilizer", href: "settings-setup/products/products-fertilizer.html", icon: "🧂" },
-      { label: "Grain Bags", href: "settings-setup/products/products-grain-bags.html", icon: "👝" },
+      {
+        label: "Products", icon: "📦",
+        children: [
+          { label: "Seed", href: "settings-setup/products/products-seed.html", icon: "🌽" },
+          { label: "Chemical", href: "settings-setup/products/products-chemical.html", icon: "🧪" },
+          { label: "Fertilizer", href: "settings-setup/products/products-fertilizer.html", icon: "🧂" },
+          { label: "Grain Bags", href: "settings-setup/products/products-grain-bags.html", icon: "👝" }
+        ]
+      },
       { label: "Account Roles", href: "settings-setup/ss-roles.html", icon: "🛡️" },
       { label: "Account Details", href: "#", icon: "👤" },
       { label: "Theme", href: "settings-setup/ss-theme.html", icon: "🌗" },
