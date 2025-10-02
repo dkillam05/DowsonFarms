@@ -22,36 +22,45 @@
 
   <!-- Global styles -->
   <link rel="stylesheet" href="assets/css/theme.css" />
-  <!-- Global drawer styles -->
   <link rel="stylesheet" href="assets/css/drawer.css" />
 
   <style>
-    /* Page-local tweaks only */
+    .app-header{height:48px;background:#E6DCB8;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid #0001}
+    .burger{background:none;border:none;font-size:22px;cursor:pointer}
+    .app-title{font-weight:700;color:#1B5E20}
+    .spacer{flex:1}
+    .clock{font-variant-numeric:tabular-nums}
     main{padding:18px;max-width:1100px;margin:0 auto}
     #tiles{display:grid;gap:18px;grid-template-columns: repeat(auto-fit, minmax(220px,1fr))}
-    .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;
-          background:#fff;border:1px solid #0002;border-radius:16px;box-shadow:0 6px 18px #00000010;
-          text-decoration:none;color:#333;padding:24px 18px}
+    .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border:1px solid #0002;border-radius:16px;box-shadow:0 6px 18px #00000010;text-decoration:none;color:#333;padding:24px 18px}
     .tile span{margin-top:8px;font-weight:600}
-    #diagBar{white-space:pre-wrap;font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-             font-size:12px;padding:8px 10px;border-bottom:1px solid #0002}
+    #diagBar{white-space:pre-wrap;font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:12px;padding:8px 10px;border-bottom:1px solid #0002}
     #diagBar.ok{background:#eef5ee;color:#1a4d1a}
     #diagBar.err{background:#ffe9e9;color:#a00}
   </style>
 </head>
 <body>
-  <!-- Header (drawer.js injects the hamburger at .app-header__left) -->
+  <!-- Header -->
   <header class="app-header">
-    <div class="app-header__left">
-      <img src="assets/icons/icon-192.png" alt="Logo" class="app-logo" />
-      <div class="app-header__title">Dowson Farms</div>
-    </div>
-    <div class="app-header__right">
-      <span id="clock" class="clock">--:--</span>
-    </div>
+    <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
+    <img src="assets/icons/icon-192.png" alt="" style="width:28px;height:28px;border-radius:6px">
+    <div class="app-title">Dowson Farms</div>
+    <div class="spacer"></div>
+    <span id="clock" class="clock">--:--</span>
   </header>
 
-  <!-- No inline drawer markup here — global drawer.js mounts it for all pages -->
+  <!-- Drawer (global, built by js/drawer.js from assets/data/drawer-menus.js) -->
+  <div id="drawer" class="drawer" aria-label="Side menu">
+    <div class="brand">
+      <img src="assets/icons/icon-192.png" alt="">
+      <div>
+        <div style="font-weight:700">Dowson Farms</div>
+        <div class="mono" id="farmSub">All systems operational</div>
+      </div>
+    </div>
+    <nav></nav>
+  </div>
+  <div id="drawerBackdrop" class="drawerBackdrop"></div>
 
   <!-- Diagnostics -->
   <div id="diagBar" class="err">Loading…</div>
@@ -63,25 +72,20 @@
     <div id="tiles"></div>
   </main>
 
-  <!-- (Your global footer is injected by footer.js using footer-links.js) -->
-
-  <!-- ───────── Scripts (order matters) ───────── -->
-  <!-- 1) Global nav data for top-level tiles -->
+  <!-- Menus (top-level tiles; keep your existing DF_MENUS) -->
   <script src="assets/data/menus.js"></script>
 
-  <!-- 2) Global drawer (data + behavior) -->
-  <script defer src="assets/data/drawer-menus.js"></script>
-  <script defer src="js/drawer.js"></script>
+  <!-- Drawer menus (accordion data) -->
+  <script src="assets/data/drawer-menus.js"></script>
 
-  <!-- 3) Global footer (data + behavior) -->
-  <script defer src="assets/data/footer-links.js"></script>
-  <script defer src="js/footer.js"></script>
+  <!-- Footer links (global bottom nav) -->
+  <script src="assets/data/footer-links.js"></script>
 
-  <!-- 4) Firebase + optional guard -->
+  <!-- Firebase + (optional) auth guard -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- 5) Role-driven tiles (same logic you confirmed working) -->
+  <!-- Access-driven tiles -->
   <script type="module">
     import { auth } from "./js/firebase-init.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -93,42 +97,35 @@
     function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
 
     async function renderFor(user){
-      if(!user){
-        diag.textContent = "No Firebase user yet (waiting for auth)…";
-        diag.className = "err";
-        tilesEl.innerHTML = "";
-        return;
-      }
-      try{
-        const access = await loadAccess();
-        const menus  = (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
-        const filtered = access.filterMenusForHome ? access.filterMenusForHome(menus) : menus;
+      if(!user){ diag.textContent="No Firebase user yet (waiting for auth)…"; diag.className="err"; tilesEl.innerHTML=""; return; }
+      const access = await loadAccess();
+      const menus  = (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
+      const filtered = access.filterMenusForHome ? access.filterMenusForHome(menus) : menus;
 
-        diag.textContent = [
-          `User: ${user.email || user.uid}`,
-          `Role keys: ${dump(access.roleKeys)}`,
-          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
-          `Visible top tiles: ${filtered.length}`
-        ].join("\n");
-        diag.className = filtered.length ? "ok" : "err";
+      diag.textContent = [
+        `User: ${user.email || user.uid}`,
+        `Role keys: ${dump(access.roleKeys)}`,
+        `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
+        `Visible top tiles: ${filtered.length}`
+      ].join("\n");
+      diag.className = filtered.length ? "ok" : "err";
 
-        tilesEl.innerHTML = "";
-        filtered.forEach(it=>{
-          const a = document.createElement("a");
-          a.className = "tile";
-          a.href = it.href;
-          a.title = it.label;
-          a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
-          tilesEl.appendChild(a);
-        });
-      }catch(e){
-        diag.textContent = "Error loading access: " + (e && e.message ? e.message : e);
-        diag.className = "err";
-        tilesEl.innerHTML = "";
-      }
+      tilesEl.innerHTML = "";
+      filtered.forEach(it=>{
+        const a = document.createElement("a");
+        a.className = "tile";
+        a.href = it.href;
+        a.title = it.label;
+        a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
+        tilesEl.appendChild(a);
+      });
     }
 
     onAuthStateChanged(auth, (user) => renderFor(user));
   </script>
+
+  <!-- Global drawer + footer renderers -->
+  <script src="js/drawer.js"></script>
+  <script src="js/footer.js"></script>
 </body>
 </html>
