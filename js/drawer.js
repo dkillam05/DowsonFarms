@@ -1,6 +1,6 @@
 // Dowson Farms — Drawer renderer (accordion + bottom branding + logout)
-// Reads data from window.DF_DRAWER_MENUS (assets/data/drawer-menus.js)
-// Respects DF_ACCESS.canView when available. No HTML changes required.
+// Reads window.DF_DRAWER_MENUS (assets/data/drawer-menus.js)
+// Respects DF_ACCESS.canView when available.
 
 import { auth } from "./firebase-init.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -22,18 +22,15 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
   const nav = drawer.querySelector('nav');
   if (!nav) return;
 
-  // Resolve access helpers if present
+  // Access helper (optional)
   const canView = (href) => {
     const acc = window.DF_ACCESS;
-    if (!acc || !acc.canView) return true;           // before auth loads: show everything
-    // Always show groups even if none of the children visible → but we'll filter children
+    if (!acc || !acc.canView) return true;
     return acc.canView(href);
   };
 
-  // read drawer data
+  // Build accordion
   const groups = (window.DF_DRAWER_MENUS || []);
-
-  // build accordion
   nav.innerHTML = '';
   groups.forEach(group => {
     const g = document.createElement('div');
@@ -44,7 +41,6 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
     btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
     btn.addEventListener('click', ()=> {
       const expanded = g.getAttribute('aria-expanded') === 'true';
-      // collapse others
       nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
       g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     });
@@ -53,13 +49,10 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
     const panel = document.createElement('div');
     panel.className = 'panel';
 
-    const children = Array.isArray(group.children) ? group.children : [];
-    // Filter first level by canView (for links). Subgroups are kept, but their items are filtered too.
-    children.forEach(item=>{
-      // Nested subgroup
+    (group.children||[]).forEach(item=>{
       if(Array.isArray(item.children) && item.children.length){
-        const visibleKids = item.children.filter(link => canView(link.href));
-        if (!visibleKids.length) return; // hide subgroup if empty
+        const kids = item.children.filter(link => canView(link.href));
+        if (!kids.length) return;
 
         const sg = document.createElement('div');
         sg.className = 'subgroup';
@@ -69,7 +62,6 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
         sbtn.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}<span class="chev">›</span>`;
         sbtn.addEventListener('click', ()=>{
           const exp = sg.getAttribute('aria-expanded')==='true';
-          // collapse sibling subgroups
           panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
           sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
         });
@@ -77,7 +69,7 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
 
         const subpanel = document.createElement('div');
         subpanel.className = 'subpanel';
-        visibleKids.forEach(link=>{
+        kids.forEach(link=>{
           const a = document.createElement('a');
           a.className = 'item';
           a.href = link.href || '#';
@@ -88,7 +80,6 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
         sg.appendChild(subpanel);
         panel.appendChild(sg);
       } else {
-        // Single link
         if (!item.href || !canView(item.href)) return;
         const a = document.createElement('a');
         a.className = 'item';
@@ -103,15 +94,15 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
     nav.appendChild(g);
   });
 
-  // ─── Drawer bottom: logout + logo + version ───
+  // ─── Drawer bottom: Logout + brand + version ───
   const foot = document.createElement('div');
   foot.className = 'drawerFooter';
   const appVersion = (window.DF_VERSION || '0.0.0');
 
   foot.innerHTML = `
-    <button class="logoutBtn" id="drawerLogout">
-      <span class="icon">⎋</span> Logout
-    </button>
+    <a href="#" class="item logout" id="drawerLogout">
+      <span class="icon">🚪</span> Logout
+    </a>
 
     <div class="brandBottom">
       <img src="assets/icons/icon-192.png" alt="">
@@ -127,7 +118,8 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
 
   // Logout handler
   const btnLogout = foot.querySelector('#drawerLogout');
-  btnLogout?.addEventListener('click', async () => {
+  btnLogout?.addEventListener('click', async (e) => {
+    e.preventDefault();
     try{
       await signOut(auth);
     }finally{
