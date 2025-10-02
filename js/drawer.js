@@ -1,6 +1,7 @@
 // Dowson Farms — Drawer renderer (accordion + bottom branding + logout)
 // Reads window.DF_DRAWER_MENUS (assets/data/drawer-menus.js)
 // Respects DF_ACCESS.canView when available.
+// Shows version from window.DF_VERSION (js/version.js)
 
 import { auth } from "./firebase-init.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -11,12 +12,11 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
   const toggle   = document.getElementById('drawerToggle');
   if (!drawer || !backdrop) return;
 
-  function openDrawer(){ document.body.classList.add('drawer-open'); }
-  function closeDrawer(){ document.body.classList.remove('drawer-open'); }
-  function clickOutside(e){ if(e.target === backdrop) closeDrawer(); }
+  const openDrawer  = () => document.body.classList.add('drawer-open');
+  const closeDrawer = () => document.body.classList.remove('drawer-open');
 
   toggle && toggle.addEventListener('click', openDrawer);
-  backdrop && backdrop.addEventListener('click', clickOutside);
+  backdrop && backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeDrawer(); });
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
 
   const nav = drawer.querySelector('nav');
@@ -29,7 +29,7 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
     return acc.canView(href);
   };
 
-  // Build accordion
+  // Build accordion UI from data
   const groups = (window.DF_DRAWER_MENUS || []);
   nav.innerHTML = '';
   groups.forEach(group => {
@@ -101,7 +101,7 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-aut
 
   foot.innerHTML = `
     <a href="#" class="item logout" id="drawerLogout">
-      <span class="icon">🚪</span> Logout
+      <span class="icon">↩️</span> Logout
     </a>
 
     <div class="brandBottom">
