@@ -68,3 +68,20 @@
 
 /* Leave room for footer so content isn't hidden */
 body { padding-bottom: 60px; }
+
+/* Footer nav active state */
+.app-footer-nav a.active {
+  color: var(--brand-green);   /* icon turns green */
+  position: relative;
+}
+
+.app-footer-nav a.active::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 25%;
+  right: 25%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--brand-gold);  /* gold underline */
+}
