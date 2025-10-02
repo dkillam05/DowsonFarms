@@ -22,8 +22,8 @@
     drawer.innerHTML = `<div class="brand">
       <img src="assets/icons/icon-192.png" alt="">
       <div>
-        <div style="font-weight:700">Dowson Farms</div>
-        <div class="mono" id="farmSub">All systems operational</div>
+        <div style="font-weight:700">Dowson Farms Divernon Illinois</div>
+        //<div class="mono" id="farmSub">Divernon Illinois</div>
       </div>
     </div>
     <nav></nav>`;
