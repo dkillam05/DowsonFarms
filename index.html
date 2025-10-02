@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1B5E20" />
+  <meta name="theme-color" content="#0f5a1a" />
   <title>Dowson Farms — Home</title>
 
   <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
 
-  <!-- Prepaint theme (same everywhere) -->
+  <!-- Prepaint theme -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -20,22 +20,66 @@
     })();
   </script>
 
-  <!-- Global styles -->
-  <link rel="stylesheet" href="assets/css/theme.css" />
-  <link rel="stylesheet" href="assets/css/header.css" />
+  <!-- Drawer CSS (your existing file) -->
   <link rel="stylesheet" href="assets/css/drawer.css" />
+
+  <!-- Inline header styles so nothing else is needed -->
+  <style>
+    :root { --df-green:#0f5a1a; --df-ink:#fff; --hdr-h:56px; }
+
+    /* Fixed header bar (matches footer color) */
+    .app-header{
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      height:var(--hdr-h);
+      background:var(--df-green);
+      display:flex; align-items:center; gap:10px;
+      padding:0 12px;
+      color:var(--df-ink);
+    }
+    /* ensure page content isn’t hidden under fixed header */
+    body{ margin:0; padding-top:var(--hdr-h); }
+
+    .burger{
+      appearance:none; -webkit-appearance:none;
+      background:transparent; border:0;
+      color:var(--df-ink); font-size:24px; line-height:1; cursor:pointer;
+    }
+    .app-logo{ width:30px; height:30px; border-radius:8px; }
+    .app-title{ font-weight:700; font-size:18px; }
+    .spacer{ flex:1; }
+    .clock{ font-variant-numeric:tabular-nums; }
+
+    main{ padding:18px; max-width:1100px; margin:0 auto; }
+
+    /* Auth overlay while we wait */
+    #waitOverlay{
+      position:fixed; inset:0; z-index:2000;
+      display:none; align-items:center; justify-content:center;
+      backdrop-filter: blur(4px);
+      background: rgba(0,0,0,.25);
+      color:#fff; font:600 16px system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      text-align:center; padding:24px;
+    }
+    .spinner{
+      width:42px; height:42px; border-radius:50%;
+      border:4px solid rgba(255,255,255,.35);
+      border-top-color:#fff; margin:14px auto 0;
+      animation:spin 0.9s linear infinite;
+    }
+    @keyframes spin{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  </style>
 </head>
 <body>
-  <!-- Header (fixed, styled by header.css) -->
-  <header class="df-header">
-    <button id="drawerToggle" class="df-burger" aria-label="Open menu"></button>
-    <img src="assets/icons/icon-192.png" alt="Dowson Farms Logo" class="df-logo">
-    <div class="df-title">Dowson Farms</div>
-    <div class="df-spacer"></div>
-    <span id="clock" class="df-clock">--:--</span>
+  <!-- Header (fixed) -->
+  <header class="app-header">
+    <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
+    <img class="app-logo" src="assets/icons/icon-192.png" alt="">
+    <div class="app-title">Dowson Farms</div>
+    <div class="spacer"></div>
+    <span id="clock" class="clock">--:--</span>
   </header>
 
-  <!-- Drawer (built by js/drawer.js from assets/data/drawer-menus.js) -->
+  <!-- Drawer shell (built by js/drawer.js) -->
   <div id="drawer" class="drawer" aria-label="Side menu">
     <div class="brand">
       <img src="assets/icons/icon-192.png" alt="">
@@ -48,32 +92,50 @@
   </div>
   <div id="drawerBackdrop" class="drawerBackdrop"></div>
 
+  <!-- Auth wait overlay -->
+  <div id="waitOverlay">
+    <div>
+      Please wait… connecting to your account
+      <div class="spinner"></div>
+    </div>
+  </div>
+
   <!-- Main -->
   <main>
     <h1>Welcome</h1>
     <p>This Home screen will grow (Chat-style box, weather, quick cards). Use the ☰ menu for navigation.</p>
   </main>
 
-  <!-- Global menus -->
+  <!-- Data sources -->
   <script src="assets/data/menus.js"></script>
   <script src="assets/data/drawer-menus.js"></script>
   <script src="assets/data/footer-links.js"></script>
 
-  <!-- Firebase + guard -->
+  <!-- Firebase + your existing auth guard -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- Drawer + footer rendering -->
+  <!-- Drawer + Footer builders -->
   <script type="module" src="js/drawer.js"></script>
-  <script type="module" src="js/footer.js"></script>
+  <script src="js/footer.js"></script>
 
-  <!-- Clock -->
-  <script>
+  <!-- Tiny page helpers: clock + auth overlay show/hide -->
+  <script type="module">
+    import { auth } from "./js/firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+    // header clock
     const clock = document.getElementById('clock');
-    setInterval(() => {
-      const d = new Date();
-      clock.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    }, 1000);
+    function tick(){ const d=new Date(); clock.textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+    tick(); setInterval(tick, 1000);
+
+    // show spinner until auth resolves (independent of auth-guard redirect)
+    const overlay = document.getElementById('waitOverlay');
+    overlay.style.display = 'flex';
+    onAuthStateChanged(auth, (user) => {
+      // Either signed in or will be redirected by auth-guard — hide overlay either way
+      overlay.style.display = 'none';
+    });
   </script>
 </body>
 </html>
