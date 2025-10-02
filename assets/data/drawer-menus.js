@@ -1,5 +1,3 @@
-<!-- assets/data/drawer-menus.js -->
-<script>
 /* Dowson Farms — Drawer Menus (accordion data, separate from DF_MENUS) */
 window.DF_DRAWER_MENUS = [
   {
@@ -15,13 +13,13 @@ window.DF_DRAWER_MENUS = [
       {
         label: "Add Records", icon: "➕",
         children: [
-          { label: "Planting",         href: "crop-production/crop-planting.html",    icon: "🌱" },
-          { label: "Spraying",         href: "crop-production/crop-spraying.html",    icon: "💦" },
-          { label: "Aerial Spraying",  href: "crop-production/crop-aerial.html",      icon: "🚁" },
-          { label: "Fertilizer",       href: "crop-production/crop-fertilizer.html",  icon: "🧪" },
-          { label: "Harvest",          href: "crop-production/crop-harvest.html",     icon: "🌾" },
-          { label: "Scouting",         href: "crop-production/crop-scouting.html",    icon: "🔎" },
-          { label: "Field Repairs",    href: "field-maintenance/field-maintenance.html", icon: "🛠️" }
+          { label: "Planting",        href: "crop-production/crop-planting.html",   icon: "🌱" },
+          { label: "Spraying",        href: "crop-production/crop-spraying.html",   icon: "💦" },
+          { label: "Aerial Spraying", href: "crop-production/crop-aerial.html",     icon: "🚁" },
+          { label: "Fertilizer",      href: "crop-production/crop-fertilizer.html", icon: "🧪" },
+          { label: "Harvest",         href: "crop-production/crop-harvest.html",    icon: "🌾" },
+          { label: "Scouting",        href: "crop-production/crop-scouting.html",   icon: "🔎" },
+          { label: "Field Repairs",   href: "field-maintenance/field-maintenance.html", icon: "🛠️" }
         ]
       }
     ]
@@ -42,16 +40,16 @@ window.DF_DRAWER_MENUS = [
     label: "Equipment",
     icon: "🚜",
     children: [
-      { label: "View / Reports",      href: "equipment/",                            icon: "📊" },
-      { label: "Add Equipment",       href: "equipment/equipment-implements.html",   icon: "➕" },
-      { label: "StarFire / Tech",     href: "equipment/equipment-starfire.html",     icon: "🛰️" },
-      { label: "Tractors",            href: "equipment/equipment-tractors.html",     icon: "🚜" },
-      { label: "Combines",            href: "equipment/equipment-combines.html",     icon: "🌽" },
-      { label: "Sprayers",            href: "equipment/equipment-sprayers.html",     icon: "💦" },
-      { label: "Implements",          href: "equipment/equipment-implements.html",   icon: "⚙️" },
-      { label: "Construction",        href: "equipment/equipment-construction.html", icon: "🏗️" },
-      { label: "Trucks",              href: "equipment/equipment-trucks.html",       icon: "🚛" },
-      { label: "Trailers",            href: "equipment/equipment-trailers.html",     icon: "🚚" }
+      { label: "View / Reports", href: "equipment/",                            icon: "📊" },
+      { label: "Add Equipment",  href: "equipment/equipment-implements.html",   icon: "➕" }, /* update when you have a true add page */
+      { label: "StarFire / Tech",href: "equipment/equipment-starfire.html",     icon: "🛰️" },
+      { label: "Tractors",       href: "equipment/equipment-tractors.html",     icon: "🚜" },
+      { label: "Combines",       href: "equipment/equipment-combines.html",     icon: "🌽" },
+      { label: "Sprayers",       href: "equipment/equipment-sprayers.html",     icon: "💦" },
+      { label: "Implements",     href: "equipment/equipment-implements.html",   icon: "⚙️" },
+      { label: "Construction",   href: "equipment/equipment-construction.html", icon: "🏗️" },
+      { label: "Trucks",         href: "equipment/equipment-trucks.html",       icon: "🚛" },
+      { label: "Trailers",       href: "equipment/equipment-trailers.html",     icon: "🚚" }
     ]
   },
 
@@ -85,8 +83,8 @@ window.DF_DRAWER_MENUS = [
     children: [
       { label: "Farms",         href: "settings-setup/ss-farms.html",       icon: "🏡" },
       { label: "Fields",        href: "settings-setup/ss-fields.html",      icon: "🗺️" },
-      { label: "Equipment Make",href: "equipment/equipment-implements.html",icon: "🏭" },   /* placeholder path */
-      { label: "Equipment Model",href:"equipment/equipment-implements.html",icon: "📑" },   /* placeholder path */
+      { label: "Equipment Make",href: "equipment/equipment-implements.html",icon: "🏭" },   /* placeholder */
+      { label: "Equipment Model",href:"equipment/equipment-implements.html",icon: "📑" },   /* placeholder */
       { label: "Crop Types",    href: "settings-setup/ss-crop-types.html",  icon: "🌾" },
       {
         label: "Products", icon: "📦",
@@ -97,11 +95,10 @@ window.DF_DRAWER_MENUS = [
           { label: "Grain Bags",  href: "settings-setup/products/products-grain-bags.html",  icon: "👝" }
         ]
       },
-      { label: "Account Roles", href: "settings-setup/ss-roles.html",       icon: "🛡️" },
-      { label: "Account Details",href: "settings-setup/ss-theme.html",      icon: "👤" },    /* route you prefer */
-      { label: "Theme",         href: "settings-setup/ss-theme.html",       icon: "🌗" },
+      { label: "Account Roles",  href: "settings-setup/ss-roles.html",       icon: "🛡️" },
+      { label: "Account Details",href: "settings-setup/ss-theme.html",       icon: "👤" },  /* pick your route */
+      { label: "Theme",          href: "settings-setup/ss-theme.html",       icon: "🌗" },
       { label: "Check for Updates", href: "settings-setup/index.html#check-updates", icon: "🔄" }
     ]
   }
 ];
-</script>
