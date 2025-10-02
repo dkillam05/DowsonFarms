@@ -1,85 +1,76 @@
 /* Drawer shell */
-.drawer {
+#drawer {
   position: fixed;
-  inset: 0 auto 0 0;
-  width: 320px;
-  max-width: 85vw;
+  top: 0; left: 0; bottom: 0;
+  width: 86%;
+  max-width: 360px;
   background: #fff;
-  box-shadow: 2px 0 26px rgba(0,0,0,.2);
+  color: #222;
   transform: translateX(-100%);
-  transition: transform .22s ease;
-  z-index: 1000;
+  transition: transform .24s ease;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.06), 10px 0 30px rgba(0,0,0,.25);
+  z-index: 1001;
   display: flex;
   flex-direction: column;
 }
-.drawer.open { transform: translateX(0); }
+#drawer.open { transform: translateX(0); }
 
+/* Backdrop */
 #drawerBackdrop {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   background: rgba(0,0,0,.35);
-  opacity: 0; pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
   transition: opacity .2s ease;
-  z-index: 999;
+  z-index: 1000;
 }
-#drawerBackdrop.show { opacity: 1; pointer-events: auto; }
+#drawerBackdrop.show { opacity: 1; visibility: visible; }
 
-.drawer .brand {
-  display:flex; gap:10px; align-items:center;
-  padding:12px 14px; border-bottom:1px solid rgba(0,0,0,.08);
+/* Brand area */
+#drawer .brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
 }
-.drawer .brand img { width:36px; height:36px; border-radius:8px; }
-.drawer .brand .mono { font-family: ui-monospace, Menlo, Consolas, monospace; color:#6b7280; font-size:12px; }
+#drawer .brand img { width: 36px; height: 36px; border-radius: 8px; }
+#drawer .mono { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #4a4a4a; }
 
-/* Nav area */
-.drawer nav { padding: 10px; overflow:auto; }
+/* Nav & accordion */
+#drawer nav { padding: 8px 6px 14px 6px; overflow:auto; }
+.dr-item { display:block; padding: 10px 12px; border-radius: 8px; text-decoration:none; color:#222; }
+.dr-item:hover { background: rgba(0,0,0,.04); }
+.dr-item > span.emoji { margin-right: 10px; }
 
-/* Top-level links (non-accordion) */
-.drawer nav > a {
+.acc {
+  margin: 6px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #fafafa;
+}
+.acc-hd {
   display:flex; align-items:center; gap:10px;
-  padding:10px 12px; border-radius:10px; color:#111; text-decoration:none;
+  padding: 10px 12px; cursor:pointer; user-select:none;
 }
-.drawer nav > a:hover { background:#f3f4f6; }
-.drawer nav > a span:first-child { width:22px; text-align:center; }
-
-/* Accordion sections */
-.acc-section { margin-bottom: 6px; }
-.acc-head {
-  width:100%; background:#f6f7f8; border:1px solid #e3e5e7; color:#111;
-  display:flex; align-items:center; gap:10px; padding:10px 12px;
-  border-radius:10px; cursor:pointer;
+.acc-hd .chev { margin-left:auto; transition: transform .15s ease; }
+.acc.open .acc-hd .chev { transform: rotate(90deg); }
+.acc-bd {
+  max-height: 0; overflow: hidden;
+  transition: max-height .22s ease;
+  background:#fff;
 }
-.acc-head .icn { width:22px; text-align:center; }
-.acc-head .chev { margin-left:auto; transition: transform .15s; }
-.acc-head[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.acc.open .acc-bd { max-height: 600px; }
 
-.acc-body { overflow:hidden; height:auto; transition: height .18s ease; }
-
-/* Accordion groups (second level) */
-.acc-group { margin:8px 0 0 0; }
-.acc-subhead {
-  width:100%; background:#fff; border:1px solid #eceef0; color:#111;
-  display:flex; align-items:center; gap:10px; padding:9px 12px;
-  border-radius:10px; cursor:pointer;
-}
-.acc-subhead .icn { width:22px; text-align:center; }
-.acc-subhead .chev { margin-left:auto; transition: transform .15s; }
-.acc-subhead[aria-expanded="true"] .chev { transform: rotate(180deg); }
-
-.acc-subbody { overflow:hidden; height:auto; transition: height .18s ease; margin-left: 10px; }
-
-/* Links inside groups */
-.acc-link {
+.acc-bd a {
   display:flex; align-items:center; gap:10px;
-  padding:8px 12px; margin:4px 0;
-  border-radius:10px; text-decoration:none; color:#111;
+  padding: 10px 14px; text-decoration:none; color:#222;
 }
-.acc-link:hover { background:#f6f7f8; }
-.acc-link .icn { width:22px; text-align:center; }
+.acc-bd a:hover { background: rgba(0,0,0,.04); }
 
-/* Footer nav active state (if you added .footer-nav earlier) */
-.footer-nav a.is-active,
-.footer-nav a[aria-current="page"] {
-  background: rgba(27,94,32,.10);
-  border-color: rgba(27,94,32,.25);
-  color: #1B5E20;
+/* Hamburger button (optional styling) */
+.hamburger {
+  appearance: none;
+  border: none; background: transparent; padding: 8px;
+  border-radius: 8px; cursor: pointer;
 }
