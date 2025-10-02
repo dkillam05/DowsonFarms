@@ -1,10 +1,8 @@
-<!-- js/drawer.js -->
-<script type="module">
 /*
   Drawer renderer (accordion) that:
   - Builds nested groups & subgroups from window.DF_DRAWER_MENUS
   - Respects Firestore role permissions via loadAccess().canView()
-  - Always shows everything for Builder (UID bypass in access.js)
+  - Always shows everything for Builder (UID bypass lives in access.js)
 */
 
 import { auth } from "./firebase-init.js";
@@ -27,28 +25,19 @@ window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDrawer(); 
 
 // Helpers
 const hasChildren = (n) => Array.isArray(n?.children) && n.children.length > 0;
-const normHref = (s) => (s||"").replace(/index\.html$/,"").replace(/\/+$/,"/");
 
-// Filter menu items by access.canView (or show all for Builder)
+// Filter leaf links by access.canView (Builder sees all)
 function filterTree(nodes, access, isBuilder){
   const out = [];
   for(const n of (nodes||[])){
     if(hasChildren(n)){
       const kids = filterTree(n.children, access, isBuilder);
-      if(kids.length){
-        out.push({ ...n, children: kids });
-      }else{
-        // if the group itself has an href and is allowed, you could keep it;
-        // here we hide empty groups for cleanliness
-      }
+      if(kids.length) out.push({ ...n, children: kids });
     }else{
-      if(isBuilder){
-        out.push(n);
-      }else{
-        const href = n.href || "";
-        const ok = href ? (access.canView ? access.canView(href) : true) : false;
-        if(ok) out.push(n);
-      }
+      if(isBuilder) { out.push(n); continue; }
+      const href = n.href || "";
+      const ok = href ? (access.canView ? access.canView(href) : true) : false;
+      if(ok) out.push(n);
     }
   }
   return out;
@@ -97,7 +86,7 @@ function buildAccordion(data){
         const subpanel = document.createElement('div');
         subpanel.className = 'subpanel';
 
-        item.children.forEach(link=>{
+        (item.children||[]).forEach(link=>{
           const a = document.createElement('a');
           a.className = 'item';
           a.href = link.href || '#';
@@ -124,25 +113,19 @@ function buildAccordion(data){
   });
 }
 
-// Bootstrap after auth so we can apply permissions
-onAuthStateChanged(auth, async (user) => {
-  // If no user yet, build full menu (temporary) so UI isn't blank; it will refresh after login
+// Bootstrap after auth so we can apply permissions filtering
+onAuthStateChanged(auth, async () => {
   const raw = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
-
   try{
     const access = await loadAccess();
     const isBuilder = (access.roleKeys||[]).includes("__builder__");
     const filtered = isBuilder ? raw.slice() : filterTree(raw, access, isBuilder);
 
-    // If a group ended up empty after filtering, drop it
-    const cleaned = filtered
-      .map(g => hasChildren(g) ? g : ({...g, children: []}))
-      .filter(g => !hasChildren(g) ? false : true);
-
+    // Drop empty groups
+    const cleaned = filtered.filter(g => hasChildren(g));
     buildAccordion(cleaned.length ? cleaned : filtered);
   }catch{
-    // If access fails for any reason, render raw menu so Builder can still navigate
+    // On any failure, show the raw menu so the drawer still opens
     buildAccordion(raw);
   }
 });
-</script>
