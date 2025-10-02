@@ -1,118 +1,87 @@
-/* Global Drawer (uses window.DF_DRAWER_MENUS exactly as you posted) */
-
-(function () {
-  if (window.__DF_DRAWER_MOUNTED__) return;
-  window.__DF_DRAWER_MOUNTED__ = true;
-
-  const $  = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-
-  const SECTIONS = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
-
-  function ensureHamburger() {
-    const header = $('.app-header');
-    if (!header || $('#dfHamburger')) return;
-    const left = header.querySelector('.app-header__left') || header.firstElementChild || header;
-    const btn  = document.createElement('button');
-    btn.id = 'dfHamburger';
-    btn.type = 'button';
-    btn.setAttribute('aria-label', 'Open menu');
-    btn.style.marginRight = '10px';
-    btn.style.border = '0';
-    btn.style.background = 'transparent';
-    btn.style.fontSize = '22px';
-    btn.style.cursor = 'pointer';
-    btn.textContent = '☰';
-    btn.addEventListener('click', toggleDrawer);
-    left.prepend(btn);
+/* Dowson Farms — Drawer Menus (separate from DF_MENUS; safe to add) */
+window.DF_DRAWER_MENUS = [
+  {
+    label: "Crop Production",
+    icon: "🌽",
+    children: [
+      { label: "Views / Reports", href: "#", icon: "📊" },
+      { label: "Active Field Trials", href: "#", icon: "🧬" },
+      { label: "Add Records", href: "#", icon: "➕" },
+      { label: "Planting", href: "crop-production/crop-planting.html", icon: "🌱" },
+      { label: "Spraying", href: "crop-production/crop-spraying.html", icon: "💦" },
+      { label: "Aerial Spraying", href: "crop-production/crop-aerial.html", icon: "🚁" },
+      { label: "Fertilizer", href: "crop-production/crop-fertilizer.html", icon: "🧪" },
+      { label: "Harvest", href: "crop-production/crop-harvest.html", icon: "🌾" },
+      { label: "Scouting", href: "crop-production/crop-scouting.html", icon: "🔎" },
+      { label: "Field Repairs", href: "#", icon: "🛠️" }
+    ]
+  },
+  {
+    label: "Grain Tracking",
+    icon: "🌾",
+    children: [
+      { label: "Grain Bin Inventory", href: "grain-tracking/grain-bins.html", icon: "🛢️" },
+      { label: "Grain Bags", href: "grain-tracking/grain-bags.html", icon: "👝" },
+      { label: "Grain Contracts", href: "grain-tracking/grain-contracts.html", icon: "📜" },
+      { label: "Add Grain Tickets", href: "grain-tracking/grain-ticket-ocr.html", icon: "🎫" }
+    ]
+  },
+  {
+    label: "Equipment",
+    icon: "🚜",
+    children: [
+      { label: "View / Reports", href: "equipment/", icon: "📊" },
+      { label: "Add Equipment", href: "#", icon: "➕" },
+      { label: "StarFire / Tech", href: "equipment/equipment-starfire.html", icon: "🛰️" },
+      { label: "Tractors", href: "equipment/equipment-tractors.html", icon: "🚜" },
+      { label: "Combines", href: "equipment/equipment-combines.html", icon: "🌽" },
+      { label: "Sprayers", href: "equipment/equipment-sprayers.html", icon: "💦" },
+      { label: "Implements", href: "equipment/equipment-implements.html", icon: "⚙️" },
+      { label: "Construction", href: "equipment/equipment-construction.html", icon: "🏗️" },
+      { label: "Trucks", href: "equipment/equipment-trucks.html", icon: "🚛" },
+      { label: "Trailers", href: "equipment/equipment-trailers.html", icon: "🚚" }
+    ]
+  },
+  {
+    label: "Calculators",
+    icon: "🔢",
+    children: [
+      { label: "Combine Yield", href: "calculators/calc-combine-yield.html", icon: "🌽" },
+      { label: "Trial Yields", href: "calculators/calc-trial-yields.html", icon: "🧬" },
+      { label: "Area", href: "calculators/calc-area.html", icon: "📐" },
+      { label: "Grain Bin", href: "calculators/calc-grain-bin.html", icon: "🛢️" },
+      { label: "Chemical Mix", href: "calculators/calc-chemical-mix.html", icon: "🧪" },
+      { label: "Grain Shrink", href: "calculators/calc-grain-shrink.html", icon: "📉" }
+    ]
+  },
+  {
+    label: "Teams & Partners",
+    icon: "🫱🏼‍🫲🏽",
+    children: [
+      { label: "Dictionary", href: "teams-partners/teams-dictionary.html", icon: "🗂️" },
+      { label: "Add Employees", href: "teams-partners/teams-employees.html", icon: "👥" },
+      { label: "Add Subcontractors", href: "teams-partners/teams-sub-contractors.html", icon: "🧰" },
+      { label: "Add Vendors", href: "teams-partners/teams-vendors.html", icon: "🏭" }
+    ]
+  },
+  {
+    label: "Setup / Settings",
+    icon: "⚙️",
+    children: [
+      { label: "Farms", href: "settings-setup/ss-farms.html", icon: "🏡" },
+      { label: "Fields", href: "settings-setup/ss-fields.html", icon: "🗺️" },
+      { label: "Equipment Make", href: "#", icon: "🏭" },
+      { label: "Equipment Model", href: "#", icon: "📑" },
+      { label: "Crop Types", href: "settings-setup/ss-crop-types.html", icon: "🌾" },
+      { label: "Products", href: "settings-setup/products/", icon: "📦" },
+      { label: "Seed", href: "settings-setup/products/products-seed.html", icon: "🌽" },
+      { label: "Chemical", href: "settings-setup/products/products-chemical.html", icon: "🧪" },
+      { label: "Fertilizer", href: "settings-setup/products/products-fertilizer.html", icon: "🧂" },
+      { label: "Grain Bags", href: "settings-setup/products/products-grain-bags.html", icon: "👝" },
+      { label: "Account Roles", href: "settings-setup/ss-roles.html", icon: "🛡️" },
+      { label: "Account Details", href: "#", icon: "👤" },
+      { label: "Theme", href: "settings-setup/ss-theme.html", icon: "🌗" },
+      { label: "Check for Updates", href: "settings-setup/index.html#check-updates", icon: "🔄" }
+    ]
   }
-
-  function buildDrawer() {
-    if ($('#dfDrawer')) return;
-
-    const wrap = document.createElement('div');
-    wrap.id = 'dfDrawerRoot';
-    wrap.innerHTML = `
-      <div id="dfDrawerBackdrop" class="drawer-backdrop" hidden></div>
-      <aside id="dfDrawer" class="drawer" aria-label="Side menu" aria-hidden="true">
-        <div class="brand">
-          <img src="/DowsonFarms/assets/icons/icon-192.png" alt="Dowson Farms" />
-          <div>
-            <div class="brand-title">Dowson Farms</div>
-            <div class="brand-sub mono" id="farmSub">All systems operational</div>
-          </div>
-        </div>
-        <nav class="drawer-nav"></nav>
-      </aside>
-    `;
-    document.body.appendChild(wrap);
-
-    $('#dfDrawerBackdrop').addEventListener('click', closeDrawer);
-
-    const nav = $('.drawer-nav', wrap);
-
-    // Build one accordion per section
-    SECTIONS.forEach(section => {
-      const sec = document.createElement('div');
-      sec.className = 'drawer-sec';
-
-      const acc = document.createElement('button');
-      acc.className = 'drawer-acc';
-      acc.type = 'button';
-      acc.innerHTML = `<span class="emoji">${section.icon || ''}</span>${section.label}<span class="caret">›</span>`;
-      sec.appendChild(acc);
-
-      const panel = document.createElement('div');
-      panel.className = 'panel';
-
-      // In your data, items with href:"#"" are **sub-headers**
-      let currentGroup = null;
-      (section.children || []).forEach(item => {
-        if (item && item.href === '#') {
-          currentGroup = document.createElement('div');
-          currentGroup.className = 'drawer-subtitle';
-          currentGroup.textContent = item.label;
-          panel.appendChild(currentGroup);
-          return;
-        }
-        const a = document.createElement('a');
-        a.className = 'drawer-link';
-        a.href = item.href;
-        a.innerHTML = `<span>${item.icon || ''}</span> ${item.label}`;
-        panel.appendChild(a);
-      });
-
-      nav.appendChild(sec);
-      nav.appendChild(panel);
-
-      acc.addEventListener('click', () => {
-        const open = acc.classList.toggle('open');
-        panel.style.maxHeight = open ? panel.scrollHeight + 'px' : '0px';
-      });
-    });
-
-    // Start collapsed
-    $$('.panel', wrap).forEach(p => (p.style.maxHeight = '0px'));
-  }
-
-  function openDrawer() {
-    $('#dfDrawer')?.setAttribute('aria-hidden', 'false');
-    const b = $('#dfDrawerBackdrop'); if (b) b.hidden = false;
-    document.documentElement.classList.add('drawer-open');
-  }
-  function closeDrawer() {
-    $('#dfDrawer')?.setAttribute('aria-hidden', 'true');
-    const b = $('#dfDrawerBackdrop'); if (b) b.hidden = true;
-    document.documentElement.classList.remove('drawer-open');
-  }
-  function toggleDrawer() {
-    const isHidden = $('#dfDrawer')?.getAttribute('aria-hidden') !== 'false';
-    isHidden ? openDrawer() : closeDrawer();
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    ensureHamburger();
-    buildDrawer();
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
-  });
-})();
+];
