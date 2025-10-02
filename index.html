@@ -9,6 +9,13 @@
   <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+
   <!-- Prepaint theme -->
   <script>
     (function () {
@@ -20,14 +27,14 @@
     })();
   </script>
 
-  <!-- Drawer CSS (your existing file) -->
+  <!-- Drawer CSS (existing) -->
   <link rel="stylesheet" href="assets/css/drawer.css" />
 
-  <!-- Inline header styles so nothing else is needed -->
+  <!-- Page chrome kept inline so theme.css can stay empty -->
   <style>
     :root { --df-green:#0f5a1a; --df-ink:#fff; --hdr-h:56px; }
 
-    /* Fixed header bar (matches footer color) */
+    /* Fixed header (matches footer/nav color) */
     .app-header{
       position:fixed; top:0; left:0; right:0; z-index:1000;
       height:var(--hdr-h);
@@ -36,7 +43,6 @@
       padding:0 12px;
       color:var(--df-ink);
     }
-    /* ensure page content isn’t hidden under fixed header */
     body{ margin:0; padding-top:var(--hdr-h); }
 
     .burger{
@@ -50,27 +56,10 @@
     .clock{ font-variant-numeric:tabular-nums; }
 
     main{ padding:18px; max-width:1100px; margin:0 auto; }
-
-    /* Auth overlay while we wait */
-    #waitOverlay{
-      position:fixed; inset:0; z-index:2000;
-      display:none; align-items:center; justify-content:center;
-      backdrop-filter: blur(4px);
-      background: rgba(0,0,0,.25);
-      color:#fff; font:600 16px system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      text-align:center; padding:24px;
-    }
-    .spinner{
-      width:42px; height:42px; border-radius:50%;
-      border:4px solid rgba(255,255,255,.35);
-      border-top-color:#fff; margin:14px auto 0;
-      animation:spin 0.9s linear infinite;
-    }
-    @keyframes spin{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
   </style>
 </head>
 <body>
-  <!-- Header (fixed) -->
+  <!-- Header -->
   <header class="app-header">
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
     <img class="app-logo" src="assets/icons/icon-192.png" alt="">
@@ -92,14 +81,6 @@
   </div>
   <div id="drawerBackdrop" class="drawerBackdrop"></div>
 
-  <!-- Auth wait overlay -->
-  <div id="waitOverlay">
-    <div>
-      Please wait… connecting to your account
-      <div class="spinner"></div>
-    </div>
-  </div>
-
   <!-- Main -->
   <main>
     <h1>Welcome</h1>
@@ -111,7 +92,10 @@
   <script src="assets/data/drawer-menus.js"></script>
   <script src="assets/data/footer-links.js"></script>
 
-  <!-- Firebase + your existing auth guard -->
+  <!-- Version (single source, used by drawer footer) -->
+  <script defer src="js/version.js"></script>
+
+  <!-- Firebase + your guard (guard also injects the global wait overlay) -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
@@ -119,23 +103,22 @@
   <script type="module" src="js/drawer.js"></script>
   <script src="js/footer.js"></script>
 
-  <!-- Tiny page helpers: clock + auth overlay show/hide -->
-  <script type="module">
-    import { auth } from "./js/firebase-init.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-
+  <!-- Clock + PWA registration -->
+  <script>
     // header clock
-    const clock = document.getElementById('clock');
-    function tick(){ const d=new Date(); clock.textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
-    tick(); setInterval(tick, 1000);
+    (function tick(){
+      var el = document.getElementById('clock');
+      function render(){ var d=new Date(); el.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+      render(); setInterval(render, 1000);
+    })();
 
-    // show spinner until auth resolves (independent of auth-guard redirect)
-    const overlay = document.getElementById('waitOverlay');
-    overlay.style.display = 'flex';
-    onAuthStateChanged(auth, (user) => {
-      // Either signed in or will be redirected by auth-guard — hide overlay either way
-      overlay.style.display = 'none';
-    });
+    // Register your existing ServiceWorker.js (case-sensitive on GitHub Pages)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/DowsonFarms/ServiceWorker.js', { scope: '/DowsonFarms/' })
+          .catch(console.warn);
+      });
+    }
   </script>
 </body>
 </html>
