@@ -3,19 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1B5E20" />
+  <meta name="theme-color" content="#0F5A1A" />
   <title>Dowson Farms — Home</title>
 
   <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
 
-  <!-- PWA Manifest + Icons -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png" />
-
-  <!-- Prepaint theme -->
+  <!-- Prepaint theme (dark/light) -->
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
@@ -26,32 +20,29 @@
     })();
   </script>
 
-  <!-- Global styles -->
+  <!-- Global styles (your theme can be empty), plus header & drawer -->
   <link rel="stylesheet" href="assets/css/theme.css" />
-  <link rel="stylesheet" href="assets/css/drawer.css" />
   <link rel="stylesheet" href="assets/css/header.css" />
+  <link rel="stylesheet" href="assets/css/drawer.css" />
 
-  <style>
-    main{padding:18px;max-width:1100px;margin:0 auto}
-  </style>
-
-  <!-- Redirector (forces all sub-links back to index.html) -->
-  <script src="js/redirector.js"></script>
+  <!-- Optional PWA goodness (keeps your logo when saved to Home Screen) -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
 </head>
 <body>
-  <!-- Header (global injected via header.css) -->
-  <header class="app-header">
-    <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
-    <img src="assets/icons/icon-192.png" alt="" style="width:28px;height:28px;border-radius:6px">
-    <div class="app-title">Dowson Farms</div>
-    <div class="spacer"></div>
-    <span id="clock" class="clock">--:--</span>
+  <!-- Fixed Header (rendered by header.css styles) -->
+  <header class="df-header app-header">
+    <button id="drawerToggle" class="df-burger" aria-label="Open menu" aria-controls="drawer" aria-expanded="false">☰</button>
+    <img class="df-logo" src="assets/icons/icon-192.png" alt="Dowson Farms" />
+    <div class="df-title">Dowson Farms</div>
+    <div class="df-spacer"></div>
+    <span id="clock" class="df-clock">--:--</span>
   </header>
 
-  <!-- Drawer -->
+  <!-- Drawer (built by js/drawer.js from assets/data/drawer-menus.js) -->
   <div id="drawer" class="drawer" aria-label="Side menu">
     <div class="brand">
-      <img src="assets/icons/icon-192.png" alt="">
+      <img src="assets/icons/icon-192.png" alt="Dowson Farms logo">
       <div>
         <div style="font-weight:700">Dowson Farms</div>
         <div class="mono" id="farmSub">All systems operational</div>
@@ -59,36 +50,46 @@
     </div>
     <nav></nav>
   </div>
-  <div id="drawerBackdrop" class="drawerBackdrop"></div>
+  <div id="drawerBackdrop" class="drawerBackdrop" aria-hidden="true"></div>
 
-  <!-- Main -->
-  <main>
+  <!-- Main content (add your Home widgets later) -->
+  <main class="df-main">
     <h1>Welcome</h1>
     <p>This Home screen will grow (Chat-style box, weather, quick cards). Use the ☰ menu for navigation.</p>
   </main>
 
-  <!-- ───────── Load order (global scripts) ───────── -->
+  <!-- ───────────────── Scripts: order matters ───────────────── -->
 
-  <!-- Menus -->
-  <script src="assets/data/menus.js"></script>
-  <script src="assets/data/drawer-menus.js"></script>
-  <script src="assets/data/footer-links.js"></script>
+  <!-- Menus used throughout the app (leave as-is, powers existing pages/permissions) -->
+  <script defer src="assets/data/menus.js"></script>
 
-  <!-- Firebase + guard -->
+  <!-- Drawer accordion data (safe & separate from DF_MENUS) -->
+  <script defer src="assets/data/drawer-menus.js"></script>
+
+  <!-- Footer links (also renders the global bottom bar) -->
+  <script defer src="assets/data/footer-links.js"></script>
+
+  <!-- Global wait overlay (blur + spinner while auth / heavy loads) -->
+  <script defer src="js/wait-overlay.js"></script>
+
+  <!-- Firebase + Auth Guard (guard shows the wait overlay until signed in) -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- Drawer + footer -->
+  <!-- Drawer & Footer renderers (use DF_ACCESS for filtering) -->
   <script type="module" src="js/drawer.js"></script>
-  <script src="js/footer.js"></script>
+  <script defer src="js/footer.js"></script>
 
-  <!-- Live clock -->
+  <!-- Tiny page helpers: live clock -->
   <script>
-    const clock = document.getElementById('clock');
-    setInterval(()=>{
-      const d = new Date();
-      clock.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    },1000);
+    (function clockTick(){
+      const el = document.getElementById('clock');
+      function tick(){
+        const d = new Date();
+        if (el) el.textContent = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+      }
+      tick(); setInterval(tick, 1000);
+    })();
   </script>
 </body>
 </html>
