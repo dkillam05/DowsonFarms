@@ -5,7 +5,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/f
 /* ───────────────── Config (tweak as you like) ───────────────── */
 const LOGIN_PATH       = "auth/";    // where to send signed-out users
 const AUTH_TIMEOUT_MS  = 8000;       // if auth never settles, bail to login
-const MIN_VISIBLE_MS   = 3000;       // overlay must show at least this long
+const MIN_VISIBLE_MS   = 6000;       // overlay must show at least this long
 
 /* ─────────────── Skip guard on the login pages themselves ─────────────── */
 const path = location.pathname.toLowerCase();
