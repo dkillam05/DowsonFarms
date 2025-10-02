@@ -33,9 +33,6 @@
     .spacer{flex:1}
     .clock{font-variant-numeric:tabular-nums}
     main{padding:18px;max-width:1100px;margin:0 auto}
-    #diagBar{white-space:pre-wrap;font:12px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;padding:8px 10px;border-bottom:1px solid #0002}
-    #diagBar.ok{background:#eef5ee;color:#1a4d1a}
-    #diagBar.err{background:#ffe9e9;color:#a00}
   </style>
 </head>
 <body>
@@ -61,9 +58,6 @@
   </div>
   <div id="drawerBackdrop" class="drawerBackdrop"></div>
 
-  <!-- Diagnostics -->
-  <div id="diagBar" class="err">Booting…</div>
-
   <!-- Main -->
   <main>
     <h1>Welcome</h1>
@@ -88,35 +82,13 @@
   <!-- 5) Drawer renderer (module; filters links with DF_ACCESS.canView) -->
   <script type="module" src="js/drawer.js"></script>
 
-  <!-- 6) Tiny page helpers: live clock + auth diagnostics -->
-  <script type="module">
-    import { auth } from "./js/firebase-init.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "./js/access.js";
-
-    // clock
+  <!-- 6) Tiny page helper: live clock -->
+  <script>
     const clock = document.getElementById('clock');
-    setInterval(()=>{ const d=new Date(); clock.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }, 1000);
-
-    // diagnostics
-    const diag = document.getElementById('diagBar');
-    function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
-
-    onAuthStateChanged(auth, async (user) => {
-      if(!user){ diag.textContent = "Waiting for Firebase auth…"; diag.className="err"; return; }
-      try{
-        const access = await loadAccess();
-        diag.textContent = [
-          `User: ${user.email || user.uid}`,
-          `Role keys: ${dump(access.roleKeys)}`,
-          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`
-        ].join("\n");
-        diag.className = "ok";
-      }catch(e){
-        diag.textContent = "Access error: " + e.message;
-        diag.className = "err";
-      }
-    });
+    setInterval(()=>{
+      const d=new Date();
+      clock.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    }, 1000);
   </script>
 </body>
 </html>
