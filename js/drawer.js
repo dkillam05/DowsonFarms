@@ -1,71 +1,42 @@
-// Drawer controller: open/close + accordion. Works on any page where markup exists.
-(function () {
-  const $ = (s) => document.querySelector(s);
+<script>
+(function(){
+  const body = document.body;
 
-  function ready(fn) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", fn, { once: true });
-    } else { fn(); }
+  const drawer = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  const burger = document.getElementById('hamburger');
+
+  if(!drawer || !backdrop || !burger){
+    console.warn('Drawer: missing #drawer, #drawerBackdrop, or #hamburger');
+    return;
   }
 
-  ready(() => {
-    const drawer   = $("#drawer");
-    const backdrop = $("#drawerBackdrop");
-    const btnOpen  = $("#drawerOpen");
-    const btnClose = $("#drawerClose"); // optional
+  function openDrawer(){ body.classList.add('drawer-open'); burger.setAttribute('aria-expanded','true'); trapStart.focus(); }
+  function closeDrawer(){ body.classList.remove('drawer-open'); burger.setAttribute('aria-expanded','false'); burger.focus(); }
+  function toggleDrawer(){ body.classList.contains('drawer-open') ? closeDrawer() : openDrawer(); }
 
-    if (!drawer || !backdrop || !btnOpen) {
-      // If any are missing, silently bail (prevents JS errors)
-      return;
-    }
+  // Backdrop / esc / clicks
+  burger.addEventListener('click', toggleDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
 
-    const setBodyLock = (on) => {
-      document.documentElement.style.overflow = on ? "hidden" : "";
-      document.body.style.overflow = on ? "hidden" : "";
-    };
+  // Close when any link inside drawer is clicked
+  drawer.addEventListener('click', (e)=>{
+    const a = e.target.closest('a');
+    if(a) closeDrawer();
+  });
 
-    const open = () => {
-      drawer.classList.add("open");
-      backdrop.classList.add("show");
-      setBodyLock(true);
-      btnOpen.setAttribute("aria-expanded", "true");
-      drawer.setAttribute("aria-hidden", "false");
-    };
+  // Focus trap (basic)
+  const trapStart = document.createElement('button');
+  trapStart.style.position='fixed'; trapStart.style.opacity='0'; trapStart.tabIndex = 0;
+  const trapEnd = trapStart.cloneNode(true);
+  drawer.prepend(trapStart); drawer.appendChild(trapEnd);
+  trapStart.addEventListener('focus', ()=>{ const focusables = drawer.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])'); (focusables[1]||burger).focus(); });
+  trapEnd.addEventListener('focus', ()=>{ const focusables = drawer.querySelectorAll('a,button,[tabindex]:not([tabindex="-1"])'); (focusables[focusables.length-2]||burger).focus(); });
 
-    const close = () => {
-      drawer.classList.remove("open");
-      backdrop.classList.remove("show");
-      setBodyLock(false);
-      btnOpen.setAttribute("aria-expanded", "false");
-      drawer.setAttribute("aria-hidden", "true");
-    };
-
-    const toggle = () => (drawer.classList.contains("open") ? close() : open());
-
-    // Wire events
-    btnOpen.addEventListener("click", toggle);
-    backdrop.addEventListener("click", close);
-    btnClose && btnClose.addEventListener("click", close);
-
-    // ESC to close
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && drawer.classList.contains("open")) close();
-    });
-
-    // Accordion: any .acc .acc-hd toggles parent .acc
-    drawer.addEventListener("click", (e) => {
-      const hd = e.target.closest(".acc-hd");
-      if (!hd || !drawer.contains(hd)) return;
-      const acc = hd.closest(".acc");
-      if (!acc) return;
-
-      // Close siblings for clean drawer
-      const group = acc.parentElement;
-      [...group.children].forEach((sib) => {
-        if (sib !== acc && sib.classList.contains("acc")) sib.classList.remove("open");
-      });
-
-      acc.classList.toggle("open");
-    });
+  // Accordion toggle
+  drawer.querySelectorAll('.drawer-sec > button').forEach(btn=>{
+    btn.addEventListener('click', ()=> btn.parentElement.classList.toggle('open'));
   });
 })();
+</script>
