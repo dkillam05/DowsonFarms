@@ -1,36 +1,18 @@
-// Dowson Farms — Drawer (accordion + global open/close wiring)
-// Depends on: assets/data/drawer-menus.js (window.DF_DRAWER_MENUS)
-// Optional perms: window.DF_ACCESS.canView(href) -> boolean
+// Dowson Farms — Drawer (accordion) with bottom footer + logout
+// Uses: window.DF_DRAWER_MENUS, optional window.DF_ACCESS.canView, window.DF_VERSION
+// Requires: assets/css/drawer.css for visuals
 
 (function () {
-  // ---- helpers ----
   const $ = (s, r = document) => r.querySelector(s);
-  const canView = (href) => {
-    try {
-      if (!href) return true;
-      if (window.DF_ACCESS && typeof window.DF_ACCESS.canView === "function") {
-        const ok = window.DF_ACCESS.canView(href);
-        return ok || (window.DF_ACCESS.roleKeys || []).includes("__builder__");
-      }
-    } catch (_) {}
-    return true; // permissive if access not ready
-  };
 
-  // ---- cache key elements or create shells if missing ----
+  // -------- Ensure shell elements exist (no top brand) --------
   let drawer = $("#drawer");
   if (!drawer) {
     drawer = document.createElement("div");
     drawer.id = "drawer";
     drawer.className = "drawer";
-    drawer.innerHTML = `<div class="brand">
-        <img src="assets/icons/icon-192.png" alt="">
-        <div><div style="font-weight:700">Dowson Farms</div>
-        <div class="mono" id="farmSub">All systems operational</div></div>
-      </div>
-      <nav></nav>`;
     document.body.appendChild(drawer);
   }
-
   let backdrop = $("#drawerBackdrop");
   if (!backdrop) {
     backdrop = document.createElement("div");
@@ -39,20 +21,29 @@
     document.body.appendChild(backdrop);
   }
 
-  const nav = drawer.querySelector("nav");
+  // main nav + bottom footer containers
+  let main = drawer.querySelector("nav.drawer-main");
+  if (!main) {
+    main = document.createElement("nav");
+    main.className = "drawer-main";
+    drawer.appendChild(main);
+  }
+  let bottom = drawer.querySelector(".drawer-bottom");
+  if (!bottom) {
+    bottom = document.createElement("div");
+    bottom.className = "drawer-bottom";
+    drawer.appendChild(bottom);
+  }
 
-  // ---- open/close (keep above footer) ----
+  // -------- open/close wiring (delegated burger) --------
   function openDrawer() {
     document.body.classList.add("drawer-open");
-    // ensure stacking above footer
     drawer.style.zIndex = "1000";
     backdrop.style.zIndex = "990";
   }
   function closeDrawer() {
     document.body.classList.remove("drawer-open");
   }
-
-  // Global delegated handler so it works regardless of header timing
   document.addEventListener("click", (e) => {
     const t = e.target.closest("#drawerToggle");
     if (t) {
@@ -60,8 +51,6 @@
       openDrawer();
     }
   });
-
-  // Backdrop + Esc close
   backdrop.addEventListener("click", (e) => {
     if (e.target === backdrop) closeDrawer();
   });
@@ -69,15 +58,27 @@
     if (e.key === "Escape") closeDrawer();
   });
 
-  // ---- build accordion from DF_DRAWER_MENUS ----
-  function build() {
+  // -------- permission helper --------
+  function canView(href) {
+    try {
+      if (!href) return true;
+      if (window.DF_ACCESS && typeof window.DF_ACCESS.canView === "function") {
+        const ok = window.DF_ACCESS.canView(href);
+        if (ok) return true;
+        return (window.DF_ACCESS.roleKeys || []).includes("__builder__");
+      }
+    } catch {}
+    return true; // permissive if access not ready yet
+  }
+
+  // -------- build main accordion --------
+  function buildMain() {
     const data = Array.isArray(window.DF_DRAWER_MENUS)
       ? window.DF_DRAWER_MENUS
       : [];
-    nav.innerHTML = "";
+    main.innerHTML = "";
 
     data.forEach((group) => {
-      // hide whole group if nothing viewable inside
       const hasVisible =
         (group.children || []).some((it) =>
           it.children
@@ -91,22 +92,19 @@
       g.className = "group";
       g.setAttribute("aria-expanded", "false");
 
-      // header button
       const btn = document.createElement("button");
       btn.innerHTML = `<span class="icon">${group.icon || ""}</span>${
         group.label
       }<span class="chev">›</span>`;
       btn.addEventListener("click", () => {
         const isOpen = g.getAttribute("aria-expanded") === "true";
-        // collapse others
-        nav
+        main
           .querySelectorAll('.group[aria-expanded="true"]')
           .forEach((x) => x.setAttribute("aria-expanded", "false"));
         g.setAttribute("aria-expanded", isOpen ? "false" : "true");
       });
       g.appendChild(btn);
 
-      // panel content
       const panel = document.createElement("div");
       panel.className = "panel";
 
@@ -118,7 +116,6 @@
         if (!visible) return;
 
         if (Array.isArray(item.children) && item.children.length) {
-          // subgroup
           const sg = document.createElement("div");
           sg.className = "subgroup";
           sg.setAttribute("aria-expanded", "false");
@@ -129,7 +126,6 @@
           }<span class="chev">›</span>`;
           sbtn.addEventListener("click", () => {
             const open = sg.getAttribute("aria-expanded") === "true";
-            // collapse sibling subgroups
             panel
               .querySelectorAll('.subgroup[aria-expanded="true"]')
               .forEach((x) => x.setAttribute("aria-expanded", "false"));
@@ -153,7 +149,6 @@
           sg.appendChild(subpanel);
           panel.appendChild(sg);
         } else {
-          // leaf link
           const a = document.createElement("a");
           a.className = "item";
           a.href = item.href || "#";
@@ -166,22 +161,57 @@
       });
 
       g.appendChild(panel);
-      nav.appendChild(g);
+      main.appendChild(g);
     });
-
-    // Footer section (logout + version) stays as you already have in drawer.css
-    // Nothing else to do here.
   }
 
-  // Build now and also rebuild once access arrives (if perms change)
-  build();
+  // -------- build bottom footer (logout + brand + version) --------
+  function buildBottom() {
+    const version = (window.DF_VERSION && window.DF_VERSION.app) || "v0.0.0";
 
-  // If DF_ACCESS appears later, rebuild once
+    bottom.innerHTML = `
+      <div class="drawer-bottom-inner">
+        <a href="#" class="item logout" role="button" id="dfLogout">
+          <span class="icon">↪️</span>Logout
+        </a>
+
+        <div class="drawer-brand-mini">
+          <img src="assets/icons/icon-192.png" alt="">
+          <div class="brand-text">
+            <div class="brand-name">Dowson Farms</div>
+            <div class="brand-sub" id="farmSub">All systems operational</div>
+            <div class="brand-ver">App ${version}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const logout = $("#dfLogout", bottom);
+    logout.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        // Try Firebase signOut if available
+        if (window.firebaseAuth && window.firebaseAuth.signOut) {
+          await window.firebaseAuth.signOut();
+        } else if (window.firebase && firebase.auth) {
+          await firebase.auth().signOut();
+        }
+      } catch (_) {}
+      // Always send to auth screen
+      location.href = "auth/";
+    });
+  }
+
+  // Build now
+  buildMain();
+  buildBottom();
+
+  // If access object shows up later (permissions loaded), rebuild once
   let rebuilt = false;
   const accessWatcher = setInterval(() => {
     if (!rebuilt && window.DF_ACCESS) {
       rebuilt = true;
-      build();
+      buildMain();
       clearInterval(accessWatcher);
     }
   }, 300);
