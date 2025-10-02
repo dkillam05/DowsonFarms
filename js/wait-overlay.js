@@ -50,7 +50,7 @@ export function showWait(msg = "Please wait…") {
  * Hide the wait overlay, but enforce a minimum visible time
  * @param {number} minVisibleMs - Minimum time overlay should remain visible
  */
-export function hideWait(minVisibleMs = 30000) {
+export function hideWait(minVisibleMs = 6000) {
   const el = document.getElementById("waitOverlay");
   if (!el) return;
 
