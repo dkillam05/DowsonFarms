@@ -1,58 +1,24 @@
-/* Drawer (left slide-in) */
-#drawer {
-  position: fixed;
-  top: 0; left: 0;
-  width: min(320px, 85vw);
-  height: 100dvh;
-  background: var(--paper, #fff);
-  color: var(--ink, #222);
-  box-shadow: 2px 0 18px rgba(0,0,0,.18);
-  transform: translateX(-100%);
-  transition: transform .2s ease-out;
-  z-index: 1002;
-  display: flex; flex-direction: column;
-}
-body.drawer-open #drawer { transform: translateX(0); }
+/* Global Drawer styles (loaded once on every page) */
+.drawer-backdrop{position:fixed;inset:0;background:#0006;backdrop-filter:saturate(120%) blur(2px);display:none;z-index:999}
+.drawer{position:fixed;inset:0 auto 0 0;width:82vw;max-width:360px;background:#fff;color:#222;
+  transform:translateX(-100%);transition:transform .2s ease;border-right:1px solid #0001;z-index:1000;overflow:auto}
+.drawer .brand{display:flex;gap:10px;align-items:center;padding:14px;border-bottom:1px solid #0001}
+.drawer .brand img{width:36px;height:36px;border-radius:8px}
+.drawer .brand-title{font-weight:700}
+.drawer .brand-sub{font-size:12px;color:#667}
+.drawer-nav{display:block;padding:6px 0}
 
-.drawer-backdrop {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.28);
-  opacity: 0; pointer-events: none;
-  transition: opacity .2s ease-out;
-  z-index: 1001;
-}
-body.drawer-open .drawer-backdrop { opacity: 1; pointer-events: auto; }
+.drawer-link,.drawer-acc{display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
+  background:#0000;border:0;color:inherit;text-decoration:none;cursor:pointer;font:inherit}
+.drawer-link:hover,.drawer-acc:hover{background:#00000008}
+.drawer-acc .emoji{width:1.1em}
+.drawer-acc .caret{margin-left:auto;transition:transform .2s}
+.drawer-acc.open .caret{transform:rotate(90deg)}
+.panel{overflow:hidden;max-height:0;border-top:1px solid #0001;background:#f8f8f8}
+.drawer-subtitle{padding:10px 16px 4px;font-size:12px;color:#556;text-transform:uppercase;letter-spacing:.03em}
 
-/* Header/brand inside drawer */
-#drawer .brand {
-  display: flex; gap: 10px; align-items: center;
-  padding: 14px 14px 12px;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-}
-#drawer .brand img { width: 36px; height: 36px; border-radius: 8px; }
-#drawer .brand .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#666; font-size: 12px; }
+.drawer-open #dfDrawer{transform:translateX(0)}
+.drawer-open #dfDrawerBackdrop{display:block}
 
-/* Accordion nav */
-#drawer nav { padding: 10px 8px 20px; overflow:auto; }
-.drawer-sec { border-radius: 12px; overflow: hidden; margin: 8px 0; background:#fff; border:1px solid rgba(0,0,0,.08); }
-.drawer-sec > button {
-  width:100%; text-align:left; display:flex; align-items:center; gap:8px;
-  background:#fff; border:0; padding:12px 12px; cursor:pointer; font-weight:700; color:#222;
-}
-.drawer-sec > button .caret { margin-left:auto; transition: transform .15s ease; }
-.drawer-sec.open > button .caret { transform: rotate(90deg); }
-
-.drawer-sec .panel { display:none; padding: 4px 8px 10px; border-top:1px solid rgba(0,0,0,.06); background:#fff; }
-.drawer-sec.open .panel { display:block; }
-
-.drawer-link { 
-  display:flex; align-items:center; gap:8px; 
-  padding:8px 8px; border-radius:8px; color:#222; text-decoration:none;
-}
-.drawer-link:hover { background: rgba(0,0,0,.05); }
-
-/* Simple divider title inside panel */
-.drawer-subtitle { font-size:12px; color:#666; margin:6px 6px 2px; }
-
-/* Prevent body scroll when open */
-body.drawer-open { overflow:hidden; touch-action:none; }
+/* Hamburger button (injected) */
+#dfHamburger{margin-right:10px;border:0;background:transparent;font-size:22px;cursor:pointer;line-height:1}
