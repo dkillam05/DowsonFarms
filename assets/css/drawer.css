@@ -7,11 +7,12 @@
 }
 body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
 
-/* Panel */
+/* Panel (now flex column so footer can sit at bottom) */
 .drawer{
   position:fixed; inset:0 auto 0 0; width:86vw; max-width:420px;
   background:#f9f9f7; border-right:1px solid #0002;
-  translate:-100% 0; transition:translate .22s ease; z-index:100; overflow:auto;
+  translate:-100% 0; transition:translate .22s ease; z-index:100;
+  display:flex; flex-direction:column;
 }
 body.drawer-open .drawer{ translate:0 0; }
 
@@ -23,8 +24,14 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawer .brand img{ width:36px; height:36px; border-radius:8px; }
 .drawer .brand .mono{ font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456; }
 
-/* Layout + shared row metrics */
-.drawer nav{ padding:6px; }
+/* List area */
+.drawer nav{
+  padding:6px;
+  overflow:auto;
+  flex:1 1 auto;         /* scrollable area */
+}
+
+/* Shared metrics */
 :root{
   --df-item-pad-y: 12px;
   --df-item-pad-x: 16px;
@@ -73,29 +80,27 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawer .subgroup[aria-expanded="true"] .subpanel{ max-height:900px; }
 .drawer .subgroup[aria-expanded="true"] .chev{ transform:rotate(90deg); }
 
-/* Footer divider */
-.drawer .footerDivider{ height:1px; background:#0001; margin:8px 0 6px; }
-
-/* Footer block */
+/* Footer block — pinned flush to bottom, no “banner feel” */
 .drawerFooter{
-  padding:8px 6px 10px;           /* trimmed so Logout row doesn't look oversized */
-  background:#f9f9f7;
+  position:sticky; bottom:0;               /* sticks at the very bottom */
+  background:#f9f9f7;                      /* same panel bg */
+  padding:6px;                             /* tight so it doesn’t look tall */
+  border-top:1px solid #0001;              /* subtle separation line */
 }
 
-/* Logout row — same metrics as normal items, with subtle outline */
+/* Logout row — identical metrics to a normal item, with subtle outline */
 .drawerFooter .item.logout{
   display:flex; align-items:center; gap:12px;
   padding:var(--df-item-pad-y) var(--df-item-pad-x);
   font-size:16px; line-height:1.2; color:#223; text-decoration:none;
   border:1px solid #0002; border-radius:10px; background:#fff;
-  margin:6px 0;
 }
 .drawerFooter .item.logout:hover{ background:#f4f4ef; }
 .drawerFooter .item.logout .icon{ width:20px; }
 
-/* Footer brand line */
+/* Footer brand + version */
 .drawerFooter .footBrand{
-  display:flex; align-items:center; gap:10px; margin:10px 2px 2px;
+  display:flex; align-items:center; gap:10px; margin:8px 2px 0;
 }
 .drawerFooter .footBrand img{ width:24px; height:24px; border-radius:6px; }
 .drawerFooter .footBrand .title{ font-weight:700; }
