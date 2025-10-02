@@ -1,129 +1,169 @@
-// Dowson Farms — Drawer renderer (accordion + bottom branding + logout)
-// Reads window.DF_DRAWER_MENUS (assets/data/drawer-menus.js)
-// Respects DF_ACCESS.canView when available.
-// Shows version from window.DF_VERSION (js/version.js)
+// Dowson Farms — Drawer builder (accordion)
+// Builds from window.DF_DRAWER_MENUS, applies DF_ACCESS.canView if present,
+// adds consistent Logout row + bottom branding/version.
 
-import { auth } from "./firebase-init.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-
-(function initDrawer(){
+(function(){
   const drawer   = document.getElementById('drawer');
   const backdrop = document.getElementById('drawerBackdrop');
   const toggle   = document.getElementById('drawerToggle');
-  if (!drawer || !backdrop) return;
+  if(!drawer) return;
+
+  const nav = drawer.querySelector('nav');
 
   const openDrawer  = () => document.body.classList.add('drawer-open');
   const closeDrawer = () => document.body.classList.remove('drawer-open');
 
-  toggle && toggle.addEventListener('click', openDrawer);
+  toggle   && toggle.addEventListener('click', openDrawer);
   backdrop && backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeDrawer(); });
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
 
-  const nav = drawer.querySelector('nav');
-  if (!nav) return;
-
-  // Access helper (optional)
+  // Access filter (optional)
   const canView = (href) => {
-    const acc = window.DF_ACCESS;
-    if (!acc || !acc.canView) return true;
-    return acc.canView(href);
+    try { return (window.DF_ACCESS && typeof window.DF_ACCESS.canView === 'function')
+      ? window.DF_ACCESS.canView(href) : true; }
+    catch { return true; }
   };
 
-  // Build accordion UI from data
-  const groups = (window.DF_DRAWER_MENUS || []);
-  nav.innerHTML = '';
-  groups.forEach(group => {
-    const g = document.createElement('div');
-    g.className = 'group';
-    g.setAttribute('aria-expanded','false');
+  // Build accordion
+  function build(){
+    const data = (window.DF_DRAWER_MENUS || []);
+    nav.innerHTML = '';
 
-    const btn = document.createElement('button');
-    btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
-    btn.addEventListener('click', ()=> {
-      const expanded = g.getAttribute('aria-expanded') === 'true';
-      nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
-      g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-    });
-    g.appendChild(btn);
+    data.forEach(group => {
+      // Skip group entirely if no visible child for this user
+      const hasVisible = (group.children||[]).some(ch => {
+        if (Array.isArray(ch.children)) return ch.children.some(g => canView(g.href || ''));
+        return canView(ch.href || '');
+      });
+      if (!hasVisible) return;
 
-    const panel = document.createElement('div');
-    panel.className = 'panel';
+      const g = document.createElement('div');
+      g.className = 'group';
+      g.setAttribute('aria-expanded','false');
 
-    (group.children||[]).forEach(item=>{
-      if(Array.isArray(item.children) && item.children.length){
-        const kids = item.children.filter(link => canView(link.href));
-        if (!kids.length) return;
+      const btn = document.createElement('button');
+      btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
+      btn.addEventListener('click', ()=>{
+        const expanded = g.getAttribute('aria-expanded') === 'true';
+        // collapse others
+        nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+        g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      });
+      g.appendChild(btn);
 
-        const sg = document.createElement('div');
-        sg.className = 'subgroup';
-        sg.setAttribute('aria-expanded','false');
+      const panel = document.createElement('div');
+      panel.className = 'panel';
 
-        const sbtn = document.createElement('button');
-        sbtn.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}<span class="chev">›</span>`;
-        sbtn.addEventListener('click', ()=>{
-          const exp = sg.getAttribute('aria-expanded')==='true';
-          panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
-          sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
-        });
-        sg.appendChild(sbtn);
+      (group.children||[]).forEach(item=>{
+        // if subgroup
+        if (Array.isArray(item.children) && item.children.length){
+          const anyVisible = item.children.some(link => canView(link.href||''));
+          if (!anyVisible) return;
 
-        const subpanel = document.createElement('div');
-        subpanel.className = 'subpanel';
-        kids.forEach(link=>{
+          const sg = document.createElement('div');
+          sg.className = 'subgroup';
+          sg.setAttribute('aria-expanded','false');
+
+          const sbtn = document.createElement('button');
+          sbtn.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}<span class="chev">›</span>`;
+          sbtn.addEventListener('click', ()=>{
+            const exp = sg.getAttribute('aria-expanded')==='true';
+            // collapse sibling subgroups
+            panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+            sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
+          });
+          sg.appendChild(sbtn);
+
+          const subpanel = document.createElement('div');
+          subpanel.className = 'subpanel';
+
+          item.children.forEach(link=>{
+            if (!canView(link.href||'')) return;
+            const a = document.createElement('a');
+            a.className = 'item';
+            a.href = link.href || '#';
+            a.innerHTML = `<span class="icon">${link.icon||''}</span>${link.label}`;
+            a.addEventListener('click', closeDrawer);
+            subpanel.appendChild(a);
+          });
+
+          sg.appendChild(subpanel);
+          panel.appendChild(sg);
+        } else {
+          // normal link
+          if (!canView(item.href||'')) return;
           const a = document.createElement('a');
           a.className = 'item';
-          a.href = link.href || '#';
-          a.innerHTML = `<span class="icon">${link.icon||''}</span>${link.label}`;
+          a.href = item.href || '#';
+          a.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}`;
           a.addEventListener('click', closeDrawer);
-          subpanel.appendChild(a);
-        });
-        sg.appendChild(subpanel);
-        panel.appendChild(sg);
-      } else {
-        if (!item.href || !canView(item.href)) return;
-        const a = document.createElement('a');
-        a.className = 'item';
-        a.href = item.href;
-        a.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}`;
-        a.addEventListener('click', closeDrawer);
-        panel.appendChild(a);
-      }
+          panel.appendChild(a);
+        }
+      });
+
+      g.appendChild(panel);
+      nav.appendChild(g);
     });
 
-    g.appendChild(panel);
-    nav.appendChild(g);
-  });
+    // Footer block
+    const div = document.createElement('div');
+    div.className = 'footerDivider';
+    nav.appendChild(div);
 
-  // ─── Drawer bottom: Logout + brand + version ───
-  const foot = document.createElement('div');
-  foot.className = 'drawerFooter';
-  const appVersion = (window.DF_VERSION || '0.0.0');
+    const foot = document.createElement('div');
+    foot.className = 'drawerFooter';
 
-  foot.innerHTML = `
-    <a href="#" class="item logout" id="drawerLogout">
-      <span class="icon">↩️</span> Logout
-    </a>
+    // Logout row — same metrics as normal items
+    const logout = document.createElement('a');
+    logout.href = '#';
+    logout.className = 'item logout';
+    logout.innerHTML = `<span class="icon">↩️</span> Logout`;  // emoji can be changed
+    logout.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      try{
+        // If Firebase auth is loaded, sign out. Otherwise just bounce to /auth/
+        if (window.firebaseAuth) {
+          const { signOut } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');
+          await signOut(window.firebaseAuth);
+        }
+      } finally {
+        location.href = 'auth/';
+      }
+    });
+    foot.appendChild(logout);
 
-    <div class="brandBottom">
+    // Branding + version
+    const brand = document.createElement('div');
+    brand.className = 'footBrand';
+    brand.innerHTML = `
       <img src="assets/icons/icon-192.png" alt="">
       <div>
-        <div style="font-weight:700">Dowson Farms</div>
-        <div class="sub" id="drawerOps">All systems operational</div>
+        <div class="title">Dowson Farms</div>
+        <div class="mono">All systems operational</div>
       </div>
-    </div>
+    `;
+    foot.appendChild(brand);
 
-    <div class="appVersion">App v<span id="drawerVersion">${appVersion}</span></div>
-  `;
-  drawer.appendChild(foot);
+    const ver = document.createElement('div');
+    ver.className = 'ver';
+    const v = (window.DF_VERSION && String(window.DF_VERSION)) || 'v0.0.0';
+    ver.textContent = `App ${v}`;
+    foot.appendChild(ver);
 
-  // Logout handler
-  const btnLogout = foot.querySelector('#drawerLogout');
-  btnLogout?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    try{
-      await signOut(auth);
-    }finally{
-      location.href = "auth/";
-    }
-  });
+    nav.appendChild(foot);
+  }
+
+  // Expose a small hook to rebuild (e.g., after roles load)
+  window.DF_REBUILD_DRAWER = build;
+
+  // Initial build
+  build();
+
+  // If permissions arrive later, rebuild once
+  if (!window.DF_ACCESS) {
+    const t = setInterval(()=>{
+      if (window.DF_ACCESS) { clearInterval(t); build(); }
+    }, 200);
+    setTimeout(()=>clearInterval(t), 6000);
+  }
 })();
