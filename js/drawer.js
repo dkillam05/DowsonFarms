@@ -1,63 +1,50 @@
-/*
-  Drawer renderer (accordion) that:
-  - Builds nested groups & subgroups from window.DF_DRAWER_MENUS
-  - Respects Firestore role permissions via loadAccess().canView()
-  - Always shows everything for Builder (UID bypass lives in access.js)
-*/
+// Dowson Farms — Drawer renderer (accordion + bottom branding + logout)
+// Reads data from window.DF_DRAWER_MENUS (assets/data/drawer-menus.js)
+// Respects DF_ACCESS.canView when available. No HTML changes required.
 
 import { auth } from "./firebase-init.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { loadAccess } from "./access.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-// Elements
-const drawer    = document.getElementById('drawer');
-const backdrop  = document.getElementById('drawerBackdrop');
-const toggleBtn = document.getElementById('drawerToggle');
-const nav       = drawer ? drawer.querySelector('nav') : null;
+(function initDrawer(){
+  const drawer   = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  const toggle   = document.getElementById('drawerToggle');
+  if (!drawer || !backdrop) return;
 
-function openDrawer(){ document.body.classList.add('drawer-open'); }
-function closeDrawer(){ document.body.classList.remove('drawer-open'); }
-function clickOutside(e){ if(e.target === backdrop) closeDrawer(); }
+  function openDrawer(){ document.body.classList.add('drawer-open'); }
+  function closeDrawer(){ document.body.classList.remove('drawer-open'); }
+  function clickOutside(e){ if(e.target === backdrop) closeDrawer(); }
 
-toggleBtn && toggleBtn.addEventListener('click', openDrawer);
-backdrop  && backdrop.addEventListener('click', clickOutside);
-window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDrawer(); });
+  toggle && toggle.addEventListener('click', openDrawer);
+  backdrop && backdrop.addEventListener('click', clickOutside);
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
 
-// Helpers
-const hasChildren = (n) => Array.isArray(n?.children) && n.children.length > 0;
+  const nav = drawer.querySelector('nav');
+  if (!nav) return;
 
-// Filter leaf links by access.canView (Builder sees all)
-function filterTree(nodes, access, isBuilder){
-  const out = [];
-  for(const n of (nodes||[])){
-    if(hasChildren(n)){
-      const kids = filterTree(n.children, access, isBuilder);
-      if(kids.length) out.push({ ...n, children: kids });
-    }else{
-      if(isBuilder) { out.push(n); continue; }
-      const href = n.href || "";
-      const ok = href ? (access.canView ? access.canView(href) : true) : false;
-      if(ok) out.push(n);
-    }
-  }
-  return out;
-}
+  // Resolve access helpers if present
+  const canView = (href) => {
+    const acc = window.DF_ACCESS;
+    if (!acc || !acc.canView) return true;           // before auth loads: show everything
+    // Always show groups even if none of the children visible → but we'll filter children
+    return acc.canView(href);
+  };
 
-// Build DOM
-function buildAccordion(data){
-  if(!nav) return;
-  nav.innerHTML = "";
+  // read drawer data
+  const groups = (window.DF_DRAWER_MENUS || []);
 
-  data.forEach(group=>{
+  // build accordion
+  nav.innerHTML = '';
+  groups.forEach(group => {
     const g = document.createElement('div');
     g.className = 'group';
     g.setAttribute('aria-expanded','false');
 
     const btn = document.createElement('button');
     btn.innerHTML = `<span class="icon">${group.icon||''}</span>${group.label}<span class="chev">›</span>`;
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', ()=> {
       const expanded = g.getAttribute('aria-expanded') === 'true';
-      // collapse other groups (single-open accordion)
+      // collapse others
       nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
       g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     });
@@ -66,9 +53,14 @@ function buildAccordion(data){
     const panel = document.createElement('div');
     panel.className = 'panel';
 
-    (group.children||[]).forEach(item=>{
-      if(hasChildren(item)){
-        // subgroup
+    const children = Array.isArray(group.children) ? group.children : [];
+    // Filter first level by canView (for links). Subgroups are kept, but their items are filtered too.
+    children.forEach(item=>{
+      // Nested subgroup
+      if(Array.isArray(item.children) && item.children.length){
+        const visibleKids = item.children.filter(link => canView(link.href));
+        if (!visibleKids.length) return; // hide subgroup if empty
+
         const sg = document.createElement('div');
         sg.className = 'subgroup';
         sg.setAttribute('aria-expanded','false');
@@ -85,8 +77,7 @@ function buildAccordion(data){
 
         const subpanel = document.createElement('div');
         subpanel.className = 'subpanel';
-
-        (item.children||[]).forEach(link=>{
+        visibleKids.forEach(link=>{
           const a = document.createElement('a');
           a.className = 'item';
           a.href = link.href || '#';
@@ -94,14 +85,14 @@ function buildAccordion(data){
           a.addEventListener('click', closeDrawer);
           subpanel.appendChild(a);
         });
-
         sg.appendChild(subpanel);
         panel.appendChild(sg);
-      }else{
-        // leaf link
+      } else {
+        // Single link
+        if (!item.href || !canView(item.href)) return;
         const a = document.createElement('a');
         a.className = 'item';
-        a.href = item.href || '#';
+        a.href = item.href;
         a.innerHTML = `<span class="icon">${item.icon||''}</span>${item.label}`;
         a.addEventListener('click', closeDrawer);
         panel.appendChild(a);
@@ -111,21 +102,36 @@ function buildAccordion(data){
     g.appendChild(panel);
     nav.appendChild(g);
   });
-}
 
-// Bootstrap after auth so we can apply permissions filtering
-onAuthStateChanged(auth, async () => {
-  const raw = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
-  try{
-    const access = await loadAccess();
-    const isBuilder = (access.roleKeys||[]).includes("__builder__");
-    const filtered = isBuilder ? raw.slice() : filterTree(raw, access, isBuilder);
+  // ─── Drawer bottom: logout + logo + version ───
+  const foot = document.createElement('div');
+  foot.className = 'drawerFooter';
+  const appVersion = (window.DF_VERSION || '0.0.0');
 
-    // Drop empty groups
-    const cleaned = filtered.filter(g => hasChildren(g));
-    buildAccordion(cleaned.length ? cleaned : filtered);
-  }catch{
-    // On any failure, show the raw menu so the drawer still opens
-    buildAccordion(raw);
-  }
-});
+  foot.innerHTML = `
+    <button class="logoutBtn" id="drawerLogout">
+      <span class="icon">⎋</span> Logout
+    </button>
+
+    <div class="brandBottom">
+      <img src="assets/icons/icon-192.png" alt="">
+      <div>
+        <div style="font-weight:700">Dowson Farms</div>
+        <div class="sub" id="drawerOps">All systems operational</div>
+      </div>
+    </div>
+
+    <div class="appVersion">App v<span id="drawerVersion">${appVersion}</span></div>
+  `;
+  drawer.appendChild(foot);
+
+  // Logout handler
+  const btnLogout = foot.querySelector('#drawerLogout');
+  btnLogout?.addEventListener('click', async () => {
+    try{
+      await signOut(auth);
+    }finally{
+      location.href = "auth/";
+    }
+  });
+})();
