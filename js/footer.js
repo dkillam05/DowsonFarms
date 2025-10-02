@@ -1,38 +1,34 @@
-// Dowson Farms — Global Footer Renderer
 (function(){
-  const links = (window.DF_FOOTER_LINKS || []).slice();
-  if (!links.length) return;
+  const links = (window.DF_FOOTER_LINKS || []);
+  if(!links.length) return;
 
-  // Create footer element
-  const nav = document.createElement("nav");
-  nav.className = "app-footer-nav";
-  nav.setAttribute("aria-label", "Primary");
+  const bar = document.createElement('nav');
+  bar.setAttribute('aria-label','Bottom navigation');
+  bar.style.position='fixed';
+  bar.style.inset='auto 0 0 0';
+  bar.style.background='#0f5a1a';
+  bar.style.height='54px';
+  bar.style.display='grid';
+  bar.style.gridTemplateColumns=`repeat(${links.length},1fr)`;
+  bar.style.alignItems='center';
+  bar.style.borderTop='1px solid #0003';
+  bar.style.zIndex='80';
 
-  // Current path (GitHub Pages uses absolute paths after <base href="/DowsonFarms/">)
-  const here = location.pathname.replace(/\/+/g,'/');
-
-  links.forEach(item => {
-    const a = document.createElement("a");
-    a.href = item.href;
-    a.innerHTML = `<span>${item.icon || "•"}</span>${item.label}`;
-
-    // Active state if current location starts with link (simple highlight)
-    try {
-      const linkPath = new URL(a.href, location.origin).pathname;
-      if (here === linkPath || here.startsWith(linkPath)) {
-        a.style.opacity = "1";
-        a.style.fontWeight = "700";
-        a.style.textDecoration = "underline";
-      } else {
-        a.style.opacity = "0.9";
-      }
-    } catch(_) {}
-
-    nav.appendChild(a);
+  links.forEach(l=>{
+    const a = document.createElement('a');
+    a.href = l.href;
+    a.style.display='flex';
+    a.style.flexDirection='column';
+    a.style.alignItems='center';
+    a.style.justifyContent='center';
+    a.style.textDecoration='none';
+    a.style.color='#fff';
+    a.style.fontSize='12px';
+    a.innerHTML = `<div style="font-size:20px;line-height:1">${l.icon||'•'}</div><div>${l.label}</div>`;
+    bar.appendChild(a);
   });
 
-  // Mount at end of body so it’s global
-  document.addEventListener("DOMContentLoaded", () => {
-    document.body.appendChild(nav);
-  });
+  document.body.appendChild(bar);
+  // add bottom padding so content isn't hidden
+  document.body.style.paddingBottom = '56px';
 })();
