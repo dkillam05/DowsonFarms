@@ -41,7 +41,7 @@ window.DF_DRAWER_MENUS = [
     icon: "🚜",
     children: [
       { label: "View / Reports", href: "equipment/",                            icon: "📊" },
-      { label: "Add Equipment",  href: "equipment/equipment-implements.html",   icon: "➕" }, /* update when you have a true add page */
+      { label: "Add Equipment",  href: "equipment/equipment-implements.html",   icon: "➕" }, /* placeholder */
       { label: "StarFire / Tech",href: "equipment/equipment-starfire.html",     icon: "🛰️" },
       { label: "Tractors",       href: "equipment/equipment-tractors.html",     icon: "🚜" },
       { label: "Combines",       href: "equipment/equipment-combines.html",     icon: "🌽" },
@@ -83,8 +83,8 @@ window.DF_DRAWER_MENUS = [
     children: [
       { label: "Farms",         href: "settings-setup/ss-farms.html",       icon: "🏡" },
       { label: "Fields",        href: "settings-setup/ss-fields.html",      icon: "🗺️" },
-      { label: "Equipment Make",href: "equipment/equipment-implements.html",icon: "🏭" },   /* placeholder */
-      { label: "Equipment Model",href:"equipment/equipment-implements.html",icon: "📑" },   /* placeholder */
+      { label: "Equipment Make", href: "equipment/equipment-implements.html", icon: "🏭" }, /* placeholder */
+      { label: "Equipment Model",href: "equipment/equipment-implements.html", icon: "📑" }, /* placeholder */
       { label: "Crop Types",    href: "settings-setup/ss-crop-types.html",  icon: "🌾" },
       {
         label: "Products", icon: "📦",
@@ -96,9 +96,19 @@ window.DF_DRAWER_MENUS = [
         ]
       },
       { label: "Account Roles",  href: "settings-setup/ss-roles.html",       icon: "🛡️" },
-      { label: "Account Details",href: "settings-setup/ss-theme.html",       icon: "👤" },  /* pick your route */
+      { label: "Account Details",href: "settings-setup/ss-theme.html",       icon: "👤" },
       { label: "Theme",          href: "settings-setup/ss-theme.html",       icon: "🌗" },
       { label: "Check for Updates", href: "settings-setup/index.html#check-updates", icon: "🔄" }
+    ]
+  },
+
+  /* ✅ NEW: Feedback in the drawer */
+  {
+    label: "Feedback",
+    icon: "💬",
+    children: [
+      { label: "Ideas",        href: "feedback/fb-ideas.html", icon: "💡" },
+      { label: "Bugs / Issues",href: "feedback/fb-bugs.html",  icon: "🐞" }
     ]
   }
 ];
