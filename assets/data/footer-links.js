@@ -1,9 +1,6 @@
-<!-- assets/data/footer-links.js -->
-<script>
-// ───────────────────────────────────────────────────────────────────────────────
+// assets/data/footer-links.js
 // Dowson Farms — Global Bottom Nav (always visible)
-// Permission-aware: if user lacks access, send to /access-denied.html
-// ───────────────────────────────────────────────────────────────────────────────
+// Permission-aware: if user lacks access, redirect to /access-denied.html
 
 window.DF_FOOTER_LINKS = [
   { label: "CP",       href: "crop-production/",  icon: "🌽" },
@@ -13,41 +10,22 @@ window.DF_FOOTER_LINKS = [
   { label: "Feedback", href: "feedback/",         icon: "💬" }
 ];
 
-// small helper to ensure DF_ACCESS is loaded (and cached)
-async function ensureAccess(){
-  if (window.DF_ACCESS) return window.DF_ACCESS;
-  try {
-    const mod = await import("/DowsonFarms/js/access.js");
-    const acc = await mod.loadAccess();
-    return acc;
-  } catch (e){
-    console.warn("[footer] access.js failed; continuing without gating", e);
-    return null;
-  }
-}
-
-// convenience: get the DF_MENUS top-level tile by href (folder-style)
-function findTopTileByHref(href){
-  const tiles = (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
-  const norm = (s)=> (s||"").replace(/index\.html$/,"").replace(/\/+$/,"/"); // normalize
-  const target = norm(href);
-  return tiles.find(t => norm(t.href) === target) || null;
-}
-
-function renderFooter(){
-  const links = window.DF_FOOTER_LINKS || [];
-  if(!links.length) return;
-  if(document.getElementById("dfBottomNav")) return; // already rendered
+(function(){
+  const links = (window.DF_FOOTER_LINKS || []);
+  if (!links.length) return;
 
   const bar = document.createElement('nav');
-  bar.id = 'dfBottomNav';
   bar.setAttribute('aria-label','Bottom navigation');
   Object.assign(bar.style, {
-    position:'fixed', left:0, right:0, bottom:0, height:'56px',
-    background:'#0f5a1a', display:'grid',
+    position:'fixed',
+    left:0, right:0, bottom:0,
+    height:'54px',
+    background:'#0f5a1a',
+    display:'grid',
     gridTemplateColumns:`repeat(${links.length},1fr)`,
-    alignItems:'center', borderTop:'1px solid rgba(0,0,0,.25)',
-    zIndex: 200
+    alignItems:'center',
+    borderTop:'1px solid #0003',
+    zIndex:80
   });
 
   links.forEach(l=>{
@@ -62,29 +40,13 @@ function renderFooter(){
     a.style.fontSize='12px';
     a.innerHTML = `<div style="font-size:20px;line-height:1">${l.icon||'•'}</div><div>${l.label}</div>`;
 
-    // Gate navigation by permissions; always show, but redirect to denied if blocked
-    a.addEventListener('click', async (ev)=>{
-      // Home never gated
-      if (l.href === "index.html") return;
-
-      const access = await ensureAccess();
-      if (!access){ return; } // if access failed, let the link behave normally
-
-      // rule: allow if top href is viewable OR any child in that section is viewable
-      let allowed = !!access.can(l.href, "view");
-      if (!allowed){
-        const top = findTopTileByHref(l.href);
-        if (top && Array.isArray(top.children) && top.children.length){
-          const kids = access.filterChildren ? access.filterChildren(top.children) : top.children;
-          allowed = kids.length > 0;
+    // Permission-aware check
+    a.addEventListener('click', (e)=>{
+      if (window.DF_ACCESS && typeof window.DF_ACCESS.canView === 'function') {
+        if (!window.DF_ACCESS.canView(l.href)) {
+          e.preventDefault();
+          location.href = "access-denied.html";
         }
-      }
-
-      if (!allowed){
-        ev.preventDefault();
-        const area = encodeURIComponent(l.label);
-        const back = encodeURIComponent(l.href);
-        location.href = `access-denied.html?area=${area}&back=${back}`;
       }
     });
 
@@ -92,11 +54,6 @@ function renderFooter(){
   });
 
   document.body.appendChild(bar);
-
-  // ensure content isn’t hidden behind the fixed bar
-  const currentPad = parseInt(window.getComputedStyle(document.body).paddingBottom || '0', 10);
-  if(currentPad < 60) document.body.style.paddingBottom = '60px';
-}
-
-try{ renderFooter(); }catch(e){ console.warn("[footer] render failed", e); }
-</script>
+  // Prevent content being hidden under footer
+  document.body.style.paddingBottom = '56px';
+})();
