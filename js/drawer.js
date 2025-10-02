@@ -1,10 +1,11 @@
 // Dowson Farms — Drawer (accordion + sticky footer)
-// Uses: assets/data/drawer-menus.js (window.DF_DRAWER_MENUS)
-// Respects: window.DF_ACCESS.canView if available
-// Shows: small Logout row + version block pinned at drawer bottom
+// Sources:
+//   - assets/data/drawer-menus.js (window.DF_DRAWER_MENUS)
+//   - js/version.js (window.DF_VERSION.version) ← polled until available
+// Respects DF_ACCESS.canView when present.
 
 (function () {
-  // ----- helpers ------------------------------------------------------------
+  // ---------- helpers ----------
   const $  = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const canView = (href) => {
@@ -13,23 +14,14 @@
     return (A && typeof A.canView === "function") ? A.canView(href) : true;
   };
 
-  // Ensure the shell exists (some pages already include it; if not, create it)
+  // ---------- shell / z-index ----------
   let drawer = $("#drawer");
   if (!drawer) {
     drawer = document.createElement("div");
     drawer.id = "drawer";
     drawer.className = "drawer";
-    drawer.innerHTML = `<div class="brand">
-      <img src="assets/icons/icon-192.png" alt="">
-      <div>
-        <div style="font-weight:700">Dowson Farms Divernon Illinois</div>
-        //<div class="mono" id="farmSub">Divernon Illinois</div>
-      </div>
-    </div>
-    <nav></nav>`;
     document.body.appendChild(drawer);
   }
-
   let backdrop = $("#drawerBackdrop");
   if (!backdrop) {
     backdrop = document.createElement("div");
@@ -37,127 +29,115 @@
     backdrop.className = "drawerBackdrop";
     document.body.appendChild(backdrop);
   }
-
-  // Make sure the drawer is above footer
-  drawer.style.zIndex   = "200";
+  drawer.style.zIndex   = "200"; // above footer
   backdrop.style.zIndex = "190";
 
-  // Re-wrap content so we can pin a footer at the bottom
-  (function ensureInnerLayout(){
-    if (drawer.querySelector(".drawer__inner")) return;
-    const brand = drawer.querySelector(".brand");
-    const nav   = drawer.querySelector("nav") || document.createElement("nav");
-
+  // ---------- inner layout (brand + scroll + footer pinned at bottom) ----------
+  if (!drawer.querySelector(".drawer__inner")) {
     const inner = document.createElement("div");
     inner.className = "drawer__inner";
-    // flex layout without touching your drawer.css
-    inner.style.display = "flex";
-    inner.style.flexDirection = "column";
-    inner.style.height = "100%";
+    Object.assign(inner.style, { display:"flex", flexDirection:"column", height:"100%" });
 
-    const navWrap = document.createElement("div");
-    navWrap.className = "drawer__scroll";
-    navWrap.style.flex = "1";
-    navWrap.style.overflow = "auto";
+    // Brand
+    const brand = document.createElement("div");
+    brand.className = "brand";
+    brand.innerHTML = `
+      <img src="assets/icons/icon-192.png" alt="" />
+      <div class="brand-text">
+        <div class="brand-line">
+          <span class="brand-name" style="font-weight:700">Dowson Farms</span>
+          <span class="brand-sep"> · </span>
+          <span class="brand-loc">Divernon, Illinois</span>
+        </div>
+        <div class="mono" id="dfDrawerVersion" style="color:#456">App v0.0.0</div>
+      </div>
+    `;
+    // small tune so name/loc are on one line when space permits
+    const bl = brand.querySelector(".brand-line");
+    Object.assign(bl.style, { display:"flex", gap:"6px", alignItems:"baseline", flexWrap:"wrap" });
 
-    navWrap.appendChild(nav);
-    inner.appendChild(brand);
-    inner.appendChild(navWrap);
+    // Scroll container with <nav>
+    const scroll = document.createElement("div");
+    scroll.className = "drawer__scroll";
+    Object.assign(scroll.style, { flex:"1", overflow:"auto" });
 
-    // footer container (sticky visuals kept minimal)
+    let nav = drawer.querySelector("nav");
+    if (!nav) { nav = document.createElement("nav"); }
+    scroll.appendChild(nav);
+
+    // Footer (small row + brand/version; NO big card)
     const foot = document.createElement("div");
     foot.className = "drawer__footer";
-    foot.style.borderTop = "1px solid rgba(0,0,0,.08)";
-    foot.style.background = "#fbfbfa";
-    foot.style.padding = "10px 12px";
-    foot.style.position = "relative";
-    foot.style.zIndex = "1";
+    Object.assign(foot.style, {
+      borderTop:"1px solid rgba(0,0,0,.08)",
+      background:"#fbfbfa",
+      padding:"10px 12px"
+    });
 
-    // small logout row that matches menu items
     const logout = document.createElement("a");
     logout.href = "#";
     logout.className = "item";
-    logout.style.display = "flex";
-    logout.style.alignItems = "center";
-    logout.style.gap = "12px";
-    logout.style.padding = "12px 14px";
-    logout.style.textDecoration = "none";
-    logout.style.color = "#223";
-    logout.style.background = "#fff";
-    logout.style.border = "1px solid rgba(0,0,0,.08)";
-    logout.style.borderRadius = "12px";
-    logout.innerHTML = `<span class="icon" style="width:20px">↩️</span> Logout`;
-    logout.addEventListener("click", (e) => {
+    Object.assign(logout.style, {
+      display:"flex", alignItems:"center", gap:"12px",
+      padding:"12px 14px",
+      textDecoration:"none", color:"#223",
+      background:"#fff", border:"1px solid rgba(0,0,0,.08)", borderRadius:"12px"
+    });
+    logout.innerHTML = `<span class="icon" style="width:20px">↪️</span> Logout`;
+    logout.addEventListener("click", async (e) => {
       e.preventDefault();
-      // sign out if Firebase auth is on the page
-      const trySignOut = async () => {
-        try {
-          if (window.firebaseAuth && window.firebaseAuth.signOut) {
-            await window.firebaseAuth.signOut();
-          } else if (window.firebase && firebase.auth) {
-            await firebase.auth().signOut();
-          }
-        } catch (err) {
-          console.warn("logout error", err);
-        } finally {
-          location.href = "auth/";
-        }
-      };
-      trySignOut();
+      try {
+        // Use the SAME modular auth instance
+        const [{ auth }, { signOut }] = await Promise.all([
+          import("./firebase-init.js"),
+          import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js")
+        ]);
+        await signOut(auth);
+      } catch (err) {
+        console.warn("logout error", err);
+      } finally {
+        location.href = "auth/"; // no bounce-back
+      }
     });
 
-    // brand+version block
-    const about = document.createElement("div");
-    about.style.display = "flex";
-    about.style.alignItems = "center";
-    about.style.gap = "10px";
-    about.style.marginTop = "10px";
-    about.innerHTML = `
-      <img src="assets/icons/icon-192.png" alt="" style="width:28px;height:28px;border-radius:6px">
-      <div>
-        <div style="font-weight:700">Dowson Farms</div>
-        <div class="mono" style="color:#456">All systems operational</div>
-        <div class="mono" id="dfDrawerVersion" style="color:#456;margin-top:2px">App v0.0.0</div>
-      </div>
-    `;
-
+    // append pieces
     foot.appendChild(logout);
-    foot.appendChild(about);
+    inner.appendChild(brand);
+    inner.appendChild(scroll);
     inner.appendChild(foot);
 
-    // replace drawer content
+    // replace drawer body
     drawer.innerHTML = "";
     drawer.appendChild(inner);
-  })();
+  }
 
   const nav = $("#drawer nav");
-  if (!nav) return;
 
-  // ----- open/close wiring ---------------------------------------------------
-  const openDrawer = () => document.body.classList.add("drawer-open");
+  // ---------- open/close wiring ----------
+  const openDrawer  = () => document.body.classList.add("drawer-open");
   const closeDrawer = () => document.body.classList.remove("drawer-open");
 
   const toggleBtn = $("#drawerToggle");
   if (toggleBtn) toggleBtn.addEventListener("click", openDrawer);
-  backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeDrawer(); });
+  $("#drawerBackdrop").addEventListener("click", (e) => { if (e.target.id === "drawerBackdrop") closeDrawer(); });
   window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
 
-  // ----- render accordion ----------------------------------------------------
+  // ---------- render accordion ----------
   function renderMenu() {
     const data = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
     nav.innerHTML = "";
 
     data.forEach(group => {
-      // filter children by access (but keep the group if anything remains)
-      const children = (group.children || []).filter(ch => {
+      // filter children using access
+      const kids = (group.children || []).map(ch => {
         if (Array.isArray(ch.children)) {
-          ch.children = ch.children.filter(l => canView(l.href));
-          return ch.children.length > 0;
+          const visible = ch.children.filter(l => canView(l.href));
+          return { ...ch, children: visible };
         }
-        return canView(ch.href);
-      });
+        return ch;
+      }).filter(ch => Array.isArray(ch.children) ? ch.children.length > 0 : canView(ch.href));
 
-      if (!children.length) return;
+      if (!kids.length) return;
 
       const g = document.createElement("div");
       g.className = "group";
@@ -166,17 +146,16 @@
       const btn = document.createElement("button");
       btn.innerHTML = `<span class="icon">${group.icon || ""}</span>${group.label}<span class="chev">›</span>`;
       btn.addEventListener("click", () => {
-        const isOpen = g.getAttribute("aria-expanded") === "true";
-        // collapse others
+        const opened = g.getAttribute("aria-expanded") === "true";
         $$(".group[aria-expanded='true']", nav).forEach(x => x.setAttribute("aria-expanded", "false"));
-        g.setAttribute("aria-expanded", isOpen ? "false" : "true");
+        g.setAttribute("aria-expanded", opened ? "false" : "true");
       });
       g.appendChild(btn);
 
       const panel = document.createElement("div");
       panel.className = "panel";
 
-      children.forEach(item => {
+      kids.forEach(item => {
         if (Array.isArray(item.children) && item.children.length) {
           const sg = document.createElement("div");
           sg.className = "subgroup";
@@ -185,9 +164,9 @@
           const sbtn = document.createElement("button");
           sbtn.innerHTML = `<span class="icon">${item.icon || ""}</span>${item.label}<span class="chev">›</span>`;
           sbtn.addEventListener("click", () => {
-            const open = sg.getAttribute("aria-expanded") === "true";
+            const opened = sg.getAttribute("aria-expanded") === "true";
             $$(".subgroup[aria-expanded='true']", panel).forEach(x => x.setAttribute("aria-expanded", "false"));
-            sg.setAttribute("aria-expanded", open ? "false" : "true");
+            sg.setAttribute("aria-expanded", opened ? "false" : "true");
           });
           sg.appendChild(sbtn);
 
@@ -217,26 +196,32 @@
       nav.appendChild(g);
     });
 
-    // version text
-    const ver =
-      (window.DF_VERSION && window.DF_VERSION.version) ||
-      (window.APP_VERSION) ||
-      "v0.0.0";
+    // version text (update when DF_VERSION appears)
     const vEl = $("#dfDrawerVersion");
-    if (vEl) vEl.textContent = `App ${ver}`;
+    const setVer = () => {
+      if (!vEl) return true;
+      const ver =
+        (window.DF_VERSION && window.DF_VERSION.version) ||
+        window.APP_VERSION ||
+        null;
+      if (ver) { vEl.textContent = `App ${ver}`; return true; }
+      return false;
+    };
+    if (!setVer()) {
+      let tries = 20;
+      const t = setInterval(() => { if (setVer() || --tries <= 0) clearInterval(t); }, 300);
+    }
   }
 
-  // initial render (immediately)
+  // initial render
   renderMenu();
 
-  // re-render once DF_ACCESS arrives (so filtering applies after auth)
-  // If DF_ACCESS is assigned later, listen for it
-  let retries = 10;
+  // Re-render once DF_ACCESS arrives (so filtering applies), and once menus are ready
+  let tries = 20;
   const waitAccess = setInterval(() => {
-    if (window.DF_ACCESS || --retries <= 0) {
+    if (window.DF_ACCESS || --tries <= 0) {
       clearInterval(waitAccess);
-      try { renderMenu(); } catch (e) { /* noop */ }
+      try { renderMenu(); } catch(_) {}
     }
   }, 300);
-
 })();
