@@ -1,34 +1,38 @@
 /* Dowson Farms — Global Header */
-.app-header {
-  height: 54px;
-  background: #0f5a1a; /* match footer */
+.df-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #0f5a1a;       /* same green as footer */
+  color: #fff;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 14px;
-  border-bottom: 1px solid #0003;
-  color: #fff;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(0,0,0,.2);
+  z-index: 1000;             /* stay above content */
 }
-.app-header .burger {
+
+.df-header .burger {
   background: none;
   border: 0;
-  font-size: 26px;
+  font-size: 24px;
   cursor: pointer;
-  color: #fff; /* white hamburger bars */
+  color: #fff;               /* white hamburger bars */
 }
-.app-header .app-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-}
-.app-header .app-title {
+
+.df-header .app-title {
   font-weight: 700;
-  color: #fff; /* white title */
+  color: #fff;
 }
-.app-header .spacer {
+
+.df-header .spacer {
   flex: 1;
 }
-.app-header .clock {
+
+.df-header .clock {
   font-variant-numeric: tabular-nums;
-  color: #fff; /* white clock */
+  color: #fff;
 }
