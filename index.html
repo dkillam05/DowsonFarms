@@ -9,6 +9,12 @@
   <!-- GitHub Pages base -->
   <base href="/DowsonFarms/">
 
+  <!-- PWA Manifest + Icons -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png" />
+
   <!-- Prepaint theme -->
   <script>
     (function () {
@@ -26,16 +32,15 @@
   <link rel="stylesheet" href="assets/css/header.css" />
 
   <style>
-    main.content {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 74px 18px 18px; /* space for fixed header */
-    }
+    main{padding:18px;max-width:1100px;margin:0 auto}
   </style>
+
+  <!-- Redirector (forces all sub-links back to index.html) -->
+  <script src="js/redirector.js"></script>
 </head>
 <body>
-  <!-- Header (global, injected via header.css) -->
-  <header class="df-header">
+  <!-- Header (global injected via header.css) -->
+  <header class="app-header">
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
     <img src="assets/icons/icon-192.png" alt="" style="width:28px;height:28px;border-radius:6px">
     <div class="app-title">Dowson Farms</div>
@@ -57,12 +62,14 @@
   <div id="drawerBackdrop" class="drawerBackdrop"></div>
 
   <!-- Main -->
-  <main class="content">
+  <main>
     <h1>Welcome</h1>
     <p>This Home screen will grow (Chat-style box, weather, quick cards). Use the ☰ menu for navigation.</p>
   </main>
 
-  <!-- ───────── Load order (keep as-is) ───────── -->
+  <!-- ───────── Load order (global scripts) ───────── -->
+
+  <!-- Menus -->
   <script src="assets/data/menus.js"></script>
   <script src="assets/data/drawer-menus.js"></script>
   <script src="assets/data/footer-links.js"></script>
@@ -71,17 +78,17 @@
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- Drawer + footer renderers -->
+  <!-- Drawer + footer -->
   <script type="module" src="js/drawer.js"></script>
   <script src="js/footer.js"></script>
 
-  <!-- Clock -->
-  <script type="module">
+  <!-- Live clock -->
+  <script>
     const clock = document.getElementById('clock');
-    setInterval(() => {
+    setInterval(()=>{
       const d = new Date();
-      clock.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    }, 1000);
+      clock.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    },1000);
   </script>
 </body>
 </html>
