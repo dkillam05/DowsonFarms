@@ -14,19 +14,34 @@ window.DF_FOOTER_LINKS = [
   const links = (window.DF_FOOTER_LINKS || []);
   if (!links.length) return;
 
+  // ── NEW: use a single barHeight var so padding matches exactly
+  const barHeight = 56; // px (was 54 visually; bumping to 56 helps cover small gaps)
+
   const bar = document.createElement('nav');
   bar.setAttribute('aria-label','Bottom navigation');
   Object.assign(bar.style, {
     position:'fixed',
     left:0, right:0, bottom:0,
-    height:'54px',
+    height: barHeight + 'px',
     background:'#0f5a1a',
     display:'grid',
     gridTemplateColumns:`repeat(${links.length},1fr)`,
     alignItems:'center',
     borderTop:'1px solid #0003',
-    zIndex:80
+    zIndex:999 // ↑ NEW: ensure it sits above page content
   });
+
+  // ── NEW: compute active section (normalize current path vs link targets)
+  const repoBase = '/DowsonFarms/'; // your GitHub Pages base
+  const path = location.pathname.startsWith(repoBase)
+    ? location.pathname.slice(repoBase.length)
+    : location.pathname.replace(/^\//,'');
+  const norm = (s) => (s || '')
+    .replace(/index\.html$/,'')
+    .replace(/\/+$/,'/')
+    || ''; // empty means root index
+
+  const current = norm(path);
 
   links.forEach(l=>{
     const a = document.createElement('a');
@@ -38,9 +53,20 @@ window.DF_FOOTER_LINKS = [
     a.style.textDecoration='none';
     a.style.color='#fff';
     a.style.fontSize='12px';
+    a.style.userSelect='none';
     a.innerHTML = `<div style="font-size:20px;line-height:1">${l.icon||'•'}</div><div>${l.label}</div>`;
 
-    // Permission-aware check
+    // ── NEW: Active state (bold + slight brighten) based on normalized prefix match
+    const target = norm(l.href);
+    if (target && current.startsWith(target)) {
+      a.style.filter = 'brightness(1.08)';
+      a.style.fontWeight = '700';
+      a.style.opacity = '1';
+    } else {
+      a.style.opacity = '0.95';
+    }
+
+    // Permission-aware check (KEEPING YOUR ORIGINAL BEHAVIOR)
     a.addEventListener('click', (e)=>{
       if (window.DF_ACCESS && typeof window.DF_ACCESS.canView === 'function') {
         if (!window.DF_ACCESS.canView(l.href)) {
@@ -54,6 +80,7 @@ window.DF_FOOTER_LINKS = [
   });
 
   document.body.appendChild(bar);
-  // Prevent content being hidden under footer
-  document.body.style.paddingBottom = '56px';
+
+  // Prevent content being hidden under footer (KEEP behavior, but tie to barHeight)
+  document.body.style.paddingBottom = barHeight + 'px';
 })();
