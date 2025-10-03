@@ -1,11 +1,10 @@
 // Dowson Farms — Drawer builder (accordion + hero + sticky footer)
-// Uses: window.DF_DRAWER_MENUS (data), window.DF_ACCESS (optional permission filtering),
-//       window.DF_VERSION (from js/version.js), and the #drawerToggle button in your header.
+// Safe hamburger wiring even if header injects after this script.
+// Uses: window.DF_DRAWER_MENUS, window.DF_ACCESS, window.DF_VERSION.
 
 (function () {
   const drawer   = document.getElementById('drawer');
   const backdrop = document.getElementById('drawerBackdrop');
-  const toggle   = document.getElementById('drawerToggle');
   if (!drawer) return;
 
   // ——— open/close helpers
@@ -13,11 +12,36 @@
   const closeDrawer = () => document.body.classList.remove('drawer-open');
   const onKey = (e) => { if (e.key === 'Escape') closeDrawer(); };
 
-  toggle && toggle.addEventListener('click', openDrawer);
+  // Expose a public opener in case you want to call it from anywhere
+  window.DF_OPEN_DRAWER = openDrawer;
+
+  // Bind backdrop + esc
   backdrop && backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeDrawer(); });
   window.addEventListener('keydown', onKey);
 
-  // ——— build hero (top logo/title/loc)
+  // ——— Robustly bind the hamburger (works even if header loads later)
+  function bindHamburger() {
+    const btn = document.getElementById('drawerToggle');
+    if (!btn || btn.dataset.dfBound === '1') return !!btn;
+    btn.addEventListener('click', openDrawer);
+    btn.dataset.dfBound = '1';
+    return true;
+  }
+
+  // Try now, then retry a few times, plus add delegated safety net
+  let tries = 0, maxTries = 40; // ~4s total with 100ms interval
+  if (!bindHamburger()) {
+    const iv = setInterval(() => {
+      if (bindHamburger() || ++tries >= maxTries) clearInterval(iv);
+    }, 100);
+  }
+  // Delegated backup: ANY click on an element that matches #drawerToggle
+  document.addEventListener('click', (e) => {
+    const hit = e.target.closest && e.target.closest('#drawerToggle');
+    if (hit) openDrawer();
+  });
+
+  // ——— Build hero (top logo/title/loc)
   function buildHero() {
     const hero = document.createElement('div');
     hero.className = 'hero';
@@ -33,13 +57,13 @@
     return hero;
   }
 
-  // ——— permission helper (if DF_ACCESS present)
+  // ——— permission helper
   const canView = (href) => {
     if (!window.DF_ACCESS || typeof window.DF_ACCESS.canView !== 'function') return true;
     return window.DF_ACCESS.canView(href);
   };
 
-  // ——— build a simple link row
+  // ——— link row
   const makeLink = (href, label, icon) => {
     const a = document.createElement('a');
     a.className = 'item';
@@ -49,7 +73,7 @@
     return a;
   };
 
-  // ——— build nested subgroup (for Add Records, Products, etc.)
+  // ——— subgroup (nested)
   function makeSubgroup(node) {
     const sg   = document.createElement('div');
     const btn  = document.createElement('button');
@@ -59,7 +83,6 @@
     pane.className = 'subpanel';
     btn.addEventListener('click', ()=>{
       const exp = sg.getAttribute('aria-expanded') === 'true';
-      // collapse siblings
       sg.parentElement.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
       sg.setAttribute('aria-expanded', exp ? 'false' : 'true');
     });
@@ -68,11 +91,12 @@
     (node.children || []).forEach(ch => {
       if (canView(ch.href)) pane.appendChild(makeLink(ch.href, ch.label, ch.icon));
     });
+    if (!pane.children.length) return null; // hide empty subgroup
     sg.appendChild(pane);
     return sg;
   }
 
-  // ——— build top-level group
+  // ——— group (top level)
   function makeGroup(group) {
     const g = document.createElement('div');
     g.className = 'group';
@@ -82,7 +106,6 @@
     btn.innerHTML = `<span class="icon">${group.icon || ''}</span>${group.label}<span class="chev">›</span>`;
     btn.addEventListener('click', ()=>{
       const expanded = g.getAttribute('aria-expanded') === 'true';
-      // collapse others for cleanliness
       nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
       g.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     });
@@ -93,10 +116,8 @@
 
     (group.children || []).forEach(item => {
       if (Array.isArray(item.children) && item.children.length) {
-        // nested subgroup
         const sg = makeSubgroup(item);
-        // hide empty subgroup (no permitted links)
-        if (sg.querySelector('.subpanel').children.length) panel.appendChild(sg);
+        if (sg) panel.appendChild(sg);
       } else if (canView(item.href)) {
         panel.appendChild(makeLink(item.href, item.label, item.icon));
       }
@@ -106,12 +127,11 @@
     return g;
   }
 
-  // ——— sticky footer (logout + brand/version)
+  // ——— footer (logout + brand/version)
   function buildFooter() {
     const foot = document.createElement('div');
     foot.className = 'drawerFooter';
 
-    // logout (same size as normal item)
     const logout = document.createElement('a');
     logout.className = 'item logout';
     logout.href = '#';
@@ -119,21 +139,18 @@
     logout.addEventListener('click', async (e)=>{
       e.preventDefault();
       try {
-        // defer import to avoid pulling firebase in non-auth pages here
         const { auth } = await import('./firebase-init.js');
         const { signOut } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');
         await signOut(auth);
         closeDrawer();
-        location.href = 'auth/'; // land on your auth page
+        location.href = 'auth/';
       } catch (err) {
         console.warn('Logout failed:', err);
       }
     });
 
     const hr = document.createElement('div');
-    hr.style.height = '1px';
-    hr.style.background = '#0001';
-    hr.style.margin = '8px 0';
+    Object.assign(hr.style, { height:'1px', background:'#0001', margin:'8px 0' });
 
     const brand = document.createElement('div');
     brand.className = 'footBrand';
@@ -156,19 +173,21 @@
     return foot;
   }
 
-  // ——— write the drawer
-  const nav = drawer.querySelector('nav');
-  nav.innerHTML = '';
+  // ——— write structure
+  const originalNav = drawer.querySelector('nav');
+  const nav = originalNav || document.createElement('nav');
+
   drawer.innerHTML = '';               // rebuild clean
   drawer.appendChild(buildHero());     // top hero
   drawer.appendChild(nav);             // list region
   drawer.appendChild(buildFooter());   // sticky footer
 
   // Build groups from data
+  nav.innerHTML = '';
   const data = (window.DF_DRAWER_MENUS || []);
   data.forEach(group => nav.appendChild(makeGroup(group)));
 
-  // ——— autosize drawer width: “just a bit wider than the longest line”
+  // ——— autosize width to longest label (clamped)
   try {
     const measurer = document.createElement('div');
     measurer.style.position = 'absolute';
@@ -177,17 +196,15 @@
     measurer.style.font = '16px system-ui, -apple-system, Segoe UI, Roboto, Arial';
     document.body.appendChild(measurer);
 
-    let longest = 240; // baseline
-    // look at visible buttons/links text
+    let longest = 240;
     drawer.querySelectorAll('.group > button, a.item, .subgroup > button').forEach(el => {
-      const text = el.innerText || el.textContent || '';
-      measurer.textContent = text.trim();
-      longest = Math.max(longest, measurer.offsetWidth + 80); // a little padding
+      const text = (el.innerText || el.textContent || '').trim();
+      measurer.textContent = text;
+      longest = Math.max(longest, measurer.offsetWidth + 80);
     });
     document.body.removeChild(measurer);
 
-    const clamped = Math.max(260, Math.min(420, longest)); // keep sane bounds
+    const clamped = Math.max(260, Math.min(420, longest));
     drawer.style.setProperty('--drawer-w', clamped + 'px');
   } catch {}
-
 })();
