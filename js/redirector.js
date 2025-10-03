@@ -8,5 +8,5 @@
   if (!here || here === "index.html") return;
 
   // Redirect everything else back to home
-  location.replace("/DowsonFarms/index.html");
+  location.replace("/FarmVista/index.html");
 })();

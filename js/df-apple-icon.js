@@ -1,6 +1,6 @@
 <script>
 /*!
-  Dowson Farms — Apple/Touch/Favicon injector
+  Farm Vista — Apple/Touch/Favicon injector
   ------------------------------------------------------------
   Purpose:
     • Guarantees the correct icons appear for “Add to Home Screen”

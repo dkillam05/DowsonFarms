@@ -1,4 +1,4 @@
-/* Dowson Farms — Drawer Menus (accordion data, separate from DF_MENUS) */
+/* Farm Vista — Drawer Menus (accordion data, separate from DF_MENUS) */
 window.DF_DRAWER_MENUS = [
   {
     label: "Crop Production",

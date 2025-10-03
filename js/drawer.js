@@ -83,7 +83,7 @@
     hero.innerHTML = `
       <img src="assets/icons/icon-192.png" alt="">
       <div>
-        <div style="font-weight:700">Dowson Farms</div>
+        <div style="font-weight:700">Farm Vista</div>
         <div class="mono">Divernon, Illinois</div>
       </div>
     `;
@@ -194,7 +194,7 @@
     brand.innerHTML = `
       <img src="assets/icons/icon-192.png" alt="">
       <div>
-        <div class="title">Dowson Farms · Divernon, Illinois</div>
+        <div class="title">Farm Vista · Divernon, Illinois</div>
       </div>
     `;
 

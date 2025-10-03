@@ -5,9 +5,9 @@
   // --- helpers --------------------------------------------------------------
   const baseEl = document.querySelector('base');
   const BASE = (() => {
-    if (!baseEl || !baseEl.href) return '/DowsonFarms/';
+    if (!baseEl || !baseEl.href) return '/FarmVista/';
     try { const u = new URL(baseEl.href); return u.pathname.endsWith('/') ? u.pathname : (u.pathname + '/'); }
-    catch { return '/DowsonFarms/'; }
+    catch { return '/FarmVista/'; }
   })();
 
   const stripIndex = (p) => String(p || '').replace(/index\.html$/i, '');

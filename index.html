@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f5a1a" />
-  <title>Dowson Farms — Home</title>
+  <title>Farm Vista — Home</title>
 
   <!-- GitHub Pages base -->
-  <base href="/DowsonFarms/">
+  <base href="/FarmVista/">
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
@@ -63,7 +63,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       addEventListener('load', function () {
-        navigator.serviceWorker.register('/DowsonFarms/ServiceWorker.js', { scope: '/DowsonFarms/' })
+        navigator.serviceWorker.register('/FarmVista/ServiceWorker.js', { scope: '/FarmVista/' })
           .catch(console.warn);
       });
     }

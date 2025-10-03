@@ -1,5 +1,5 @@
 // assets/data/footer-links.js
-// Dowson Farms — Global Bottom Nav (always visible)
+// Farm Vista — Global Bottom Nav (always visible)
 // Permission-aware: if user lacks access, redirect to /access-denied.html
 
 window.DF_FOOTER_LINKS = [
@@ -38,7 +38,7 @@ window.DF_FOOTER_LINKS = [
   });
 
   // Compute active section (normalize current path vs link targets)
-  const repoBase = '/DowsonFarms/';
+  const repoBase = '/FarmVista/';
   const path = location.pathname.startsWith(repoBase)
     ? location.pathname.slice(repoBase.length)
     : location.pathname.replace(/^\//,'');

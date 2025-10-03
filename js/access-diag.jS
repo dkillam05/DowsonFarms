@@ -21,7 +21,7 @@ import { loadAccess } from "./access.js";
 
 function normBase(pathname){
   // strip repo base so it matches DF_MENUS hrefs
-  return pathname.startsWith("/DowsonFarms/") ? pathname.slice("/DowsonFarms/".length) : pathname.slice(1);
+  return pathname.startsWith("/FarmVista/") ? pathname.slice("/FarmVista/".length) : pathname.slice(1);
 }
 
 // Find the best matching rule key that applies to href
