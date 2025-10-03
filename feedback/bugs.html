@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1C6DD0" />
+  <meta name="theme-color" content="#365E5A" />
   <title>Bugs / Issues — Farm Vista</title>
 
   <!-- Prepaint theme -->
@@ -43,18 +43,18 @@
     }
     .shot{
       position:relative; border:1px solid var(--tile-border); border-radius:10px; overflow:hidden;
-      background:var(--tile-bg, rgba(0,0,0,.03));
+      background:var(--tile-bg, rgba(54,94,90,0.05));
     }
     .shot img{ display:block; width:100%; height:100%; object-fit:cover; aspect-ratio:1/1; }
     .shot button{
       position:absolute; top:6px; right:6px; border:none; border-radius:8px; padding:4px 6px; font-size:.8rem;
-      background:rgba(0,0,0,.55); color:#fff; cursor:pointer;
+      background:rgba(20,50,49,0.65); color:#fff; cursor:pointer;
     }
     .drop-zone{
       border:1px dashed var(--tile-border); border-radius:10px; padding:10px; text-align:center;
       background:transparent;
     }
-    .drop-zone.drag{ background:var(--tile-bg, rgba(0,0,0,.04)); }
+    .drop-zone.drag{ background:var(--tile-bg, rgba(54,94,90,0.08)); }
   </style>
 </head>
 <body>
@@ -90,7 +90,7 @@
       <div class="field">
         <label for="submittedBy">Submitted by</label>
         <select id="submittedBy" required></select>
-        <small id="whoHint" class="field-hint" style="color:#666;"></small>
+        <small id="whoHint" class="field-hint" style="color:#4B5A58;"></small>
       </div>
 
       <div class="field">
@@ -175,7 +175,7 @@
   <!-- Toast -->
   <div id="dfToast" style="display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
     padding:10px 14px; border-radius:10px; border:1px solid var(--tile-border);
-    background:var(--tile-bg, rgba(0,0,0,.03)); box-shadow:0 6px 24px rgba(0,0,0,.12); z-index:9999;">
+    background:var(--tile-bg, rgba(54,94,90,0.05)); box-shadow:0 6px 24px rgba(23,52,49,0.18); z-index:9999;">
     <span id="dfToastText">Saved</span>
   </div>
 

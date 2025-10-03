@@ -4,15 +4,15 @@ import { loadAccess } from "./access.js";
 
 (function injectStyles(){
   const css = `
-  #dfDiag { position: sticky; top: 0; z-index: 9999; font: 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial; 
-            background:#fffbe7; border-bottom:1px solid #e8dba5; padding:10px; color:#333 }
+  #dfDiag { position: sticky; top: 0; z-index: 9999; font: 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+            background:#f6f0d8; border-bottom:1px solid rgba(216,193,121,0.6); padding:10px; color:#143231 }
   #dfDiag .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0}
-  #dfDiag code{background:#0001;padding:2px 6px;border-radius:6px}
-  #dfDiag .ok   { color:#0a6d0a; font-weight:600 }
+  #dfDiag code{background:rgba(54,94,90,0.08);padding:2px 6px;border-radius:6px}
+  #dfDiag .ok   { color:#2F563E; font-weight:600 }
   #dfDiag .err  { color:#b00020; font-weight:600 }
   #dfDiag table{ width:100%; border-collapse:collapse; margin-top:6px; background:#fff }
-  #dfDiag th, #dfDiag td { border:1px solid #eee; padding:6px 8px; text-align:left; }
-  #dfDiag th{ background:#faf6d8 }
+  #dfDiag th, #dfDiag td { border:1px solid rgba(54,94,90,0.14); padding:6px 8px; text-align:left; }
+  #dfDiag th{ background:#ede6c3 }
   `;
   const style = document.createElement("style");
   style.textContent = css;

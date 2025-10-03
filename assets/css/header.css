@@ -16,35 +16,35 @@ body { padding-top: var(--fv-header-height); }
   justify-content: flex-start;
   gap: 14px;
   padding: 0 18px;
-  background: linear-gradient(120deg, rgba(28, 109, 208, 0.95), rgba(92, 191, 135, 0.88));
-  color: #fff;
+  background: linear-gradient(120deg, rgba(54, 94, 90, 0.95), rgba(216, 193, 121, 0.88));
+  color: #fefcf4;
   z-index: 1000;
-  box-shadow: 0 14px 32px rgba(13, 73, 112, 0.32);
+  box-shadow: 0 14px 32px rgba(23, 52, 49, 0.32);
   backdrop-filter: blur(10px);
 }
 
 .app-header .burger {
   appearance: none;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(251, 249, 240, 0.12);
+  border: 1px solid rgba(251, 249, 240, 0.4);
   border-radius: 14px;
   padding: 6px 10px;
   margin: 0;
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
-  color: #fff;
+  color: #fefcf4;
   transition: background 0.18s ease, border-color 0.18s ease;
 }
 
 .app-header .burger:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline: 2px solid rgba(251, 249, 240, 0.85);
   outline-offset: 2px;
 }
 
 .app-header .burger:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(251, 249, 240, 0.22);
+  border-color: rgba(251, 249, 240, 0.55);
 }
 
 .app-header img.app-logo {
@@ -53,21 +53,21 @@ body { padding-top: var(--fv-header-height); }
   display: block;
   object-fit: contain;
   max-width: 45vw;
-  filter: drop-shadow(0 8px 20px rgba(11, 42, 52, 0.28));
+  filter: drop-shadow(0 8px 20px rgba(23, 52, 49, 0.32));
   content: url("../assets/icons/Farm_Vista_Logo.png");
 }
 
 .app-header .spacer { flex: 1; }
 
 .app-header .clock {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(254, 252, 244, 0.85);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
 
 .app-header a {
-  color: #fff;
+  color: #fefcf4;
   text-decoration: none;
   font-weight: 600;
 }

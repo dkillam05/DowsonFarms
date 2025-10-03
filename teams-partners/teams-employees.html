@@ -10,33 +10,33 @@
 
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
-    :root{ --band:#D7E9FF; --paper:#F5F9FF; --ink:#082434; --ok:#125212; --err:#a00; }
+    :root{ --band:#E4E8D8; --paper:#F4F1E4; --ink:#142725; --ok:#2F563E; --err:#a00; }
     body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
-    header{height:40px;background:var(--band);display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(0,0,0,.08)}
-    header .title{font-weight:700;color:#333}.spacer{flex:1}
+    header{height:40px;background:var(--band);display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(54, 94, 90, 0.18)}
+    header .title{font-weight:700;color:#143231}.spacer{flex:1}
     main{padding:18px;max-width:1100px;margin:0 auto}
-    h1{margin:0 0 10px;color:#1C6DD0}
+    h1{margin:0 0 10px;color:#365E5A}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
-    input,select,button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#fff}
+    input,select,button{padding:8px 10px;border-radius:10px;border:1px solid rgba(54, 94, 90, 0.26);background:#fff}
     button{cursor:pointer;font-weight:600}
     .btn-danger{color:#a00}
-    .card{background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:12px;margin:12px 0}
+    .card{background:#fff;border:1px solid rgba(54, 94, 90, 0.18);border-radius:14px;padding:12px;margin:12px 0}
     #status{margin:10px 0;padding:8px 10px;border-radius:10px;display:none}
-    .ok{background:#eef5ee;border:1px solid #cfe3cf;color:#125212}
+    .ok{background:#e1ede4;border:1px solid #cadbcc;color:#2F563E}
     .err{background:#ffe9e9;border:1px solid #f3b9b9;color:#a00}
-    .muted{color:#666;font-size:12px}
-    .list{max-height:280px;overflow:auto;border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff}
-    .list-item{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid #eee}
+    .muted{color:#4B5A58;font-size:12px}
+    .list{max-height:280px;overflow:auto;border:1px solid rgba(54, 94, 90, 0.18);border-radius:10px;background:#fff}
+    .list-item{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid rgba(54, 94, 90, 0.16)}
     .list-item:last-child{border-bottom:none}
     .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
     .perm-grid .head{font-weight:700}
 
     /* Diagnostic banner */
-    #diagBar{position:sticky;top:0;z-index:9999;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.12);
-             background:#fffbe7;color:#082434;font-size:13px;display:none}
-    #diagBar.ok{background:#eef5ee;color:var(--ok)}
+    #diagBar{position:sticky;top:0;z-index:9999;padding:8px 10px;border-bottom:1px solid rgba(54,94,90,0.18);
+             background:#f6f0d8;color:#142725;font-size:13px;display:none}
+    #diagBar.ok{background:#e1ede4;color:var(--ok)}
     #diagBar.err{background:#ffe9e9;color:var(--err)}
-    #diagBar code{background:#0001;padding:2px 4px;border-radius:6px}
+    #diagBar code{background:rgba(54,94,90,0.1);padding:2px 4px;border-radius:6px}
   </style>
 </head>
 <body>

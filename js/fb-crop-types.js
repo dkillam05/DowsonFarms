@@ -69,8 +69,8 @@ function applyPermsToUI(){
 function setDiag(s, ok = true){
   if(!diag) return;
   diag.style.display = "block";
-  diag.style.background = ok ? "#eef5ee" : "#ffe9e9";
-  diag.style.color = ok ? "#145214" : "#a00";
+  diag.style.background = ok ? "#e1ede4" : "#ffe9e9";
+  diag.style.color = ok ? "#2F563E" : "#a00";
   diag.textContent = s;
 }
 
@@ -91,7 +91,7 @@ async function listAll(){
 function renderRows(rows){
   if(!tbody) return;
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="6" style="color:#666">No crop types yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="color:#4B5A58">No crop types yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = "";
@@ -101,7 +101,7 @@ function renderRows(rows){
       <td>${esc(row.name)}</td>
       <td>${fmtPct(row.desiredMoisture)}</td>
       <td>${fmtNum(row.testWeight)} lb/bu</td>
-      <td><span style="display:inline-block;width:18px;height:18px;border-radius:4px;border:1px solid #0002;background:${esc(row.color||"#1B5E20")}"></span> ${esc(row.color||"")}</td>
+      <td><span style="display:inline-block;width:18px;height:18px;border-radius:4px;border:1px solid #0002;background:${esc(row.color||"#365E5A")}"></span> ${esc(row.color||"")}</td>
       <td>${row.updatedAt?.toDate ? row.updatedAt.toDate().toLocaleString() : ""}</td>
       <td>
         <button class="btn-edit" data-id="${row.id}">Edit</button>
@@ -137,7 +137,7 @@ async function onEdit(ev){
   fName.value  = v.name || "";
   fMoist.value = v.desiredMoisture ?? "";
   fTestW.value = v.testWeight ?? "";
-  fColor.value = v.color || "#1B5E20";
+  fColor.value = v.color || "#365E5A";
   toast("Loaded for edit");
 }
 

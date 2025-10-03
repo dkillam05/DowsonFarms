@@ -15,7 +15,7 @@ export function showWait(msg = "Please wait…") {
     Object.assign(el.style, {
       position: "fixed",
       inset: "0",
-      background: "rgba(255,255,255,0.8)",
+      background: "rgba(242,240,228,0.92)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -23,12 +23,12 @@ export function showWait(msg = "Please wait…") {
       backdropFilter: "blur(3px)"
     });
     el.innerHTML = `
-      <div style="text-align:center;color:#123;font-size:18px;font-weight:600">
+      <div style="text-align:center;color:#143231;font-size:18px;font-weight:600">
         ${msg}<br/><br/>
         <div class="spinner"
              style="margin:auto;width:40px;height:40px;
-                    border:4px solid #ccc;
-                    border-top:4px solid #1B5E20;
+                    border:4px solid rgba(159,191,111,0.45);
+                    border-top:4px solid #365E5A;
                     border-radius:50%;
                     animation:spin 1s linear infinite"></div>
         <style>

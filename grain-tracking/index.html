@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1C6DD0" />
+  <meta name="theme-color" content="#365E5A" />
   <title>Grain Tracking — Farm Vista</title>
 
   <!-- GitHub Pages base (IMPORTANT) -->
@@ -22,32 +22,32 @@
 
   <link rel="stylesheet" href="assets/css/theme.css?v=24" />
   <style>
-    :root { --brand:#1C6DD0; --band:#D7E9FF; --paper:#F5F9FF; --ink:#082434; }
+    :root { --brand:#365E5A; --band:#E4E8D8; --paper:#F4F1E4; --ink:#142725; }
     body { margin:0; background:var(--paper); color:var(--ink);
            font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px;
-             padding:0 10px; border-bottom:1px solid rgba(0,0,0,.08); }
-    header .title { font-weight:700; color:#082434; }
+             padding:0 10px; border-bottom:1px solid rgba(54, 94, 90, 0.18); }
+    header .title { font-weight:700; color:#142725; }
     header .spacer { flex:1; }
-    header .logout { appearance:none; border:1px solid rgba(0,0,0,.2); background:#fff; color:var(--brand);
+    header .logout { appearance:none; border:1px solid rgba(54, 94, 90, 0.26); background:#fff; color:var(--brand);
                      font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
     main { padding:18px; max-width:1100px; margin:0 auto; }
     h1 { font-size:22px; color:var(--brand); margin-top:0; }
-    footer { text-align:center; font-size:12px; color:#666; margin:40px 0 20px; }
+    footer { text-align:center; font-size:12px; color:#4B5A58; margin:40px 0 20px; }
 
     /* Tiles */
     #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
     .tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
-             background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:16px;
-             box-shadow:0 6px 18px rgba(0,0,0,.06); text-decoration:none; color:#082434;
+             background:#fff; border:1px solid rgba(54, 94, 90, 0.14); border-radius:16px;
+             box-shadow:0 6px 18px rgba(23, 52, 49, 0.12); text-decoration:none; color:#142725;
              padding:24px 18px; transition:transform .15s; }
     .tile:hover { transform: translateY(-3px); }
     .tile span { margin-top:8px; font-weight:600; }
 
     /* Diagnostic banner */
     #diag { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size:12px; padding:8px 10px; border-bottom:1px solid #0002; }
-    #diag.ok  { background:#eef5ee; color:#1a4d1a; }
+            font-size:12px; padding:8px 10px; border-bottom:1px solid rgba(20, 50, 49, 0.12); }
+    #diag.ok  { background:#e1ede4; color:#2F563E; }
     #diag.err { background:#ffe9e9; color:#a00; }
 
     a.back { text-decoration:none; }
