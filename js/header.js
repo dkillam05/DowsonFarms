@@ -4,11 +4,19 @@
   header.className = "app-header";
   header.innerHTML = `
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
-    <img src="assets/icons/Farm_Vista_Logo.png" alt="Farm Vista" class="app-logo">
-    <div class="spacer"></div>
+    <div class="header-breadcrumbs" role="presentation"></div>
     <span id="dateDisplay" class="clock">--/--/----</span>
   `;
   document.body.prepend(header);
+
+  const breadcrumbHost = header.querySelector(".header-breadcrumbs");
+  const pageBreadcrumbs = document.querySelector("nav.breadcrumbs");
+  if (pageBreadcrumbs && !header.contains(pageBreadcrumbs)) {
+    pageBreadcrumbs.classList.add("in-app-header");
+    breadcrumbHost.appendChild(pageBreadcrumbs);
+  } else {
+    breadcrumbHost.remove();
+  }
 
   // Date display (Central Time)
   const dateEl = header.querySelector("#dateDisplay");
