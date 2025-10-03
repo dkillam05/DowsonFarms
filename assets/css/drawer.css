@@ -1,5 +1,12 @@
 /* Farm Vista — Drawer (accordion) */
 
+:root {
+  --drawer-surface: rgba(255, 255, 255, 0.86);
+  --drawer-border: rgba(28, 109, 208, 0.14);
+  --drawer-shadow: 0 28px 48px rgba(8, 36, 52, 0.18);
+  --drawer-radius: 22px;
+}
+
 /* Backdrop */
 .drawerBackdrop{
   position:fixed; inset:0; background:rgba(0,0,0,.35);
@@ -11,29 +18,35 @@ body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
 .drawer{
   --drawer-w: 320px;                   /* JS may override this inline */
   position:fixed; inset:0 auto 0 0; width:var(--drawer-w); max-width:86vw;
-  background:#f9f9f7; border-right:1px solid #0002;
+  background:var(--drawer-surface);
+  border-right:1px solid var(--drawer-border);
   translate:-100% 0; transition:translate .22s ease; z-index:100;
   display:flex; flex-direction:column; overflow:hidden;
+  backdrop-filter: blur(16px);
+  box-shadow: var(--drawer-shadow);
+  border-radius: 0 var(--drawer-radius) var(--drawer-radius) 0;
 }
 body.drawer-open .drawer{ translate:0 0; }
 
 /* ===== Top hero (uses the “dead space”) ===== */
 .drawer .hero{
-  background:#fff; border-bottom:1px solid #0002;
-  padding:14px 12px 12px; text-align:left;
+  background:linear-gradient(135deg, rgba(28, 109, 208, 0.22), rgba(92, 191, 135, 0.18));
+  border-bottom:1px solid var(--drawer-border);
+  padding:16px 14px 14px; text-align:left;
 }
 .drawer .hero .row{
   display:flex; align-items:center; gap:10px;
 }
 .drawer .hero img{
-  width:40px; height:40px; border-radius:9px; display:block;
+  width:40px; height:40px; border-radius:12px; display:block;
+  box-shadow:0 10px 18px rgba(13, 73, 112, 0.22);
 }
 .drawer .hero .title{
-  font-weight:700; font-size:18px; color:#123; letter-spacing:.2px;
+  font-weight:700; font-size:18px; color:#0B2A34; letter-spacing:.2px;
 }
 .drawer .hero .sub{
-  margin-top:4px; color:#4a5866;
-  font:13px/1.2 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
+  margin-top:4px; color:rgba(8, 36, 52, 0.7);
+  font:13px/1.2 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
 }
 
 /* List area (scrolls) */
@@ -51,13 +64,17 @@ body.drawer-open .drawer{ translate:0 0; }
 
 /* Top-level groups */
 .drawer .group{
-  border:1px solid #0002; border-radius:10px; background:#fff;
-  margin:8px 6px; overflow:hidden;
+  border:1px solid var(--drawer-border);
+  border-radius:16px;
+  background:rgba(255,255,255,0.92);
+  margin:10px 6px;
+  overflow:hidden;
+  box-shadow:0 16px 26px rgba(8, 36, 52, 0.08);
 }
 .drawer .group > button{
   width:100%; display:flex; align-items:center; gap:10px;
-  padding:12px 14px; background:#fff; border:0; cursor:pointer;
-  font-weight:700; color:#123;
+  padding:14px 16px; background:transparent; border:0; cursor:pointer;
+  font-weight:700; color:#0B2A34;
 }
 .drawer .group > button .icon{ width:22px; }
 .drawer .group > button .chev{ margin-left:auto; transition:transform .18s ease; }
@@ -71,23 +88,25 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawer a.item{
   display:flex; align-items:center; gap:12px;
   padding:var(--df-item-pad-y) var(--df-item-pad-x);
-  text-decoration:none; color:#223; border-top:1px solid #0001;
-  font-size:16px; line-height:1.2; background:#fff;
+  text-decoration:none; color:#0B2A34;
+  border-top:1px solid rgba(8, 36, 52, 0.05);
+  font-size:16px; line-height:1.2; background:rgba(255,255,255,0.85);
+  transition:background .18s ease, transform .18s ease;
 }
-.drawer a.item:hover{ background:#f4f4ef; }
+.drawer a.item:hover{ background:rgba(28, 109, 208, 0.12); transform:translateX(2px); }
 .drawer a.item .icon{ width:20px; }
 
 /* Second-level (nested) */
-.drawer .subgroup{ border-top:1px solid #0001; }
+.drawer .subgroup{ border-top:1px solid rgba(8, 36, 52, 0.05); }
 .drawer .subgroup > button{
   width:100%; display:flex; align-items:center; gap:10px;
-  padding:12px 16px; background:#fbfbfa; border:0; cursor:pointer;
-  font-weight:600; color:#234;
+  padding:12px 16px; background:rgba(247, 252, 255, 0.6); border:0; cursor:pointer;
+  font-weight:600; color:#0B2A34;
 }
 .drawer .subgroup .chev{ margin-left:auto; transition:transform .18s ease; }
 .drawer .subpanel{
   max-height:0; overflow:hidden; transition:max-height .22s ease;
-  border-top:1px solid #0001; background:#fff;
+  border-top:1px solid rgba(8, 36, 52, 0.05); background:rgba(255,255,255,0.85);
 }
 .drawer .subgroup[aria-expanded="true"] .subpanel{ max-height:900px; }
 .drawer .subgroup[aria-expanded="true"] .chev{ transform:rotate(90deg); }
@@ -95,29 +114,30 @@ body.drawer-open .drawer{ translate:0 0; }
 /* ===== Footer block — pinned flush to bottom, no tall banner ===== */
 .drawerFooter{
   position:sticky; bottom:0;
-  background:#f9f9f7;
-  padding:6px 6px 10px;
-  border-top:1px solid #0001;
+  background:rgba(245, 249, 255, 0.92);
+  padding:10px 10px 14px;
+  border-top:1px solid rgba(8, 36, 52, 0.08);
 }
 
 /* Logout row — same size/feel as a normal item */
 .drawerFooter .item.logout{
   display:flex; align-items:center; gap:12px;
   padding:var(--df-item-pad-y) var(--df-item-pad-x);
-  font-size:16px; line-height:1.2; color:#223; text-decoration:none;
-  border:1px solid #0002; border-radius:10px; background:#fff;
+  font-size:16px; line-height:1.2; color:#0B2A34; text-decoration:none;
+  border:1px solid rgba(28, 109, 208, 0.22); border-radius:14px; background:rgba(255,255,255,0.95);
+  transition:background .18s ease, transform .18s ease;
 }
-.drawerFooter .item.logout:hover{ background:#f4f4ef; }
+.drawerFooter .item.logout:hover{ background:rgba(28, 109, 208, 0.12); transform:translateX(2px); }
 .drawerFooter .item.logout .icon{ width:20px; }
 
 .drawerFooter .footBrand{
-  display:flex; align-items:center; gap:10px; margin:8px 2px 0;
+  display:flex; align-items:center; gap:10px; margin:10px 2px 0;
 }
-.drawerFooter .footBrand img{ width:24px; height:24px; border-radius:6px; }
-.drawerFooter .footBrand .title{ font-weight:700; color:#123; }
+.drawerFooter .footBrand img{ width:26px; height:26px; border-radius:8px; box-shadow:0 10px 16px rgba(13, 73, 112, 0.18); }
+.drawerFooter .footBrand .title{ font-weight:700; color:#0B2A34; }
 .drawerFooter .footBrand .mono{
-  font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456;
+  font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:rgba(8, 36, 52, 0.6);
 }
 .drawerFooter .ver{
-  margin:4px 2px 0; font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456;
+  margin:4px 2px 0; font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:rgba(8, 36, 52, 0.6);
 }
