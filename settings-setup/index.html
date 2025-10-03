@@ -106,21 +106,94 @@
       signOut(auth).then(() => location.href = "auth/");
     });
 
-    // Optional SW update button (no-op if SW missing)
+    // Check for updates button (looks for a newer version, clears caches, reloads)
     (function () {
       const btn = document.getElementById("btnCheckUpdates");
       const msg = document.getElementById("updMsg");
       if (!btn) return;
+
+      const currentVersion = (window.DF_VERSION || "").trim();
+
+      const parseRemoteVersion = (text) => {
+        const match = text.match(/DF_VERSION\s*=\s*["'`](.+?)["'`]/);
+        return match ? match[1].trim() : null;
+      };
+
+      const compareVersions = (next, current) => {
+        if (!next && !current) return 0;
+        if (next && !current) return 1;
+        if (!next && current) return -1;
+        if (next === current) return 0;
+        const toParts = (ver) => ver.replace(/^v/i, "").split(/[^0-9]+/).filter(Boolean).map(n => parseInt(n, 10) || 0);
+        const a = toParts(next);
+        const b = toParts(current);
+        const len = Math.max(a.length, b.length);
+        for (let i = 0; i < len; i++) {
+          const diff = (a[i] || 0) - (b[i] || 0);
+          if (diff !== 0) return diff;
+        }
+        return next.localeCompare(current);
+      };
+
+      const fetchLatestVersion = async () => {
+        const res = await fetch("./js/version.js?ts=" + Date.now(), { cache: "no-store" });
+        if (!res.ok) throw new Error("Version fetch failed: " + res.status);
+        const text = await res.text();
+        const remote = parseRemoteVersion(text);
+        if (!remote) throw new Error("Version string not found in response.");
+        return remote;
+      };
+
+      const clearCaches = async () => {
+        if (!("caches" in window)) return;
+        const names = await caches.keys();
+        await Promise.all(names.map((name) => caches.delete(name).catch(() => {})));
+      };
+
+      const refreshServiceWorkers = async (forceUnregister = false) => {
+        if (!("serviceWorker" in navigator)) return;
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(
+          regs.map(async (reg) => {
+            try {
+              if (forceUnregister) {
+                await reg.unregister();
+              } else if (reg.update) {
+                await reg.update();
+              }
+            } catch (err) {
+              console.warn("Service worker refresh failed", err);
+            }
+          })
+        );
+      };
+
       btn.addEventListener("click", async () => {
+        if (btn.disabled) return;
         msg.textContent = "Checking…";
+        btn.disabled = true;
+        let willReload = false;
         try {
-          if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.getRegistration('/FarmVista/serviceworker.js') ||
-                        await navigator.serviceWorker.getRegistration();
-            if (reg && reg.update) await reg.update();
+          const latestVersion = await fetchLatestVersion();
+          const hasNewer = compareVersions(latestVersion, currentVersion) > 0;
+          if (hasNewer) {
+            willReload = true;
+            msg.textContent = `New version ${latestVersion} available. Refreshing…`;
+            await clearCaches();
+            await refreshServiceWorkers(true);
+            setTimeout(() => window.location.reload(), 350);
+            return;
           }
-          msg.textContent = "Update check complete.";
-        } catch (e) { msg.textContent = "Could not check for updates."; }
+
+          await refreshServiceWorkers(false);
+          const displayVersion = latestVersion || currentVersion || "unknown";
+          msg.textContent = `Already on latest version (${displayVersion}).`;
+        } catch (e) {
+          console.error(e);
+          msg.textContent = "Could not check for updates.";
+        } finally {
+          if (!willReload) btn.disabled = false;
+        }
       });
     })();
 
