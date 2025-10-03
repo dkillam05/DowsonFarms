@@ -1,5 +1,5 @@
 // Farm Vista — minimal app-shell service worker for GitHub Pages scope /FarmVista/
-const CACHE = 'df-shell-v1';
+const CACHE = 'df-shell-v2';
 const APP_SHELL = [
   '/FarmVista/index.html',
   '/FarmVista/assets/css/theme.css',

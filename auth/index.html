@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1B5E20" />
+  <meta name="theme-color" content="#1C6DD0" />
   <title>Sign In — Farm Vista</title>
 
   <!-- Prepaint theme (no flash) -->
@@ -23,57 +23,205 @@
   <style>
     /* Minimal base styles so page looks fine even without theme.css */
     :root {
-      --brand-green:#1B5E20;
-      --paper:#f6f3e4;
-      --ink:#222;
-      --auth-edge-bg:#E6DCB8;
+      color-scheme: light;
+      --brand-blue: #1C6DD0;
+      --brand-blue-dark: #124f96;
+      --brand-green: #5CBF87;
+      --brand-gold: #F6F1B5;
+      --brand-ink: #0B2A34;
+      --paper: #F4FAFF;
+      --paper-strong: #ffffff;
+      --soft-border: rgba(12, 54, 74, 0.08);
+      --shadow: 0 18px 45px rgba(13, 73, 112, 0.12);
     }
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; }
     body {
-      margin:0; min-height:100dvh; display:grid; place-items:center;
-      background:var(--paper); color:var(--ink);
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      margin:0;
+      min-height:100dvh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px 18px;
+      background:radial-gradient(circle at top, rgba(28, 109, 208, 0.22), transparent 58%),
+                 radial-gradient(circle at bottom, rgba(92, 191, 135, 0.18), transparent 65%),
+                 var(--paper);
+      color:var(--brand-ink);
+      font-family: "Inter", system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
     }
-    .card {
-      width:min(520px, 92vw);
-      background:#fff; border:1px solid rgba(0,0,0,.08);
-      border-radius:18px; box-shadow:0 8px 24px rgba(0,0,0,.08);
+    main.card {
+      width:min(480px, 100%);
+      background:linear-gradient(160deg, rgba(246, 241, 181, 0.32), rgba(255,255,255,0)) var(--paper-strong);
+      border:1px solid var(--soft-border);
+      border-radius:26px;
+      box-shadow:var(--shadow);
       overflow:hidden;
+      position:relative;
+      backdrop-filter: blur(12px);
     }
-    .card__head { background:var(--auth-edge-bg); padding:18px 22px; border-bottom:1px solid rgba(0,0,0,.08); }
-    .card__title { margin:0; font-size:20px; font-weight:700; color:var(--brand-green); }
-    .card__body { padding:20px 22px 24px; }
-    .field { margin-bottom:14px; }
-    label { display:block; font-size:14px; margin-bottom:6px; color:#444; }
+    .card__head {
+      padding:26px 28px 16px;
+      background:linear-gradient(135deg, rgba(28, 109, 208, 0.12), rgba(92, 191, 135, 0.05));
+      border-bottom:1px solid var(--soft-border);
+    }
+    .brand-lockup {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:700;
+      letter-spacing:0.01em;
+      color:var(--brand-blue);
+    }
+    .brand-lockup img {
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      background:rgba(28,109,208,0.1);
+      padding:8px;
+    }
+    .brand-lockup span {
+      display:flex;
+      flex-direction:column;
+      font-size:18px;
+      line-height:1.2;
+    }
+    .brand-lockup span small {
+      font-size:13px;
+      font-weight:500;
+      color:var(--brand-ink);
+      opacity:0.72;
+    }
+    .card__title {
+      margin:18px 0 0;
+      font-size:28px;
+      font-weight:700;
+      color:var(--brand-blue-dark);
+      letter-spacing:-0.01em;
+    }
+    .card__subtitle {
+      margin:8px 0 0;
+      font-size:15px;
+      color:rgba(11, 42, 52, 0.72);
+      line-height:1.4;
+    }
+    .card__body {
+      padding:24px 28px 32px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    label { font-size:14px; font-weight:600; color:rgba(11, 42, 52, 0.78); }
     input {
-      width:100%; font-size:16px; padding:12px;
-      border:1px solid rgba(0,0,0,.2); border-radius:12px; outline:none;
+      width:100%;
+      font-size:16px;
+      padding:12px 14px;
+      border:1.5px solid rgba(28, 109, 208, 0.28);
+      border-radius:14px;
+      outline:none;
+      background-color:rgba(255,255,255,0.9);
+      transition:border-color .2s ease, box-shadow .2s ease;
     }
-    .pw-row { display:flex; gap:8px; align-items:center; }
+    input:focus {
+      border-color:var(--brand-blue);
+      box-shadow:0 0 0 3px rgba(28, 109, 208, 0.18);
+    }
+    .pw-row { display:flex; gap:10px; align-items:center; }
     .pw-row input { flex:1; }
     .toggle {
-      white-space:nowrap; font-size:13px; padding:10px 12px; border-radius:12px;
-      border:1px dashed rgba(0,0,0,.25); background:#fafafa; cursor:pointer;
+      white-space:nowrap;
+      font-size:13px;
+      font-weight:600;
+      padding:11px 14px;
+      border-radius:14px;
+      border:1.5px solid rgba(92, 191, 135, 0.4);
+      background:rgba(92, 191, 135, 0.1);
+      color:var(--brand-blue-dark);
+      cursor:pointer;
+      transition:background .2s ease, border-color .2s ease;
     }
+    .toggle:focus-visible {
+      outline:2px solid rgba(28,109,208,0.5);
+      outline-offset:2px;
+    }
+    .toggle:hover { background:rgba(92, 191, 135, 0.18); border-color:rgba(92,191,135,0.6); }
     .btn {
-      width:100%; padding:12px 14px; border:0; border-radius:12px; cursor:pointer;
-      background:var(--brand-green); color:#fff; font-weight:700; font-size:16px;
+      width:100%;
+      padding:15px 18px;
+      border:0;
+      border-radius:18px;
+      cursor:pointer;
+      background:linear-gradient(135deg, var(--brand-blue), #28a170);
+      color:#fff;
+      font-weight:700;
+      font-size:17px;
+      letter-spacing:0.01em;
+      box-shadow:0 12px 20px rgba(28, 109, 208, 0.24);
+      transition:transform .15s ease, box-shadow .15s ease;
     }
+    .btn:focus-visible {
+      outline:2px solid rgba(246, 241, 181, 0.9);
+      outline-offset:3px;
+    }
+    .btn:hover { transform:translateY(-1px); box-shadow:0 14px 24px rgba(28, 109, 208, 0.28); }
     .msg {
-      margin:10px 0 0; font-size:14px; line-height:1.3;
-      padding:10px 12px; border-radius:10px; border:1px solid transparent;
+      margin:0;
+      font-size:14px;
+      line-height:1.4;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1.5px solid transparent;
+      background:rgba(28, 109, 208, 0.08);
+      color:var(--brand-blue-dark);
     }
-    .msg[data-type="info"]  { background:#f4f6ff; border-color:#c9d2ff; }
-    .msg[data-type="error"] { background:#fff4f4; border-color:#ffd0d0; color:#8b0000; }
-    .meta { text-align:center; font-size:12px; color:#666; margin-top:14px; }
-    .brand { display:flex; justify-content:center; align-items:center; gap:10px; margin-top:8px; font-weight:700; }
-    .brand img { width:28px; height:28px; }
+    .msg[data-type="info"]  { background:rgba(28,109,208,0.12); border-color:rgba(28,109,208,0.25); }
+    .msg[data-type="error"] { background:rgba(255, 235, 235, 0.95); border-color:rgba(204,17,17,0.35); color:#8b0000; }
+    .meta {
+      text-align:center;
+      font-size:13px;
+      color:rgba(11, 42, 52, 0.6);
+    }
+    .card__footer {
+      text-align:center;
+      font-size:12px;
+      color:rgba(11, 42, 52, 0.55);
+      padding:0 0 10px;
+    }
+    .mobile-note {
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      font-size:13px;
+      line-height:1.45;
+      color:rgba(11, 42, 52, 0.7);
+      background:rgba(246, 241, 181, 0.4);
+      border-radius:14px;
+      padding:12px 14px;
+    }
+    .mobile-note span {
+      display:block;
+    }
+    @media (max-width: 520px) {
+      body { padding:24px 14px; }
+      main.card {
+        border-radius:22px;
+        box-shadow:0 14px 32px rgba(13, 73, 112, 0.18);
+      }
+      .card__head { padding:22px 22px 12px; }
+      .card__body { padding:22px 22px 26px; }
+      .brand-lockup img { width:34px; height:34px; }
+      .card__title { font-size:24px; }
+    }
   </style>
 </head>
 <body>
   <main class="card" role="main">
     <div class="card__head">
-      <h1 class="card__title">Sign in to Farm Vista</h1>
+      <div class="brand-lockup" aria-label="Farm Vista for Dowson Farms">
+        <img src="../assets/icons/logo.png" alt="Farm Vista" />
+        <span>Farm Vista <small>for Dowson Farms</small></span>
+      </div>
+      <h1 class="card__title">Welcome back to your fields</h1>
+      <p class="card__subtitle">Log in to access Farm Vista’s personalized insights and Dowson Farms records wherever you are.</p>
     </div>
     <div class="card__body">
       <form id="loginForm" novalidate>
@@ -94,12 +242,12 @@
 
         <div id="msg" class="msg" hidden></div>
 
-        <p class="meta">Need an account? Ask an admin to invite you.</p>
-        <div class="brand">
-          <img src="../assets/icons/logo.png" alt="DF logo" />
-          <span>Farm Vista</span>
+        <div class="mobile-note" aria-live="polite">
+          <span>📱 Optimized for in-field PWA use — add Farm Vista to your home screen for an app-like experience.</span>
         </div>
+        <p class="meta">Need access for a Dowson Farms teammate? Ask your Farm Vista admin to invite them.</p>
       </form>
+      <p class="card__footer">Powered by Farm Vista • Tailored for Dowson Farms</p>
     </div>
   </main>
 

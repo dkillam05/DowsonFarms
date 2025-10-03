@@ -1,65 +1,93 @@
-/* Farm Vista — Global Header (fixed, dark green, white text) */
+/* Farm Vista — Global Header (fixed, Farm Vista gradient, mobile-first) */
 
-html, body { height: 100%; }
-body { padding-top: 64px; }   /* bump to match taller header */
-
-/* Header bar */
-.app-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 64px;
-  display: flex;
-  align-items: center;           /* center logo vertically */
-  justify-content: flex-start;   /* hamburger + logo on left */
-  padding: 0 14px;
-  background: #0f5a1a;
-  color: #fff;
-  z-index: 1000;
-  box-shadow: 0 1px 0 rgba(0,0,0,.2);
-  gap: 12px;
+:root {
+  --fv-header-height: 68px;
 }
 
-/* Hamburger button */
+html, body { height: 100%; }
+body { padding-top: var(--fv-header-height); }
+
+.app-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--fv-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 0 18px;
+  background: linear-gradient(120deg, rgba(28, 109, 208, 0.95), rgba(92, 191, 135, 0.88));
+  color: #fff;
+  z-index: 1000;
+  box-shadow: 0 14px 32px rgba(13, 73, 112, 0.32);
+  backdrop-filter: blur(10px);
+}
+
 .app-header .burger {
-  -webkit-appearance: none;
   appearance: none;
-  background: none;
-  border: none;
-  outline: none;
-  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 14px;
+  padding: 6px 10px;
   margin: 0;
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
-  color: #fff;                        /* force white bars */
+  color: #fff;
+  transition: background 0.18s ease, border-color 0.18s ease;
 }
 
-/* Logo (scaled to fill box without distortion) */
+.app-header .burger:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 2px;
+}
+
+.app-header .burger:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 .app-header img.app-logo {
-  height: 44px;          /* adjust height to fit the header box */
-  width: auto;           /* auto width keeps aspect ratio */
+  height: 46px;
+  width: auto;
   display: block;
-  object-fit: contain;   /* ensures no stretch or crop */
-  max-width: 45vw;       /* prevent logo from overtaking small screens */
+  object-fit: contain;
+  max-width: 45vw;
+  filter: drop-shadow(0 6px 16px rgba(11, 42, 52, 0.28));
   content: url("../assets/icons/logo@2x.png");
 }
 
-/* Spacer pushes clock to far right */
 .app-header .spacer { flex: 1; }
 
-/* Clock (date display) */
 .app-header .clock {
-  color: #fff;
+  color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
-/* Links inside header */
-.app-header a { color: #fff; text-decoration: none; }
+.app-header a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
 
-/* Small screens */
-@media (max-width: 360px) {
+@media (max-width: 640px) {
+  :root { --fv-header-height: 64px; }
+  .app-header {
+    gap: 10px;
+    padding: 0 14px;
+  }
   .app-header img.app-logo {
-    height: 36px;   /* shrink logo on very small devices */
+    height: 40px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-header {
+    padding: 0 10px;
+  }
+  .app-header img.app-logo {
+    height: 34px;
   }
 }
