@@ -1,14 +1,22 @@
 // js/drawer.js — robust hamburger + hero + sticky footer
+// - Auto-creates #drawer and #drawerBackdrop if missing.
 // - Works with injected header (delegation + retry).
-// - Auto-creates backdrop if missing.
 // - Builds accordion from DF_DRAWER_MENUS.
 // - Version label updates once version.js sets window.DF_VERSION.
 
 (function () {
-  const drawer = document.getElementById("drawer");
-  if (!drawer) return;
+  // ---------- ensure drawer shell exists ----------
+  let drawer = document.getElementById("drawer");
+  if (!drawer) {
+    drawer = document.createElement("div");
+    drawer.id = "drawer";
+    drawer.className = "drawer";
+    const nav = document.createElement("nav"); // content area
+    drawer.appendChild(nav);
+    document.body.appendChild(drawer);
+  }
 
-  // Ensure backdrop exists
+  // ---------- ensure backdrop exists ----------
   let backdrop = document.getElementById("drawerBackdrop");
   if (!backdrop) {
     backdrop = document.createElement("div");
@@ -17,7 +25,7 @@
     document.body.appendChild(backdrop);
   }
 
-  // ---------- open / close
+  // ---------- open / close ----------
   const openDrawer  = () => document.body.classList.add("drawer-open");
   const closeDrawer = () => document.body.classList.remove("drawer-open");
   window.DF_OPEN_DRAWER = openDrawer;
@@ -29,7 +37,7 @@
     if (e.key === "Escape") closeDrawer();
   });
 
-  // ---------- HAMBURGER: bind now, keep retrying, plus delegation
+  // ---------- HAMBURGER: bind now, keep retrying, plus delegation ----------
   function findToggle() {
     return (
       document.getElementById("drawerToggle") ||
@@ -44,36 +52,34 @@
     btn.addEventListener("touchstart", onTap, { passive: false });
     btn.dataset.dfBound = "1";
   }
-  // Try immediately + retry for a few seconds (header may be injected)
+  // Try immediately + retry (header may be injected after this runs)
   bindToggle(findToggle());
-  let tries = 0, maxTries = 60;
+  let tries = 0, maxTries = 60; // ~6s
   const iv = setInterval(() => {
     const btn = findToggle();
     if (btn && btn.dataset.dfBound === "1") { clearInterval(iv); return; }
     if (btn) bindToggle(btn);
     if (++tries >= maxTries) clearInterval(iv);
   }, 100);
-  // Delegation safety-net
+  // Delegation safety-net (future rerenders)
   document.addEventListener("click", (e) => {
-    const hit =
-      (e.target.closest && (
-        e.target.closest("#drawerToggle") ||
-        e.target.closest(".app-header .burger") ||
-        e.target.closest('[aria-label="Open menu"]')
-      ));
+    const hit = e.target.closest &&
+      (e.target.closest("#drawerToggle") ||
+       e.target.closest(".app-header .burger") ||
+       e.target.closest('[aria-label="Open menu"]'));
     if (hit) { e.preventDefault(); openDrawer(); }
   }, true);
 
-  // ---------- permission helper
+  // ---------- permission helper ----------
   const canView = (href) => {
     if (!window.DF_ACCESS || typeof window.DF_ACCESS.canView !== "function") return true;
     return window.DF_ACCESS.canView(href);
   };
 
-  // ---------- build hero (top area)
+  // ---------- top hero (uses existing styles; add both classes to match CSS variants) ----------
   function buildHero() {
     const hero = document.createElement("div");
-    hero.className = "brand";
+    hero.className = "brand hero"; // supports .brand or .hero CSS you’ve used
     hero.innerHTML = `
       <img src="assets/icons/icon-192.png" alt="">
       <div>
@@ -84,7 +90,7 @@
     return hero;
   }
 
-  // ---------- link row / subgroup / group
+  // ---------- link row / subgroup / group ----------
   const makeLink = (href, label, icon) => {
     const a = document.createElement("a");
     a.className = "item";
@@ -121,7 +127,6 @@
   }
 
   function makeGroup(group, nav) {
-    // Filter children by permission (and nested)
     const visible = (group.children || []).filter((it) => {
       if (Array.isArray(it.children) && it.children.length) {
         return it.children.some((l) => canView(l.href || ""));
@@ -161,7 +166,7 @@
     return g;
   }
 
-  // ---------- footer (logout + brand/version)
+  // ---------- footer (logout + brand/version) ----------
   function buildFooter() {
     const foot = document.createElement("div");
     foot.className = "drawerFooter";
@@ -195,7 +200,6 @@
 
     const ver = document.createElement("div");
     ver.className = "ver";
-    // Show now if available, otherwise fill later.
     function applyVersion() {
       const v = (window.DF_VERSION && window.DF_VERSION.app) ? window.DF_VERSION.app : null;
       if (v) ver.textContent = `App v${v}`;
@@ -203,9 +207,7 @@
     }
     if (!applyVersion()) {
       ver.textContent = "App v…";
-      // Listen for a custom event from version.js (emit it there after setting DF_VERSION)
       window.addEventListener("df-version", applyVersion, { once: true });
-      // And also do a short retry loop as a fallback
       let n = 0;
       const t = setInterval(() => { if (applyVersion() || ++n > 50) clearInterval(t); }, 100);
     }
@@ -217,14 +219,14 @@
     return foot;
   }
 
-  // ---------- write structure (keep existing <nav> if present)
+  // ---------- assemble structure ----------
   const navShell = drawer.querySelector("nav") || document.createElement("nav");
   drawer.innerHTML = "";
   drawer.appendChild(buildHero());
   drawer.appendChild(navShell);
   drawer.appendChild(buildFooter());
 
-  // ---------- build accordion
+  // ---------- build accordion ----------
   const nav = navShell;
   nav.innerHTML = "";
   (window.DF_DRAWER_MENUS || []).forEach((group) => {
@@ -232,7 +234,7 @@
     if (g) nav.appendChild(g);
   });
 
-  // ---------- width autosize (clamped)
+  // ---------- width autosize (clamped) ----------
   try {
     const measurer = document.createElement("div");
     measurer.style.cssText =
