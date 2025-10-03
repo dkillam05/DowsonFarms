@@ -4,22 +4,23 @@ html, body { height: 100%; }
 body { padding-top: 64px; }   /* bump to match taller header */
 
 /* Header bar */
-.app-header{
+.app-header {
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 64px;                       /* taller than before */
+  height: 64px;
   display: flex;
-  align-items: flex-end;               /* push contents downward */
-  gap: 12px;
-  padding: 0 14px 6px;                 /* bottom padding gives green under text */
+  align-items: center;           /* center logo vertically */
+  justify-content: flex-start;   /* hamburger + logo on left */
+  padding: 0 14px;
   background: #0f5a1a;
   color: #fff;
   z-index: 1000;
   box-shadow: 0 1px 0 rgba(0,0,0,.2);
+  gap: 12px;
 }
 
 /* Hamburger button */
-.app-header .burger{
+.app-header .burger {
   -webkit-appearance: none;
   appearance: none;
   background: none;
@@ -33,22 +34,21 @@ body { padding-top: 64px; }   /* bump to match taller header */
   color: #fff;                        /* force white bars */
 }
 
-/* Logo */
-.app-header img{
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
+/* Logo (scaled to fill box without distortion) */
+.app-header img.app-logo {
+  height: 44px;          /* adjust height to fit the header box */
+  width: auto;           /* auto width keeps aspect ratio */
   display: block;
+  object-fit: contain;   /* ensures no stretch or crop */
+  max-width: 45vw;       /* prevent logo from overtaking small screens */
+  content: url("../assets/icons/logo@2x.png");
 }
 
-/* Title + date */
-.app-header .app-title{
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: .2px;
-}
-.app-header .spacer{ flex: 1; }
-.app-header .clock{
+/* Spacer pushes clock to far right */
+.app-header .spacer { flex: 1; }
+
+/* Clock (date display) */
+.app-header .clock {
   color: #fff;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
@@ -58,6 +58,8 @@ body { padding-top: 64px; }   /* bump to match taller header */
 .app-header a { color: #fff; text-decoration: none; }
 
 /* Small screens */
-@media (max-width: 360px){
-  .app-header .app-title{ font-size: 16px; }
+@media (max-width: 360px) {
+  .app-header img.app-logo {
+    height: 36px;   /* shrink logo on very small devices */
+  }
 }
