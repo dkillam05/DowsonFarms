@@ -4,8 +4,7 @@
   header.className = "app-header";
   header.innerHTML = `
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
-    <img src="assets/icons/icon-192.png" alt="" class="app-logo">
-    <div class="app-title">Dowson Farms</div>
+    <img src="assets/icons/logo@2x.png" alt="Dowson Farms Logo" class="app-logo">
     <div class="spacer"></div>
     <span id="dateDisplay" class="clock">--/--/----</span>
   `;
@@ -16,7 +15,7 @@
   function updateDate() {
     const now = new Date();
     dateEl.textContent = now.toLocaleDateString("en-US", {
-      month: "short", // "Oct"
+      month: "long",  // "October"
       day: "numeric", // "2"
       year: "numeric" // "2025"
     });
