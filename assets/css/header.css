@@ -54,7 +54,6 @@ body { padding-top: var(--fv-header-height); }
   object-fit: contain;
   max-width: 45vw;
   filter: drop-shadow(0 8px 20px rgba(23, 52, 49, 0.32));
-  content: url("../assets/icons/Farm_Vista_Logo.png");
 }
 
 .app-header .spacer { flex: 1; }
@@ -64,6 +63,7 @@ body { padding-top: var(--fv-header-height); }
   font-size: 14px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+  text-align: right;
 }
 
 .app-header a {
