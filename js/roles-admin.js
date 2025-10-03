@@ -14,8 +14,8 @@ const rowsBox = document.getElementById('permRows');
 const statusBox = document.getElementById('status');
 
 // --- helpers
-function msg(s, ok=true){ statusBox.style.display='block'; statusBox.style.background = ok ? '#eef5ee' : '#ffe9e9';
-  statusBox.style.border = ok ? '1px solid #cfe3cf' : '1px solid #f3b9b9'; statusBox.style.color = ok ? '#125212' : '#a00'; statusBox.textContent=s;
+function msg(s, ok=true){ statusBox.style.display='block'; statusBox.style.background = ok ? '#e1ede4' : '#ffe9e9';
+  statusBox.style.border = ok ? '1px solid #cadbcc' : '1px solid #f3b9b9'; statusBox.style.color = ok ? '#2F563E' : '#a00'; statusBox.textContent=s;
 }
 function clearMsg(){ statusBox.style.display='none'; }
 function keyFromName(n){ return String(n||'').trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,40); }

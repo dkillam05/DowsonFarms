@@ -42,8 +42,8 @@
       s.textContent = `
         .df-tiles{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
         .df-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;
-          border:1px solid rgba(0,0,0,.12);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);
-          text-decoration:none;color:#333;padding:18px 14px}
+          border:1px solid rgba(54,94,90,0.18);border-radius:12px;box-shadow:0 6px 18px rgba(23,52,49,0.12);
+          text-decoration:none;color:#143231;padding:18px 14px}
         .df-tile:hover{transform:translateY(-2px)}
         .df-tile span{margin-top:6px;font-weight:600}
       `;
@@ -72,11 +72,11 @@
     // Create diagnostics panel
     const host = document.querySelector('main') || document.body;
     const panel = el('section', { id: 'df-diag', style: `
-      border:1px solid rgba(0,0,0,.15);border-radius:12px;background:#fff;
-      padding:12px;margin:12px 0;box-shadow:0 6px 18px rgba(0,0,0,.06)` 
+      border:1px solid rgba(54,94,90,0.2);border-radius:12px;background:#fff;
+      padding:12px;margin:12px 0;box-shadow:0 6px 18px rgba(23,52,49,0.12)`
     });
-    const title = `<div style="font-weight:700;color:#1B5E20;margin-bottom:8px">Settings SubNav Diagnostics</div>`;
-    const info  = el('div', { id: 'df-diag-info', style:'font-size:13px;line-height:1.4;color:#333' });
+    const title = `<div style="font-weight:700;color:#365E5A;margin-bottom:8px">Settings SubNav Diagnostics</div>`;
+    const info  = el('div', { id: 'df-diag-info', style:'font-size:13px;line-height:1.4;color:#143231' });
     const btns  = el('div', { style:'margin-top:8px;display:flex;gap:8px;flex-wrap:wrap' });
     const out1  = el('div', { id: 'df-diag-out1', style:'margin-top:10px' });
     const out2  = el('div', { id: 'df-diag-out2', style:'margin-top:10px' });
@@ -107,9 +107,10 @@
     `;
 
     // Buttons
-    const btn1 = el('button', { type:'button', style:'padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer' }, 'Render RAW children (no roles)');
-    const btn2 = el('button', { type:'button', style:'padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer' }, 'Render ROLE-FILTERED children');
-    const btn3 = el('button', { type:'button', style:'padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer' }, 'List children hrefs');
+    const btnStyle = 'padding:6px 10px;border-radius:8px;border:1px solid rgba(54,94,90,0.26);background:#fff;cursor:pointer;color:#143231;font-weight:600';
+    const btn1 = el('button', { type:'button', style:btnStyle }, 'Render RAW children (no roles)');
+    const btn2 = el('button', { type:'button', style:btnStyle }, 'Render ROLE-FILTERED children');
+    const btn3 = el('button', { type:'button', style:btnStyle }, 'List children hrefs');
 
     btns.appendChild(btn1);
     btns.appendChild(btn2);

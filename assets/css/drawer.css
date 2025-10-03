@@ -1,15 +1,15 @@
 /* Farm Vista — Drawer (accordion) */
 
 :root {
-  --drawer-surface: rgba(255, 255, 255, 0.86);
-  --drawer-border: rgba(28, 109, 208, 0.14);
-  --drawer-shadow: 0 28px 48px rgba(8, 36, 52, 0.18);
+  --drawer-surface: rgba(251, 249, 240, 0.9);
+  --drawer-border: rgba(54, 94, 90, 0.22);
+  --drawer-shadow: 0 28px 48px rgba(23, 52, 49, 0.22);
   --drawer-radius: 22px;
 }
 
 /* Backdrop */
 .drawerBackdrop{
-  position:fixed; inset:0; background:rgba(0,0,0,.35);
+  position:fixed; inset:0; background:rgba(20, 40, 38, 0.45);
   opacity:0; visibility:hidden; transition:opacity .18s ease; z-index:90;
 }
 body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
@@ -30,7 +30,7 @@ body.drawer-open .drawer{ translate:0 0; }
 
 /* ===== Top hero (uses the “dead space”) ===== */
 .drawer .hero{
-  background:linear-gradient(135deg, rgba(28, 109, 208, 0.22), rgba(92, 191, 135, 0.18));
+  background:linear-gradient(135deg, rgba(54, 94, 90, 0.24), rgba(216, 193, 121, 0.18));
   border-bottom:1px solid var(--drawer-border);
   padding:16px 14px 14px; text-align:left;
 }
@@ -39,13 +39,13 @@ body.drawer-open .drawer{ translate:0 0; }
 }
 .drawer .hero img{
   width:40px; height:40px; border-radius:12px; display:block;
-  box-shadow:0 10px 18px rgba(13, 73, 112, 0.22);
+  box-shadow:0 10px 18px rgba(23, 52, 49, 0.24);
 }
 .drawer .hero .title{
-  font-weight:700; font-size:18px; color:#0B2A34; letter-spacing:.2px;
+  font-weight:700; font-size:18px; color:#143231; letter-spacing:.2px;
 }
 .drawer .hero .sub{
-  margin-top:4px; color:rgba(8, 36, 52, 0.7);
+  margin-top:4px; color:rgba(20, 50, 49, 0.68);
   font:13px/1.2 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
 }
 
@@ -66,15 +66,15 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawer .group{
   border:1px solid var(--drawer-border);
   border-radius:16px;
-  background:rgba(255,255,255,0.92);
+  background:rgba(251,249,240,0.95);
   margin:10px 6px;
   overflow:hidden;
-  box-shadow:0 16px 26px rgba(8, 36, 52, 0.08);
+  box-shadow:0 16px 26px rgba(23, 52, 49, 0.14);
 }
 .drawer .group > button{
   width:100%; display:flex; align-items:center; gap:10px;
   padding:14px 16px; background:transparent; border:0; cursor:pointer;
-  font-weight:700; color:#0B2A34;
+  font-weight:700; color:#143231;
 }
 .drawer .group > button .icon{ width:22px; }
 .drawer .group > button .chev{ margin-left:auto; transition:transform .18s ease; }
@@ -88,25 +88,25 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawer a.item{
   display:flex; align-items:center; gap:12px;
   padding:var(--df-item-pad-y) var(--df-item-pad-x);
-  text-decoration:none; color:#0B2A34;
-  border-top:1px solid rgba(8, 36, 52, 0.05);
-  font-size:16px; line-height:1.2; background:rgba(255,255,255,0.85);
+  text-decoration:none; color:#143231;
+  border-top:1px solid rgba(20, 50, 49, 0.08);
+  font-size:16px; line-height:1.2; background:rgba(251,249,240,0.88);
   transition:background .18s ease, transform .18s ease;
 }
-.drawer a.item:hover{ background:rgba(28, 109, 208, 0.12); transform:translateX(2px); }
+.drawer a.item:hover{ background:rgba(54, 94, 90, 0.14); transform:translateX(2px); }
 .drawer a.item .icon{ width:20px; }
 
 /* Second-level (nested) */
-.drawer .subgroup{ border-top:1px solid rgba(8, 36, 52, 0.05); }
+.drawer .subgroup{ border-top:1px solid rgba(20, 50, 49, 0.08); }
 .drawer .subgroup > button{
   width:100%; display:flex; align-items:center; gap:10px;
-  padding:12px 16px; background:rgba(247, 252, 255, 0.6); border:0; cursor:pointer;
-  font-weight:600; color:#0B2A34;
+  padding:12px 16px; background:rgba(248, 245, 230, 0.7); border:0; cursor:pointer;
+  font-weight:600; color:#143231;
 }
 .drawer .subgroup .chev{ margin-left:auto; transition:transform .18s ease; }
 .drawer .subpanel{
   max-height:0; overflow:hidden; transition:max-height .22s ease;
-  border-top:1px solid rgba(8, 36, 52, 0.05); background:rgba(255,255,255,0.85);
+  border-top:1px solid rgba(20, 50, 49, 0.08); background:rgba(251,249,240,0.88);
 }
 .drawer .subgroup[aria-expanded="true"] .subpanel{ max-height:900px; }
 .drawer .subgroup[aria-expanded="true"] .chev{ transform:rotate(90deg); }
@@ -114,30 +114,30 @@ body.drawer-open .drawer{ translate:0 0; }
 /* ===== Footer block — pinned flush to bottom, no tall banner ===== */
 .drawerFooter{
   position:sticky; bottom:0;
-  background:rgba(245, 249, 255, 0.92);
+  background:rgba(248, 245, 230, 0.95);
   padding:10px 10px 14px;
-  border-top:1px solid rgba(8, 36, 52, 0.08);
+  border-top:1px solid rgba(20, 50, 49, 0.1);
 }
 
 /* Logout row — same size/feel as a normal item */
 .drawerFooter .item.logout{
   display:flex; align-items:center; gap:12px;
   padding:var(--df-item-pad-y) var(--df-item-pad-x);
-  font-size:16px; line-height:1.2; color:#0B2A34; text-decoration:none;
-  border:1px solid rgba(28, 109, 208, 0.22); border-radius:14px; background:rgba(255,255,255,0.95);
+  font-size:16px; line-height:1.2; color:#143231; text-decoration:none;
+  border:1px solid rgba(54, 94, 90, 0.26); border-radius:14px; background:rgba(251,249,240,0.96);
   transition:background .18s ease, transform .18s ease;
 }
-.drawerFooter .item.logout:hover{ background:rgba(28, 109, 208, 0.12); transform:translateX(2px); }
+.drawerFooter .item.logout:hover{ background:rgba(54, 94, 90, 0.14); transform:translateX(2px); }
 .drawerFooter .item.logout .icon{ width:20px; }
 
 .drawerFooter .footBrand{
   display:flex; align-items:center; gap:10px; margin:10px 2px 0;
 }
-.drawerFooter .footBrand img{ width:26px; height:26px; border-radius:8px; box-shadow:0 10px 16px rgba(13, 73, 112, 0.18); }
-.drawerFooter .footBrand .title{ font-weight:700; color:#0B2A34; }
+.drawerFooter .footBrand img{ width:26px; height:26px; border-radius:8px; box-shadow:0 10px 16px rgba(23, 52, 49, 0.22); }
+.drawerFooter .footBrand .title{ font-weight:700; color:#143231; }
 .drawerFooter .footBrand .mono{
-  font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:rgba(8, 36, 52, 0.6);
+  font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:rgba(20, 50, 49, 0.6);
 }
 .drawerFooter .ver{
-  margin:4px 2px 0; font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:rgba(8, 36, 52, 0.6);
+  margin:4px 2px 0; font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:rgba(20, 50, 49, 0.6);
 }

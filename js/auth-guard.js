@@ -27,26 +27,26 @@ if (path.includes("/auth/")) {
       #dfWaitOverlay {
         position: fixed; inset: 0;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(0,0,0,0.28);
+        background: rgba(20,50,49,0.42);
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
         z-index: 10000;
       }
       #dfWaitCard {
         display:flex; flex-direction:column; align-items:center; gap:12px;
-        background: #ffffff; color:#123; border-radius: 14px;
-        padding: 18px 20px; min-width: 220px; box-shadow: 0 10px 30px rgba(0,0,0,.18);
-        border: 1px solid rgba(0,0,0,.06);
+        background: #fbf9f0; color:#143231; border-radius: 14px;
+        padding: 18px 20px; min-width: 220px; box-shadow: 0 10px 30px rgba(23,52,49,0.22);
+        border: 1px solid rgba(54,94,90,0.18);
         font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       }
       #dfSpinner {
         width: 36px; height: 36px; border-radius: 50%;
-        border: 4px solid #cfe3cf; border-top-color: #1B5E20;
+        border: 4px solid rgba(159,191,111,0.45); border-top-color: #365E5A;
         animation: dfspin 0.9s linear infinite;
       }
       @keyframes dfspin { to { transform: rotate(360deg); } }
-      #dfWaitMsg { font-weight: 600; color:#1B5E20; }
-      #dfWaitSub { color:#456; font-size:12px; }
+      #dfWaitMsg { font-weight: 600; color:#365E5A; }
+      #dfWaitSub { color:rgba(20,50,49,0.65); font-size:12px; }
     `;
     document.head.appendChild(style);
 
