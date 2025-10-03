@@ -33,7 +33,8 @@ toggle.addEventListener("click", (e) => {
   const isPw = passEl.type === "password";
   passEl.type = isPw ? "text" : "password";
   toggle.setAttribute("aria-pressed", String(isPw));
-  toggle.textContent = isPw ? "Hide" : "Show";
+  toggle.dataset.state = isPw ? "visible" : "hidden";
+  toggle.setAttribute("aria-label", isPw ? "Hide password" : "Show password");
 });
 
 form.addEventListener("submit", async (e) => {
