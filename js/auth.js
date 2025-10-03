@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { auth } from "./firebase-init.js";
+import { showWait, hideWait } from "./wait-overlay.js";
 
 // If already signed in, bounce to app home
 onAuthStateChanged(auth, (user) => {
@@ -39,7 +40,7 @@ toggle.addEventListener("click", (e) => {
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  showMsg("Signing in…", "info");
+  showMsg("");
 
   const email = emailEl.value.trim();
   const pw    = passEl.value;
@@ -49,10 +50,14 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
+  showWait("Please wait… Loading");
+
   try {
     await signInWithEmailAndPassword(auth, email, pw);
     // onAuthStateChanged handles redirect
   } catch (err) {
+    hideWait(0);
+
     let friendly = "Sign-in failed. ";
     switch (err.code) {
       case "auth/invalid-email":     friendly += "Invalid email."; break;
