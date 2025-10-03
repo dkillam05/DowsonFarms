@@ -1,215 +1,122 @@
-// js/drawer.js — Dowson Farms Global Drawer
-// Robust open/close, bottom brand + logout, version integration.
+// Dowson Farms — Drawer (NO internal footer/brand/version; menus only)
+// Builds the accordion from window.DF_DRAWER_MENUS and respects DF_ACCESS.canView.
+// Works with the fixed header + global footer you already have.
 
-import { auth } from "./firebase-init.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+(function () {
+  const drawer   = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  const toggle   = document.getElementById('drawerToggle');
 
-/* ---------- Ensure shell exists ---------- */
-function ensureShell() {
-  let drawer = document.getElementById("drawer");
-  let backdrop = document.getElementById("drawerBackdrop");
+  if (!drawer) return;
 
-  if (!drawer) {
-    drawer = document.createElement("div");
-    drawer.id = "drawer";
-    drawer.className = "drawer";
-    drawer.setAttribute("aria-label", "Side menu");
-    drawer.innerHTML = `<nav aria-label="Primary"></nav>`;
-    document.body.appendChild(drawer);
-  } else if (!drawer.querySelector("nav")) {
-    const nav = document.createElement("nav");
-    nav.setAttribute("aria-label", "Primary");
-    drawer.appendChild(nav);
+  const nav = drawer.querySelector('nav') || drawer.appendChild(document.createElement('nav'));
+
+  // ---- open/close ----
+  function openDrawer(){ document.body.classList.add('drawer-open'); }
+  function closeDrawer(){ document.body.classList.remove('drawer-open'); }
+  function clickBackdrop(e){ if (e.target === backdrop) closeDrawer(); }
+
+  toggle   && toggle.addEventListener('click', openDrawer);
+  backdrop && backdrop.addEventListener('click', clickBackdrop);
+  window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeDrawer(); });
+
+  // Ensure drawer sits above global footer
+  drawer.style.zIndex = '1000';
+  backdrop.style.zIndex = '999';
+
+  // ---- permission helper ----
+  function canView(href){
+    try {
+      if (!href) return true;
+      if (window.DF_ACCESS && typeof window.DF_ACCESS.canView === 'function'){
+        return !!window.DF_ACCESS.canView(href);
+      }
+      return true; // if access system not ready, don't hide
+    } catch { return true; }
   }
 
-  if (!backdrop) {
-    backdrop = document.createElement("div");
-    backdrop.id = "drawerBackdrop";
-    backdrop.className = "drawerBackdrop";
-    document.body.appendChild(backdrop);
-  }
+  // ---- build accordion (two levels max: group -> subgroup -> links) ----
+  function build(){
+    const data = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
+    nav.innerHTML = '';
 
-  return { drawer, backdrop, nav: drawer.querySelector("nav") };
-}
-const { drawer, backdrop, nav } = ensureShell();
-
-/* ---------- Open/Close ---------- */
-function openDrawer() { document.body.classList.add("drawer-open"); }
-function closeDrawer() { document.body.classList.remove("drawer-open"); }
-
-if (backdrop) backdrop.addEventListener("click", e => {
-  if (e.target === backdrop) closeDrawer();
-});
-window.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
-
-// Event delegation so it always works
-document.addEventListener("click", e => {
-  const btn = e.target.closest("#drawerToggle");
-  if (btn) { e.preventDefault(); openDrawer(); }
-});
-
-window.DF_DRAWER = { open: openDrawer, close: closeDrawer };
-
-/* ---------- Permission Helper ---------- */
-const canView = href => {
-  if (!window.DF_ACCESS || typeof window.DF_ACCESS.canView !== "function") return true;
-  return window.DF_ACCESS.canView(href || "");
-};
-
-/* ---------- Build accordion nav ---------- */
-function buildAccordion() {
-  if (!nav) return;
-  const data = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
-  nav.innerHTML = "";
-
-  data.forEach(group => {
-    const g = document.createElement("div");
-    g.className = "group";
-    g.setAttribute("aria-expanded", "false");
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.innerHTML = `<span class="icon">${group.icon || ""}</span>${group.label}<span class="chev">›</span>`;
-    btn.addEventListener("click", () => {
-      const exp = g.getAttribute("aria-expanded") === "true";
-      nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x => {
-        if (x !== g) x.setAttribute("aria-expanded", "false");
+    data.forEach(group => {
+      // Filter out groups with zero visible items (when permissions apply)
+      const visibleChildren = (group.children || []).filter(ch => {
+        if (Array.isArray(ch.children) && ch.children.length){
+          return ch.children.some(link => canView(link.href));
+        }
+        return canView(ch.href);
       });
-      g.setAttribute("aria-expanded", exp ? "false" : "true");
-    });
-    g.appendChild(btn);
+      if (!visibleChildren.length) return;
 
-    const panel = document.createElement("div");
-    panel.className = "panel";
+      const g = document.createElement('div');
+      g.className = 'group';
+      g.setAttribute('aria-expanded', 'false');
 
-    (group.children || []).forEach(item => {
-      if (Array.isArray(item.children) && item.children.length) {
-        const sg = document.createElement("div");
-        sg.className = "subgroup";
-        sg.setAttribute("aria-expanded", "false");
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.innerHTML = `<span class="icon">${group.icon || ''}</span>${group.label}<span class="chev">›</span>`;
+      btn.addEventListener('click', ()=>{
+        const isOpen = g.getAttribute('aria-expanded') === 'true';
+        // collapse others
+        nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+        g.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      });
+      g.appendChild(btn);
 
-        const sbtn = document.createElement("button");
-        sbtn.type = "button";
-        sbtn.innerHTML = `<span class="icon">${item.icon || ""}</span>${item.label}<span class="chev">›</span>`;
-        sbtn.addEventListener("click", () => {
-          const exp = sg.getAttribute("aria-expanded") === "true";
-          panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x => {
-            if (x !== sg) x.setAttribute("aria-expanded", "false");
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+
+      visibleChildren.forEach(item => {
+        if (Array.isArray(item.children) && item.children.length){
+          // second-level accordion
+          const grand = item.children.filter(link => canView(link.href));
+          if (!grand.length) return;
+
+          const sg = document.createElement('div');
+          sg.className = 'subgroup';
+          sg.setAttribute('aria-expanded','false');
+
+          const sbtn = document.createElement('button');
+          sbtn.type = 'button';
+          sbtn.innerHTML = `<span class="icon">${item.icon || ''}</span>${item.label}<span class="chev">›</span>`;
+          sbtn.addEventListener('click', ()=>{
+            const open = sg.getAttribute('aria-expanded') === 'true';
+            panel.querySelectorAll('.subgroup[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+            sg.setAttribute('aria-expanded', open ? 'false' : 'true');
           });
-          sg.setAttribute("aria-expanded", exp ? "false" : "true");
-        });
-        sg.appendChild(sbtn);
+          sg.appendChild(sbtn);
 
-        const subpanel = document.createElement("div");
-        subpanel.className = "subpanel";
-        item.children.forEach(link => {
-          if (!canView(link.href)) return;
-          const a = document.createElement("a");
-          a.className = "item";
-          a.href = link.href || "#";
-          a.innerHTML = `<span class="icon">${link.icon || ""}</span>${link.label}`;
-          a.addEventListener("click", closeDrawer);
-          subpanel.appendChild(a);
-        });
+          const subpanel = document.createElement('div');
+          subpanel.className = 'subpanel';
+          grand.forEach(link => {
+            const a = document.createElement('a');
+            a.className = 'item';
+            a.href = link.href || '#';
+            a.innerHTML = `<span class="icon">${link.icon || ''}</span>${link.label}`;
+            a.addEventListener('click', closeDrawer);
+            subpanel.appendChild(a);
+          });
 
-        if (subpanel.children.length) {
           sg.appendChild(subpanel);
           panel.appendChild(sg);
+        } else {
+          // leaf link
+          if (!canView(item.href)) return;
+          const a = document.createElement('a');
+          a.className = 'item';
+          a.href = item.href || '#';
+          a.innerHTML = `<span class="icon">${item.icon || ''}</span>${item.label}`;
+          a.addEventListener('click', closeDrawer);
+          panel.appendChild(a);
         }
-      } else {
-        if (!canView(item.href)) return;
-        const a = document.createElement("a");
-        a.className = "item";
-        a.href = item.href || "#";
-        a.innerHTML = `<span class="icon">${item.icon || ""}</span>${item.label}`;
-        a.addEventListener("click", closeDrawer);
-        panel.appendChild(a);
-      }
-    });
+      });
 
-    if (panel.children.length) {
       g.appendChild(panel);
       nav.appendChild(g);
-    }
-  });
-}
-
-/* ---------- Version helpers (more tolerant) ---------- */
-function currentVersion() {
-  // Accept several shapes/names from version.js
-  let v = null;
-  if (window.DF_VERSION) {
-    v = typeof window.DF_VERSION === "string"
-      ? window.DF_VERSION
-      : (window.DF_VERSION.version || window.DF_VERSION.appVersion || null);
+    });
   }
-  v = v || window.APP_VERSION || window.DF_APP_VERSION || window.VERSION || "0.0.0";
-  v = String(v);
-  return v.startsWith("v") ? v : `v${v}`;
-}
 
-/* ---------- Bottom brand + logout ---------- */
-function buildBottom() {
-  const old = drawer.querySelector(".df-drawer-bottom");
-  if (old) old.remove();
-
-  const bottom = document.createElement("div");
-  bottom.className = "df-drawer-bottom";
-  bottom.innerHTML = `
-    <div class="sep"></div>
-    <a href="#" class="item df-logout"><span class="icon">↪️</span>Logout</a>
-    <div class="df-brandline">
-      <img src="assets/icons/icon-192.png" alt="">
-      <div class="txt">
-        <div class="name">Dowson Farms · Divernon, Illinois</div>
-        <div class="sub">App ${currentVersion()}</div>
-      </div>
-    </div>
-  `;
-  drawer.appendChild(bottom);
-
-  bottom.querySelector(".df-logout").addEventListener("click", async e => {
-    e.preventDefault();
-    try { await signOut(auth); } catch (err) { console.warn("signOut error", err); }
-    closeDrawer();
-    location.replace("auth/");
-  });
-
-  // Inject/refresh styles (adds bottom padding so footer never overlaps)
-  const css = `
-    /* keep drawer content clear of the fixed footer */
-    #drawer { padding-bottom: 72px; }
-
-    .df-drawer-bottom{ padding:10px 6px 12px; }
-    .df-drawer-bottom .sep{ height:1px; background:#0001; margin:6px 6px 10px; }
-    .df-drawer-bottom .item{ display:flex; align-items:center; gap:12px; padding:12px 16px;
-      text-decoration:none; color:#223; border:1px solid #00000016; border-radius:12px; background:#fff; }
-    .df-drawer-bottom .item:hover{ background:#f7f7f4; }
-    .df-drawer-bottom .item .icon{ width:20px }
-    .df-brandline{ display:flex; align-items:center; gap:10px; padding:12px 8px 2px }
-    .df-brandline img{ width:32px; height:32px; border-radius:8px }
-    .df-brandline .name{ font-weight:700; color:#223; }   /* darker so it stands out */
-    .df-brandline .sub{ font:12px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace; color:#445 }
-  `;
-  let style = document.getElementById("dfDrawerShim");
-  if (!style) {
-    style = document.createElement("style");
-    style.id = "dfDrawerShim";
-    document.head.appendChild(style);
-  }
-  style.textContent = css;
-}
-
-// Watch for version.js updating any of the accepted globals and refresh text
-(function watchVersion() {
-  const iv = setInterval(() => {
-    const sub = drawer.querySelector(".df-brandline .sub");
-    if (sub) sub.textContent = `App ${currentVersion()}`;
-  }, 400);
-  // stop after ~12s; typically version.js is present much earlier
-  setTimeout(() => clearInterval(iv), 12000);
+  build();
 })();
-
-/* ---------- Initial build ---------- */
-buildAccordion();
-buildBottom();
