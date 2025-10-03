@@ -4,7 +4,7 @@
   header.className = "app-header";
   header.innerHTML = `
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
-    <img src="assets/icons/logo@2x.png" alt="Farm Vista Logo" class="app-logo">
+    <img src="assets/icons/Farm_Vista_Logo.png" alt="Farm Vista" class="app-logo">
     <div class="spacer"></div>
     <span id="dateDisplay" class="clock">--/--/----</span>
   `;
@@ -15,9 +15,10 @@
   function updateDate() {
     const now = new Date();
     dateEl.textContent = now.toLocaleDateString("en-US", {
-      month: "long",  // "October"
-      day: "numeric", // "2"
-      year: "numeric" // "2025"
+      weekday: "short",
+      month: "long",
+      day: "numeric",
+      year: "numeric"
     });
   }
   updateDate();

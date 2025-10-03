@@ -10,17 +10,17 @@
 /* Backdrop */
 .drawerBackdrop{
   position:fixed; inset:0; background:rgba(20, 40, 38, 0.45);
-  opacity:0; visibility:hidden; transition:opacity .18s ease; z-index:90;
+  opacity:0; visibility:hidden; transition:opacity .18s ease; z-index:1100;
 }
 body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
 
 /* Panel (flex column so footer can sit at bottom) */
 .drawer{
   --drawer-w: 320px;                   /* JS may override this inline */
-  position:fixed; inset:0 auto 0 0; width:var(--drawer-w); max-width:86vw;
+  position:fixed; inset:var(--fv-header-height, 68px) auto 0 0; width:var(--drawer-w); max-width:86vw;
   background:var(--drawer-surface);
   border-right:1px solid var(--drawer-border);
-  translate:-100% 0; transition:translate .22s ease; z-index:100;
+  translate:-100% 0; transition:translate .22s ease; z-index:1200;
   display:flex; flex-direction:column; overflow:hidden;
   backdrop-filter: blur(16px);
   box-shadow: var(--drawer-shadow);
