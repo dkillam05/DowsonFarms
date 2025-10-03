@@ -134,12 +134,21 @@ function buildAccordion() {
   });
 }
 
-/* ---------- Bottom brand + logout ---------- */
+/* ---------- Version helpers (more tolerant) ---------- */
 function currentVersion() {
-  const v = (window.DF_VERSION && (window.DF_VERSION.version || window.DF_VERSION.appVersion)) || "v0.0.0";
-  return String(v).startsWith("v") ? v : `v${v}`;
+  // Accept several shapes/names from version.js
+  let v = null;
+  if (window.DF_VERSION) {
+    v = typeof window.DF_VERSION === "string"
+      ? window.DF_VERSION
+      : (window.DF_VERSION.version || window.DF_VERSION.appVersion || null);
+  }
+  v = v || window.APP_VERSION || window.DF_APP_VERSION || window.VERSION || "0.0.0";
+  v = String(v);
+  return v.startsWith("v") ? v : `v${v}`;
 }
 
+/* ---------- Bottom brand + logout ---------- */
 function buildBottom() {
   const old = drawer.querySelector(".df-drawer-bottom");
   if (old) old.remove();
@@ -163,10 +172,14 @@ function buildBottom() {
     e.preventDefault();
     try { await signOut(auth); } catch (err) { console.warn("signOut error", err); }
     closeDrawer();
-    location.replace("auth/"); // go to login
+    location.replace("auth/");
   });
 
+  // Inject/refresh styles (adds bottom padding so footer never overlaps)
   const css = `
+    /* keep drawer content clear of the fixed footer */
+    #drawer { padding-bottom: 72px; }
+
     .df-drawer-bottom{ padding:10px 6px 12px; }
     .df-drawer-bottom .sep{ height:1px; background:#0001; margin:6px 6px 10px; }
     .df-drawer-bottom .item{ display:flex; align-items:center; gap:12px; padding:12px 16px;
@@ -175,7 +188,7 @@ function buildBottom() {
     .df-drawer-bottom .item .icon{ width:20px }
     .df-brandline{ display:flex; align-items:center; gap:10px; padding:12px 8px 2px }
     .df-brandline img{ width:32px; height:32px; border-radius:8px }
-    .df-brandline .name{ font-weight:700 }
+    .df-brandline .name{ font-weight:700; color:#223; }   /* darker so it stands out */
     .df-brandline .sub{ font:12px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace; color:#445 }
   `;
   let style = document.getElementById("dfDrawerShim");
@@ -187,16 +200,14 @@ function buildBottom() {
   style.textContent = css;
 }
 
-// Watch for version.js updating DF_VERSION
+// Watch for version.js updating any of the accepted globals and refresh text
 (function watchVersion() {
   const iv = setInterval(() => {
-    const verEl = drawer.querySelector(".df-brandline .sub");
-    if (verEl && window.DF_VERSION) {
-      verEl.textContent = `App ${currentVersion()}`;
-      clearInterval(iv);
-    }
-  }, 300);
-  setTimeout(() => clearInterval(iv), 8000);
+    const sub = drawer.querySelector(".df-brandline .sub");
+    if (sub) sub.textContent = `App ${currentVersion()}`;
+  }, 400);
+  // stop after ~12s; typically version.js is present much earlier
+  setTimeout(() => clearInterval(iv), 12000);
 })();
 
 /* ---------- Initial build ---------- */
