@@ -57,7 +57,7 @@ if (path.includes("/auth/")) {
       <div id="dfWaitCard" role="status" aria-live="polite" aria-label="Please wait">
         <div id="dfSpinner"></div>
         <div id="dfWaitMsg">Please wait…</div>
-        <div id="dfWaitSub">Checking your sign-in and permissions</div>
+        <div id="dfWaitSub">Loading</div>
       </div>
     `;
     document.body.appendChild(overlayEl);
