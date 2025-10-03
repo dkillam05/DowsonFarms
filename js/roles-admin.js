@@ -1,5 +1,5 @@
 // roles-admin.js — simple roles CRUD + permission matrix
-import { db } from "/DowsonFarms/js/firebase-init.js";
+import { db } from "/FarmVista/js/firebase-init.js";
 import {
   collection, query, orderBy, getDocs, doc, getDoc, setDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";

@@ -1,4 +1,4 @@
-/* Dowson Farms — Global Navigation (one source of truth)
+/* Farm Vista — Global Navigation (one source of truth)
    Loads as a normal script and sets window.DF_MENUS.
    NOTE: All TOP-LEVEL sections use folder-style hrefs (e.g., "section/").
 */

@@ -1,20 +1,20 @@
-// Dowson Farms — minimal app-shell service worker for GitHub Pages scope /DowsonFarms/
+// Farm Vista — minimal app-shell service worker for GitHub Pages scope /FarmVista/
 const CACHE = 'df-shell-v1';
 const APP_SHELL = [
-  '/DowsonFarms/index.html',
-  '/DowsonFarms/assets/css/theme.css',
-  '/DowsonFarms/assets/css/header.css',
-  '/DowsonFarms/assets/css/drawer.css',
-  '/DowsonFarms/assets/data/menus.js',
-  '/DowsonFarms/assets/data/drawer-menus.js',
-  '/DowsonFarms/assets/data/footer-links.js',
-  '/DowsonFarms/js/header.js',
-  '/DowsonFarms/js/drawer.js',
-  '/DowsonFarms/js/footer.js',
-  '/DowsonFarms/js/version.js',
-  '/DowsonFarms/assets/icons/icon-192.png',
-  '/DowsonFarms/assets/icons/icon-512.png',
-  '/DowsonFarms/assets/icons/icon-512-maskable.png'
+  '/FarmVista/index.html',
+  '/FarmVista/assets/css/theme.css',
+  '/FarmVista/assets/css/header.css',
+  '/FarmVista/assets/css/drawer.css',
+  '/FarmVista/assets/data/menus.js',
+  '/FarmVista/assets/data/drawer-menus.js',
+  '/FarmVista/assets/data/footer-links.js',
+  '/FarmVista/js/header.js',
+  '/FarmVista/js/drawer.js',
+  '/FarmVista/js/footer.js',
+  '/FarmVista/js/version.js',
+  '/FarmVista/assets/icons/icon-192.png',
+  '/FarmVista/assets/icons/icon-512.png',
+  '/FarmVista/assets/icons/icon-512-maskable.png'
 ];
 
 self.addEventListener('install', (e) => {

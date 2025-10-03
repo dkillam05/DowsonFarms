@@ -1,10 +1,10 @@
-// Dowson Farms — Global Header (green theme)
+// Farm Vista — Global Header (green theme)
 (function () {
   const header = document.createElement("header");
   header.className = "app-header";
   header.innerHTML = `
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
-    <img src="assets/icons/logo@2x.png" alt="Dowson Farms Logo" class="app-logo">
+    <img src="assets/icons/logo@2x.png" alt="Farm Vista Logo" class="app-logo">
     <div class="spacer"></div>
     <span id="dateDisplay" class="clock">--/--/----</span>
   `;

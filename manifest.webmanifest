@@ -1,9 +1,9 @@
 {
-  "name": "Dowson Farms",
+  "name": "Farm Vista",
   "short_name": "FarmVista",
-  "description": "Dowson Farms operations",
-  "start_url": "/DowsonFarms/index.html",
-  "scope": "/DowsonFarms/",
+  "description": "Farm Vista operations",
+  "start_url": "/FarmVista/index.html",
+  "scope": "/FarmVista/",
   "display": "standalone",
   "background_color": "#0f5a1a",
   "theme_color": "#0f5a1a",

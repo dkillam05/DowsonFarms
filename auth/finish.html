@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Finish Sign-In</title>
-  <base href="/DowsonFarms/">
+  <base href="/FarmVista/">
   <style>body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px}</style>
 </head>
 <body>
@@ -12,7 +12,7 @@
   <div id="out">Please wait…</div>
 
   <script type="module">
-    import { auth, db } from "/DowsonFarms/js/firebase-init.js";
+    import { auth, db } from "/FarmVista/js/firebase-init.js";
     import {
       isSignInWithEmailLink, signInWithEmailLink, sendPasswordResetEmail
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -68,7 +68,7 @@
           out.textContent = 'Signed in. (Password email not sent: ' + (e?.code||e) + '). Redirecting…';
         }
 
-        setTimeout(()=>location.href='/DowsonFarms/', 900);
+        setTimeout(()=>location.href='/FarmVista/', 900);
       }catch(e){
         out.textContent = 'Error: ' + (e?.message || e);
       }

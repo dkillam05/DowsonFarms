@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1B5E20" />
-  <title>Dowson Farms — Settings & Setup</title>
+  <title>Farm Vista — Settings & Setup</title>
 
   <!-- Root base for GitHub Pages -->
-  <base href="/DowsonFarms/">
+  <base href="/FarmVista/">
 
   <!-- Theme prepaint (same as Teams) -->
   <script>
@@ -78,7 +78,7 @@
     </section>
   </main>
 
-  <footer>Dowson Farms App © <span id="year"></span></footer>
+  <footer>Farm Vista App © <span id="year"></span></footer>
 
   <!-- ───────────── SCRIPTS (order matches your working pattern) ───────────── -->
 
@@ -115,7 +115,7 @@
         msg.textContent = "Checking…";
         try {
           if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.getRegistration('/DowsonFarms/serviceworker.js') ||
+            const reg = await navigator.serviceWorker.getRegistration('/FarmVista/serviceworker.js') ||
                         await navigator.serviceWorker.getRegistration();
             if (reg && reg.update) await reg.update();
           }
