@@ -1,11 +1,9 @@
-// Dowson Farms — Drawer (menus only)  ✅ robust hamburger binding
-// - Works even if the header (and #drawerToggle) is injected later
-// - Builds from window.DF_DRAWER_MENUS
-// - Respects DF_ACCESS.canView when available
-// - Does NOT inject any footer/branding; only the accordion in <nav>
+// Dowson Farms — Drawer (accordion + bottom brand, version, logout)
+// Restores: no top brand, list begins below header, bottom logo + location + version,
+// small logout row that matches other items, and robust ☰ binding.
 
 (function () {
-  // ----- ensure shell exists (safe on all pages) -----
+  // ----- ensure shell/backdrop exist -----
   let drawer = document.getElementById('drawer');
   if (!drawer) {
     drawer = document.createElement('div');
@@ -21,13 +19,15 @@
     backdrop.className = 'drawerBackdrop';
     document.body.appendChild(backdrop);
   }
-  const nav = drawer.querySelector('nav') || drawer.appendChild(document.createElement('nav'));
 
-  // Keep above global footer
+  // Keep the drawer above the global footer
   drawer.style.zIndex = '1000';
   backdrop.style.zIndex = '999';
 
-  // ----- open/close / a11y -----
+  // Find/create nav container
+  const nav = drawer.querySelector('nav') || drawer.appendChild(document.createElement('nav'));
+
+  // ----- open/close helpers -----
   function openDrawer() {
     if (!document.body.classList.contains('drawer-open')) {
       document.body.classList.add('drawer-open');
@@ -44,49 +44,43 @@
     document.body.classList.contains('drawer-open') ? closeDrawer() : openDrawer();
   }
 
-  // Backdrop click + ESC to close
+  // backdrop click + ESC
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeDrawer(); });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  // ----- hamburger binding that never misses -----
-  // 1) Event delegation: any click on an element (or ancestor) with #drawerToggle toggles
+  // Robust hamburger binding (works even if header is injected later)
   document.addEventListener('click', (e) => {
     const btn = e.target.closest && e.target.closest('#drawerToggle');
-    if (btn) {
-      e.preventDefault();
-      toggleDrawer();
-    }
+    if (btn) { e.preventDefault(); toggleDrawer(); }
   });
-
-  // 2) Keep aria-expanded on the button in sync (if present)
-  const ariaSync = () => {
+  const syncAria = () => {
     const btn = document.getElementById('drawerToggle');
     if (btn) btn.setAttribute('aria-expanded', document.body.classList.contains('drawer-open') ? 'true' : 'false');
   };
-  const bodyObs = new MutationObserver(ariaSync);
-  bodyObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  ariaSync();
+  new MutationObserver(syncAria).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  syncAria();
 
   // ----- permissions helper -----
   function canView(href) {
     try {
       if (!href) return true;
-      if (window.DF_ACCESS && typeof window.DF_ACCESS.canView === 'function') {
-        return !!window.DF_ACCESS.canView(href);
-      }
+      if (window.DF_ACCESS && typeof window.DF_ACCESS.canView === 'function') return !!window.DF_ACCESS.canView(href);
       return true;
     } catch { return true; }
   }
 
-  // ----- build accordion from DF_DRAWER_MENUS -----
-  function build() {
-    const data = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
-    nav.innerHTML = '';
+  // Spacer so the drawer content starts *below* the fixed header
+  function headerHeight() {
+    const hdr = document.querySelector('.app-header');
+    return hdr ? Math.max(56, hdr.offsetHeight) : 56;
+  }
 
+  // Build accordion groups
+  function buildGroups(container) {
+    const data = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
     data.forEach(group => {
-      const children = group.children || [];
-      // Filter out groups without any visible items (respect perms if available)
-      const visibleKids = children.filter(item => {
+      const kids = group.children || [];
+      const visibleKids = kids.filter(item => {
         if (Array.isArray(item.children) && item.children.length) {
           return item.children.some(l => canView(l.href));
         }
@@ -102,9 +96,9 @@
       btn.type = 'button';
       btn.innerHTML = `<span class="icon">${group.icon || ''}</span>${group.label}<span class="chev">›</span>`;
       btn.addEventListener('click', () => {
-        const isOpen = g.getAttribute('aria-expanded') === 'true';
-        nav.querySelectorAll('.group[aria-expanded="true"]').forEach(x => x.setAttribute('aria-expanded', 'false'));
-        g.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        const open = g.getAttribute('aria-expanded') === 'true';
+        container.querySelectorAll('.group[aria-expanded="true"]').forEach(x => x.setAttribute('aria-expanded', 'false'));
+        g.setAttribute('aria-expanded', open ? 'false' : 'true');
       });
       g.appendChild(btn);
 
@@ -155,25 +149,107 @@
       });
 
       g.appendChild(panel);
-      nav.appendChild(g);
+      container.appendChild(g);
     });
   }
 
-  // Build now
+  // Bottom brand + version + small logout
+  function buildBottom(container) {
+    // divider
+    const hr = document.createElement('div');
+    hr.style.borderTop = '1px solid rgba(0,0,0,.08)';
+    hr.style.margin = '8px 0 0';
+    container.appendChild(hr);
+
+    // logout row (same look/height as menu rows)
+    const logout = document.createElement('a');
+    logout.href = '#';
+    logout.className = 'item';                 // reuse same row styling
+    logout.style.margin = '10px 8px 6px';      // breathe a bit
+    logout.style.border = '1px solid rgba(0,0,0,.06)';
+    logout.style.borderRadius = '10px';
+    logout.style.background = '#fff';
+    logout.innerHTML = `<span class="icon">↩️</span>Logout`;
+    logout.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        // lazy import auth only if needed
+        const { auth } = await import('./firebase-init.js');
+        const { signOut } = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');
+        await signOut(auth);
+      } catch {}
+      location.replace('auth/');
+    });
+    container.appendChild(logout);
+
+    // brand block at the very bottom
+    const brand = document.createElement('div');
+    brand.style.display = 'grid';
+    brand.style.gridTemplateColumns = '36px 1fr';
+    brand.style.gap = '10px';
+    brand.style.alignItems = 'center';
+    brand.style.padding = '10px 12px 16px';
+
+    const img = document.createElement('img');
+    img.src = 'assets/icons/icon-192.png';
+    img.alt = '';
+    img.style.width = '36px';
+    img.style.height = '36px';
+    img.style.borderRadius = '8px';
+    brand.appendChild(img);
+
+    const text = document.createElement('div');
+    const title = document.createElement('div');
+    title.textContent = 'Dowson Farms · Divernon, Illinois';
+    title.style.fontWeight = '700';
+
+    const ver = document.createElement('div');
+    const v = (window.DF_VERSION && (window.DF_VERSION.version || window.DF_VERSION.appVersion)) || '0.0.0';
+    ver.textContent = 'App v' + v;
+    ver.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    ver.style.fontSize = '12px';
+    ver.style.color = '#456';
+
+    text.appendChild(title);
+    text.appendChild(ver);
+    brand.appendChild(text);
+
+    container.appendChild(brand);
+  }
+
+  // Build everything
+  function build() {
+    nav.innerHTML = '';
+
+    // top spacer so content starts under the green header
+    const spacer = document.createElement('div');
+    spacer.style.height = headerHeight() + 'px';
+    nav.appendChild(spacer);
+
+    // accordion groups
+    buildGroups(nav);
+
+    // bottom brand / version / logout
+    buildBottom(nav);
+  }
+
   build();
 
-  // Rebuild once DF_ACCESS appears (permissions ready)
+  // Rebuild once DF_ACCESS is ready (permissions)
   if (!window.DF_ACCESS) {
     let tries = 0;
     const t = setInterval(() => {
       tries++;
-      if (window.DF_ACCESS || tries > 40) { // ~12s max
+      if (window.DF_ACCESS || tries > 40) {
         clearInterval(t);
         build();
       }
     }, 300);
   }
 
-  // Expose manual rebuild if you ever need it from console
+  // Also rebuild if header height changes later (rare)
+  setTimeout(() => { build(); }, 1000);
+
+  // expose manual rebuild for quick checks
   window.DF_DRAWER_REBUILD = build;
 })();
