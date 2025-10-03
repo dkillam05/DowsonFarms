@@ -7,28 +7,40 @@
 }
 body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
 
-/* Panel (now flex column so footer can sit at bottom) */
+/* Panel (flex column so footer can sit at bottom) */
 .drawer{
-  position:fixed; inset:0 auto 0 0; width:86vw; max-width:420px;
+  --drawer-w: 320px;                   /* JS may override this inline */
+  position:fixed; inset:0 auto 0 0; width:var(--drawer-w); max-width:86vw;
   background:#f9f9f7; border-right:1px solid #0002;
   translate:-100% 0; transition:translate .22s ease; z-index:100;
-  display:flex; flex-direction:column;
+  display:flex; flex-direction:column; overflow:hidden;
 }
 body.drawer-open .drawer{ translate:0 0; }
 
-/* Brand */
-.drawer .brand{
-  display:flex; gap:10px; align-items:center; padding:12px;
-  border-bottom:1px solid #0002; background:#fff;
+/* ===== Top hero (uses the “dead space”) ===== */
+.drawer .hero{
+  background:#fff; border-bottom:1px solid #0002;
+  padding:14px 12px 12px; text-align:left;
 }
-.drawer .brand img{ width:36px; height:36px; border-radius:8px; }
-.drawer .brand .mono{ font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456; }
+.drawer .hero .row{
+  display:flex; align-items:center; gap:10px;
+}
+.drawer .hero img{
+  width:40px; height:40px; border-radius:9px; display:block;
+}
+.drawer .hero .title{
+  font-weight:700; font-size:18px; color:#123; letter-spacing:.2px;
+}
+.drawer .hero .sub{
+  margin-top:4px; color:#4a5866;
+  font:13px/1.2 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
+}
 
-/* List area */
+/* List area (scrolls) */
 .drawer nav{
   padding:6px;
   overflow:auto;
-  flex:1 1 auto;         /* scrollable area */
+  flex:1 1 auto;
 }
 
 /* Shared metrics */
@@ -80,15 +92,15 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawer .subgroup[aria-expanded="true"] .subpanel{ max-height:900px; }
 .drawer .subgroup[aria-expanded="true"] .chev{ transform:rotate(90deg); }
 
-/* Footer block — pinned flush to bottom, no “banner feel” */
+/* ===== Footer block — pinned flush to bottom, no tall banner ===== */
 .drawerFooter{
-  position:sticky; bottom:0;               /* sticks at the very bottom */
-  background:#f9f9f7;                      /* same panel bg */
-  padding:6px;                             /* tight so it doesn’t look tall */
-  border-top:1px solid #0001;              /* subtle separation line */
+  position:sticky; bottom:0;
+  background:#f9f9f7;
+  padding:6px 6px 10px;
+  border-top:1px solid #0001;
 }
 
-/* Logout row — identical metrics to a normal item, with subtle outline */
+/* Logout row — same size/feel as a normal item */
 .drawerFooter .item.logout{
   display:flex; align-items:center; gap:12px;
   padding:var(--df-item-pad-y) var(--df-item-pad-x);
@@ -98,13 +110,14 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawerFooter .item.logout:hover{ background:#f4f4ef; }
 .drawerFooter .item.logout .icon{ width:20px; }
 
-/* Footer brand + version */
 .drawerFooter .footBrand{
   display:flex; align-items:center; gap:10px; margin:8px 2px 0;
 }
 .drawerFooter .footBrand img{ width:24px; height:24px; border-radius:6px; }
-.drawerFooter .footBrand .title{ font-weight:700; }
+.drawerFooter .footBrand .title{ font-weight:700; color:#123; }
 .drawerFooter .footBrand .mono{
   font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456;
 }
-.drawerFooter .ver{ margin:4px 2px 0; font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456; }
+.drawerFooter .ver{
+  margin:4px 2px 0; font:12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color:#456;
+}
