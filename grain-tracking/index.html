@@ -13,130 +13,398 @@
   <script>
     (function () {
       var pref = localStorage.getItem('df_theme') || 'auto';
-      var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
       document.documentElement.setAttribute('data-theme', mode);
       document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
     })();
   </script>
 
-  <link rel="stylesheet" href="assets/css/theme.css?v=24" />
+  <!-- Global styling -->
+  <link rel="stylesheet" href="assets/css/theme.css" />
+  <link rel="stylesheet" href="assets/css/drawer.css" />
+  <link rel="stylesheet" href="assets/css/header.css" />
+
   <style>
-    :root { --brand:#365E5A; --band:#E4E8D8; --paper:#F4F1E4; --ink:#142725; }
-    body { margin:0; background:var(--paper); color:var(--ink);
-           font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height:40px; background:var(--band); display:flex; align-items:center; gap:8px;
-             padding:0 10px; border-bottom:1px solid rgba(54, 94, 90, 0.18); }
-    header .title { font-weight:700; color:#142725; }
-    header .spacer { flex:1; }
-    header .logout { appearance:none; border:1px solid rgba(54, 94, 90, 0.26); background:#fff; color:var(--brand);
-                     font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
-    main { padding:18px; max-width:1100px; margin:0 auto; }
-    h1 { font-size:22px; color:var(--brand); margin-top:0; }
-    footer { text-align:center; font-size:12px; color:#4B5A58; margin:40px 0 20px; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 4% -10%, rgba(54, 94, 90, 0.22), transparent 60%),
+        radial-gradient(circle at 92% 8%, rgba(216, 193, 121, 0.18), transparent 60%),
+        var(--fv-paper);
+      color: var(--fv-ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-    /* Tiles */
-    #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .tile  { display:flex; flex-direction:column; align-items:center; justify-content:center;
-             background:#fff; border:1px solid rgba(54, 94, 90, 0.14); border-radius:16px;
-             box-shadow:0 6px 18px rgba(23, 52, 49, 0.12); text-decoration:none; color:#142725;
-             padding:24px 18px; transition:transform .15s; }
-    .tile:hover { transform: translateY(-3px); }
-    .tile span { margin-top:8px; font-weight:600; }
+    main.grain-home {
+      padding: 26px 18px 72px;
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
 
-    /* Diagnostic banner */
-    #diag { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size:12px; padding:8px 10px; border-bottom:1px solid rgba(20, 50, 49, 0.12); }
-    #diag.ok  { background:#e1ede4; color:#2F563E; }
-    #diag.err { background:#ffe9e9; color:#a00; }
+    .hero-card {
+      background: linear-gradient(140deg, rgba(54, 94, 90, 0.92), rgba(216, 193, 121, 0.82));
+      border-radius: 28px;
+      color: #fff;
+      padding: 34px 30px;
+      box-shadow: 0 22px 46px rgba(23, 52, 49, 0.28);
+      display: grid;
+      gap: 18px;
+    }
 
-    a.back { text-decoration:none; }
+    .hero-card h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 2.8vw, 2.4rem);
+      line-height: 1.12;
+      letter-spacing: -0.01em;
+    }
+
+    .hero-card p {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-card {
+      border-radius: 22px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(54, 94, 90, 0.18);
+      box-shadow: 0 16px 32px rgba(23, 52, 49, 0.18);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--fv-blue-dark);
+    }
+
+    .status-card[data-state="boot"],
+    .status-card[data-state="info"] {
+      background: linear-gradient(135deg, rgba(54, 94, 90, 0.16), rgba(216, 193, 121, 0.22));
+      color: var(--fv-blue-dark);
+    }
+
+    .status-card[data-state="ok"] {
+      background: linear-gradient(135deg, rgba(123, 188, 142, 0.22), rgba(216, 193, 121, 0.28));
+      color: #24563e;
+      border-color: rgba(36, 86, 62, 0.26);
+    }
+
+    .status-card[data-state="warn"] {
+      background: linear-gradient(135deg, rgba(255, 215, 141, 0.28), rgba(216, 193, 121, 0.32));
+      color: #8a6112;
+      border-color: rgba(138, 97, 18, 0.28);
+    }
+
+    .status-card[data-state="error"] {
+      background: linear-gradient(135deg, rgba(255, 202, 202, 0.42), rgba(255, 238, 238, 0.5));
+      color: #7c1a1a;
+      border-color: rgba(124, 26, 26, 0.36);
+    }
+
+    .modules.card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .modules-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      color: var(--fv-blue-dark);
+    }
+
+    .modules-header p {
+      margin: 6px 0 0;
+      color: var(--fv-muted);
+      font-size: 0.95rem;
+    }
+
+    .df-tiles {
+      margin-top: 4px;
+    }
+
+    .df-tiles a {
+      display: grid;
+      gap: 6px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(54, 94, 90, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--fv-blue-dark);
+      text-decoration: none;
+      box-shadow: 0 18px 36px rgba(23, 52, 49, 0.12);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .df-tiles a:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 22px 42px rgba(23, 52, 49, 0.18);
+    }
+
+    .df-tiles a .tile-icon {
+      font-size: 1.6rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(54, 94, 90, 0.12);
+    }
+
+    .df-tiles a strong {
+      font-size: 1.05rem;
+      color: var(--fv-blue-dark);
+    }
+
+    .df-tiles a small {
+      font-size: 0.82rem;
+      color: var(--fv-muted);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 28px 12px 10px;
+      color: var(--fv-muted);
+      text-align: center;
+    }
+
+    .empty-state span {
+      font-size: 2rem;
+    }
+
+    .info-card.card {
+      background: rgba(216, 193, 121, 0.28);
+      border-color: rgba(54, 94, 90, 0.16);
+      color: var(--fv-ink);
+      display: grid;
+      gap: 12px;
+    }
+
+    .info-card.card h2 {
+      margin: 0;
+      color: var(--fv-blue-dark);
+    }
+
+    .info-card.card p {
+      margin: 0;
+      font-size: 0.97rem;
+      line-height: 1.55;
+    }
+
+    .info-card.card .muted {
+      color: var(--fv-muted);
+      font-size: 0.9rem;
+    }
+
+    .app-footer {
+      padding: 18px 18px 40px;
+    }
+
+    @media (max-width: 720px) {
+      main.grain-home {
+        padding: 18px 14px 64px;
+        gap: 20px;
+      }
+
+      .hero-card {
+        padding: 28px 24px;
+        border-radius: 24px;
+      }
+
+      .status-card {
+        border-radius: 20px;
+        padding: 14px 16px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .hero-card h1 {
+        font-size: 1.75rem;
+      }
+
+      .modules.card {
+        border-radius: 22px;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <a class="back" href="index.html">← Home</a>
-    <div class="spacer"></div>
-    <div class="title">Grain Tracking</div>
-    <div class="spacer"></div>
-    <button id="logoutBtn" class="logout">Logout</button>
-  </header>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep" aria-hidden="true">›</li>
+      <li aria-current="page">Grain Tracking</li>
+    </ol>
+  </nav>
 
-  <!-- Diagnostics -->
-  <div id="diag" class="err">Booting…</div>
+  <main class="grain-home">
+    <section class="hero-card">
+      <span class="hero-pill">Grain Tracking • Dowson Farms</span>
+      <h1>Connect every bushel from field to contract.</h1>
+      <p>Monitor bags, bins, tickets, and contracts in a single grain hub that stays in lockstep with the rest of Farm Vista.</p>
+    </section>
 
-  <main>
-    <h1>🌾 Grain Tracking</h1>
-    <p>Track bags, bins, contracts, and tickets.</p>
-    <div id="tiles"></div>
+    <section id="diag" class="status-card" role="status" aria-live="polite" data-state="boot">
+      🌾 Booting grain tracking tools…
+    </section>
+
+    <section class="modules card" aria-label="Grain tracking modules">
+      <div class="modules-header">
+        <h2>Grain tracking modules</h2>
+        <p>Shortcuts update automatically based on your Farm Vista permissions.</p>
+      </div>
+      <div id="tiles" class="df-tiles" role="list"></div>
+      <div id="emptyState" class="empty-state" hidden>
+        <span aria-hidden="true">📭</span>
+        <p>No grain tracking modules are enabled for your role yet.</p>
+      </div>
+    </section>
+
+    <section class="info-card card">
+      <h2>Why this space matters</h2>
+      <p>Grain tracking keeps every storage site, delivery, and contract aligned so crews can see exactly where each load is heading.</p>
+      <p class="muted">Need to switch workstreams? Use the Farm Vista menu in the upper left to jump between crop production, equipment, setup, and more.</p>
+    </section>
   </main>
 
-  <footer>Farm Vista App © <span id="year"></span></footer>
+  <footer class="app-footer">
+    <span>Farm Vista</span>
+    <span class="dot">•</span>
+    <span>Dowson Farms</span>
+    <span class="dot">•</span>
+    <span data-version-slot="app">App v…</span>
+  </footer>
 
-  <!-- Menus (global) -->
-  <script src="assets/data/menus.js?v=17"></script>
+  <!-- Data sources -->
+  <script src="assets/data/menus.js"></script>
+  <script src="assets/data/drawer-menus.js"></script>
+  <script src="assets/data/footer-links.js"></script>
 
-  <!-- Firebase + guard + access (BASE-RELATIVE paths) -->
-  <script type="module" src="js/firebase-init.js?v=17"></script>
-  <script type="module" src="js/auth-guard.js?v=17"></script>
+  <!-- Single-source version -->
+  <script defer src="js/version.js"></script>
+
+  <!-- Firebase + guard -->
+  <script type="module" src="js/firebase-init.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <!-- Global injectors -->
+  <script defer src="js/header.js"></script>
+  <script type="module" src="js/drawer.js"></script>
+  <script defer src="js/footer.js"></script>
 
   <!-- Page logic -->
   <script type="module">
-    import { auth } from "./js/firebase-init.js?v=17";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "./js/access.js?v=17";
+    import { auth } from "./js/firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "./js/access.js";
 
-    const diag = document.getElementById("diag");
+    const statusEl = document.getElementById("diag");
     const tilesEl = document.getElementById("tiles");
-    document.getElementById("year").textContent = new Date().getFullYear();
+    const emptyStateEl = document.getElementById("emptyState");
 
-    window.onerror = (m) => { diag.textContent = `JS error: ${m}`; diag.className = "err"; };
+    const DESCRIPTIONS = {
+      "Grain Bags": "Track on-field bags, capacity, and pickup needs.",
+      "Grain Bins": "Monitor bin inventory, aeration, and status.",
+      "Grain Contracts": "Keep contract volumes and delivery dates aligned.",
+      "Grain Ticket (OCR)": "Scan tickets and sync loads automatically."
+    };
 
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      signOut(auth).then(() => location.href = "auth/");
-    });
+    const setStatus = (message, tone = "info") => {
+      if (!statusEl) return;
+      statusEl.textContent = message;
+      statusEl.dataset.state = tone;
+    };
 
-    function menus() {
-      return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
-    }
-    function getSectionNode() {
-      const t = menus();
-      return t.find(x => (x.href && x.href.replace(/index\.html$/,'').endsWith('grain-tracking/')))
-          || t.find(x => String(x.label||'').toLowerCase() === 'grain tracking');
-    }
+    const menus = () => {
+      const data = window.DF_MENUS;
+      if (!data) return [];
+      if (Array.isArray(data.tiles)) return data.tiles;
+      if (Array.isArray(data)) return data;
+      return [];
+    };
+
+    const getGrainNode = () => {
+      const list = menus();
+      return list.find((node) => (node.href && node.href.replace(/index\\.html$/, "").endsWith("grain-tracking/")))
+        || list.find((node) => String(node.label || "").toLowerCase() === "grain tracking");
+    };
+
+    const buildTile = (item) => {
+      const a = document.createElement("a");
+      a.href = item.href || "#";
+      a.setAttribute("role", "listitem");
+      const icon = item.iconEmoji || "•";
+      const desc = item.description || DESCRIPTIONS[item.label] || "Open module";
+      a.innerHTML = `
+        <span class="tile-icon" aria-hidden="true">${icon}</span>
+        <strong>${item.label}</strong>
+        <small>${desc}</small>
+      `;
+      a.setAttribute("aria-label", `${item.label} — ${desc}`);
+      return a;
+    };
+
+    const renderTiles = (items) => {
+      tilesEl.innerHTML = "";
+      items.forEach((item) => tilesEl.appendChild(buildTile(item)));
+    };
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        diag.textContent = "Waiting for Firebase auth…";
-        diag.className = "err";
+        setStatus("🔐 Waiting for sign-in…", "warn");
+        tilesEl.innerHTML = "";
+        emptyStateEl.hidden = false;
         return;
       }
+
       try {
         const access = await loadAccess();
-        const node = getSectionNode();
+        const node = getGrainNode();
         if (!node) {
-          diag.textContent = "menus.js missing grain-tracking node";
-          diag.className = "err";
+          setStatus("⚠️ menus.js is missing the grain tracking node.", "error");
+          tilesEl.innerHTML = "";
+          emptyStateEl.hidden = false;
           return;
         }
+
         const kids = Array.isArray(node.children) ? node.children : [];
-        const visible = kids.filter(ch => (access.canView ? access.canView(ch.href) : true));
+        const visible = kids.filter((child) => (access && typeof access.canView === "function") ? access.canView(child.href) : true);
 
-        diag.textContent = `Visible sub-menus: ${visible.length}`;
-        diag.className = visible.length ? "ok" : "err";
+        if (!visible.length) {
+          setStatus("📭 No grain tracking modules are enabled for your role yet.", "warn");
+          tilesEl.innerHTML = "";
+          emptyStateEl.hidden = false;
+          return;
+        }
 
+        setStatus(`✅ Showing ${visible.length} ${visible.length === 1 ? "module" : "modules"}.`, "ok");
+        renderTiles(visible);
+        emptyStateEl.hidden = true;
+      } catch (error) {
+        setStatus(`❌ Error loading access: ${error.message}`, "error");
         tilesEl.innerHTML = "";
-        visible.forEach(it => {
-          const a = document.createElement("a");
-          a.className = "tile";
-          a.href = it.href;
-          a.title = it.label;
-          a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
-          tilesEl.appendChild(a);
-        });
-      } catch (e) {
-        diag.textContent = "Error: " + e.message;
-        diag.className = "err";
+        emptyStateEl.hidden = false;
       }
     });
   </script>
