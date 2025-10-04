@@ -99,6 +99,13 @@
     a.href = href || "#";
     a.innerHTML = `<span class="icon">${icon || ""}</span>${label}`;
     a.addEventListener("click", closeDrawer);
+    if ((href || "").includes("settings/index.html#check-updates")) {
+      a.addEventListener("click", () => {
+        try {
+          sessionStorage.setItem("fvAutoUpdateCheck", "1");
+        } catch (_) {}
+      });
+    }
     return a;
   };
 

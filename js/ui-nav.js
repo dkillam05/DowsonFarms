@@ -6,6 +6,19 @@ import { loadAccess } from "./access.js";
 
 const $ = (s) => document.querySelector(s);
 
+const UPDATE_CHECK_HREF = "settings/index.html#check-updates";
+
+function bindAutoUpdateFlag(anchor) {
+  if (!anchor) return;
+  const href = anchor.getAttribute("href") || "";
+  if (!href.includes(UPDATE_CHECK_HREF)) return;
+  anchor.addEventListener("click", () => {
+    try {
+      sessionStorage.setItem("fvAutoUpdateCheck", "1");
+    } catch (_) {}
+  });
+}
+
 function renderHome(tiles){
   const container = document.querySelector("[data-df-tiles]");
   if(!container) return;
@@ -32,6 +45,7 @@ function renderHome(tiles){
     a.style.textDecoration="none";
     a.style.color="#143231";
     a.innerHTML = `${t.iconEmoji || "•"} <span style="margin-top:8px;font-weight:600">${t.label}</span>`;
+    bindAutoUpdateFlag(a);
     grid.appendChild(a);
   });
 
@@ -59,6 +73,7 @@ function renderSubnav(sectionHref, topTile, children){
     a.style.textDecoration="none";
     a.style.color="#143231";
     a.textContent = ch.label;
+    bindAutoUpdateFlag(a);
     list.appendChild(a);
   });
 
