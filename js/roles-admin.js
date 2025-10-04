@@ -41,15 +41,21 @@ function renderPermRows(permsByPath = {}){
   rowsBox.innerHTML = '';
   const paths = gatherPaths();
   paths.forEach(p=>{
-    const row = document.createElement('div'); row.className = 'perm-grid';
+    const row = document.createElement('div');
+    row.className = 'perm-row';
     const pr = permsByPath[p.href] || {};
     row.innerHTML = `
-      <div>${p.label} <div class="muted">${p.href}</div></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="view"   ${pr.view?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="create" ${pr.create?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="edit"   ${pr.edit?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="delete" ${pr.delete?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="archive" ${pr.archive?'checked':''}></div>
+      <div class="perm-cell">
+        <div class="perm-label">
+          <span>${p.label}</span>
+          <small>${p.href}</small>
+        </div>
+      </div>
+      <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${p.href}" data-k="view"   ${pr.view?'checked':''}></span></div>
+      <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${p.href}" data-k="create" ${pr.create?'checked':''}></span></div>
+      <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${p.href}" data-k="edit"   ${pr.edit?'checked':''}></span></div>
+      <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${p.href}" data-k="delete" ${pr.delete?'checked':''}></span></div>
+      <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${p.href}" data-k="archive" ${pr.archive?'checked':''}></span></div>
     `;
     rowsBox.appendChild(row);
   });
