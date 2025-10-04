@@ -84,8 +84,8 @@
       <div class="row">
         <img src="assets/icons/icon-192.png" alt="">
         <div>
-          <div class="title">Dowson Farms</div>
-          <div class="sub">Divernon, Illinois</div>
+          <div class="title">Farm Vista</div>
+          <div class="sub">AI-powered field intelligence</div>
         </div>
       </div>
     `;
@@ -195,8 +195,8 @@
     brand.className = "footBrand";
     brand.innerHTML = `
       <div>
-        <div class="title">Dowson Farms</div>
-        <div class="mono">Divernon, Illinois</div>
+        <div class="title">Farm Vista</div>
+        <div class="mono">AI-powered field intelligence</div>
       </div>
     `;
 
