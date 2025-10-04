@@ -81,10 +81,12 @@
     const hero = document.createElement("div");
     hero.className = "brand hero"; // supports .brand or .hero CSS you’ve used
     hero.innerHTML = `
-      <img src="assets/icons/icon-192.png" alt="">
-      <div>
-        <div style="font-weight:700">Farm Vista</div>
-        <div class="mono">Divernon, Illinois</div>
+      <div class="row">
+        <img src="assets/icons/icon-192.png" alt="">
+        <div>
+          <div class="title">Dowson Farms</div>
+          <div class="sub">Divernon, Illinois</div>
+        </div>
       </div>
     `;
     return hero;
@@ -192,22 +194,51 @@
     const brand = document.createElement("div");
     brand.className = "footBrand";
     brand.innerHTML = `
-      <img src="assets/icons/icon-192.png" alt="">
       <div>
-        <div class="title">Farm Vista · Divernon, Illinois</div>
+        <div class="title">Dowson Farms</div>
+        <div class="mono">Divernon, Illinois</div>
       </div>
     `;
 
     const ver = document.createElement("div");
     ver.className = "ver";
-    function applyVersion() {
-      const v = (window.DF_VERSION && window.DF_VERSION.app) ? window.DF_VERSION.app : null;
-      if (v) ver.textContent = `App v${v}`;
-      return !!v;
-    }
+
+    const formatVersion = (value) => {
+      if (!value) return null;
+      const raw = String(value).trim();
+      if (!raw) return null;
+      const normalized = raw.replace(/^V/, "v");
+      return normalized.startsWith("v") ? `App ${normalized}` : `App v${normalized}`;
+    };
+
+    const resolveVersion = () => {
+      const src = window.DF_VERSION;
+      if (!src) return null;
+      if (typeof src === "string") return formatVersion(src);
+      if (typeof src === "object") {
+        const cand = src.app || src.version || src.tag || src.v || src.value;
+        return formatVersion(cand);
+      }
+      return null;
+    };
+
+    const applyVersion = (event) => {
+      if (event && event.detail !== undefined) {
+        window.DF_VERSION = event.detail;
+      }
+      const label = resolveVersion();
+      if (label) ver.textContent = label;
+      return !!label;
+    };
+
     if (!applyVersion()) {
       ver.textContent = "App v…";
-      window.addEventListener("df-version", applyVersion, { once: true });
+      const onVersion = (event) => {
+        if (applyVersion(event)) {
+          window.removeEventListener("df-version", onVersion);
+        }
+      };
+      window.addEventListener("df-version", onVersion);
       let n = 0;
       const t = setInterval(() => { if (applyVersion() || ++n > 50) clearInterval(t); }, 100);
     }
