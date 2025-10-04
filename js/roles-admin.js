@@ -22,6 +22,13 @@ const ACTIONS = [
   { key: 'delete', label: 'Delete', hint: 'Allow permanent deletion when the record has never been used.' }
 ];
 
+const ACTION_KEYS = ACTIONS.map(action => action.key);
+const STATUS_LABELS = {
+  full: 'Full access',
+  custom: 'Custom',
+  none: 'None'
+};
+
 // --- helpers
 function msg(s, ok=true){ statusBox.style.display='block'; statusBox.style.background = ok ? '#e1ede4' : '#ffe9e9';
   statusBox.style.border = ok ? '1px solid #cadbcc' : '1px solid #f3b9b9'; statusBox.style.color = ok ? '#2F563E' : '#a00'; statusBox.textContent=s;
@@ -31,7 +38,7 @@ function keyFromName(n){ return String(n||'').trim().toLowerCase().replace(/\s+/
 
 function emptyPermState(){
   const obj = {};
-  ACTIONS.forEach(action => { obj[action.key] = false; });
+  ACTION_KEYS.forEach(key => { obj[key] = false; });
   return obj;
 }
 
@@ -48,14 +55,18 @@ function buildMenuTree(){
 function createLeaf(node, permsByPath, trail){
   if (!node.href) return null;
   const labelTrail = [...trail, node.label].filter(Boolean);
-  const labelText = labelTrail.length ? labelTrail.join(' › ') : (node.href || '');
+  const labelText = labelTrail.length
+    ? labelTrail.join(' › ')
+    : (node.label || node.href || 'Untitled page');
   const leaf = document.createElement('div');
   leaf.className = 'perm-leaf';
   leaf.dataset.path = node.href;
 
   const label = document.createElement('div');
   label.className = 'perm-leaf-label';
-  label.innerHTML = `<span>${labelText}</span><small>${node.href}</small>`;
+  const labelSpan = document.createElement('span');
+  labelSpan.textContent = labelText;
+  label.appendChild(labelSpan);
   leaf.appendChild(label);
 
   const actions = document.createElement('div');
@@ -85,10 +96,16 @@ function renderMenuNode(node, permsByPath, trail = []){
 
   const branch = document.createElement('details');
   branch.className = 'perm-branch';
-  if (!trail.length) branch.open = true;
 
   const summary = document.createElement('summary');
-  summary.innerHTML = `<span>${node.label || node.href || 'Untitled section'}</span>`;
+  const title = document.createElement('span');
+  title.textContent = node.label || node.href || 'Untitled section';
+  summary.appendChild(title);
+
+  const status = document.createElement('span');
+  status.className = 'perm-branch-status perm-branch-status--none';
+  status.textContent = STATUS_LABELS.none;
+  summary.appendChild(status);
   branch.appendChild(summary);
 
   const childrenWrap = document.createElement('div');
@@ -119,6 +136,7 @@ function renderMenuNode(node, permsByPath, trail = []){
 function toggleAction(btn){
   const current = btn.getAttribute('aria-pressed') === 'true';
   btn.setAttribute('aria-pressed', current ? 'false' : 'true');
+  updateBranchStatuses();
 }
 
 function renderPermTree(permsByPath = {}){
@@ -135,9 +153,12 @@ function renderPermTree(permsByPath = {}){
     const el = renderMenuNode(node, permsByPath, []);
     if (el) rowsBox.appendChild(el);
   });
+  collapseAllBranches();
+  updateBranchStatuses();
 }
 
-function collectPerms(){
+function snapshotPerms(){
+  if (!rowsBox) return {};
   const buttons = rowsBox.querySelectorAll('.perm-action');
   const perms = {};
   buttons.forEach(btn => {
@@ -147,13 +168,74 @@ function collectPerms(){
     if (!perms[path]) perms[path] = emptyPermState();
     perms[path][key] = btn.getAttribute('aria-pressed') === 'true';
   });
+  return perms;
+}
+
+function collectPerms(){
+  const perms = snapshotPerms();
   Object.keys(perms).forEach(path => {
     const obj = perms[path];
-    const hasAny = ACTIONS.some(action => obj[action.key]);
+    const hasAny = ACTION_KEYS.some(key => obj[key]);
     if (!hasAny) delete perms[path];
   });
   return perms;
 }
+
+function computeBranchStatusFromDom(branch){
+  if (!branch) return 'none';
+  const leaves = branch.querySelectorAll('.perm-leaf');
+  if (!leaves.length) return 'none';
+  const states = [];
+  leaves.forEach(leaf => {
+    const actions = leaf.querySelectorAll('.perm-action');
+    if (!actions.length) return;
+    let pressed = 0;
+    actions.forEach(actionBtn => {
+      if (actionBtn.getAttribute('aria-pressed') === 'true') pressed += 1;
+    });
+    if (pressed === 0) {
+      states.push('none');
+    } else if (pressed === actions.length) {
+      states.push('full');
+    } else {
+      states.push('custom');
+    }
+  });
+  if (!states.length) return 'none';
+  if (states.every(state => state === 'full')) return 'full';
+  if (states.every(state => state === 'none')) return 'none';
+  return 'custom';
+}
+
+function applyBranchStatus(branch, state){
+  const statusEl = branch.querySelector(':scope > summary .perm-branch-status');
+  if (!statusEl) return;
+  const nextState = STATUS_LABELS[state] ? state : 'none';
+  statusEl.textContent = STATUS_LABELS[nextState];
+  statusEl.classList.remove('perm-branch-status--full', 'perm-branch-status--custom', 'perm-branch-status--none');
+  statusEl.classList.add(`perm-branch-status--${nextState}`);
+}
+
+function updateBranchStatuses(){
+  if (!rowsBox) return;
+  const branches = rowsBox.querySelectorAll('details.perm-branch');
+  branches.forEach(branch => {
+    const state = computeBranchStatusFromDom(branch);
+    applyBranchStatus(branch, state);
+  });
+}
+
+function collapseAllBranches(){
+  if (!rowsBox) return;
+  rowsBox.querySelectorAll('details.perm-branch').forEach(branch => {
+    branch.open = false;
+  });
+}
+
+document.addEventListener('perm-tree-show', () => {
+  collapseAllBranches();
+  updateBranchStatuses();
+});
 
 function showDeleteButton({ visible, disabled, note, roleKey } = {}){
   if (!delBtn) return;

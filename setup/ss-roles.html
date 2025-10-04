@@ -254,7 +254,7 @@
       border-right: 2px solid var(--accent);
       border-bottom: 2px solid var(--accent);
       transform: rotate(45deg);
-      margin-left: auto;
+      margin-left: 12px;
       transition: transform 0.2s ease;
     }
 
@@ -292,11 +292,33 @@
       color: #1f4d45;
     }
 
-    .perm-leaf-label small {
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-weight: 500;
-      word-break: break-all;
+    .perm-branch-status {
+      margin-left: auto;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .perm-branch-status--full {
+      background: #e1ede4;
+      border-color: rgba(61, 124, 108, 0.35);
+      color: #2f5a50;
+    }
+
+    .perm-branch-status--custom {
+      background: #f5f1e1;
+      border-color: rgba(178, 137, 46, 0.45);
+      color: #8a6b1f;
+    }
+
+    .perm-branch-status--none {
+      background: #f0f4f3;
+      border-color: rgba(49, 72, 68, 0.2);
+      color: #46665f;
     }
 
     .perm-actions {
@@ -419,7 +441,6 @@
         <h1>Account Roles</h1>
         <p>Craft tailored permission sets for each role so teammates only see the menus they need.</p>
       </div>
-      <div class="muted">Tip: Builder has full access automatically.</div>
     </section>
 
     <section class="role-actions">
@@ -499,6 +520,7 @@
           wrapper.removeAttribute('hidden');
           toggleBtn.setAttribute('aria-expanded', 'true');
           toggleBtn.textContent = 'Hide permissions';
+          document.dispatchEvent(new CustomEvent('perm-tree-show'));
         }
         wrapper.dataset.collapsed = collapsed ? 'true' : 'false';
       };
