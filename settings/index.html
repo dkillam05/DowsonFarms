@@ -4,249 +4,400 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#365E5A" />
-  <title>Farm Vista — Settings</title>
+  <title>Settings — Farm Vista</title>
 
-  <!-- Root base for GitHub Pages -->
-  <base href="/FarmVista/">
-
+  <!-- Prepaint theme -->
   <script>
     (function () {
-      var pref = localStorage.getItem('df_theme') || 'auto';
-      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
-      document.documentElement.setAttribute('data-theme', mode);
-      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+      try {
+        var pref = localStorage.getItem('df_theme') || 'auto';
+        var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+        var mode = (pref === 'auto') ? (dark ? 'dark' : 'light') : pref;
+        document.documentElement.setAttribute('data-theme', pref);
+        document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+      } catch (_) {}
     })();
   </script>
 
-  <link rel="stylesheet" href="assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/theme.css?v=24" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+
+  <link rel="manifest" href="../manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+
   <style>
-    :root { --brand:#365E5A; --band:#E4E8D8; --paper:#F4F1E4; --ink:#142725; }
-    body { margin:0; background:var(--paper); color:var(--ink); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    header { height: 40px; background: var(--band); display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid rgba(54, 94, 90, 0.18); }
-    header .title { font-weight:700; color:#142725; }
-    header .spacer { flex:1; }
-    header .logout { appearance:none; border:1px solid rgba(54, 94, 90, 0.26); background:#fff; color:var(--brand); font-weight:700; padding:6px 10px; border-radius:10px; cursor:pointer; }
-    main { padding:18px; max-width:1100px; margin:0 auto; }
-    h1 { font-size:22px; color:var(--brand); margin-top:0; }
-    footer { text-align:center; font-size:12px; color:#4B5A58; margin:40px 0 20px; }
-    #tiles { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .tile { display:flex; flex-direction:column; align-items:center; justify-content:center; background:#fff; border:1px solid rgba(54, 94, 90, 0.14); border-radius:16px; box-shadow:0 6px 18px rgba(23, 52, 49, 0.12); text-decoration:none; color:#142725; padding:24px 18px; transition:transform .15s; }
-    .tile:hover { transform: translateY(-3px); }
-    .tile span { margin-top:8px; font-weight:600; }
-    #diagBar { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; padding:8px 10px; border-bottom:1px solid rgba(20, 50, 49, 0.12); }
-    #diagBar.ok  { background:#e1ede4; color:#2F563E; }
-    #diagBar.err { background:#ffe9e9; color:#a00; }
-    a.back { text-decoration:none; }
+    .settings-hero {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .settings-lead {
+      margin: 0;
+      font-size: 1.05rem;
+      color: var(--fv-muted);
+    }
+
+    .settings-meta {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--fv-muted);
+    }
+
+    .settings-meta strong {
+      color: var(--fv-blue-dark);
+    }
+
+    .settings-tiles {
+      margin-top: 6px;
+    }
+
+    .settings-tile {
+      align-items: flex-start;
+    }
+
+    .settings-tile .tile-emoji {
+      font-size: 1.75rem;
+      line-height: 1;
+    }
+
+    .settings-tile .tile-label {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--fv-blue-dark);
+    }
+
+    .settings-empty {
+      margin: 0;
+      padding: 14px 16px;
+      border-radius: var(--fv-radius-sm);
+      background: rgba(54, 94, 90, 0.08);
+      color: var(--fv-blue-dark);
+      font-weight: 500;
+    }
+
+    .update-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .update-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .update-status {
+      font-size: 0.9rem;
+      color: var(--fv-muted);
+    }
+
+    .fv-toast {
+      position: fixed;
+      inset: auto 16px 16px 16px;
+      max-width: 420px;
+      padding: 14px 18px;
+      border-radius: var(--fv-radius-md);
+      background: linear-gradient(135deg, rgba(54, 94, 90, 0.92), rgba(216, 193, 121, 0.92));
+      color: #fff;
+      box-shadow: 0 18px 32px rgba(27, 53, 50, 0.32);
+      font-weight: 600;
+      z-index: 1200;
+      opacity: 0;
+      transform: translateY(14px);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .fv-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .fv-toast[data-tone="success"] {
+      background: linear-gradient(135deg, rgba(54, 94, 90, 0.92), rgba(159, 191, 111, 0.92));
+    }
+
+    .fv-toast[data-tone="error"] {
+      background: linear-gradient(135deg, rgba(160, 40, 40, 0.92), rgba(216, 193, 121, 0.92));
+    }
+
+    .fv-toast[data-tone="info"] {
+      background: linear-gradient(135deg, rgba(54, 94, 90, 0.92), rgba(216, 193, 121, 0.92));
+    }
   </style>
 </head>
 <body>
-  <header>
-    <a class="back" href="index.html">← Home</a>
-    <div class="spacer"></div>
-    <div class="title">Settings</div>
-    <div class="spacer"></div>
-    <button id="logoutBtn" class="logout">Logout</button>
-  </header>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="../index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><span>Settings</span></li>
+    </ol>
+  </nav>
 
-  <div id="diagBar" class="err">Loading…</div>
+  <main class="content">
+    <section class="card settings-hero" aria-labelledby="settings-title">
+      <div>
+        <h1 id="settings-title">⚙️ Settings</h1>
+        <p class="settings-lead">Control appearance, account details, and other Farm Vista preferences.</p>
+      </div>
+      <p id="settingsMeta" class="settings-meta">Checking access…</p>
+      <div id="settingsTiles" class="df-tiles settings-tiles" role="list"></div>
+      <p id="settingsEmpty" class="settings-empty" role="status" hidden>No settings are available for your role yet.</p>
+    </section>
 
-  <main>
-    <h1>Settings</h1>
-    <p>Control appearance, account details, and other app preferences.</p>
-
-    <div id="tiles"></div>
-
-    <section id="check-updates" style="margin-top:28px;">
-      <h2 style="color:var(--brand); font-size:18px;">App Updates</h2>
+    <section class="card update-card" id="check-updates" aria-labelledby="updates-title">
+      <h2 id="updates-title">🔄 App Updates</h2>
       <p>Check for the latest build, refresh caches, and reload the app.</p>
-      <button id="btnCheckUpdates" class="logout">Check for Updates</button>
-      <span id="updMsg" style="margin-left:10px; font-size:13px; color:#53625F;"></span>
+      <div class="update-actions">
+        <button id="btnCheckUpdates" class="btn-primary">Check for Updates</button>
+        <span id="updMsg" class="update-status" aria-live="polite">Not checked yet.</span>
+      </div>
     </section>
   </main>
 
-  <footer>Farm Vista App © <span id="year"></span></footer>
+  <div id="updateToast" class="fv-toast" role="status" aria-live="polite" hidden>Update status</div>
 
-  <script src="assets/data/menus.js"></script>
-  <script src="js/version.js"></script>
-  <script type="module" src="js/firebase-init.js"></script>
-  <script type="module" src="js/auth-guard.js"></script>
+  <footer class="app-footer">
+    <span>Farm Vista</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <script src="../assets/data/menus.js"></script>
+  <script src="../assets/data/drawer-menus.js"></script>
+  <script src="../assets/data/footer-links.js"></script>
+
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth-guard.js"></script>
+
   <script type="module">
-    import { auth } from "./js/firebase-init.js";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { loadAccess } from "./js/access.js";
+    import { auth } from "../js/firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "../js/access.js";
 
-    const yearEl  = document.getElementById("year");
-    const tilesEl = document.getElementById("tiles");
-    const diag    = document.getElementById("diagBar");
-    yearEl.textContent = new Date().getFullYear();
+    const tilesEl = document.getElementById('settingsTiles');
+    const metaEl = document.getElementById('settingsMeta');
+    const emptyEl = document.getElementById('settingsEmpty');
+    const toastEl = document.getElementById('updateToast');
+    const statusEl = document.getElementById('updMsg');
+    const btn = document.getElementById('btnCheckUpdates');
 
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      signOut(auth).then(() => location.href = "auth/");
-    });
-
-    (function () {
-      const btn = document.getElementById("btnCheckUpdates");
-      const msg = document.getElementById("updMsg");
-      if (!btn) return;
-
-      const currentVersion = (window.DF_VERSION || "").trim();
-
-      const parseRemoteVersion = (text) => {
-        const match = text.match(/DF_VERSION\s*=\s*["'`](.+?)["'`]/);
-        return match ? match[1].trim() : null;
-      };
-
-      const compareVersions = (next, current) => {
-        if (!next && !current) return 0;
-        if (next && !current) return 1;
-        if (!next && current) return -1;
-        if (next === current) return 0;
-        const toParts = (ver) => ver.replace(/^v/i, "").split(/[^0-9]+/).filter(Boolean).map(n => parseInt(n, 10) || 0);
-        const a = toParts(next);
-        const b = toParts(current);
-        const len = Math.max(a.length, b.length);
-        for (let i = 0; i < len; i++) {
-          const diff = (a[i] || 0) - (b[i] || 0);
-          if (diff !== 0) return diff;
-        }
-        return next.localeCompare(current);
-      };
-
-      const fetchLatestVersion = async () => {
-        const res = await fetch("./js/version.js?ts=" + Date.now(), { cache: "no-store" });
-        if (!res.ok) throw new Error("Version fetch failed: " + res.status);
-        const text = await res.text();
-        const remote = parseRemoteVersion(text);
-        if (!remote) throw new Error("Version string not found in response.");
-        return remote;
-      };
-
-      const clearCaches = async () => {
-        if (!("caches" in window)) return;
-        const names = await caches.keys();
-        await Promise.all(names.map((name) => caches.delete(name).catch(() => {})));
-      };
-
-      const refreshServiceWorkers = async (forceUnregister = false) => {
-        if (!("serviceWorker" in navigator)) return;
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(
-          regs.map(async (reg) => {
-            try {
-              if (forceUnregister) {
-                await reg.unregister();
-              } else if (reg.update) {
-                await reg.update();
-              }
-            } catch (err) {
-              console.warn("Service worker refresh failed", err);
-            }
-          })
-        );
-      };
-
-      const reloadWithNotice = (delayMs = 1500) => {
-        window.setTimeout(() => {
-          try {
-            const base = location.href.split("#")[0];
-            location.href = `${base}#check-updates`;
-            location.reload();
-          } catch (_) {
-            location.reload();
-          }
-        }, delayMs);
-      };
-
-      btn.addEventListener("click", async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (btn.disabled) return;
-        msg.textContent = "Checking…";
-        btn.disabled = true;
-        try {
-          const latestVersion = await fetchLatestVersion();
-          const hasNewer = compareVersions(latestVersion, currentVersion) > 0;
-          await clearCaches();
-          await refreshServiceWorkers(hasNewer);
-          const displayVersion = latestVersion || currentVersion || "unknown";
-          if (hasNewer) {
-            msg.textContent = `New version ${latestVersion} available. Reloading…`;
-            reloadWithNotice();
-          } else {
-            msg.textContent = `Already on latest version (${displayVersion}). Caches cleared.`;
-          }
-        } catch (e) {
-          console.error(e);
-          msg.textContent = "Could not check for updates.";
-        } finally {
-          btn.disabled = false;
-        }
+    const dateEl = document.getElementById('report-date');
+    if (dateEl) {
+      dateEl.textContent = new Date().toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
       });
-    })();
-
-    function dump(x){ try { return JSON.stringify(x, null, 2); } catch { return String(x); } }
-    function getMenus(){ return (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || []; }
-
-    function getSettingsNode() {
-      const tiles = getMenus();
-      return tiles.find(t => (t.href && t.href.replace(/index\.html$/,'').endsWith("settings/")))
-          || tiles.find(t => (t.label||"").toLowerCase() === 'settings');
     }
 
-    async function renderFor(user){
-      if(!user){
-        diag.textContent = "No Firebase user yet (waiting for auth)…";
-        diag.className = "err";
-        tilesEl.innerHTML = "";
+    const showToast = (message, tone = 'info') => {
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.dataset.tone = tone;
+      toastEl.hidden = false;
+      toastEl.classList.remove('show');
+      void toastEl.offsetWidth; // force reflow for transition
+      toastEl.classList.add('show');
+      clearTimeout(showToast._timer);
+      showToast._timer = window.setTimeout(() => {
+        toastEl.classList.remove('show');
+        window.setTimeout(() => {
+          toastEl.hidden = true;
+        }, 250);
+      }, 3000);
+    };
+
+    const getMenus = () => (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
+    const getSettingsNode = () => {
+      const tiles = getMenus();
+      return tiles.find((t) => (t.href && t.href.replace(/index\.html$/, '').endsWith('settings/')))
+        || tiles.find((t) => (t.label || '').toLowerCase() === 'settings');
+    };
+
+    const renderTiles = (items = []) => {
+      tilesEl.innerHTML = '';
+      if (!items.length) {
+        emptyEl.hidden = false;
+        emptyEl.textContent = 'No settings are available for your role yet.';
         return;
       }
 
-      const settingsNode = getSettingsNode();
-      if(!settingsNode){
-        diag.textContent = "DF_MENUS missing a 'settings/' tile. Check assets/data/menus.js.";
-        diag.className = "err";
-        tilesEl.innerHTML = "";
+      emptyEl.hidden = true;
+      items.forEach((it) => {
+        const link = document.createElement('a');
+        link.classList.add('settings-tile');
+        link.href = it.href || '#';
+        if (!it.href) {
+          link.setAttribute('aria-disabled', 'true');
+          link.addEventListener('click', (ev) => ev.preventDefault());
+        }
+
+        const emoji = document.createElement('span');
+        emoji.className = 'tile-emoji';
+        emoji.textContent = it.iconEmoji || '•';
+
+        const label = document.createElement('span');
+        label.className = 'tile-label';
+        label.textContent = it.label || 'Settings';
+
+        link.append(emoji, label);
+        link.setAttribute('role', 'listitem');
+        link.setAttribute('aria-label', it.label || 'Settings');
+        tilesEl.appendChild(link);
+      });
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        metaEl.textContent = 'Waiting for sign-in…';
+        renderTiles([]);
+        emptyEl.hidden = false;
+        emptyEl.textContent = 'Sign in to view available settings.';
         return;
       }
 
-      try{
+      metaEl.innerHTML = `Signed in as <strong>${user.email || user.uid}</strong>`;
+
+      try {
         const access = await loadAccess();
-        const children = Array.isArray(settingsNode.children) ? settingsNode.children : [];
-        const visible  = children.filter(ch => (access.canView ? access.canView(ch.href) : true));
-
-        const lines = [
-          `Section: settings/`,
-          `User: ${user.email || user.uid}`,
-          `Role keys: ${dump(access.roleKeys)}`,
-          `permsByPath keys: ${Object.keys(access.permsByPath||{}).length}`,
-          `Visible sub-menus: ${visible.length}`
-        ];
-        diag.textContent = lines.join("\n");
-        diag.className = visible.length ? "ok" : "err";
-
-        tilesEl.innerHTML = "";
-        if(!visible.length){
-          tilesEl.innerHTML = `<p style="color:#a00">No visible sub-menus for <code>settings/</code>. Check Firestore <code>roles/&hellip;/permissionsByPath</code>.</p>`;
+        const node = getSettingsNode();
+        if (!node) {
+          renderTiles([]);
+          emptyEl.hidden = false;
+          emptyEl.textContent = 'Settings navigation is not configured yet. Contact an administrator.';
           return;
         }
 
-        visible.forEach(it => {
-          const a = document.createElement("a");
-          a.className = "tile";
-          a.href = it.href;
-          a.title = it.label;
-          a.innerHTML = `${it.iconEmoji || "•"} <span>${it.label}</span>`;
-          tilesEl.appendChild(a);
-        });
-      }catch(e){
-        diag.textContent = "Error loading access: " + e.message;
-        diag.className = "err";
-        tilesEl.innerHTML = "";
+        const children = Array.isArray(node.children) ? node.children : [];
+        const visible = children.filter((ch) => (access.canView ? access.canView(ch.href) : true));
+        renderTiles(visible);
+      } catch (err) {
+        console.error(err);
+        renderTiles([]);
+        emptyEl.hidden = false;
+        emptyEl.textContent = 'Unable to load settings right now. Please try again soon.';
       }
-    }
+    });
 
-    onAuthStateChanged(auth, (user) => { renderFor(user); });
+    const parseRemoteVersion = (text) => {
+      const match = text.match(/DF_VERSION\s*=\s*["'`](.+?)["'`]/);
+      return match ? match[1].trim() : null;
+    };
+
+    const compareVersions = (next, current) => {
+      if (!next && !current) return 0;
+      if (next && !current) return 1;
+      if (!next && current) return -1;
+      if (next === current) return 0;
+      const toParts = (ver) => ver.replace(/^v/i, '').split(/[^0-9]+/).filter(Boolean).map((n) => parseInt(n, 10) || 0);
+      const a = toParts(next);
+      const b = toParts(current);
+      const len = Math.max(a.length, b.length);
+      for (let i = 0; i < len; i += 1) {
+        const diff = (a[i] || 0) - (b[i] || 0);
+        if (diff !== 0) return diff;
+      }
+      return next.localeCompare(current);
+    };
+
+    const fetchLatestVersion = async () => {
+      const res = await fetch('../js/version.js?ts=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('Version fetch failed: ' + res.status);
+      const text = await res.text();
+      const remote = parseRemoteVersion(text);
+      if (!remote) throw new Error('Version string not found in response.');
+      return remote;
+    };
+
+    const clearCaches = async () => {
+      if (!('caches' in window)) return;
+      const names = await caches.keys();
+      await Promise.all(names.map((name) => caches.delete(name).catch(() => {})));
+    };
+
+    const refreshServiceWorkers = async (forceUnregister = false) => {
+      if (!('serviceWorker' in navigator)) return;
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(
+        regs.map(async (reg) => {
+          try {
+            if (forceUnregister) {
+              await reg.unregister();
+            } else if (reg.update) {
+              await reg.update();
+            }
+          } catch (err) {
+            console.warn('Service worker refresh failed', err);
+          }
+        })
+      );
+    };
+
+    const reloadWithNotice = (delayMs = 1500) => {
+      window.setTimeout(() => {
+        try {
+          const base = location.href.split('#')[0];
+          location.href = `${base}#check-updates`;
+          location.reload();
+        } catch (_) {
+          location.reload();
+        }
+      }, delayMs);
+    };
+
+    btn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      if (btn.disabled) return;
+
+      const originalText = btn.textContent;
+      const currentVersion = (window.DF_VERSION || '').trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Checking…';
+      statusEl.textContent = 'Checking for updates…';
+
+      try {
+        const latestVersion = await fetchLatestVersion();
+        const hasNewer = compareVersions(latestVersion, currentVersion) > 0;
+        await clearCaches();
+        await refreshServiceWorkers(hasNewer);
+        const displayVersion = latestVersion || currentVersion || 'unknown';
+
+        if (hasNewer) {
+          statusEl.textContent = `New version ${latestVersion} available. Reloading…`;
+          showToast(`New version ${latestVersion} ready. Reloading…`, 'success');
+          reloadWithNotice();
+        } else {
+          statusEl.textContent = `You're on the latest version (${displayVersion}).`;
+          showToast(`You're on the latest version (${displayVersion}).`, 'info');
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Could not check for updates. Please try again later.';
+        showToast('Update check failed. Please try again later.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('../serviceworker.js').catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>
