@@ -8,8 +8,12 @@
   header.setAttribute("role", "banner");
   header.innerHTML = `
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
-    <div class="header-breadcrumbs" role="presentation"></div>
-    <span id="dateDisplay" class="clock">--/--/----</span>
+    <div class="header-main" role="presentation">
+      <div class="header-breadcrumbs" role="presentation"></div>
+      <div class="header-date" role="presentation">
+        <span id="dateDisplay" class="clock">--/--/----</span>
+      </div>
+    </div>
   `;
   document.body.prepend(header);
 
