@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#365E5A" />
-  <title>Products — Farm Vista</title>
+  <title>Fertilizer — Farm Vista</title>
 
-  <!-- Prepaint theme (no flash) -->
+  <!-- Prepaint theme -->
   <script>
   (function () {
     var pref = localStorage.getItem('df_theme') || 'auto';
@@ -17,20 +17,16 @@
   })();
   </script>
 
-  <!-- Styles / App (we're in /settings/products → use ../../) -->
-  <link rel="stylesheet" href="../../assets/css/theme.css" />
+  <link rel="stylesheet" href="../../assets/css/theme.css?v=24" />
   <script defer src="../../js/version.js"></script>
   <script defer src="../../js/core.js"></script>
 
-  <!-- PWA -->
-  <link rel="manifest" href="../../manifest.webmanifest" />
-
-  <!-- iOS PWA -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="../../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="../../assets/icons/maskable-512.png" />
+  <style>
+    .coming{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:26px;text-align:center;}
+    .coming .emoji{font-size:44px;line-height:1;}
+    .coming .title{font-weight:800;font-size:1.2rem;}
+    .coming .hint{opacity:.8;}
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -42,27 +38,24 @@
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs -->
+  <!-- Breadcrumbs (static; relies on global theme.css to ellipsize) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
       <li><a href="../../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="../index.html">Setup / Settings</a></li>
+      <li><a href="../index.html">Setup</a></li>
       <li class="sep">›</li>
-      <li><span>Products</span></li>
+      <li><a href="index.html">Products</a></li>
+      <li class="sep">›</li>
+      <li><span>Fertilizer</span></li>
     </ol>
   </nav>
 
-  <!-- Main -->
   <main class="content">
-    <div class="row" style="align-items:center; justify-content:space-between; gap:12px;">
-      <h1 style="margin:0;">📦 Products</h1>
-    </div>
-
-    <!-- Sub-tiles rendered from global menus.js.
-         IMPORTANT: data-section must EXACTLY match the menu label ("Products"). -->
-    <section class="card" style="margin-top:12px;">
-      <div class="df-tiles" data-section="Products"></div>
+    <section class="card coming">
+      <div class="emoji">🧂</div>
+      <div class="title">Fertilizer — Coming Soon</div>
+      <div class="hint">Materials, blends, inventory locations, and application history.</div>
     </section>
   </main>
 
@@ -75,17 +68,13 @@
     <span id="version">v0.0.0</span>
   </footer>
 
-  <!-- Service worker (yours is in /js/) -->
   <script>
+    // No setBreadcrumbs(); global CSS handles the trail behavior.
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("../../js/serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../../serviceworker.js").catch(console.error);
       });
     }
   </script>
-
-  <!-- Menus + SUBNAV renderer (note ../../ and ui-subnav) -->
-  <script defer src="../../assets/data/menus.js"></script>
-  <script defer src="../../js/ui-subnav.js"></script>
 </body>
 </html>

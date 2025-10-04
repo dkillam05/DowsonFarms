@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#365E5A" />
+  <title>Account Details — Farm Vista</title>
+
+  <script>
+  (function () {
+    try {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = (pref === 'auto') ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', pref);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    } catch (_) {}
+  })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/theme.css?v=24" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+
+  <link rel="manifest" href="../manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
+
+  <style>
+    .card { max-width: 560px; margin: 0 auto; padding: 22px; border-radius: 16px; background: #fff;
+            border:1px solid rgba(54, 94, 90, 0.18); box-shadow:0 8px 24px rgba(23, 52, 49, 0.12); }
+    .card h2 { margin-top: 0; color: var(--brand-green, #365E5A); }
+    .card p { color:#4B5A58; line-height:1.45; }
+    .card .hint { margin-top:18px; font-size:.9rem; }
+    .card dl { margin:0; display:grid; grid-template-columns:minmax(120px, 200px) 1fr; gap:8px 18px; align-items:center; }
+    .card dt { font-weight:700; color:#365E5A; }
+    .card dd { margin:0; color:#142725; }
+    .actions { margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; }
+    .actions button { padding:10px 16px; border-radius:12px; border:1px solid rgba(54,94,90,0.26); cursor:pointer; font-weight:600; }
+    .btn-primary { background:#365E5A; color:#fff; }
+    .btn-secondary { background:#fff; color:#365E5A; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="../assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
+      <div class="app-header__title">Farm Vista</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
+  </header>
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="../index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="./index.html">Settings</a></li>
+      <li class="sep">›</li>
+      <li><span>Account Details</span></li>
+    </ol>
+  </nav>
+
+  <main class="content">
+    <section class="card" aria-labelledby="acct-title">
+      <h1 id="acct-title">👤 Account Details</h1>
+      <p>View the signed-in account and update contact information that appears throughout Farm Vista.</p>
+
+      <dl id="acct-details">
+        <dt>User</dt>
+        <dd id="acct-email">Loading…</dd>
+        <dt>Display Name</dt>
+        <dd id="acct-name">—</dd>
+        <dt>Phone</dt>
+        <dd id="acct-phone">—</dd>
+        <dt>Role Keys</dt>
+        <dd id="acct-roles">—</dd>
+      </dl>
+
+      <div class="actions">
+        <button id="btnManageProfile" class="btn-primary">Manage Profile</button>
+        <button id="btnSignOut" class="btn-secondary">Sign Out</button>
+      </div>
+
+      <p class="hint">Profile edits open in Firebase Authentication. Contact an administrator if you need help updating these fields.</p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Farm Vista</span>
+    <span class="dot">•</span>
+    <span id="report-date">—</span>
+    <span class="dot">•</span>
+    <span id="version">v0.0.0</span>
+  </footer>
+
+  <script type="module">
+    import { auth } from "../js/firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { loadAccess } from "../js/access.js";
+
+    const emailEl = document.getElementById('acct-email');
+    const nameEl = document.getElementById('acct-name');
+    const phoneEl = document.getElementById('acct-phone');
+    const roleEl = document.getElementById('acct-roles');
+    const manageBtn = document.getElementById('btnManageProfile');
+    const signOutBtn = document.getElementById('btnSignOut');
+
+    const renderRoles = (access) => {
+      if (!access || !Array.isArray(access.roleKeys) || !access.roleKeys.length) {
+        roleEl.textContent = '—';
+        return;
+      }
+      roleEl.textContent = access.roleKeys.join(', ');
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        emailEl.textContent = 'Not signed in';
+        nameEl.textContent = '—';
+        phoneEl.textContent = '—';
+        roleEl.textContent = '—';
+        return;
+      }
+
+      emailEl.textContent = user.email || user.uid;
+      nameEl.textContent = user.displayName || '—';
+      phoneEl.textContent = user.phoneNumber || '—';
+
+      try {
+        const access = await loadAccess();
+        renderRoles(access);
+      } catch (err) {
+        roleEl.textContent = 'Unavailable';
+        console.error(err);
+      }
+    });
+
+    manageBtn.addEventListener('click', () => {
+      window.open('https://console.firebase.google.com/', '_blank', 'noopener');
+    });
+
+    signOutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>

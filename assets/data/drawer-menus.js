@@ -78,27 +78,34 @@ window.DF_DRAWER_MENUS = [
   },
 
   {
-    label: "Setup / Settings",
-    icon: "⚙️",
+    label: "Setup",
+    icon: "🛠️",
     children: [
-      { label: "Farms",         href: "settings-setup/ss-farms.html",       icon: "🏡" },
-      { label: "Fields",        href: "settings-setup/ss-fields.html",      icon: "🗺️" },
+      { label: "Farms",         href: "setup/ss-farms.html",       icon: "🏡" },
+      { label: "Fields",        href: "setup/ss-fields.html",      icon: "🗺️" },
       { label: "Equipment Make", href: "equipment/equipment-implements.html", icon: "🏭" }, /* placeholder */
       { label: "Equipment Model",href: "equipment/equipment-implements.html", icon: "📑" }, /* placeholder */
-      { label: "Crop Types",    href: "settings-setup/ss-crop-types.html",  icon: "🌾" },
+      { label: "Crop Types",    href: "setup/ss-crop-types.html",  icon: "🌾" },
       {
         label: "Products", icon: "📦",
         children: [
-          { label: "Seed",        href: "settings-setup/products/products-seed.html",        icon: "🌽" },
-          { label: "Chemical",    href: "settings-setup/products/products-chemical.html",    icon: "🧪" },
-          { label: "Fertilizer",  href: "settings-setup/products/products-fertilizer.html",  icon: "🧂" },
-          { label: "Grain Bags",  href: "settings-setup/products/products-grain-bags.html",  icon: "👝" }
+          { label: "Seed",        href: "setup/products/products-seed.html",        icon: "🌽" },
+          { label: "Chemical",    href: "setup/products/products-chemical.html",    icon: "🧪" },
+          { label: "Fertilizer",  href: "setup/products/products-fertilizer.html",  icon: "🧂" },
+          { label: "Grain Bags",  href: "setup/products/products-grain-bags.html",  icon: "👝" }
         ]
       },
-      { label: "Account Roles",  href: "settings-setup/ss-roles.html",       icon: "🛡️" },
-      { label: "Account Details",href: "settings-setup/ss-theme.html",       icon: "👤" },
-      { label: "Theme",          href: "settings-setup/ss-theme.html",       icon: "🌗" },
-      { label: "Check for Updates", href: "settings-setup/index.html#check-updates", icon: "🔄" }
+      { label: "Account Roles",  href: "setup/ss-roles.html",       icon: "🛡️" }
+    ]
+  },
+
+  {
+    label: "Settings",
+    icon: "⚙️",
+    children: [
+      { label: "Account Details",href: "settings/account-details.html", icon: "👤" },
+      { label: "Theme",          href: "settings/settings-theme.html",       icon: "🌗" },
+      { label: "Check for Updates", href: "settings/index.html#check-updates", icon: "🔄" }
     ]
   },
 
