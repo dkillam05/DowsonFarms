@@ -1,4 +1,4 @@
-// js/drawer.js — robust hamburger + hero + sticky footer
+// js/drawer.js — robust hamburger + hero + scrolling footer
 // - Auto-creates #drawer and #drawerBackdrop if missing.
 // - Works with injected header (delegation + retry).
 // - Builds accordion from DF_DRAWER_MENUS.
@@ -221,10 +221,14 @@
 
   // ---------- assemble structure ----------
   const navShell = drawer.querySelector("nav") || document.createElement("nav");
+  const scrollWrap = document.createElement("div");
+  scrollWrap.className = "drawerScroll";
+
   drawer.innerHTML = "";
-  drawer.appendChild(buildHero());
-  drawer.appendChild(navShell);
-  drawer.appendChild(buildFooter());
+  scrollWrap.appendChild(buildHero());
+  scrollWrap.appendChild(navShell);
+  scrollWrap.appendChild(buildFooter());
+  drawer.appendChild(scrollWrap);
 
   // ---------- build accordion ----------
   const nav = navShell;
