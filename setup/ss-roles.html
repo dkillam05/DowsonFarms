@@ -2,16 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#365E5A" />
   <title>Account Roles</title>
 
   <!-- GitHub Pages base -->
   <base href="/FarmVista/">
 
+  <!-- Theme bootstrap -->
+  <script>
+    (function () {
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
+
   <link rel="stylesheet" href="assets/css/theme.css" />
+  <link rel="stylesheet" href="assets/css/drawer.css" />
+  <link rel="stylesheet" href="assets/css/header.css" />
+
   <style>
     :root {
-      color-scheme: light;
       --bg: #f5f7f3;
       --panel: #ffffffd9;
       --border: rgba(49, 72, 68, 0.18);
@@ -32,37 +46,6 @@
       background: radial-gradient(circle at top right, #f3f8f5, var(--bg));
       color: var(--text);
     }
-
-    header {
-      height: 48px;
-      background: rgba(226, 236, 229, 0.85);
-      backdrop-filter: blur(6px);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 18px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    header a {
-      color: inherit;
-      text-decoration: none;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    header .title {
-      font-weight: 700;
-      color: #0f1f1d;
-      letter-spacing: 0.01em;
-    }
-
-    .spacer { flex: 1; }
 
     main {
       padding: 32px 20px 60px;
@@ -211,6 +194,26 @@
       gap: 18px;
     }
 
+    .perm-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .perm-toggle {
+      white-space: nowrap;
+    }
+
+    .perm-grid-wrapper {
+      display: grid;
+      gap: 18px;
+    }
+
+    .perm-grid-wrapper[hidden] {
+      display: none;
+    }
+
     .perm-grid {
       display: grid;
       grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(80px, 100px));
@@ -313,39 +316,42 @@
       }
     }
 
+    @media (max-width: 720px) {
+      .perm-card-head {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .perm-toggle {
+        width: 100%;
+      }
+    }
+
     @media (max-width: 640px) {
-      header { position: static; }
       .perm-grid {
         grid-template-columns: minmax(200px, 1fr) repeat(5, 60px);
       }
 
-      button { width: 100%; }
-      .row { gap: 10px; }
-    }
+      button {
+        width: 100%;
+      }
 
-    /* small diagnostics bar */
-    #diag {
-      white-space: pre-wrap;
-      font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      padding: 8px 10px;
-      border-bottom: 1px solid rgba(20, 50, 49, 0.12);
-      display: none;
+      .row {
+        gap: 10px;
+      }
     }
-
-    #diag.ok { background: #e1ede4; color: #2F563E; display: block; }
-    #diag.err { background: #ffe9e9; color: #a00; display: block; }
   </style>
 </head>
 <body>
-  <header>
-    <a href="setup/">← Back</a>
-    <div class="title">Account Roles</div>
-    <div class="spacer"></div>
-    <a href="index.html">Home</a>
-  </header>
-
-  <!-- Diagnostics -->
-  <div id="diag">Loading…</div>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">Home</a></li>
+      <li class="sep" aria-hidden="true">›</li>
+      <li><a href="setup/">Setup</a></li>
+      <li class="sep" aria-hidden="true">›</li>
+      <li aria-current="page">Account Roles</li>
+    </ol>
+  </nav>
 
   <main>
     <section class="intro-card">
@@ -384,43 +390,76 @@
       </div>
     </section>
 
-    <section class="card">
-      <div class="perm-grid">
-        <div class="perm-grid-header">
-          <div class="perm-cell head">Menu Path</div>
-          <div class="perm-cell head">View</div>
-          <div class="perm-cell head">Create</div>
-          <div class="perm-cell head">Edit</div>
-          <div class="perm-cell head">Delete</div>
-          <div class="perm-cell head">Archive</div>
-        </div>
-        <div id="permRows"></div>
+    <section class="card perm-card">
+      <div class="perm-card-head">
+        <h2 style="margin:0;font-size:1.2rem;color:#1f4d45;">Role permissions</h2>
+        <button id="permToggle" class="btn-secondary perm-toggle" type="button" aria-expanded="true" aria-controls="permGridWrapper">Hide permissions</button>
       </div>
-      <div class="perm-footer">
-        <button id="btnSavePerms" class="btn-primary">Save Permissions</button>
+      <div id="permGridWrapper" class="perm-grid-wrapper">
+        <div class="perm-grid">
+          <div class="perm-grid-header">
+            <div class="perm-cell head">Menu Path</div>
+            <div class="perm-cell head">View</div>
+            <div class="perm-cell head">Create</div>
+            <div class="perm-cell head">Edit</div>
+            <div class="perm-cell head">Delete</div>
+            <div class="perm-cell head">Archive</div>
+          </div>
+          <div id="permRows"></div>
+        </div>
+        <div class="perm-footer">
+          <button id="btnSavePerms" class="btn-primary">Save Permissions</button>
+        </div>
       </div>
     </section>
   </main>
 
-  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
-  <script src="assets/data/menus.js"></script>
+  <!-- Drawer data -->
+  <script src="assets/data/drawer-menus.js"></script>
 
-  <!-- 2) Firebase init + (optional) auth guard -->
+  <!-- Firebase init + optional auth guard -->
   <script type="module" src="js/firebase-init.js"></script>
   <script type="module" src="js/auth-guard.js"></script>
 
-  <!-- 3) Roles admin (relies on firebase-init) -->
+  <!-- Roles admin (relies on firebase-init) -->
   <script type="module">
     import "./js/roles-admin.js";
-    // simple diag: show if menus loaded
-    const d = document.getElementById("diag");
-    try{
-      const ok = !!(window.DF_MENUS && (window.DF_MENUS.tiles||[]).length);
-      d.textContent = ok ? "menus.js loaded ✓" : "menus.js missing tiles";
-      d.className = ok ? "ok" : "err";
-    }catch(e){
-      d.textContent = e.message;
-      d.className = "err";
+  </script>
+
+  <!-- Global UI -->
+  <script defer src="js/header.js"></script>
+  <script type="module" src="js/drawer.js"></script>
+
+  <script type="module">
+    const toggleBtn = document.getElementById('permToggle');
+    const wrapper = document.getElementById('permGridWrapper');
+
+    if (toggleBtn && wrapper) {
+      const mq = window.matchMedia('(max-width: 720px)');
+
+      const setCollapsed = (collapsed) => {
+        if (collapsed) {
+          wrapper.setAttribute('hidden', '');
+          toggleBtn.setAttribute('aria-expanded', 'false');
+          toggleBtn.textContent = 'Show permissions';
+        } else {
+          wrapper.removeAttribute('hidden');
+          toggleBtn.setAttribute('aria-expanded', 'true');
+          toggleBtn.textContent = 'Hide permissions';
+        }
+        wrapper.dataset.collapsed = collapsed ? 'true' : 'false';
+      };
+
+      setCollapsed(mq.matches);
+
+      toggleBtn.addEventListener('click', () => {
+        const collapsed = wrapper.dataset.collapsed === 'true';
+        setCollapsed(!collapsed);
+      });
+
+      mq.addEventListener('change', (event) => {
+        setCollapsed(event.matches);
+      });
     }
   </script>
 </body>
