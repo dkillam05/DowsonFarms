@@ -2,96 +2,152 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Employees</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#365E5A" />
+  <title>Employees — Farm Vista</title>
 
-  <!-- IMPORTANT for GitHub Pages paths -->
-  <base href="/FarmVista/">
+  <!-- Prepaint theme -->
+  <script>
+    (function(){
+      var pref = localStorage.getItem('df_theme') || 'auto';
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = pref === 'auto' ? (dark ? 'dark' : 'light') : pref;
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
 
-  <link rel="stylesheet" href="assets/css/theme.css" />
+  <!-- App shell (we're in /teams-partners so paths need ../) -->
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
+  <script defer src="../assets/data/menus.js"></script>
+
+  <!-- Firebase + auth guard -->
+  <script type="module" src="../js/firebase-init.js"></script>
+  <script type="module" src="../js/auth-guard.js"></script>
+
   <style>
-    :root{ --band:#E4E8D8; --paper:#F4F1E4; --ink:#142725; --ok:#2F563E; --err:#a00; }
-    body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
-    header{height:40px;background:var(--band);display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(54, 94, 90, 0.18)}
-    header .title{font-weight:700;color:#143231}.spacer{flex:1}
-    main{padding:18px;max-width:1100px;margin:0 auto}
-    h1{margin:0 0 10px;color:#365E5A}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
-    input,select,button{padding:8px 10px;border-radius:10px;border:1px solid rgba(54, 94, 90, 0.26);background:#fff}
-    button{cursor:pointer;font-weight:600}
-    .btn-danger{color:#a00}
-    .card{background:#fff;border:1px solid rgba(54, 94, 90, 0.18);border-radius:14px;padding:12px;margin:12px 0}
-    #status{margin:10px 0;padding:8px 10px;border-radius:10px;display:none}
-    .ok{background:#e1ede4;border:1px solid #cadbcc;color:#2F563E}
-    .err{background:#ffe9e9;border:1px solid #f3b9b9;color:#a00}
-    .muted{color:#4B5A58;font-size:12px}
-    .list{max-height:280px;overflow:auto;border:1px solid rgba(54, 94, 90, 0.18);border-radius:10px;background:#fff}
-    .list-item{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid rgba(54, 94, 90, 0.16)}
-    .list-item:last-child{border-bottom:none}
-    .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
-    .perm-grid .head{font-weight:700}
+    h1 { margin: 0 0 10px; color: var(--fv-blue-dark); }
+    .intro { color: var(--fv-muted); margin-bottom: 18px; }
+    #status { display:none; margin-bottom:18px; padding:12px 16px; border-radius:var(--fv-radius-sm); border:1px solid var(--fv-border); background:var(--fv-paper-strong); font-weight:600; }
+    #status.ok { border-color: rgba(47,86,62,0.45); background: rgba(47,86,62,0.12); color: #1d422d; }
+    #status.err { border-color: rgba(160,0,0,0.35); background: rgba(255,80,80,0.14); color: #7b1111; }
 
-    /* Diagnostic banner */
-    #diagBar{position:sticky;top:0;z-index:9999;padding:8px 10px;border-bottom:1px solid rgba(54,94,90,0.18);
-             background:#f6f0d8;color:#142725;font-size:13px;display:none}
-    #diagBar.ok{background:#e1ede4;color:var(--ok)}
-    #diagBar.err{background:#ffe9e9;color:var(--err)}
-    #diagBar code{background:rgba(54,94,90,0.1);padding:2px 4px;border-radius:6px}
+    .actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .actions button { border-radius:var(--fv-radius-sm); border:1px solid var(--fv-border); background:var(--fv-paper); padding:10px 16px; font-weight:600; cursor:pointer; transition:background 0.18s ease, transform 0.18s ease; }
+    .actions button:hover { background:rgba(54,94,90,0.12); transform:translateY(-1px); }
+    .actions .danger { border-color: rgba(160,0,0,0.28); color:#7b1111; }
+
+    label { font-weight:600; color:var(--fv-ink-soft); }
+    input, select { width:100%; padding:12px 14px; border-radius:var(--fv-radius-sm); border:1px solid var(--fv-border); background:rgba(255,255,255,0.82); font: inherit; }
+    select[multiple] { min-height:162px; }
+    .form-grid { display:grid; gap:12px; }
+    .form-row { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .muted { color: var(--fv-muted); font-size:0.9rem; }
+
+    .list { margin-top:14px; max-height:280px; overflow:auto; border:1px solid var(--fv-border); border-radius:var(--fv-radius-md); background:rgba(255,255,255,0.85); }
+    .list-item { display:flex; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--fv-border); cursor:pointer; transition:background 0.18s ease; }
+    .list-item:hover, .list-item:focus { background:rgba(54,94,90,0.08); outline:none; }
+    .list-item:last-child { border-bottom:none; }
+
+    .perm-grid { display:grid; grid-template-columns: minmax(160px,1fr) repeat(5, minmax(70px, 90px)); align-items:center; gap:8px; }
+    .perm-grid + .perm-grid { margin-top:6px; }
+    .perm-grid .head { font-weight:700; color:var(--fv-ink-soft); }
+    .perm-grid input[type="checkbox"] { width:auto; margin:0 auto; transform:scale(1.1); }
+
+    .card-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .card-title h2 { margin:0; font-size:1.15rem; color:var(--fv-blue-dark); }
+
+    .btn-primary { background:var(--fv-blue); color:#fff; border:none !important; }
+    .btn-primary:hover { background:var(--fv-blue-dark); }
+    .btn-danger { border-color: rgba(160,0,0,0.28) !important; color:#fff; background:#a00000; }
+    .btn-danger:hover { background:#7b1111; }
+
+    @media (max-width:640px) {
+      .perm-grid { grid-template-columns: minmax(140px,1fr) repeat(5, 64px); font-size:0.85rem; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <a href="teams-partners/" style="text-decoration:none">← Back</a>
-    <div class="title">Employees</div>
-    <div class="spacer"></div>
-    <a href="index.html">Home</a>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__left">
+      <img src="../assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
+      <div class="app-header__title">Farm Vista</div>
+    </div>
+    <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Diagnostic banner -->
-  <div id="diagBar"></div>
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="../index.html">Home</a></li>
+      <li class="sep">›</li>
+      <li><a href="index.html">Teams &amp; Partners</a></li>
+      <li class="sep">›</li>
+      <li><span>Employees</span></li>
+    </ol>
+  </nav>
 
-  <main>
-    <h1>Employees</h1>
-    <p class="muted">Create an employee (auto-ID), set email & roles, then “Save & Send Invite”. Overrides (optional) grant extra permissions per person.</p>
+  <!-- Main -->
+  <main class="content" data-has-form>
+    <h1>👥 Employees</h1>
+    <p class="intro">Create an employee (auto-ID), set email &amp; roles, then “Save &amp; Send Invite”. Overrides (optional) grant extra permissions per person.</p>
 
-    <div id="status"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
 
-    <div class="card">
-      <div class="row">
-        <button id="btnAdd">+ Add Employee</button>
-        <button id="btnRefresh">Refresh List</button>
-        <span class="muted" id="selHint">(no employee selected)</span>
+    <section class="card">
+      <div class="card-title">
+        <h2>Team Members</h2>
+        <span id="selHint" class="muted">(no employee selected)</span>
+      </div>
+      <div class="actions">
+        <button id="btnAdd" class="btn-primary" type="button">+ Add Employee</button>
+        <button id="btnRefresh" type="button">Refresh List</button>
       </div>
       <div id="empList" class="list" aria-label="Employees list"></div>
-    </div>
+    </section>
 
-    <div class="card">
-      <h3 style="margin:0 0 8px">Details</h3>
-      <div class="row">
-        <label style="width:90px">First</label>
-        <input id="firstName" type="text" placeholder="First name" />
-        <label style="width:90px">Last</label>
-        <input id="lastName" type="text" placeholder="Last name" />
+    <section class="card">
+      <div class="card-title">
+        <h2 id="detailsHeading">Details</h2>
       </div>
-      <div class="row">
-        <label style="width:90px">Email</label>
-        <input id="email" type="email" placeholder="email@example.com" style="min-width:320px" />
+      <div class="form-grid" role="group" aria-labelledby="detailsHeading">
+        <div class="form-row">
+          <div class="field">
+            <label for="firstName">First</label>
+            <input id="firstName" type="text" placeholder="First name" />
+          </div>
+          <div class="field">
+            <label for="lastName">Last</label>
+            <input id="lastName" type="text" placeholder="Last name" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="email@example.com" />
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="field">
+            <label for="roles">Roles</label>
+            <select id="roles" multiple aria-label="Roles"></select>
+          </div>
+          <span class="muted">Hold Ctrl/⌘ to multi-select</span>
+        </div>
+        <div class="actions">
+          <button id="btnSave" class="btn-primary" type="button">Save</button>
+          <button id="btnSaveInvite" class="btn-primary" type="button">Save &amp; Send Invite</button>
+          <button id="btnDelete" class="btn-danger" type="button">Delete</button>
+        </div>
       </div>
-      <div class="row">
-        <label style="width:90px">Roles</label>
-        <select id="roles" multiple size="6" style="min-width:260px"></select>
-        <span class="muted">Hold Ctrl/⌘ to multi-select</span>
-      </div>
-      <div class="row">
-        <button id="btnSave">Save</button>
-        <button id="btnSaveInvite">Save & Send Invite</button>
-        <button id="btnDelete" class="btn-danger">Delete</button>
-      </div>
-    </div>
+    </section>
 
-    <div class="card">
-      <h3 style="margin:0 0 8px">Per-Employee Permission Overrides</h3>
-      <p class="muted">Overrides grant extra permissions beyond the role(s). (True = allow.)</p>
+    <section class="card">
+      <div class="card-title">
+        <h2>Per-Employee Permission Overrides</h2>
+      </div>
+      <p class="muted">Overrides grant extra permissions beyond the role(s). (Checked = allow.)</p>
       <div class="perm-grid" id="permHeader">
         <div class="head">Menu Path</div>
         <div class="head">View</div>
@@ -100,25 +156,15 @@
         <div class="head">Delete</div>
         <div class="head">Archive</div>
       </div>
-      <div id="permRows"></div>
-      <div class="row">
-        <button id="btnSaveOverrides">Save Overrides</button>
-        <button id="btnClearOverrides" class="btn-danger">Clear All Overrides</button>
+      <div id="permRows" style="margin-top:10px;"></div>
+      <div class="actions" style="margin-top:14px;">
+        <button id="btnSaveOverrides" class="btn-primary" type="button">Save Overrides</button>
+        <button id="btnClearOverrides" class="danger" type="button">Clear All Overrides</button>
       </div>
-    </div>
+    </section>
   </main>
 
-  <!-- Menus (for overrides UI) -->
-  <script src="assets/data/menus.js?v=7"></script>
-
-  <!-- Firebase + guard -->
-  <script type="module" src="js/firebase-init.js?v=7"></script>
-  <script type="module" src="js/auth-guard.js?v=7"></script>
-
-  <!-- Diagnostics (creates sticky banner + exposes window.DF_DIAG) -->
-  <script type="module" src="js/employees-diag.js?v=7"></script>
-
   <!-- Page logic -->
-  <script type="module" src="js/employees-admin.js?v=7"></script>
+  <script type="module" src="../js/employees-admin.js"></script>
 </body>
 </html>
