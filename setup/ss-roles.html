@@ -95,6 +95,11 @@
       gap: 16px;
     }
 
+    .delete-wrap {
+      display: grid;
+      gap: 6px;
+    }
+
     .row {
       display: flex;
       flex-wrap: wrap;
@@ -214,106 +219,143 @@
       display: none;
     }
 
-    .perm-grid {
+    .perm-tree {
       display: grid;
-      grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(80px, 100px));
-      gap: 0;
-      border: 1px solid rgba(40, 70, 65, 0.12);
+      gap: 14px;
+    }
+
+    .perm-branch {
+      border: 1px solid rgba(40, 70, 65, 0.16);
       border-radius: 18px;
-      overflow: hidden;
       background: #fefefd;
+      box-shadow: 0 18px 32px rgba(31, 68, 62, 0.08);
     }
 
-    #permRows {
-      display: contents;
-    }
-
-    .perm-grid-header,
-    .perm-row {
-      display: contents;
-    }
-
-    .perm-cell {
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(44, 70, 66, 0.08);
+    .perm-branch summary {
+      list-style: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.95rem;
+      gap: 10px;
+      padding: 16px 18px;
+      font-weight: 600;
+      color: #1f4d45;
+      font-size: 0.98rem;
     }
 
-    .perm-grid .head {
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-size: 0.72rem;
-      color: #34665d;
-      background: #edf6f1;
+    .perm-branch summary::-webkit-details-marker {
+      display: none;
     }
 
-    .perm-row:nth-child(even) .perm-cell:first-child {
-      background: #f7faf8;
+    .perm-branch summary::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      transform: rotate(45deg);
+      margin-left: auto;
+      transition: transform 0.2s ease;
     }
 
-    .perm-row:nth-child(odd) .perm-cell:first-child {
+    .perm-branch[open] > summary::after {
+      transform: rotate(-135deg);
+    }
+
+    .perm-children {
+      display: grid;
+      gap: 12px;
+      padding: 0 18px 18px 26px;
+    }
+
+    .perm-branch .perm-branch {
+      box-shadow: none;
       background: #ffffff;
+      border: 1px solid rgba(40, 70, 65, 0.12);
     }
 
-    .perm-label {
+    .perm-leaf {
+      border: 1px solid rgba(49, 72, 68, 0.16);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 14px 26px rgba(29, 56, 52, 0.1);
+    }
+
+    .perm-leaf-label {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
+      font-weight: 600;
+      color: #1f4d45;
     }
 
-    .perm-label small {
+    .perm-leaf-label small {
       color: var(--muted);
       font-size: 0.78rem;
+      font-weight: 500;
+      word-break: break-all;
     }
 
-    .checkbox-wrap {
+    .perm-actions {
       display: flex;
-      justify-content: center;
-      width: 100%;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
-    .checkbox-wrap input {
-      appearance: none;
-      width: 22px;
-      height: 22px;
-      border-radius: 8px;
-      border: 2px solid rgba(61, 124, 108, 0.35);
-      background: #fff;
-      position: relative;
-      transition: all 0.18s ease;
+    .perm-action {
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      border: 1px solid rgba(47, 91, 82, 0.18);
+      background: #f0f6f3;
+      color: #285a51;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
     }
 
-    .checkbox-wrap input:checked {
+    .perm-action[aria-pressed="true"] {
       background: linear-gradient(135deg, #3d7c6c, #2f6c5d);
-      border-color: rgba(43, 92, 82, 0.8);
-      box-shadow: 0 8px 16px rgba(45, 90, 80, 0.24);
+      color: #fff;
+      border-color: rgba(43, 92, 82, 0.9);
+      box-shadow: 0 12px 20px rgba(45, 90, 80, 0.22);
     }
 
-    .checkbox-wrap input:checked::after {
-      content: "";
-      position: absolute;
-      inset: 5px;
-      border-radius: 4px;
-      background: #fff;
+    .perm-action[data-k="archive"] {
+      background: #edf4f1;
+      color: #2d5d54;
+    }
+
+    .perm-action[data-k="archive"][aria-pressed="true"] {
+      background: linear-gradient(135deg, #4b897b, #3c7567);
+    }
+
+    .perm-action[data-k="delete"] {
+      background: #ffecec;
+      border-color: rgba(209, 60, 60, 0.35);
+      color: #b63c3c;
+    }
+
+    .perm-action[data-k="delete"][aria-pressed="true"] {
+      background: linear-gradient(135deg, #d13c3c, #b22f2f);
+      border-color: rgba(209, 60, 60, 0.85);
+      box-shadow: 0 12px 20px rgba(209, 60, 60, 0.24);
+    }
+
+    .perm-empty {
+      padding: 16px;
+      border-radius: 14px;
+      background: #f5f9f6;
+      color: var(--muted);
+      font-size: 0.9rem;
     }
 
     .perm-footer {
       display: flex;
       justify-content: flex-end;
-    }
-
-    @media (max-width: 860px) {
-      .perm-grid {
-        grid-template-columns: minmax(200px, 1fr) repeat(5, 74px);
-      }
-
-      .perm-cell {
-        padding: 12px 12px;
-      }
     }
 
     @media (max-width: 720px) {
@@ -325,11 +367,29 @@
       .perm-toggle {
         width: 100%;
       }
+
+      .perm-children {
+        padding: 0 14px 14px 20px;
+      }
+
+      .perm-leaf {
+        padding: 12px 14px;
+      }
+
+      .perm-actions {
+        gap: 6px;
+      }
+
+      .perm-action {
+        flex: 1 1 calc(50% - 6px);
+        text-align: center;
+        min-width: 120px;
+      }
     }
 
-    @media (max-width: 640px) {
-      .perm-grid {
-        grid-template-columns: minmax(200px, 1fr) repeat(5, 60px);
+    @media (max-width: 520px) {
+      .perm-action {
+        flex: 1 1 100%;
       }
 
       button {
@@ -373,7 +433,10 @@
           <input id="newRoleName" type="text" placeholder="New role name (e.g., Managers)" />
           <button id="btnAddRole" class="btn-primary">Add Role</button>
         </div>
-        <button id="btnDeleteRole" class="btn-danger">Delete Selected Role</button>
+        <div class="delete-wrap">
+          <button id="btnDeleteRole" class="btn-danger" type="button" hidden>Delete Selected Role</button>
+          <p id="deleteHint" class="muted" hidden>Pick a role to check whether it can be deleted.</p>
+        </div>
         <div id="status"></div>
       </div>
 
@@ -382,10 +445,10 @@
         <p class="muted" style="margin:0;">Each menu path represents a screen inside FarmVista. Toggle the abilities a role should have. Unchecked paths are hidden from that role.</p>
         <ul class="muted" style="margin:0;padding-left:18px;display:grid;gap:6px;font-size:0.88rem;">
           <li><strong>View</strong> lets them open the page and see data.</li>
-          <li><strong>Create</strong> allows adding new records or entries.</li>
+          <li><strong>Add</strong> (create) allows adding new records or entries.</li>
           <li><strong>Edit</strong> grants updating existing information.</li>
-          <li><strong>Delete</strong> removes records permanently.</li>
-          <li><strong>Archive</strong> moves content out of active workflows.</li>
+          <li><strong>Archive</strong> lets them hide used records without deleting them.</li>
+          <li><strong>Delete</strong> permanently removes unused records. In most cases you'll archive instead.</li>
         </ul>
       </div>
     </section>
@@ -396,17 +459,7 @@
         <button id="permToggle" class="btn-secondary perm-toggle" type="button" aria-expanded="true" aria-controls="permGridWrapper">Hide permissions</button>
       </div>
       <div id="permGridWrapper" class="perm-grid-wrapper">
-        <div class="perm-grid">
-          <div class="perm-grid-header">
-            <div class="perm-cell head">Menu Path</div>
-            <div class="perm-cell head">View</div>
-            <div class="perm-cell head">Create</div>
-            <div class="perm-cell head">Edit</div>
-            <div class="perm-cell head">Delete</div>
-            <div class="perm-cell head">Archive</div>
-          </div>
-          <div id="permRows"></div>
-        </div>
+        <div id="permRows" class="perm-tree"></div>
         <div class="perm-footer">
           <button id="btnSavePerms" class="btn-primary">Save Permissions</button>
         </div>
