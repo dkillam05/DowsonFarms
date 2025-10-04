@@ -84,14 +84,16 @@
     .update-card {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
     }
 
     .update-actions {
       display: flex;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 12px;
-      flex-wrap: wrap;
+      text-align: center;
     }
 
     .update-status {
@@ -159,7 +161,7 @@
       <p>Check for the latest build, refresh caches, and reload the app.</p>
       <div class="update-actions">
         <button id="btnCheckUpdates" class="btn-primary">Check for Updates</button>
-        <span id="updMsg" class="update-status" aria-live="polite">Not checked yet.</span>
+        <span id="updMsg" class="update-status" aria-live="polite" hidden></span>
       </div>
     </section>
   </main>
@@ -374,6 +376,7 @@
 
       btn.disabled = true;
       btn.textContent = 'Checking…';
+      statusEl.hidden = false;
       statusEl.textContent = 'Checking for updates…';
 
       try {
@@ -400,6 +403,24 @@
         btn.textContent = originalText;
       }
     });
+
+    const autoFlag = 'fvAutoUpdateCheck';
+    const shouldAutoCheck = (() => {
+      try {
+        if (sessionStorage.getItem(autoFlag) === '1') {
+          sessionStorage.removeItem(autoFlag);
+          return true;
+        }
+      } catch (_) {}
+      return (location.hash || '').includes('auto-check');
+    })();
+
+    if (shouldAutoCheck && btn) {
+      window.requestAnimationFrame(() => {
+        btn.focus();
+        btn.click();
+      });
+    }
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
