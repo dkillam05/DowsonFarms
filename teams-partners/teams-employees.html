@@ -21,7 +21,6 @@
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <script defer src="../js/version.js"></script>
   <script defer src="../js/core.js"></script>
-  <script defer src="../assets/data/menus.js"></script>
 
   <!-- Firebase + auth guard -->
   <script type="module" src="../js/firebase-init.js"></script>
@@ -34,38 +33,69 @@
     #status.ok { border-color: rgba(47,86,62,0.45); background: rgba(47,86,62,0.12); color: #1d422d; }
     #status.err { border-color: rgba(160,0,0,0.35); background: rgba(255,80,80,0.14); color: #7b1111; }
 
+    .card { background: var(--fv-paper-strong); border: 1px solid var(--fv-border); border-radius: var(--fv-radius-md); padding: 20px; box-shadow: var(--fv-shadow); display: grid; gap: 16px; }
+    .card-title { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .card-title h2 { margin:0; font-size:1.15rem; color:var(--fv-blue-dark); }
+
     .actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-    .actions button { border-radius:var(--fv-radius-sm); border:1px solid var(--fv-border); background:var(--fv-paper); padding:10px 16px; font-weight:600; cursor:pointer; transition:background 0.18s ease, transform 0.18s ease; }
-    .actions button:hover { background:rgba(54,94,90,0.12); transform:translateY(-1px); }
-    .actions .danger { border-color: rgba(160,0,0,0.28); color:#7b1111; }
+    .actions button { border-radius:var(--fv-radius-sm); border:1px solid rgba(54,94,90,0.28); background:rgba(251,249,240,0.92); padding:10px 16px; font-weight:600; cursor:pointer; transition:background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease; }
+    .actions button:hover { background:rgba(54,94,90,0.12); transform:translateY(-1px); box-shadow:0 10px 22px rgba(27,53,50,0.14); }
+    .actions .danger { border-color: rgba(160,0,0,0.32); color:#7b1111; background:rgba(255,236,236,0.92); }
+    .btn-secondary { border-radius:var(--fv-radius-sm); border:1px solid rgba(54,94,90,0.26); background:rgba(54,94,90,0.12); color:var(--fv-blue-dark); font-weight:600; padding:10px 16px; cursor:pointer; transition:background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease; }
+    .btn-secondary:hover { background:rgba(54,94,90,0.18); transform:translateY(-1px); box-shadow:0 8px 18px rgba(27,53,50,0.12); }
 
     label { font-weight:600; color:var(--fv-ink-soft); }
-    input, select { width:100%; padding:12px 14px; border-radius:var(--fv-radius-sm); border:1px solid var(--fv-border); background:rgba(255,255,255,0.82); font: inherit; }
+    input, select { width:100%; padding:12px 14px; border-radius:var(--fv-radius-sm); border:1.5px solid rgba(54,94,90,0.24); background:rgba(251,249,240,0.92); color:var(--fv-ink); font: inherit; }
     select[multiple] { min-height:162px; }
-    .form-grid { display:grid; gap:12px; }
+    .form-grid { display:grid; gap:16px; }
     .form-row { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
     .muted { color: var(--fv-muted); font-size:0.9rem; }
+    .muted[data-state="selected"] { font-weight:600; color:var(--fv-blue-dark); }
 
-    .list { margin-top:14px; max-height:280px; overflow:auto; border:1px solid var(--fv-border); border-radius:var(--fv-radius-md); background:rgba(255,255,255,0.85); }
-    .list-item { display:flex; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--fv-border); cursor:pointer; transition:background 0.18s ease; }
-    .list-item:hover, .list-item:focus { background:rgba(54,94,90,0.08); outline:none; }
+    .list { margin-top:6px; max-height:320px; overflow:auto; border:1px solid var(--fv-border); border-radius:var(--fv-radius-md); background:rgba(251,249,240,0.85); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35); }
+    .list-item { display:flex; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--fv-border); cursor:pointer; transition:background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease; }
+    .list-item.is-selected { background:rgba(54,94,90,0.14); box-shadow:inset 0 0 0 1px rgba(54,94,90,0.22); }
+    .list-item:hover, .list-item:focus { background:rgba(54,94,90,0.08); outline:none; transform:translateY(-1px); }
     .list-item:last-child { border-bottom:none; }
 
-    .perm-grid { display:grid; grid-template-columns: minmax(160px,1fr) repeat(5, minmax(70px, 90px)); align-items:center; gap:8px; }
-    .perm-grid + .perm-grid { margin-top:6px; }
-    .perm-grid .head { font-weight:700; color:var(--fv-ink-soft); }
-    .perm-grid input[type="checkbox"] { width:auto; margin:0 auto; transform:scale(1.1); }
-
-    .card-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-    .card-title h2 { margin:0; font-size:1.15rem; color:var(--fv-blue-dark); }
+    .perm-card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .perm-toggle { white-space:nowrap; }
+    .perm-grid-wrapper { display:grid; gap:18px; }
+    .perm-grid-wrapper[hidden] { display:none; }
+    .perm-tree { display:grid; gap:14px; }
+    .perm-branch { border:1px solid rgba(40,70,65,0.16); border-radius:18px; background:#fefefd; box-shadow:0 18px 32px rgba(31,68,62,0.08); }
+    .perm-branch summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; padding:16px 18px; font-weight:600; color:#1f4d45; font-size:0.98rem; }
+    .perm-branch summary::-webkit-details-marker { display:none; }
+    .perm-branch summary::after { content:""; width:10px; height:10px; border-right:2px solid var(--fv-blue); border-bottom:2px solid var(--fv-blue); transform:rotate(45deg); margin-left:12px; transition:transform 0.2s ease; }
+    .perm-branch[open] > summary::after { transform:rotate(-135deg); }
+    .perm-children { display:grid; gap:12px; padding:0 18px 18px 26px; }
+    .perm-branch .perm-branch { box-shadow:none; background:#ffffff; border:1px solid rgba(40,70,65,0.12); }
+    .perm-leaf { border:1px solid rgba(49,72,68,0.16); border-radius:16px; padding:14px 16px; background:#ffffff; display:grid; gap:12px; box-shadow:0 14px 26px rgba(29,56,52,0.1); }
+    .perm-leaf-label { display:flex; flex-direction:column; gap:4px; font-weight:600; color:#1f4d45; }
+    .perm-branch-status { margin-left:auto; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; padding:4px 10px; border-radius:999px; font-weight:600; border:1px solid transparent; }
+    .perm-branch-status--full { background:#e1ede4; border-color:rgba(61,124,108,0.35); color:#2f5a50; }
+    .perm-branch-status--custom { background:#f5f1e1; border-color:rgba(178,137,46,0.45); color:#8a6b1f; }
+    .perm-branch-status--none { background:#f0f4f3; border-color:rgba(49,72,68,0.2); color:#46665f; }
+    .perm-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .perm-action { border-radius:999px; padding:8px 14px; font-size:0.84rem; font-weight:600; border:1px solid rgba(47,91,82,0.18); background:#f0f6f3; color:#285a51; cursor:pointer; transition:background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease; }
+    .perm-action[aria-pressed="true"] { background:linear-gradient(135deg, #3d7c6c, #2f6c5d); color:#fff; border-color:rgba(43,92,82,0.9); box-shadow:0 12px 20px rgba(45,90,80,0.22); }
+    .perm-action[data-k="archive"] { background:#edf4f1; color:#2d5d54; }
+    .perm-action[data-k="archive"][aria-pressed="true"] { background:linear-gradient(135deg, #4b897b, #3c7567); }
+    .perm-action[data-k="delete"] { background:#ffecec; border-color:rgba(209,60,60,0.35); color:#b63c3c; }
+    .perm-action[data-k="delete"][aria-pressed="true"] { background:linear-gradient(135deg, #d13c3c, #b22f2f); border-color:rgba(209,60,60,0.85); box-shadow:0 12px 20px rgba(209,60,60,0.24); }
+    .perm-empty { padding:16px; border-radius:14px; background:#f5f9f6; color:var(--fv-muted); font-size:0.9rem; }
+    .perm-footer { display:flex; justify-content:flex-end; }
 
     .btn-primary { background:var(--fv-blue); color:#fff; border:none !important; }
     .btn-primary:hover { background:var(--fv-blue-dark); }
     .btn-danger { border-color: rgba(160,0,0,0.28) !important; color:#fff; background:#a00000; }
     .btn-danger:hover { background:#7b1111; }
 
-    @media (max-width:640px) {
-      .perm-grid { grid-template-columns: minmax(140px,1fr) repeat(5, 64px); font-size:0.85rem; }
+    @media (max-width:720px) {
+      .perm-card-head { flex-direction:column; align-items:stretch; }
+      .perm-toggle { width:100%; }
+      .perm-children { padding:0 14px 14px 20px; }
+      .perm-leaf { padding:12px 14px; }
     }
   </style>
 </head>
@@ -93,14 +123,14 @@
   <!-- Main -->
   <main class="content" data-has-form>
     <h1>👥 Employees</h1>
-    <p class="intro">Create an employee (auto-ID), set email &amp; roles, then “Save &amp; Send Invite”. Overrides (optional) grant extra permissions per person.</p>
+    <p class="intro">Add teammates, assign their role, then save and invite when you're ready.</p>
 
     <div id="status" class="status" role="status" aria-live="polite"></div>
 
     <section class="card">
       <div class="card-title">
         <h2>Team Members</h2>
-        <span id="selHint" class="muted">(no employee selected)</span>
+        <span id="selHint" class="muted">Select a team member to edit</span>
       </div>
       <div class="actions">
         <button id="btnAdd" class="btn-primary" type="button">+ Add Employee</button>
@@ -143,23 +173,18 @@
       </div>
     </section>
 
-    <section class="card">
-      <div class="card-title">
-        <h2>Per-Employee Permission Overrides</h2>
+    <section class="card perm-card">
+      <div class="perm-card-head">
+        <h2 style="margin:0;font-size:1.15rem;color:#1f4d45;">Permission overrides</h2>
+        <button id="permToggle" class="perm-toggle btn-secondary" type="button" aria-expanded="true" aria-controls="permGridWrapper">Hide overrides</button>
       </div>
-      <p class="muted">Overrides grant extra permissions beyond the role(s). (Checked = allow.)</p>
-      <div class="perm-grid" id="permHeader">
-        <div class="head">Menu Path</div>
-        <div class="head">View</div>
-        <div class="head">Create</div>
-        <div class="head">Edit</div>
-        <div class="head">Delete</div>
-        <div class="head">Archive</div>
-      </div>
-      <div id="permRows" style="margin-top:10px;"></div>
-      <div class="actions" style="margin-top:14px;">
-        <button id="btnSaveOverrides" class="btn-primary" type="button">Save Overrides</button>
-        <button id="btnClearOverrides" class="danger" type="button">Clear All Overrides</button>
+      <div id="permGridWrapper" class="perm-grid-wrapper">
+        <p class="muted" style="margin:0;">Overrides add extra access on top of the employee's role permissions.</p>
+        <div id="permRows" class="perm-tree" aria-live="polite"></div>
+        <div class="perm-footer" style="gap:10px;">
+          <button id="btnClearOverrides" class="btn-secondary" type="button" style="margin-right:auto;">Clear All Overrides</button>
+          <button id="btnSaveOverrides" class="btn-primary" type="button">Save Overrides</button>
+        </div>
       </div>
     </section>
   </main>
