@@ -146,31 +146,28 @@
         );
       };
 
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if (btn.disabled) return;
         msg.textContent = "Checking…";
         btn.disabled = true;
-        let willReload = false;
         try {
           const latestVersion = await fetchLatestVersion();
           const hasNewer = compareVersions(latestVersion, currentVersion) > 0;
-          if (hasNewer) {
-            willReload = true;
-            msg.textContent = `New version ${latestVersion} available. Refreshing…`;
-            await clearCaches();
-            await refreshServiceWorkers(true);
-            setTimeout(() => window.location.reload(), 350);
-            return;
-          }
-
-          await refreshServiceWorkers(false);
+          await clearCaches();
+          await refreshServiceWorkers(hasNewer);
           const displayVersion = latestVersion || currentVersion || "unknown";
-          msg.textContent = `Already on latest version (${displayVersion}).`;
+          if (hasNewer) {
+            msg.textContent = `New version ${latestVersion} available. Caches cleared.`;
+          } else {
+            msg.textContent = `Already on latest version (${displayVersion}). Caches cleared.`;
+          }
         } catch (e) {
           console.error(e);
           msg.textContent = "Could not check for updates.";
         } finally {
-          if (!willReload) btn.disabled = false;
+          btn.disabled = false;
         }
       });
     })();
