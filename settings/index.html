@@ -292,8 +292,16 @@
     });
 
     const parseRemoteVersion = (text) => {
-      const match = text.match(/DF_VERSION\s*=\s*["'`](.+?)["'`]/);
-      return match ? match[1].trim() : null;
+      const tryMatch = (regex) => {
+        const match = text.match(regex);
+        return match ? match[1].trim() : null;
+      };
+
+      return (
+        tryMatch(/DF_VERSION\s*=\s*["'`](.+?)["'`]/) ||
+        tryMatch(/SOURCE_VERSION\s*=\s*["'`](.+?)["'`]/) ||
+        null
+      );
     };
 
     const compareVersions = (next, current) => {
