@@ -10,7 +10,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/f
 import { loadAccess } from "./access.js";
 
 // ----- CONFIG -----
-const PATH = "settings-setup/ss-crop-types.html";    // permission path
+const PATH = "setup/ss-crop-types.html";    // permission path
 const COL  = "cropTypes";                            // Firestore collection
 
 // ----- DOM -----

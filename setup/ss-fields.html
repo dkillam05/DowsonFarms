@@ -15,8 +15,8 @@
   </script>
 
   <link rel="stylesheet" href="../assets/css/theme.css?v=24" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
 
   <style>
     #searchInput{font-size:16px;height:44px;padding:10px 14px;border-radius:12px;width:100%}
@@ -34,7 +34,7 @@
 <body>
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
+      <img src="../assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
       <div class="app-header__title">Farm Vista</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
@@ -42,9 +42,9 @@
 
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="settings.html">Setup / Settings</a></li>
+      <li><a href="index.html">Setup</a></li>
       <li class="sep">›</li>
       <li><span>Fields</span></li>
     </ol>
@@ -547,8 +547,8 @@
 
     // Breadcrumbs (if provided)
     window.setBreadcrumbs && window.setBreadcrumbs([
-      {label:'Home', href:'index.html'},
-      {label:'Setup / Settings', href:'settings.html'},
+      {label:'Home', href:'../index.html'},
+      {label:'Setup', href:'index.html'},
       {label:'Fields'}
     ]);
   })();

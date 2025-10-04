@@ -95,26 +95,35 @@ window.DF_MENUS = {
     },
 
     {
-      label: "Setup / Settings",
-      href: "settings-setup/",                  // folder-style
-      iconEmoji: "⚙️",
+      label: "Setup",
+      href: "setup/",                            // folder-style
+      iconEmoji: "🛠️",
       children: [
-        { label: "Farms",         href: "settings-setup/ss-farms.html",        iconEmoji: "🏡" },
-        { label: "Fields",        href: "settings-setup/ss-fields.html",       iconEmoji: "🗺️" },
-        { label: "Crop Types",    href: "settings-setup/ss-crop-types.html",   iconEmoji: "🌾" },
-        { label: "Theme",         href: "settings-setup/ss-theme.html",        iconEmoji: "🌗" },
-        { label: "Account Roles", href: "settings-setup/ss-roles.html",        iconEmoji: "🛡️" },
-        { label: "Check for Updates", href: "settings-setup/index.html#check-updates", iconEmoji: "🔄" },
+        { label: "Farms",         href: "setup/ss-farms.html",        iconEmoji: "🏡" },
+        { label: "Fields",        href: "setup/ss-fields.html",       iconEmoji: "🗺️" },
+        { label: "Crop Types",    href: "setup/ss-crop-types.html",   iconEmoji: "🌾" },
+        { label: "Account Roles", href: "setup/ss-roles.html",        iconEmoji: "🛡️" },
         {
-          label: "Products", href: "settings-setup/products/",                 // folder-style for nested group
+          label: "Products", href: "setup/products/",                 // folder-style for nested group
           iconEmoji: "📦",
           children: [
-            { label: "Seed",        href: "settings-setup/products/products-seed.html",        iconEmoji: "🌽" },
-            { label: "Fertilizer",  href: "settings-setup/products/products-fertilizer.html",  iconEmoji: "🧂" },
-            { label: "Chemical",    href: "settings-setup/products/products-chemical.html",    iconEmoji: "👨🏼‍🔬" },
-            { label: "Grain Bags",  href: "settings-setup/products/products-grain-bags.html",  iconEmoji: "🛄" }
+            { label: "Seed",        href: "setup/products/products-seed.html",        iconEmoji: "🌽" },
+            { label: "Fertilizer",  href: "setup/products/products-fertilizer.html",  iconEmoji: "🧂" },
+            { label: "Chemical",    href: "setup/products/products-chemical.html",    iconEmoji: "👨🏼‍🔬" },
+            { label: "Grain Bags",  href: "setup/products/products-grain-bags.html",  iconEmoji: "🛄" }
           ]
         }
+      ]
+    },
+
+    {
+      label: "Settings",
+      href: "settings/",                        // folder-style
+      iconEmoji: "⚙️",
+      children: [
+        { label: "Theme",            href: "settings/settings-theme.html",       iconEmoji: "🌗" },
+        { label: "Account Details", href: "settings/account-details.html",      iconEmoji: "👤" },
+        { label: "Check for Updates", href: "settings/index.html#check-updates", iconEmoji: "🔄" }
       ]
     },
 

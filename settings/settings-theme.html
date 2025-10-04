@@ -21,18 +21,18 @@
 
   <!-- App styles / scripts -->
   <link rel="stylesheet" href="../assets/css/theme.css?v=24" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <script defer src="../js/version.js"></script>
+  <script defer src="../js/core.js"></script>
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="manifest" href="../manifest.webmanifest" />
 
   <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/maskable-512.png" />
+  <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="../assets/icons/maskable-512.png" />
 
   <!-- Page-local styles -->
   <style>
@@ -60,7 +60,7 @@
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
+      <img src="../assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
       <div class="app-header__title">Farm Vista</div>
     </div>
     <div class="app-header__right">
@@ -71,9 +71,9 @@
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="settings.html">Setup / Settings</a></li>
+      <li><a href="./index.html">Settings</a></li>
       <li class="sep">›</li>
       <li><span>Theme</span></li>
     </ol>
@@ -163,7 +163,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../serviceworker.js").catch(console.error);
       });
     }
   </script>

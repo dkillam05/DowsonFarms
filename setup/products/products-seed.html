@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#365E5A" />
-  <title>Fertilizer — Farm Vista</title>
+  <title>Seed — Farm Vista</title>
 
   <!-- Prepaint theme -->
   <script>
@@ -17,45 +17,50 @@
   })();
   </script>
 
+  <!-- Global styles + app scripts -->
   <link rel="stylesheet" href="../../assets/css/theme.css?v=24" />
-  <script defer src="version.js"></script>
-  <script defer src="core.js"></script>
+  <script defer src="../../js/version.js"></script>
+  <script defer src="../../js/core.js"></script>
 
+  <!-- Page-only styles (none touching breadcrumbs) -->
   <style>
-    .coming{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:26px;text-align:center;}
-    .coming .emoji{font-size:44px;line-height:1;}
-    .coming .title{font-weight:800;font-size:1.2rem;}
-    .coming .hint{opacity:.8;}
+    .coming {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:10px; padding:26px; text-align:center;
+    }
+    .coming .emoji { font-size:44px; line-height:1; }
+    .coming .title { font-weight:800; font-size:1.2rem; }
+    .coming .hint { opacity:.8; }
   </style>
 </head>
 <body>
   <!-- Header -->
   <header class="app-header">
     <div class="app-header__left">
-      <img src="assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
+      <img src="../../assets/icons/Farm_Vista_Logo.png" alt="Farm Vista Logo" class="app-logo" />
       <div class="app-header__title">Farm Vista</div>
     </div>
     <div class="app-header__right"><span id="clock" class="clock">--:--</span></div>
   </header>
 
-  <!-- Breadcrumbs (static; relies on global theme.css to ellipsize) -->
+  <!-- Breadcrumbs (static; matches global CSS expectations) -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <ol>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="../../index.html">Home</a></li>
       <li class="sep">›</li>
-      <li><a href="settings.html">Setup / Settings</a></li>
+      <li><a href="../index.html">Setup</a></li>
       <li class="sep">›</li>
-      <li><a href="products.html">Products</a></li>
+      <li><a href="index.html">Products</a></li>
       <li class="sep">›</li>
-      <li><span>Fertilizer</span></li>
+      <li><span>Seed</span></li>
     </ol>
   </nav>
 
   <main class="content">
     <section class="card coming">
-      <div class="emoji">🧂</div>
-      <div class="title">Fertilizer — Coming Soon</div>
-      <div class="hint">Materials, blends, inventory locations, and application history.</div>
+      <div class="emoji">🌽</div>
+      <div class="title">Seed — Coming Soon</div>
+      <div class="hint">Lots, hybrids, treatment, on-farm storage, and usage history.</div>
     </section>
   </main>
 
@@ -69,10 +74,10 @@
   </footer>
 
   <script>
-    // No setBreadcrumbs(); global CSS handles the trail behavior.
+    /* No setBreadcrumbs() call here — global theme.css handles the trail + ellipsis */
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./serviceworker.js").catch(console.error);
+        navigator.serviceWorker.register("../../serviceworker.js").catch(console.error);
       });
     }
   </script>
