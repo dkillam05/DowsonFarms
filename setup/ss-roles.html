@@ -10,71 +10,434 @@
 
   <link rel="stylesheet" href="assets/css/theme.css" />
   <style>
-    body{margin:0;background:#F4F1E4;color:#142725;font-family:system-ui,Segoe UI,Roboto,Arial}
-    header{height:40px;background:#E4E8D8;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(54, 94, 90, 0.18)}
-    header .title{font-weight:700;color:#143231} .spacer{flex:1}
-    main{padding:18px;max-width:1100px;margin:0 auto}
-    h1{margin:0 0 8px;color:#365E5A}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
-    select,input[type=text]{padding:8px 10px;border-radius:10px;border:1px solid rgba(54, 94, 90, 0.26);background:#fff}
-    button{padding:8px 12px;border-radius:10px;border:1px solid rgba(54, 94, 90, 0.26);background:#fff;cursor:pointer;font-weight:600}
-    #status{margin:10px 0;padding:8px 10px;border-radius:10px;background:#e1ede4;border:1px solid #cadbcc;color:#2F563E;display:none}
-    .card{background:#fff;border:1px solid rgba(54, 94, 90, 0.18);border-radius:14px;padding:12px;margin:12px 0}
-    .perm-grid{display:grid;grid-template-columns: 1fr repeat(5,90px);gap:6px;align-items:center}
-    .perm-grid .head{font-weight:700}
-    .muted{color:#4B5A58;font-size:12px}
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f3;
+      --panel: #ffffffd9;
+      --border: rgba(49, 72, 68, 0.18);
+      --text: #12302d;
+      --muted: #4B5A58;
+      --accent: #3d7c6c;
+      --accent-soft: #e1ede4;
+      --danger: #d13c3c;
+      --shadow: 0 20px 45px rgba(29, 56, 52, 0.12);
+    }
 
-    /* small diagnostics bar */
-    #diag{white-space:pre-wrap;font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-          padding:8px 10px;border-bottom:1px solid rgba(20, 50, 49, 0.12);display:none}
-    #diag.ok{background:#e1ede4;color:#2F563E;display:block}
-    #diag.err{background:#ffe9e9;color:#a00;display:block}
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top right, #f3f8f5, var(--bg));
+      color: var(--text);
+    }
+
+    header {
+      height: 48px;
+      background: rgba(226, 236, 229, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header a {
+      color: inherit;
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    header .title {
+      font-weight: 700;
+      color: #0f1f1d;
+      letter-spacing: 0.01em;
+    }
+
+    .spacer { flex: 1; }
+
+    main {
+      padding: 32px 20px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      color: #1f4d45;
+      font-size: clamp(1.7rem, 2.3vw + 1rem, 2.35rem);
+    }
+
+    .intro-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 16px;
+    }
+
+    .intro-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .role-actions {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      align-items: start;
+    }
+
+    .action-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 16px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    select,
+    input[type=text] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(46, 80, 75, 0.28);
+      background: #fdfefc;
+      font-size: 0.98rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    select:focus,
+    input[type=text]:focus {
+      outline: none;
+      border-color: rgba(56, 118, 105, 0.75);
+      box-shadow: 0 0 0 4px rgba(61, 124, 108, 0.15);
+    }
+
+    button {
+      padding: 11px 18px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3d7c6c, #2f6c5d);
+      color: #fff;
+      box-shadow: 0 14px 24px rgba(43, 92, 82, 0.25);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 32px rgba(43, 92, 82, 0.28);
+    }
+
+    .btn-secondary {
+      background: #f4faf5;
+      color: #29584f;
+      border-color: rgba(46, 80, 75, 0.35);
+    }
+
+    .btn-secondary:hover {
+      background: #ebf5ee;
+      border-color: rgba(46, 80, 75, 0.55);
+    }
+
+    .btn-danger {
+      background: #ffeaea;
+      color: var(--danger);
+      border-color: rgba(209, 60, 60, 0.45);
+    }
+
+    .btn-danger:hover {
+      background: #ffdede;
+      border-color: rgba(209, 60, 60, 0.7);
+    }
+
+    #status {
+      display: none;
+      margin: -6px 0 0;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 18px;
+    }
+
+    .perm-groups { display: grid; gap: 18px; }
+
+    details.perm-group {
+      background: #fefefd;
+      border: 1px solid rgba(40, 70, 65, 0.12);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(29, 56, 52, 0.08);
+    }
+
+    details.perm-group[open] { box-shadow: 0 18px 42px rgba(29, 56, 52, 0.12); }
+
+    details.perm-group > summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 22px;
+      background: linear-gradient(135deg, rgba(61,124,108,0.12), rgba(61,124,108,0.05));
+      font-weight: 600;
+      font-size: 0.98rem;
+      color: #1f4d45;
+    }
+
+    details.perm-group > summary::-webkit-details-marker { display: none; }
+
+    .group-title { display: flex; align-items: center; gap: 10px; }
+    .group-title .emoji { font-size: 1.2rem; display: inline-flex; }
+    .group-count { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .chevron { font-size: 0.9rem; transition: transform 0.2s ease; color: #29584f; }
+    details[open] .chevron { transform: rotate(180deg); }
+
+    .perm-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(80px, 100px));
+      gap: 0;
+      border-top: 1px solid rgba(40, 70, 65, 0.1);
+      background: #fff;
+    }
+
+    .perm-grid-header,
+    .perm-row {
+      display: contents;
+    }
+
+    .perm-cell {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(44, 70, 66, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .perm-grid .head {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.72rem;
+      color: #34665d;
+      background: #edf6f1;
+    }
+
+    .perm-row:nth-child(even) .perm-cell:first-child {
+      background: #f7faf8;
+    }
+
+    .perm-row:nth-child(odd) .perm-cell:first-child {
+      background: #ffffff;
+    }
+
+    .perm-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .perm-label small {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .checkbox-wrap {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .checkbox-wrap input {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 8px;
+      border: 2px solid rgba(61, 124, 108, 0.35);
+      background: #fff;
+      position: relative;
+      transition: all 0.18s ease;
+    }
+
+    .checkbox-wrap input:checked {
+      background: linear-gradient(135deg, #3d7c6c, #2f6c5d);
+      border-color: rgba(43, 92, 82, 0.8);
+      box-shadow: 0 8px 16px rgba(45, 90, 80, 0.24);
+    }
+
+    .checkbox-wrap input:checked::after {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .perm-footer {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .empty {
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+      background: #fefefd;
+      border: 1px dashed rgba(40,70,65,0.2);
+      border-radius: 18px;
+    }
+
+    @media (max-width: 960px) {
+      details.perm-group > summary { padding: 16px 18px; }
+      .perm-grid {
+        grid-template-columns: minmax(200px, 1fr) repeat(5, 74px);
+      }
+
+      .perm-cell {
+        padding: 12px 12px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      header { position: static; }
+      button { width: 100%; }
+      .row { gap: 10px; }
+      .perm-groups { gap: 14px; }
+      details.perm-group > summary {
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 1rem;
+      }
+      .group-count { width: 100%; }
+      .chevron { margin-left: auto; }
+      .perm-grid { display: block; }
+      .perm-grid-header { display: none; }
+      .perm-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(44, 70, 66, 0.08);
+      }
+      .perm-row:last-child { border-bottom: none; }
+      .perm-cell { border-bottom: none; padding: 0; }
+      .perm-cell:first-child { grid-column: 1 / -1; }
+      .perm-label span { font-size: 1rem; }
+      .perm-label small { font-size: 0.8rem; }
+      .checkbox-wrap { justify-content: flex-start; }
+      .checkbox-wrap input { width: 24px; height: 24px; }
+    }
   </style>
 </head>
 <body>
   <header>
-    <a href="setup/" style="text-decoration:none">← Back</a>
+    <a href="setup/">← Back</a>
     <div class="title">Account Roles</div>
     <div class="spacer"></div>
     <a href="index.html">Home</a>
   </header>
 
-  <!-- Diagnostics -->
-  <div id="diag">Loading…</div>
-
   <main>
-    <h1>Account Roles</h1>
-    <p class="muted">Create roles and set what each role can do for every menu item.</p>
-
-    <div id="status"></div>
-
-    <div class="row">
-      <label>Role:</label>
-      <select id="roleSelect"></select>
-      <input id="newRoleName" type="text" placeholder="New role name (e.g., managers)" />
-      <button id="btnAddRole">Add Role</button>
-      <button id="btnDeleteRole" style="color:#a00">Delete Role</button>
-      <span class="muted">Tip: Builder has full access automatically.</span>
-    </div>
-
-    <div class="card">
-      <div class="perm-grid" id="permHeader">
-        <div class="head">Menu Path</div>
-        <div class="head">View</div>
-        <div class="head">Create</div>
-        <div class="head">Edit</div>
-        <div class="head">Delete</div>
-        <div class="head">Archive</div>
+    <section class="intro-card">
+      <div>
+        <h1>Account Roles</h1>
+        <p>Craft tailored permission sets for each role so teammates only see the menus they need.</p>
       </div>
-      <div id="permRows"></div>
-      <div class="row">
-        <button id="btnSavePerms">Save Permissions</button>
+      <div class="muted">Tip: Builder has full access automatically.</div>
+    </section>
+
+    <section class="role-actions">
+      <div class="action-card">
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:14px;">
+          <label for="roleSelect">Pick an existing role</label>
+          <select id="roleSelect"></select>
+        </div>
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:10px;">
+          <label for="newRoleName">Create a new role</label>
+          <input id="newRoleName" type="text" placeholder="New role name (e.g., Managers)" />
+          <button id="btnAddRole" class="btn-primary">Add Role</button>
+        </div>
+        <button id="btnDeleteRole" class="btn-danger">Delete Selected Role</button>
+        <div id="status"></div>
       </div>
-    </div>
+
+      <div class="action-card" style="gap:12px;">
+        <h2 style="margin:0;font-size:1.1rem;color:#1f4d45;">How permissions work</h2>
+        <p class="muted" style="margin:0;">Each menu path represents a screen inside FarmVista. Toggle the abilities a role should have. Unchecked paths are hidden from that role.</p>
+        <ul class="muted" style="margin:0;padding-left:18px;display:grid;gap:6px;font-size:0.88rem;">
+          <li><strong>View</strong> lets them open the page and see data.</li>
+          <li><strong>Create</strong> allows adding new records or entries.</li>
+          <li><strong>Edit</strong> grants updating existing information.</li>
+          <li><strong>Delete</strong> removes records permanently.</li>
+          <li><strong>Archive</strong> moves content out of active workflows.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card" style="gap:22px;">
+      <div class="muted" style="font-size:0.9rem;">Collapse the sections below to focus on one drawer group at a time. Each toggle will be remembered per role.</div>
+      <div id="permRows" class="perm-groups"></div>
+      <div class="perm-footer">
+        <button id="btnSavePerms" class="btn-primary">Save Permissions</button>
+      </div>
+    </section>
   </main>
 
-  <!-- 1) Menus (plain script sets window.DF_MENUS) -->
-  <script src="assets/data/menus.js"></script>
+  <!-- 1) Drawer menus populate window.DF_DRAWER_MENUS -->
+  <script src="assets/data/drawer-menus.js"></script>
 
   <!-- 2) Firebase init + (optional) auth guard -->
   <script type="module" src="js/firebase-init.js"></script>
@@ -83,16 +446,6 @@
   <!-- 3) Roles admin (relies on firebase-init) -->
   <script type="module">
     import "./js/roles-admin.js";
-    // simple diag: show if menus loaded
-    const d = document.getElementById("diag");
-    try{
-      const ok = !!(window.DF_MENUS && (window.DF_MENUS.tiles||[]).length);
-      d.textContent = ok ? "menus.js loaded ✓" : "menus.js missing tiles";
-      d.className = ok ? "ok" : "err";
-    }catch(e){
-      d.textContent = e.message;
-      d.className = "err";
-    }
   </script>
 </body>
 </html>

@@ -20,38 +20,126 @@ function msg(s, ok=true){ statusBox.style.display='block'; statusBox.style.backg
 function clearMsg(){ statusBox.style.display='none'; }
 function keyFromName(n){ return String(n||'').trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,40); }
 
-// Build a flat list of menu paths from DF_MENUS
-function gatherPaths(){
-  const out = [];
-  const tiles = (window.DF_MENUS && window.DF_MENUS.tiles) ? window.DF_MENUS.tiles : [];
-  tiles.forEach(t=>{
-    if (t.href) out.push({label:t.label, href:t.href});
-    (t.children||[]).forEach(c=>{
-      if (c.href) out.push({label:`${t.label} › ${c.label}`, href:c.href});
-      (c.children||[]).forEach(g=>{
-        if (g.href) out.push({label:`${t.label} › ${c.label} › ${g.label}`, href:g.href});
+// Build a grouped list of menu paths from the drawer data so new
+// features automatically surface here when the navigation updates.
+function gatherDrawerGroups(){
+  const src = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
+  const groups = [];
+
+  const pushItem = (bucket, labelParts, href)=>{
+    if (!href) return;
+    const label = labelParts.filter(Boolean).join(' › ');
+    bucket.items.push({ label, href });
+  };
+
+  src.forEach(section=>{
+    const bucket = {
+      title: section.label || 'Section',
+      icon: section.icon || '',
+      items: []
+    };
+
+    const walk = (node, trail)=>{
+      const nextTrail = [...trail, node.label];
+      pushItem(bucket, nextTrail, node.href);
+      (node.children || []).forEach(child=>walk(child, nextTrail));
+    };
+
+    pushItem(bucket, [section.label], section.href);
+    (section.children || []).forEach(child=>walk(child, [section.label]));
+
+    if (bucket.items.length){
+      groups.push(bucket);
+    }
+  });
+
+  // Fallback to DF_MENUS (legacy) if drawer data missing
+  if (!groups.length && window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles)){
+    const bucket = { title: 'App', icon: '', items: [] };
+    window.DF_MENUS.tiles.forEach(tile=>{
+      const trail = [tile.label];
+      pushItem(bucket, trail, tile.href);
+      (tile.children || []).forEach(child=>{
+        const childTrail = [...trail, child.label];
+        pushItem(bucket, childTrail, child.href);
+        (child.children || []).forEach(grand=>{
+          pushItem(bucket, [...childTrail, grand.label], grand.href);
+        });
       });
     });
-  });
-  return out;
+    if (bucket.items.length){
+      groups.push(bucket);
+    }
+  }
+
+  return groups;
 }
 
 // Render checkbox grid
 function renderPermRows(permsByPath = {}){
   rowsBox.innerHTML = '';
-  const paths = gatherPaths();
-  paths.forEach(p=>{
-    const row = document.createElement('div'); row.className = 'perm-grid';
-    const pr = permsByPath[p.href] || {};
-    row.innerHTML = `
-      <div>${p.label} <div class="muted">${p.href}</div></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="view"   ${pr.view?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="create" ${pr.create?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="edit"   ${pr.edit?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="delete" ${pr.delete?'checked':''}></div>
-      <div><input type="checkbox" data-path="${p.href}" data-k="archive" ${pr.archive?'checked':''}></div>
+  const groups = gatherDrawerGroups();
+
+  if (!groups.length){
+    rowsBox.innerHTML = '<div class="empty">No navigation items found.</div>';
+    return;
+  }
+
+  groups.forEach((group, idx)=>{
+    const details = document.createElement('details');
+    details.className = 'perm-group';
+    if (idx === 0) details.open = true;
+
+    const activeCount = group.items.reduce((total,item)=>{
+      const pr = permsByPath[item.href] || {};
+      return total + (pr.view || pr.create || pr.edit || pr.delete || pr.archive ? 1 : 0);
+    }, 0);
+
+    details.innerHTML = `
+      <summary>
+        <span class="group-title">${group.icon ? `<span class="emoji">${group.icon}</span>` : ''}${group.title}</span>
+        <span class="group-count">${activeCount} of ${group.items.length} items toggled</span>
+        <span class="chevron" aria-hidden="true">▾</span>
+      </summary>
     `;
-    rowsBox.appendChild(row);
+
+    const grid = document.createElement('div');
+    grid.className = 'perm-grid';
+    grid.innerHTML = `
+      <div class="perm-grid-header">
+        <div class="perm-cell head">Menu Path</div>
+        <div class="perm-cell head">View</div>
+        <div class="perm-cell head">Create</div>
+        <div class="perm-cell head">Edit</div>
+        <div class="perm-cell head">Delete</div>
+        <div class="perm-cell head">Archive</div>
+      </div>
+    `;
+
+    const rowsFrag = document.createDocumentFragment();
+    group.items.forEach(item=>{
+      const pr = permsByPath[item.href] || {};
+      const row = document.createElement('div');
+      row.className = 'perm-row';
+      row.innerHTML = `
+        <div class="perm-cell">
+          <div class="perm-label">
+            <span>${item.label}</span>
+            <small>${item.href}</small>
+          </div>
+        </div>
+        <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${item.href}" data-k="view"   ${pr.view?'checked':''}></span></div>
+        <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${item.href}" data-k="create" ${pr.create?'checked':''}></span></div>
+        <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${item.href}" data-k="edit"   ${pr.edit?'checked':''}></span></div>
+        <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${item.href}" data-k="delete" ${pr.delete?'checked':''}></span></div>
+        <div class="perm-cell"><span class="checkbox-wrap"><input type="checkbox" data-path="${item.href}" data-k="archive" ${pr.archive?'checked':''}></span></div>
+      `;
+      rowsFrag.appendChild(row);
+    });
+
+    grid.appendChild(rowsFrag);
+    details.appendChild(grid);
+    rowsBox.appendChild(details);
   });
 }
 
@@ -152,9 +240,9 @@ saveBtn.addEventListener('click', async ()=>{
 
 // init
 (async function init(){
-  // Ensure DF_MENUS exists
-  if (!window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles)){
-    msg('menus.js not loaded.', false);
+  // Ensure drawer data exists
+  if (!Array.isArray(window.DF_DRAWER_MENUS) && !(window.DF_MENUS && Array.isArray(window.DF_MENUS.tiles))){
+    msg('drawer-menus.js not loaded.', false);
     return;
   }
   await loadRoles();
