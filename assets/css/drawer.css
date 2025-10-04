@@ -14,7 +14,7 @@
 }
 body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
 
-/* Panel (flex column so footer can sit at bottom) */
+/* Panel (flex column so scroll area can expand) */
 .drawer{
   --drawer-w: 320px;                   /* JS may override this inline */
   position:fixed; inset:var(--fv-header-height, 68px) auto 0 0; width:var(--drawer-w); max-width:86vw;
@@ -27,6 +27,15 @@ body.drawer-open .drawerBackdrop{ opacity:1; visibility:visible; }
   border-radius: 0 var(--drawer-radius) var(--drawer-radius) 0;
 }
 body.drawer-open .drawer{ translate:0 0; }
+
+/* Scroll region: includes hero, nav, and footer */
+.drawerScroll{
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
 
 /* ===== Top hero (uses the “dead space”) ===== */
 .drawer .hero{
@@ -49,11 +58,10 @@ body.drawer-open .drawer{ translate:0 0; }
   font:13px/1.2 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
 }
 
-/* List area (scrolls) */
+/* List area */
 .drawer nav{
   padding:6px;
-  overflow:auto;
-  flex:1 1 auto;
+  flex:0 0 auto;
 }
 
 /* Shared metrics */
@@ -111,12 +119,14 @@ body.drawer-open .drawer{ translate:0 0; }
 .drawer .subgroup[aria-expanded="true"] .subpanel{ max-height:900px; }
 .drawer .subgroup[aria-expanded="true"] .chev{ transform:rotate(90deg); }
 
-/* ===== Footer block — pinned flush to bottom, no tall banner ===== */
+/* ===== Footer block — part of scroll flow ===== */
 .drawerFooter{
-  position:sticky; bottom:0;
   background:rgba(248, 245, 230, 0.95);
-  padding:10px 10px 14px;
+  padding:12px 10px 18px;
   border-top:1px solid rgba(20, 50, 49, 0.1);
+  margin:10px 6px 18px;
+  border-radius:18px;
+  box-shadow:0 16px 26px rgba(23, 52, 49, 0.08);
 }
 
 /* Logout row — same size/feel as a normal item */
