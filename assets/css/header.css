@@ -1,11 +1,25 @@
 /* Farm Vista — Global Header (fixed, Farm Vista gradient, mobile-first) */
 
 :root {
-  --fv-header-height: 76px;
+  --fv-header-base-height: 76px;
+  --fv-safe-top: 0px;
+  --fv-header-height: calc(var(--fv-header-base-height) + var(--fv-safe-top));
 }
 
-html, body { height: 100%; }
-body { padding-top: var(--fv-header-height); }
+@supports (padding-top: env(safe-area-inset-top)) {
+  :root {
+    --fv-safe-top: env(safe-area-inset-top);
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  padding-top: var(--fv-header-height);
+}
 
 .app-header {
   position: fixed;
@@ -15,7 +29,7 @@ body { padding-top: var(--fv-header-height); }
   align-items: stretch;
   justify-content: flex-start;
   gap: 14px;
-  padding: 10px 18px 12px;
+  padding: calc(var(--fv-safe-top) + 10px) 18px 12px;
   background: linear-gradient(120deg, rgba(54, 94, 90, 0.95), rgba(216, 193, 121, 0.88));
   color: #fefcf4;
   z-index: 1000;
@@ -30,12 +44,12 @@ body { padding-top: var(--fv-header-height); }
   border-radius: 14px;
   padding: 6px 10px;
   margin: 0;
-  margin-top: auto;
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
   color: #fefcf4;
   transition: background 0.18s ease, border-color 0.18s ease;
+  align-self: center;
 }
 
 .app-header .burger:focus-visible {
@@ -108,10 +122,13 @@ body { padding-top: var(--fv-header-height); }
 }
 
 @media (max-width: 640px) {
-  :root { --fv-header-height: 72px; }
+  :root {
+    --fv-header-base-height: 72px;
+  }
   .app-header {
     gap: 10px;
     padding: 8px 14px 10px;
+    padding-top: calc(var(--fv-safe-top) + 8px);
   }
 }
 

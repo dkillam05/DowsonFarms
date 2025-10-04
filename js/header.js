@@ -1,7 +1,11 @@
 // Farm Vista — Global Header (green theme)
 (function () {
+  if (document.querySelector('header[data-fv-global="1"]')) return;
+
   const header = document.createElement("header");
   header.className = "app-header";
+  header.dataset.fvGlobal = "1";
+  header.setAttribute("role", "banner");
   header.innerHTML = `
     <button id="drawerToggle" class="burger" aria-label="Open menu">☰</button>
     <div class="header-breadcrumbs" role="presentation"></div>
