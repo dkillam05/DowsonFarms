@@ -20,19 +20,21 @@ function msg(s, ok=true){ statusBox.style.display='block'; statusBox.style.backg
 function clearMsg(){ statusBox.style.display='none'; }
 function keyFromName(n){ return String(n||'').trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,40); }
 
-// Build a flat list of menu paths from DF_MENUS
+// Build a flat list of menu paths from DF_DRAWER_MENUS
 function gatherPaths(){
   const out = [];
-  const tiles = (window.DF_MENUS && window.DF_MENUS.tiles) ? window.DF_MENUS.tiles : [];
-  tiles.forEach(t=>{
-    if (t.href) out.push({label:t.label, href:t.href});
-    (t.children||[]).forEach(c=>{
-      if (c.href) out.push({label:`${t.label} › ${c.label}`, href:c.href});
-      (c.children||[]).forEach(g=>{
-        if (g.href) out.push({label:`${t.label} › ${c.label} › ${g.label}`, href:g.href});
-      });
-    });
-  });
+  const menus = Array.isArray(window.DF_DRAWER_MENUS) ? window.DF_DRAWER_MENUS : [];
+
+  const visit = (node, trail = []) => {
+    const nextTrail = node.label ? [...trail, node.label] : trail;
+    if (node.href) {
+      const labelText = nextTrail.length ? nextTrail.join(' › ') : (node.href || '');
+      out.push({ label: labelText, href: node.href });
+    }
+    (node.children || []).forEach(child => visit(child, nextTrail));
+  };
+
+  menus.forEach(node => visit(node, []));
   return out;
 }
 
@@ -40,6 +42,13 @@ function gatherPaths(){
 function renderPermRows(permsByPath = {}){
   rowsBox.innerHTML = '';
   const paths = gatherPaths();
+  if (!paths.length) {
+    const row = document.createElement('div');
+    row.className = 'perm-row';
+    row.innerHTML = '<div class="perm-cell" style="grid-column:1 / -1;">No navigation paths were found in drawer-menus.js.</div>';
+    rowsBox.appendChild(row);
+    return;
+  }
   paths.forEach(p=>{
     const row = document.createElement('div');
     row.className = 'perm-row';
@@ -158,9 +167,9 @@ saveBtn.addEventListener('click', async ()=>{
 
 // init
 (async function init(){
-  // Ensure DF_MENUS exists
-  if (!window.DF_MENUS || !Array.isArray(window.DF_MENUS.tiles)){
-    msg('menus.js not loaded.', false);
+  // Ensure DF_DRAWER_MENUS exists
+  if (!Array.isArray(window.DF_DRAWER_MENUS)){
+    msg('drawer-menus.js not loaded.', false);
     return;
   }
   await loadRoles();
