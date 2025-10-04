@@ -122,8 +122,7 @@ window.DF_MENUS = {
       iconEmoji: "⚙️",
       children: [
         { label: "Theme",            href: "settings/settings-theme.html",       iconEmoji: "🌗" },
-        { label: "Account Details", href: "settings/account-details.html",      iconEmoji: "👤" },
-        { label: "Check for Updates", href: "settings/index.html#check-updates", iconEmoji: "🔄" }
+        { label: "Account Details", href: "settings/account-details.html",      iconEmoji: "👤" }
       ]
     },
 

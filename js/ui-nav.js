@@ -3,6 +3,7 @@
 import { auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { loadAccess } from "./access.js";
+import { runUpdateCheck, triggerAutoCheck } from "./update-check.js";
 
 const $ = (s) => document.querySelector(s);
 
@@ -12,10 +13,22 @@ function bindAutoUpdateFlag(anchor) {
   if (!anchor) return;
   const href = anchor.getAttribute("href") || "";
   if (!href.includes(UPDATE_CHECK_HREF)) return;
-  anchor.addEventListener("click", () => {
-    try {
-      sessionStorage.setItem("fvAutoUpdateCheck", "1");
-    } catch (_) {}
+  anchor.addEventListener("click", (event) => {
+    if (event.defaultPrevented) return;
+    const modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+    const primary = event.button === undefined || event.button === 0;
+    if (!primary || modified) return;
+
+    event.preventDefault();
+
+    runUpdateCheck({ reloadHash: '#check-updates' }).catch(() => {
+      try {
+        triggerAutoCheck();
+      } catch (_) {}
+      if (href) {
+        location.href = href;
+      }
+    });
   });
 }
 

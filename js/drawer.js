@@ -96,16 +96,40 @@
   const makeLink = (href, label, icon) => {
     const a = document.createElement("a");
     a.className = "item";
-    a.href = href || "#";
+    const targetHref = href || "#";
+    a.href = targetHref;
     a.innerHTML = `<span class="icon">${icon || ""}</span>${label}`;
-    a.addEventListener("click", closeDrawer);
-    if ((href || "").includes("settings/index.html#check-updates")) {
-      a.addEventListener("click", () => {
-        try {
-          sessionStorage.setItem("fvAutoUpdateCheck", "1");
-        } catch (_) {}
-      });
-    }
+
+    const isUpdateLink = (targetHref || "").includes("settings/index.html#check-updates");
+
+    a.addEventListener("click", (ev) => {
+      if (ev.defaultPrevented) return;
+
+      const modified = ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey;
+      const primary = ev.button === undefined || ev.button === 0;
+
+      if (isUpdateLink && primary && !modified) {
+        ev.preventDefault();
+        closeDrawer();
+        const api = window.FV_UPDATE_CHECK;
+        if (api && typeof api.runUpdateCheck === "function") {
+          api.runUpdateCheck({ reloadHash: null }).catch(() => {});
+        } else {
+          try {
+            sessionStorage.setItem("fvAutoUpdateCheck", "1");
+          } catch (_) {}
+          if (href) {
+            location.href = href;
+          }
+        }
+        return;
+      }
+
+      if (primary && !modified) {
+        closeDrawer();
+      }
+    });
+
     return a;
   };
 
