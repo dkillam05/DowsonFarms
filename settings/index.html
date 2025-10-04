@@ -187,11 +187,11 @@
     import { auth } from "../js/firebase-init.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import { loadAccess } from "../js/access.js";
+    import { runUpdateCheck, shouldAutoCheck as shouldAutoCheckFlag } from "../js/update-check.js";
 
     const tilesEl = document.getElementById('settingsTiles');
     const metaEl = document.getElementById('settingsMeta');
     const emptyEl = document.getElementById('settingsEmpty');
-    const toastEl = document.getElementById('updateToast');
     const statusEl = document.getElementById('updMsg');
     const btn = document.getElementById('btnCheckUpdates');
 
@@ -203,23 +203,6 @@
         year: 'numeric'
       });
     }
-
-    const showToast = (message, tone = 'info') => {
-      if (!toastEl) return;
-      toastEl.textContent = message;
-      toastEl.dataset.tone = tone;
-      toastEl.hidden = false;
-      toastEl.classList.remove('show');
-      void toastEl.offsetWidth; // force reflow for transition
-      toastEl.classList.add('show');
-      clearTimeout(showToast._timer);
-      showToast._timer = window.setTimeout(() => {
-        toastEl.classList.remove('show');
-        window.setTimeout(() => {
-          toastEl.hidden = true;
-        }, 250);
-      }, 3000);
-    };
 
     const getMenus = () => (window.DF_MENUS && (window.DF_MENUS.tiles || window.DF_MENUS)) || [];
     const getSettingsNode = () => {
@@ -293,78 +276,9 @@
       }
     });
 
-    const parseRemoteVersion = (text) => {
-      const tryMatch = (regex) => {
-        const match = text.match(regex);
-        return match ? match[1].trim() : null;
-      };
-
-      return (
-        tryMatch(/DF_VERSION\s*=\s*["'`](.+?)["'`]/) ||
-        tryMatch(/SOURCE_VERSION\s*=\s*["'`](.+?)["'`]/) ||
-        null
-      );
-    };
-
-    const compareVersions = (next, current) => {
-      if (!next && !current) return 0;
-      if (next && !current) return 1;
-      if (!next && current) return -1;
-      if (next === current) return 0;
-      const toParts = (ver) => ver.replace(/^v/i, '').split(/[^0-9]+/).filter(Boolean).map((n) => parseInt(n, 10) || 0);
-      const a = toParts(next);
-      const b = toParts(current);
-      const len = Math.max(a.length, b.length);
-      for (let i = 0; i < len; i += 1) {
-        const diff = (a[i] || 0) - (b[i] || 0);
-        if (diff !== 0) return diff;
-      }
-      return next.localeCompare(current);
-    };
-
-    const fetchLatestVersion = async () => {
-      const res = await fetch('../js/version.js?ts=' + Date.now(), { cache: 'no-store' });
-      if (!res.ok) throw new Error('Version fetch failed: ' + res.status);
-      const text = await res.text();
-      const remote = parseRemoteVersion(text);
-      if (!remote) throw new Error('Version string not found in response.');
-      return remote;
-    };
-
-    const clearCaches = async () => {
-      if (!('caches' in window)) return;
-      const names = await caches.keys();
-      await Promise.all(names.map((name) => caches.delete(name).catch(() => {})));
-    };
-
-    const refreshServiceWorkers = async (forceUnregister = false) => {
-      if (!('serviceWorker' in navigator)) return;
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(
-        regs.map(async (reg) => {
-          try {
-            if (forceUnregister) {
-              await reg.unregister();
-            } else if (reg.update) {
-              await reg.update();
-            }
-          } catch (err) {
-            console.warn('Service worker refresh failed', err);
-          }
-        })
-      );
-    };
-
-    const reloadWithNotice = (delayMs = 1500) => {
-      window.setTimeout(() => {
-        try {
-          const base = location.href.split('#')[0];
-          location.href = `${base}#check-updates`;
-          location.reload();
-        } catch (_) {
-          location.reload();
-        }
-      }, delayMs);
+    const updateStatus = (message) => {
+      statusEl.hidden = false;
+      statusEl.textContent = message;
     };
 
     btn.addEventListener('click', async (event) => {
@@ -372,50 +286,25 @@
       if (btn.disabled) return;
 
       const originalText = btn.textContent;
-      const currentVersion = (window.DF_VERSION || '').trim();
 
       btn.disabled = true;
       btn.textContent = 'Checking…';
       statusEl.hidden = false;
-      statusEl.textContent = 'Checking for updates…';
 
       try {
-        const latestVersion = await fetchLatestVersion();
-        const hasNewer = compareVersions(latestVersion, currentVersion) > 0;
-        await clearCaches();
-        await refreshServiceWorkers(hasNewer);
-        const displayVersion = latestVersion || currentVersion || 'unknown';
-
-        if (hasNewer) {
-          statusEl.textContent = `New version ${latestVersion} available. Reloading…`;
-          showToast(`New version ${latestVersion} ready. Reloading…`, 'success');
-          reloadWithNotice();
-        } else {
-          statusEl.textContent = `You're on the latest version (${displayVersion}).`;
-          showToast(`You're on the latest version (${displayVersion}).`, 'info');
-        }
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = 'Could not check for updates. Please try again later.';
-        showToast('Update check failed. Please try again later.', 'error');
+        await runUpdateCheck({
+          onStatus: updateStatus,
+          reloadHash: '#check-updates',
+        });
+      } catch (_) {
+        // handled by runUpdateCheck
       } finally {
         btn.disabled = false;
         btn.textContent = originalText;
       }
     });
 
-    const autoFlag = 'fvAutoUpdateCheck';
-    const shouldAutoCheck = (() => {
-      try {
-        if (sessionStorage.getItem(autoFlag) === '1') {
-          sessionStorage.removeItem(autoFlag);
-          return true;
-        }
-      } catch (_) {}
-      return (location.hash || '').includes('auto-check');
-    })();
-
-    if (shouldAutoCheck && btn) {
+    if (shouldAutoCheckFlag() && btn) {
       window.requestAnimationFrame(() => {
         btn.focus();
         btn.click();

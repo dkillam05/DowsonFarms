@@ -52,6 +52,7 @@
   try {
     await ensureScript("assets/data/drawer-menus.js");
     await ensureScript("js/version.js");
+    await ensureScript("js/update-check.js", { type: "module" });
     await ensureScript("js/header.js");
     await ensureScript("js/footer.js");
     await ensureScript("js/drawer.js", { type: "module" });
