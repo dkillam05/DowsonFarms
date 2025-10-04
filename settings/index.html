@@ -146,6 +146,18 @@
         );
       };
 
+      const reloadWithNotice = (delayMs = 1500) => {
+        window.setTimeout(() => {
+          try {
+            const base = location.href.split("#")[0];
+            location.href = `${base}#check-updates`;
+            location.reload();
+          } catch (_) {
+            location.reload();
+          }
+        }, delayMs);
+      };
+
       btn.addEventListener("click", async (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -159,7 +171,8 @@
           await refreshServiceWorkers(hasNewer);
           const displayVersion = latestVersion || currentVersion || "unknown";
           if (hasNewer) {
-            msg.textContent = `New version ${latestVersion} available. Caches cleared.`;
+            msg.textContent = `New version ${latestVersion} available. Reloading…`;
+            reloadWithNotice();
           } else {
             msg.textContent = `Already on latest version (${displayVersion}). Caches cleared.`;
           }
